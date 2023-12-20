@@ -2,5 +2,5 @@
 2023修了課題<br>
 下のURLで遊べます。<br>
 -----------------------------------------------<br>
-https://m-kz15.github.io/PlayBTG/indexTest.html
+https://m-kz15.github.io/PlayBTG/indexTest.html <br>
 -----------------------------------------------<br>
