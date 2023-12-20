@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=960px,user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ゲーム画面</title>
+    <style type="text/css">
+        a:link {
+            text-decoration: none;
+            color: #E6E6FA;
+        }
+        
+        body {
+            background-color: #222222;
+            color: #FFFFFF;
+            width: 100vw;
+        }
+        .center{
+            position: absolute;
+            border:1px solid gray;
+            width: 1280px;
+            height: 960px;
+            top: 0;
+            left:20vw;
+        }
+        .center .oya{
+            position:absolute;
+            left: -16.5vw;
+            top: 5vh;
+            width: 15vw;
+            font-size: 20px;
+            line-height: 1.5em;
+            border: 1px solid #FFFFFF;
+        }
+        .oya th{
+            width: 80px;
+            height: 32px;
+            text-align: center;
+        }
+        .oya td{
+            width: 120px;
+            height: 32px;
+            text-align: center;
+        }
+        .ko1 th, .ko1 td, .ko2 th, .ko2 td{
+            width: 60px;
+            height: 32px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="center" id="center">
+        <iframe src="gameTest.html" width="1280" height="960" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border:none;"></iframe>
+        <!-- 1536 1152 -->
+        
+        <table class="oya" border="1">
+            <caption><h2>遊び方</h2></caption>
+            <tr>
+                <th>内容</th>
+                <th>操作</th>
+            </tr>
+            <tr>
+                <th>移動</th>
+                <td><table class="ko1" border="1">
+                    <caption>wasdキー</caption>
+                    <tr>
+                        <td>w+a</td>
+                        <td>w</td>
+                        <td>w+d</td>
+                    </tr>
+                    <tr>
+                        <td>a</td>
+                        <td></td>
+                        <td>d</td>
+                    </tr>
+                    <tr>
+                        <td>s+a</td>
+                        <td>s</td>
+                        <td>s+d</td>
+                    </tr>
+                </table></td>
+            </tr>
+            <tr>
+                <th>照準</th>
+                <td><table class="ko2" border="1">
+                    <caption>カーソル<br>十字キー</caption>
+                    <tr>
+                        <td>↑+←</td>
+                        <td>↑</td>
+                        <td>↑+→</td>
+                    </tr>
+                    <tr>
+                        <td>←</td>
+                        <td></td>
+                        <td>→</td>
+                    </tr>
+                    <tr>
+                        <td>↓+←</td>
+                        <td>↓</td>
+                        <td>↓+→</td>
+                    </tr>
+                </table></td>
+            </tr>
+            
+            <tr>
+                <th>砲撃</th>
+                <td>画面クリック<br>スペースキー</td>
+            </tr>
+            
+            <tr>
+                <th>爆弾設置</th>
+                <td>qキー</td>
+            </tr>
+        </table>
+        <br>
+    </div>
+</body>
+
+</html>
