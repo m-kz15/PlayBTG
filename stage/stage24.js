@@ -53,8 +53,8 @@ function LoadStage(){
         [1,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,1]
     ];
     setting[3] = [15,7];
-    setting[4] = [3,2,'./image/ObjectImage/snow.png','./image/ObjectImage/snowcannon.png',2,1,12,0.5,30,7,6]
-    setting[5] = [3,13,'./image/ObjectImage/snow.png','./image/ObjectImage/snowcannon.png',2,1,12,0.5,30,7,6]
+    setting[4] = [3,3,'./image/ObjectImage/snow.png','./image/ObjectImage/snowcannon.png',2,1,12,0.5,30,7,6]
+    setting[5] = [3,12,'./image/ObjectImage/snow.png','./image/ObjectImage/snowcannon.png',2,1,12,0.5,30,7,6]
     setting[6] = [12,4,'./image/ObjectImage/brown.png','./image/ObjectImage/browncannon.png',1,1,8,0,30,0,0]
     setting[7] = [17,11,'./image/ObjectImage/brown.png','./image/ObjectImage/browncannon.png',1,1,8,0,30,0,0]
     setting[8] = [6,7]
