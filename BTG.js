@@ -3623,7 +3623,7 @@ window.onload = function() {
                         }
                         toTitle.addEventListener(Event.TOUCH_START, function() {
                             game.stop()
-                            location.href = "http://localhost/BattleTankGame/gameTest.html";
+                            location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
                         });
                         toProceed.addEventListener(Event.TOUCH_START, function() {
                             complete = false;
@@ -3829,7 +3829,7 @@ window.onload = function() {
                 stageNum = 1;
                 game.stop()
                 
-                location.href = "http://localhost/BattleTankGame/gameTest.html";
+                location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
                 game.replaceScene(createTitleScene());    // 現在表示しているシーンをタイトルシーンに置き換える
             });
             scene.onenterframe=function(){
