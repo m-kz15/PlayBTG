@@ -20,9 +20,9 @@ var floors = [];        //ステージの障害物を保持する配列
 var walls = [];         //ステージの壁を保持する配列
 var holes = [];         //ステージの穴を保持する配列
 var circles = [];       //【テスト】ボールを保持する配列
-var colors = [0,0,0,0,0,0,0,0,0];        //【テスト】戦車の色を数える配列
-var colorsName = ["Brown","Gray","Green","Red","lightGreen","eliteGray ","Snow","eliteGreen","Boss"]
-let fontColor = ['saddlebrown','lightslategray','lime','red','aquamarine','darkslategray','lightcyan','green','maroon']
+var colors = [0,0,0,0,0,0,0,0,0,0];        //【テスト】戦車の色を数える配列
+var colorsName = ["Brown","Gray","Green","Red","lightGreen","eliteGray ","Snow","eliteGreen","Random","Boss"]
+let fontColor = ['saddlebrown','lightslategray','lime','red','aquamarine','darkslategray','lightcyan','green','navy','maroon']
 var rankings = [0,0,0,0,0,0,0,0,0,0]
 var tops = ["_____","_____","_____","_____","_____","_____","_____","_____","_____","_____"]
 var times = [0,0,0,0,0,0,0,0,0,0]
@@ -105,7 +105,22 @@ const stagePath = [
     './stage/stage21.js',
     './stage/stage22.js',
     './stage/stage23.js',
-    './stage/stage24.js'
+    './stage/stage24.js',
+    './stage/stage25.js',
+    './stage/stage26.js',
+    './stage/stage27.js',
+    './stage/stage28.js',
+    './stage/stage29.js',
+    './stage/stage30.js',
+    './stage/stage31.js',
+    './stage/stage32.js',
+    './stage/stage33.js',
+    './stage/stage34.js',
+    './stage/stage35.js',
+    './stage/stage36.js',
+    './stage/stage37.js',
+    './stage/stage38.js',
+    './stage/stage39.js'
 ];
 var script = document.createElement("script");
 script.src = stagePath[stageNum];
@@ -1465,7 +1480,7 @@ window.onload = function() {
                     fireFlgs[Num] = false;
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
-                            if(this.within(bulOb[j][k],28)==true){
+                            if(this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 colOb[j][k].destroy()
@@ -1942,7 +1957,7 @@ window.onload = function() {
                         
                         for(var j = 0; j < bulOb.length; j++){
                             for(var k = 0; k < bulOb[j].length; k++){
-                                if(this.within(bulOb[j][k],28)==true){
+                                if(this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
                                     game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                     deadFlgs[Num] = true
                                     colOb[j][k].destroy()
@@ -2009,22 +2024,24 @@ window.onload = function() {
                                     if(dist1 > dist2){
                                         tank.intersect(BulAim).forEach(function(){
                                             enemyTarget[Num] = elem2;
-                                            if(weak.x-2.75 > elem2.x){
-                                                
-                                                if(weak.y-2.75 > elem2.y){
-                                                    while(value == 0 || value == 2) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                                else{
-                                                    while(value == 0 || value == 3) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                            }else{
-                                                if(weak.y-2.75 > elem2.y){
-                                                    while(value == 1 || value == 2) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                                else{
-                                                    while(value == 1 || value == 3) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                            } 
+                                            if(this.time % 5 == 0){
+                                                if(weak.x-2.75 > elem2.x){
+                                                    if(weak.y-2.75 > elem2.y){
+                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                    else{
+                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                }else{
+                                                    if(weak.y-2.75 > elem2.y){
+                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                    else{
+                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                } 
+                                            }
+                                            
                                         })
                                           
                                     }
@@ -2064,42 +2081,48 @@ window.onload = function() {
                                             tank.intersect(BulAim).forEach(function(){
                                                 enemyTarget[Num] = elem;
                                             })
-                                            if(weak.x-2.75 > elem.x){
-                                                if(weak.y-2.75 > elem.y){
-                                                    while(value == 0 || value == 2) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                                else{
-                                                    while(value == 0 || value == 3) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                            }else{
-                                                if(weak.y-2.75 > elem.y){
-                                                    while(value == 1 || value == 2) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                                else{
-                                                    while(value == 1 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                            if(this.time % 5 == 0){
+                                                if(weak.x-2.75 > elem.x){
+                                                    if(weak.y-2.75 > elem.y){
+                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                    else{
+                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                }else{
+                                                    if(weak.y-2.75 > elem.y){
+                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                    else{
+                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                                    }
                                                 }
                                             }
+                                            
                                         }
                                     }
                                     if(intercept2.intersect(elem) && tank.intersect(Floor)==false){
                                         let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                         let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
                                         if(dist1 > dist2 && intercept3.intersect(elem)==false){
-                                            if(weak.x-2.75 > elem.x){
-                                                if(weak.y-2.75 > elem.y){
-                                                    while(value == 0 || value == 2) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                                else{
-                                                    while(value == 0 || value == 3) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                            }else{
-                                                if(weak.y-2.75 > elem.y){
-                                                    while(value == 1 || value == 2) value = Math.floor(Math.random() * 16)%4;
-                                                }
-                                                else{
-                                                    while(value == 1 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                            if(this.time % 5 == 0){
+                                                if(weak.x-2.75 > elem.x){
+                                                    if(weak.y-2.75 > elem.y){
+                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                    else{
+                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                }else{
+                                                    if(weak.y-2.75 > elem.y){
+                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 16)%4;
+                                                    }
+                                                    else{
+                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 16)%4;
+                                                    }
                                                 }
                                             }
+                                            
                                         }
                                     }
                                 })
@@ -2111,12 +2134,13 @@ window.onload = function() {
                                 }
                             })
                             
-                            if(game.time % 10 == 0){
+                            if(game.time % 5 == 0){
                                 
                                 for(var i = 0; i < tankEntity.length; i++){
                                     if(i != Num && deadFlgs[i] == false){
                                         if(intercept3.intersect(tankEntity[i])==true){
                                             if(weak.x-2.75 > tankEntity[i].x){
+                                                
                                                 if(weak.y-2.75 > tankEntity[i].y){
                                                     while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
                                                 }
@@ -2393,7 +2417,7 @@ window.onload = function() {
                 if(dflg == false && escapeFlg == false){
                     speed = moveSpeed;
                 }else{
-                    speed = 4;
+                    speed = moveSpeed+(moveSpeed/4);
                 }
                 
                 if(worldFlg == true){
@@ -2401,7 +2425,7 @@ window.onload = function() {
                     if(deadFlgs[0] == false){
                         for(var j = 0; j < bulOb.length; j++){
                             for(var k = 0; k < bulOb[j].length; k++){
-                                if(this.within(bulOb[j][k],28)==true){
+                                if(this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
                                     game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                     deadFlgs[Num] = true
                                     colOb[j][k].destroy()
@@ -2487,11 +2511,11 @@ window.onload = function() {
                                 }
                             })
                             
-                            if(game.time % 10 == 0){
+                            if(game.time % 5 == 0){
                                 
                                 for(var i = 0; i < tankEntity.length; i++){
                                     if(i != Num){
-                                        if(intercept3.intersect(tankEntity[i])==true){
+                                        if(intercept.intersect(tankEntity[i])==true){
                                             if(weak.x-2.75 > tankEntity[i].x){
                                                 if(weak.y-2.75 > tankEntity[i].y){
                                                     while(value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
@@ -2509,7 +2533,7 @@ window.onload = function() {
                                             }
                                         }else{
                                             let dist = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                            if(dist > 160){
+                                            if(dist > 200){
                                                     
                                                 if(weak.x-2.75 > enemyTarget[Num].x){
                                                     if(weak.y-2.75 > enemyTarget[Num].y){
@@ -3296,7 +3320,7 @@ window.onload = function() {
 
             scene.onenterframe = function(){
                 scene.time++
-                if(stageNum == 20 && scene.time == 15) new Warning(scene)
+                if((stageNum == 20 || stageNum == 40 || stageNum == 100) && scene.time == 15) new Warning(scene)
                 if(scene.time == 150){
                     new FadeOut(scene)
                 }
@@ -3466,8 +3490,9 @@ window.onload = function() {
                 bomOb.push([])
                 if(stageData[i][9]==10){
                     tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4],stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap))
-                }else if(abn == 0 && stageNum > 5 && i == 4 && stageNum % 5 != 0){
+                }else if((abn == 0 && stageNum > 5 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
                     tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],Math.floor(Math.random() * 4)+1,Math.floor(Math.random() * 4)+1,Math.floor(Math.random() * 9)+6,Math.floor(Math.random() * 3),Math.floor(Math.random() * 35)+5,Math.floor(Math.random() * 4)+3,scene,filterMap))
+                    stageData[i][10] = 8;
                 }else if(stageData[i][9]>2){
                     tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4],stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap));
                 }else{
@@ -3591,13 +3616,13 @@ window.onload = function() {
                         /*var bodyImage = */new DispBody(100,240,360*3,240*3,scene)
                     }
                     
-                    if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < 9){
-                        /*var enemys = */new DispText(220,240+(64*(dcnt+1)),720,56,colorsName[dcnt],'56px "Arial"',fontColor[dcnt],'left',scene)
-                        /*var breaks = */new DispText(480,240+(64*(dcnt+1)),320*2,56,'：'+colors[dcnt],'56px "Arial"','#400','left',scene)
+                    if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < 10){
+                        /*var enemys = */new DispText(220,200+(64*(dcnt+1)),720,56,colorsName[dcnt],'56px "Arial"',fontColor[dcnt],'left',scene)
+                        /*var breaks = */new DispText(480,200+(64*(dcnt+1)),320*2,56,'：'+colors[dcnt],'56px "Arial"','#400','left',scene)
                         dcnt++;
                     }
                     if(complete == true && scene.time == 315){
-                        /*var newScore = */new DispText(640,420,320*1.5,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','center',scene)
+                        /*var newScore = */new DispText(620,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
                     }
                     
                     if(complete == true && scene.time >= 345){
@@ -3623,7 +3648,7 @@ window.onload = function() {
                         }
                         toTitle.addEventListener(Event.TOUCH_START, function() {
                             game.stop()
-                            location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
+                            location.href = "http://localhost/BattleTankGame/gameTest.html";
                         });
                         toProceed.addEventListener(Event.TOUCH_START, function() {
                             complete = false;
@@ -3829,7 +3854,7 @@ window.onload = function() {
                 stageNum = 1;
                 game.stop()
                 
-                location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
+                location.href = "http://localhost/BattleTankGame/gameTest.html";
                 game.replaceScene(createTitleScene());    // 現在表示しているシーンをタイトルシーンに置き換える
             });
             scene.onenterframe=function(){
