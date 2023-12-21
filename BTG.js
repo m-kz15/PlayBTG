@@ -3573,10 +3573,7 @@ window.onload = function() {
                     
                     if(destruction == tankEntity.length-1 && deadFlgs[0]==false && victory == false && complete == false){
                         BGM1.stop();
-                        test.forEach(elem=>{
-                            scene.removeChild(elem)
-                        })
-                        
+
                         for(var i = 4; i < Object.keys(stageData).length-1; i++){
                             colors[stageData[i][10]] += 1;
                         }
@@ -3614,6 +3611,9 @@ window.onload = function() {
                     }
                     if(complete == true && scene.time == 120){
                         /*var bodyImage = */new DispBody(100,240,360*3,240*3,scene)
+                        test.forEach(elem=>{
+                            scene.removeChild(elem)
+                        })
                     }
                     
                     if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < 10){
@@ -3687,6 +3687,9 @@ window.onload = function() {
                         new FadeOut(scene)
                     }
                     if(defeat==true && game.time == 180){
+                        test.forEach(elem=>{
+                            scene.removeChild(elem)
+                        })
                         obstacle.forEach(elem=>{
                             elem.destroy();
                             scene.removeChild(elem);
@@ -3726,6 +3729,9 @@ window.onload = function() {
                     if(victory == true && game.time == 180 && complete==false){
                         score += destruction
                         stageNum++;
+                        test.forEach(elem=>{
+                            scene.removeChild(elem)
+                        })
                         obstacle.forEach(elem=>{
                             elem.destroy();
                             scene.removeChild(elem);
