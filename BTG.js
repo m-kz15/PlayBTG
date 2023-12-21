@@ -2417,7 +2417,7 @@ window.onload = function() {
                 if(dflg == false && escapeFlg == false){
                     speed = moveSpeed;
                 }else{
-                    speed = moveSpeed+(moveSpeed/4);
+                    speed = moveSpeed+0.8;
                 }
                 
                 if(worldFlg == true){
