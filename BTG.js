@@ -2471,8 +2471,8 @@ window.onload = function() {
                     this.time++;
                     
                     if(grade == 12 && tank.opacity > 0 && opaFlg == false){
-                        tank.opacity-=0.1
-                        cannon.opacity-=0.1
+                        tank.opacity-=0.05
+                        cannon.opacity-=0.05
                         if(tank.opacity <= 0){
                             tank.opacity = 0
                             cannon.opacity = 0;
@@ -2480,8 +2480,8 @@ window.onload = function() {
                     }
                     if(grade == 12 && opaFlg == true){
                         if(this.time % 2 == 0){
-                            tank.opacity += 0.1;
-                            cannon.opacity += 0.1;
+                            tank.opacity += 0.25;
+                            cannon.opacity += 0.25;
                         }
                         if(tank.opacity > 1.0){
                             tank.opacity = 1.0;
@@ -2530,7 +2530,7 @@ window.onload = function() {
                                     new OpenFire(cannon,alignment,scene,filterMap)
                                     PlBulCount = (PlBulCount+1) % emax;
                                     bullets[Num]++;
-                                    opaFlg = true;
+                                    if(grade == 12) opaFlg = true;
                                 } 
                             }else{
                                 if(Math.floor(Math.random() * emax*2)>bullets[Num] && game.time % fireLate == 0){
@@ -2543,7 +2543,7 @@ window.onload = function() {
                                         new OpenFire(cannon,alignment,scene,filterMap)
                                         PlBulCount = (PlBulCount+1) % emax;
                                         bullets[Num]++;
-                                        opaFlg = true;
+                                        if(grade == 12) opaFlg = true;
                                     } 
                                 }
                                 
