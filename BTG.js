@@ -163,6 +163,8 @@ window.onload = function() {
         './image/ObjectImage/abnormalcannon.png',
         './image/ObjectImage/meisai.png',
         './image/ObjectImage/meisaicannon.png',
+        './image/ObjectImage/Abyssal.png',
+        './image/ObjectImage/AbyssalCannon.png',
         './image/MapImage/map0.png',
         './image/ObjectImage/R2.png',
         './image/ObjectImage/mark.png',
