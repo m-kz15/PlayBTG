@@ -29,7 +29,7 @@ var times = [0,0,0,0,0,0,0,0,0,0]
 var deadFlgs = [];      //戦車の生存確認 
 var allyDeadFlg = false;   
 var fireFlgs = [];      //敵の砲撃制御
-var stageNum = 1;       //ステージ番号
+var stageNum = 20;       //ステージ番号
 var zanki = 5;          //プレイヤーの残機
 var score = 0;          //総撃破数
 var destruction = 0;    //ステージごとの撃破数
@@ -2413,6 +2413,7 @@ window.onload = function() {
             var stopFlg = false;
 
             var dflg = false;
+            var opaFlg = false;
 
             var defenseMax = parseInt(max/2)-1;
 
@@ -2468,6 +2469,27 @@ window.onload = function() {
                 
                 if(worldFlg == true){
                     this.time++;
+                    
+                    if(grade == 12 && tank.opacity > 0 && opaFlg == false){
+                        tank.opacity-=0.1
+                        cannon.opacity-=0.1
+                        if(tank.opacity <= 0){
+                            tank.opacity = 0
+                            cannon.opacity = 0;
+                            opaFlg = true;
+                        }
+                    }
+                    if(grade == 12 && opaFlg == true){
+                        if(this.time % 2 == 0){
+                            tank.opacity += 0.1;
+                            cannon.opacity += 0.1;
+                        }
+                        if(tank.opacity > 1.0){
+                            tank.opacity = 1.0;
+                            cannon.opacity = 1.0;
+                            opaFlg = false;
+                        }
+                    }
                     if(deadFlgs[0] == false){
                         for(var j = 0; j < bulOb.length; j++){
                             for(var k = 0; k < bulOb[j].length; k++){
@@ -2509,6 +2531,7 @@ window.onload = function() {
                                     new OpenFire(cannon,alignment,scene,filterMap)
                                     PlBulCount = (PlBulCount+1) % emax;
                                     bullets[Num]++;
+                                    opaFlg = true;
                                 } 
                             }else{
                                 if(Math.floor(Math.random() * emax*2)>bullets[Num] && game.time % fireLate == 0){
@@ -2521,6 +2544,7 @@ window.onload = function() {
                                         new OpenFire(cannon,alignment,scene,filterMap)
                                         PlBulCount = (PlBulCount+1) % emax;
                                         bullets[Num]++;
+                                        opaFlg = true;
                                     } 
                                 }
                                 
