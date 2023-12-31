@@ -53,7 +53,7 @@ function LoadStage(){
         [1,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,1]
     ];
     setting[3] = [4,8];
-    setting[4] = [16,8,'./image/ObjectImage/Abyssal.png','./image/ObjectImage/AbyssalCannon.png',5,2,13,3.2,8,12,9];
+    setting[4] = [16,8,'./image/ObjectImage/meisai.png','./image/ObjectImage/meisaicannon.png',5,2,13,3.2,8,10,9];
     setting[5] = [4,3]
     return setting;
 }
