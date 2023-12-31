@@ -2476,7 +2476,6 @@ window.onload = function() {
                         if(tank.opacity <= 0){
                             tank.opacity = 0
                             cannon.opacity = 0;
-                            opaFlg = true;
                         }
                     }
                     if(grade == 12 && opaFlg == true){
