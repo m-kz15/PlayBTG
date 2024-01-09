@@ -164,7 +164,7 @@ window.onload = function() {
         './image/ObjectImage/sand.png',
         './image/ObjectImage/sandcannon.png',
         './image/ObjectImage/pink.png',
-        '.image/ObjectImage/pinkcannon.png',
+        './image/ObjectImage/pinkcannon.png',
         './image/ObjectImage/meisai.png',
         './image/ObjectImage/meisaicannon.png',
         './image/ObjectImage/Abyssal.png',
