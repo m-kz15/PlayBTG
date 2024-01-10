@@ -20,16 +20,16 @@ var floors = [];        //ステージの障害物を保持する配列
 var walls = [];         //ステージの壁を保持する配列
 var holes = [];         //ステージの穴を保持する配列
 var circles = [];       //【テスト】ボールを保持する配列
-var colors = [0,0,0,0,0,0,0,0,0,0];        //【テスト】戦車の色を数える配列
-var colorsName = ["Brown","Gray","Green","Red","LightGreen","EliteGray ","Snow","EliteGreen","Random","Dazzle"]
-let fontColor = ['saddlebrown','lightslategray','lime','red','aquamarine','darkslategray','lightcyan','green','navy','maroon']
+var colors = [0,0,0,0,0,0,0,0,0,0,0,0];        //【テスト】戦車の色を数える配列
+var colorsName = ["Brown","Gray","Green","Red","LightGreen","EliteGray ","Snow","EliteGreen","Sand","Pink","Random","Dazzle"]
+let fontColor = ['saddlebrown','lightslategray','lime','red','aquamarine','darkslategray','lightcyan','green','coral','pink','black','maroon']
 var rankings = [0,0,0,0,0,0,0,0,0,0]
 var tops = ["_____","_____","_____","_____","_____","_____","_____","_____","_____","_____"]
 var times = [0,0,0,0,0,0,0,0,0,0]
 var deadFlgs = [];      //戦車の生存確認 
 var allyDeadFlg = false;   
 var fireFlgs = [];      //敵の砲撃制御
-var stageNum = 1;       //ステージ番号
+var stageNum = 60;       //ステージ番号
 var zanki = 5;          //プレイヤーの残機
 var score = 0;          //総撃破数
 var destruction = 0;    //ステージごとの撃破数
@@ -40,21 +40,40 @@ var complete = false;   //攻略完了判定
 var allyFlg = false;
 
 
-var fmap = [[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]];
+var fmap = [
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+];
+var fcol = [
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+]
 
 var j_data;
 
@@ -130,7 +149,17 @@ const stagePath = [
     './stage/stage46.js',
     './stage/stage47.js',
     './stage/stage48.js',
-    './stage/stage49.js'
+    './stage/stage49.js',
+    './stage/stage50.js',
+    './stage/stage51.js',
+    './stage/stage52.js',
+    './stage/stage53.js',
+    './stage/stage54.js',
+    './stage/stage55.js',
+    './stage/stage56.js',
+    './stage/stage57.js',
+    './stage/stage58.js',
+    './stage/stage59.js'
 ];
 var script = document.createElement("script");
 script.src = stagePath[stageNum];
@@ -159,12 +188,12 @@ window.onload = function() {
         './image/ObjectImage/elitegreencannon.png',
         './image/ObjectImage/snow.png',
         './image/ObjectImage/snowcannon.png',
-        './image/ObjectImage/abnormal.png',
-        './image/ObjectImage/abnormalcannon.png',
         './image/ObjectImage/sand.png',
         './image/ObjectImage/sandcannon.png',
         './image/ObjectImage/pink.png',
         './image/ObjectImage/pinkcannon.png',
+        './image/ObjectImage/abnormal.png',
+        './image/ObjectImage/abnormalcannon.png',
         './image/ObjectImage/meisai.png',
         './image/ObjectImage/meisaicannon.png',
         './image/ObjectImage/Abyssal.png',
@@ -503,7 +532,14 @@ window.onload = function() {
             if(grade == 10){
                 random0 = Math.floor( Math.random() * 15)-7.5;
                 random1 = Math.floor( Math.random() * 15)-7.5;
-            }else if(grade >= 2){
+            }else if(grade == 11){
+                random0 = Math.floor( Math.random() * 40)-20;
+                random1 = Math.floor( Math.random() * 40)-20;
+            }else if(grade == 5 || grade == 6){
+                random0 = Math.floor( Math.random() * 60)-30;
+                random1 = Math.floor( Math.random() * 60)-30;
+            }
+            else if(grade >= 2){
                 random0 = Math.floor( Math.random() * 30)-15;
                 random1 = Math.floor( Math.random() * 30)-15;
             }
@@ -1432,6 +1468,7 @@ window.onload = function() {
 
             entVal++;
             bullets[Num] = 0;
+            boms[Num] = 0;
             deadFlgs.push(false)
 
             enemyTarget[Num] = target;
@@ -1442,6 +1479,7 @@ window.onload = function() {
                 colOb[Num][i] = new BulletCol(alignment,floors[i],shotSpeed,grade,Num,scene);
                 bulOb[Num][i] = new Bullet(colOb[Num][i],floors[i],ref,Num,max,shotSpeed,scene);
             }
+            bomOb[Num][0] = new Bom(this,Num,scene);
             var EnemyAim = Class.create(Aim,{
                 initialize: function(alignment,cannon,ssp,Num){
                     Aim.call(this,alignment,cannon,ssp,Num,scene);
@@ -1908,6 +1946,7 @@ window.onload = function() {
             const Num = entVal;
             entVal++;
             bullets[Num] = 0;
+            boms[Num] = 0;
             deadFlgs.push(false)
             
             
@@ -1924,6 +1963,7 @@ window.onload = function() {
             const kari = new Kari(this,scene)
             const kari2 = new Kari2(this,scene)
             var escapeFlg = false; 
+            var bomFlg = false;
 
             
 
@@ -1947,6 +1987,7 @@ window.onload = function() {
                 colOb[Num][i] = new BulletCol(alignment,floors[i],shotSpeed,grade,Num,scene);
                 bulOb[Num][i] = new Bullet(colOb[Num][i],floors[i],ref,Num,emax,shotSpeed,scene);
             }
+            bomOb[Num][0] = new Bom(this,Num,scene);
             var EnemyAim = Class.create(Aim,{
                 initialize: function(alignment,cannon,ssp,Num){
                     Aim.call(this,alignment,cannon,ssp,Num,scene);
@@ -1970,7 +2011,17 @@ window.onload = function() {
                 
                 if(worldFlg == true){
                     this.time++;
-                    if(grade == 7 && tank.opacity > 0 && opaFlg == false){
+                    if(grade == 6 && tank.within(tankEntity[0],200)==true && bomFlg == false && boms[Num] == 0){
+                        bomOb[Num][boms[Num]] = new Bom(this,Num,scene);
+                        scene.insertBefore(bomOb[Num][boms[Num]],tank);
+                        this.time = 0;
+                        bomFlg = true;
+                        boms[Num]++;
+                    }
+                    if(grade == 6 && bomFlg == true && this.time % 600 == 0){
+                        bomFlg = false;
+                    }
+                    if(grade == 7 && tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],300)==false){
                         tank.opacity-=0.1
                         cannon.opacity-=0.1
                         if(tank.opacity <= 0){
@@ -1979,7 +2030,7 @@ window.onload = function() {
                             opaFlg = true;
                         }
                     }
-                    if(grade == 7 && opaFlg == true && this.time > 300){
+                    if(grade == 7 && ((opaFlg == true && this.time > 300) || tank.within(tankEntity[0],300)==true)){
                         if(this.time % 2 == 0){
                             tank.opacity += 0.1;
                             cannon.opacity += 0.1;
@@ -2089,6 +2140,33 @@ window.onload = function() {
                             
 
                             if(grade > 3){
+                                bomOb.forEach(elem=>{
+                                    elem.forEach(elem2=>{
+                                        if(tank.within(elem2,260)==true && tank.intersect(Floor)==false){
+                                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                            let dist2 = Math.sqrt(Math.pow(weak.x - elem2.x, 2) + Math.pow(weak.y - elem2.y, 2));
+                                            if(dist1 > dist2){
+                                                if(this.time % 5 == 0){
+                                                    if(weak.x-2.75 > elem2.x){
+                                                        if(weak.y-2.75 > elem2.y){
+                                                            while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                    }else{
+                                                        if(weak.y-2.75 > elem2.y){
+                                                            while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    })
+                                })
                                 bulOb[Num].forEach(elem=>{
                                     if(intercept4.intersect(elem) && tank.intersect(Floor)==false){
                                         let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
@@ -2173,7 +2251,24 @@ window.onload = function() {
                                             }
                                         }else{
                                             let dist = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                            if(dist > 160){
+                                            if(grade == 7 && dist > 240){
+                                                if(weak.x-2.75 > enemyTarget[Num].x){
+                                                    if(weak.y-2.75 > enemyTarget[Num].y){
+                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                    else{
+                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                        
+                                                }else{
+                                                    if(weak.y-2.75 > enemyTarget[Num].y){
+                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                    else{
+                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                }
+                                            }else if(dist > 160){
                                                     
                                                 if(weak.x-2.75 > enemyTarget[Num].x){
                                                     if(weak.y-2.75 > enemyTarget[Num].y){
@@ -2395,6 +2490,7 @@ window.onload = function() {
             const Num = entVal;
             entVal++;
             bullets[Num] = 0;
+            boms[Num] = 0;
             deadFlgs.push(false)
             
             const tank = new Tank(this,tankPath,Num,scene,filterMap)
@@ -2417,11 +2513,11 @@ window.onload = function() {
             var stopFlg = false;
 
             var dflg = false;
-            var opaFlg = false;
 
             var defenseMax = parseInt(max/2)-1;
 
             var escapeFlg = false;
+            var opaFlg = false;
 
             enemyTarget[Num] = target;
             var alignment = new Target(cannon,Num,scene,weak,target)
@@ -2432,6 +2528,7 @@ window.onload = function() {
                 colOb[Num][i] = new BulletCol(alignment,floors[i],shotSpeed,grade,Num,scene);
                 bulOb[Num][i] = new Bullet(colOb[Num][i],floors[i],ref,Num,max,shotSpeed,scene);
             }
+            bomOb[Num][0] = new Bom(this,Num,scene);
 
             /*var EnemyAim = Class.create(Aim,{
                 initialize: function(target,shotSpeed,num,scene){
@@ -2473,27 +2570,28 @@ window.onload = function() {
                 
                 if(worldFlg == true){
                     this.time++;
-                    
-                    if(grade == 12 && tank.opacity > 0 && opaFlg == false){
-                        tank.opacity-=0.05
-                        cannon.opacity-=0.05
-                        if(tank.opacity <= 0){
-                            tank.opacity = 0
-                            cannon.opacity = 0;
-                        }
-                    }
-                    if(grade == 12 && opaFlg == true){
-                        if(this.time % 2 == 0){
-                            tank.opacity += 0.25;
-                            cannon.opacity += 0.25;
-                        }
-                        if(tank.opacity > 1.0){
-                            tank.opacity = 1.0;
-                            cannon.opacity = 1.0;
-                            opaFlg = false;
-                        }
-                    }
                     if(deadFlgs[0] == false){
+
+                        if(grade == 11 && tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],400)==false){
+                            tank.opacity-=0.02
+                            cannon.opacity-=0.02
+                            if(tank.opacity <= 0){
+                                tank.opacity = 0
+                                cannon.opacity = 0;
+                            }
+                        }
+                        if(grade == 11 && (opaFlg == true || tank.within(tankEntity[0],360)==true)){
+                            if(this.time % 2 == 0){
+                                tank.opacity += 0.5;
+                                cannon.opacity += 0.5;
+                            }
+                            if(tank.opacity > 1.0){
+                                tank.opacity = 1.0;
+                                cannon.opacity = 1.0;
+                                opaFlg = false;
+                            }
+                        }
+
                         for(var j = 0; j < bulOb.length; j++){
                             for(var k = 0; k < bulOb[j].length; k++){
                                 if(this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
@@ -2527,16 +2625,32 @@ window.onload = function() {
                             if(dflg == true){
                                 if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 6 == 0){
                                     game.assets['./sound/putting_a_book2.mp3'].clone().play();
-                                    colOb[Num][PlBulCount] = new BulletCol(alignment,cannon,15.5,grade,Num,scene);
+                                    colOb[Num][PlBulCount] = new BulletCol(alignment,cannon,15.5,10,Num,scene);
                                     bulOb[Num][PlBulCount] = new Bullet(colOb[Num][PlBulCount],cannon,0,Num,emax+defenseMax,shotSpeed,scene)
                                     scene.insertBefore(colOb[Num][PlBulCount],filterMap);
                                     scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
                                     new OpenFire(cannon,alignment,scene,filterMap)
                                     PlBulCount = (PlBulCount+1) % emax;
                                     bullets[Num]++;
-                                    if(grade == 12) opaFlg = true;
+                                    if(grade == 11) opaFlg = true;
                                 } 
-                            }else{
+                            }else if(grade == 11){
+                                if(Math.floor(Math.random() * emax*2)>bullets[Num] && game.time % fireLate == 0){
+                                    if(bullets[Num] < emax && deadFlgs[Num] == false){
+                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
+                                        colOb[Num][PlBulCount] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene);
+                                        bulOb[Num][PlBulCount] = new Bullet(colOb[Num][PlBulCount],cannon,Math.floor(Math.random() * (ref)),Num,emax,shotSpeed,scene)
+                                        scene.insertBefore(colOb[Num][PlBulCount],filterMap);
+                                        scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
+                                        new OpenFire(cannon,alignment,scene,filterMap)
+                                        PlBulCount = (PlBulCount+1) % emax;
+                                        bullets[Num]++;
+                                        if(grade == 11) opaFlg = true;
+                                    }
+                                }
+                                
+                            }
+                            else{
                                 if(Math.floor(Math.random() * emax*2)>bullets[Num] && game.time % fireLate == 0){
                                     if(bullets[Num] < emax && deadFlgs[Num] == false){
                                         game.assets['./sound/putting_a_book2.mp3'].clone().play();
@@ -2547,7 +2661,7 @@ window.onload = function() {
                                         new OpenFire(cannon,alignment,scene,filterMap)
                                         PlBulCount = (PlBulCount+1) % emax;
                                         bullets[Num]++;
-                                        if(grade == 12) opaFlg = true;
+                                        if(grade == 11) opaFlg = true;
                                     } 
                                 }
                                 
@@ -2819,6 +2933,17 @@ window.onload = function() {
                                                 }
                                             }
                                         }
+                                    }
+                                }
+                                if(tank.within(elem,120)==true && bullets[Num]>0 && bullets[Num] < max/2 && tank.intersect(Floor)==false){
+                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                    let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
+                                    if(dist1 > dist2 && intercept3.intersect(elem)==false){
+                                        enemyTarget[Num] = elem;
+                                        alignment.moveTo(elem.x,elem.y)
+                                        new EnemyAim(alignment,32,Num,scene);
+                                        fireFlgs[Num] = true;
+                                        dflg = false;
                                     }
                                 }
                             })
@@ -3393,7 +3518,7 @@ window.onload = function() {
 
             scene.onenterframe = function(){
                 scene.time++
-                if((stageNum == 20 || stageNum == 40 || stageNum == 100) && scene.time == 15) new Warning(scene)
+                if((stageNum % 20 == 0) && scene.time == 15) new Warning(scene)
                 if(scene.time == 150){
                     new FadeOut(scene)
                 }
@@ -3547,7 +3672,7 @@ window.onload = function() {
                 }
             }
             filterMap.loadData(fmap,filImg);
-            filterMap.collisionData = stageData[2];
+            filterMap.collisionData = fcol;
             scene.insertBefore(filterMap,null);
             /* 戦車の追加処理 */
             bulOb.push([])
@@ -3561,11 +3686,11 @@ window.onload = function() {
                 bulOb.push([])
                 colOb.push([])
                 bomOb.push([])
-                if(stageData[i][10]==9){
+                if(stageData[i][10]==11){
                     tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4],stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap))
                 }else if((abn == 0 && stageNum > 5 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
                     tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],Math.floor(Math.random() * 4)+1,Math.floor(Math.random() * 4)+1,Math.floor(Math.random() * 9)+6,Math.floor(Math.random() * 3),Math.floor(Math.random() * 35)+5,Math.floor(Math.random() * 4)+3,scene,filterMap))
-                    stageData[i][10] = 8;
+                    stageData[i][10] = 10;
                 }else if(stageData[i][9]>2){
                     tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4],stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap));
                 }else{
@@ -3689,9 +3814,9 @@ window.onload = function() {
                         /*var bodyImage = */new DispBody(100,240,360*3,240*3,scene)
                     }
                     
-                    if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < 10){
-                        /*var enemys = */new DispText(180,200+(64*(dcnt+1)),720,56,colorsName[dcnt],'56px "Arial"',fontColor[dcnt],'left',scene)
-                        /*var breaks = */new DispText(460,200+(64*(dcnt+1)),320*2,56,'：'+colors[dcnt],'56px "Arial"','#400','left',scene)
+                    if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
+                        /*var enemys = */new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
+                        /*var breaks = */new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
                         dcnt++;
                     }
                     if(complete == true && scene.time == 315){
@@ -3721,6 +3846,7 @@ window.onload = function() {
                         }
                         toTitle.addEventListener(Event.TOUCH_START, function() {
                             game.stop()
+                            //location.href = "http://localhost/BattleTankGame/gameTest.html";
                             location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
                         });
                         toProceed.addEventListener(Event.TOUCH_START, function() {
@@ -3933,6 +4059,7 @@ window.onload = function() {
                 stageNum = 1;
                 game.stop()
                 
+                //location.href = "http://localhost/BattleTankGame/gameTest.html";
                 location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
                 game.replaceScene(createTitleScene());    // 現在表示しているシーンをタイトルシーンに置き換える
             });
