@@ -159,7 +159,27 @@ const stagePath = [
     './stage/stage56.js',
     './stage/stage57.js',
     './stage/stage58.js',
-    './stage/stage59.js'
+    './stage/stage59.js',
+    './stage/stage60.js',
+    './stage/stage61.js',
+    './stage/stage62.js',
+    './stage/stage63.js',
+    './stage/stage64.js',
+    './stage/stage65.js',
+    './stage/stage66.js',
+    './stage/stage67.js',
+    './stage/stage68.js',
+    './stage/stage69.js',
+    './stage/stage70.js',
+    './stage/stage71.js',
+    './stage/stage72.js',
+    './stage/stage73.js',
+    './stage/stage74.js',
+    './stage/stage75.js',
+    './stage/stage76.js',
+    './stage/stage77.js',
+    './stage/stage78.js',
+    './stage/stage79.js'
 ];
 var script = document.createElement("script");
 script.src = stagePath[stageNum];
