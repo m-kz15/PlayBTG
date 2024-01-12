@@ -3185,7 +3185,15 @@ window.onload = function() {
             var hard = new DispText(level.x+level.width+nomal.width+16,640,40,40,'難','40px sans-serif','#888','left',scene)
 
             let lvFlg = false;
-
+            if(addBullet == 0){
+                nomal.color = '#ebe799';
+                hard.color = '#888';
+                lvFlg = false;
+            }else{
+                nomal.color = '#888';
+                hard.color = 'red';
+                lvFlg = true;
+            }
             nomal.addEventListener(Event.TOUCH_START, function() {
                 if(lvFlg == true){
                     nomal.color = '#ebe799';
