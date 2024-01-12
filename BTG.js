@@ -1,83 +1,81 @@
 window.focus();
 enchant();
 
-const size = 4;         //サイズ倍率(勝手に触らない方が良い)
-var base = 16;
-var pixelSize = base*size;
-var cur;                //カーソルの位置情報を保持する配列
-var tankEntity = [];    //敵味方の戦車情報を保持する配列
-var allyEntity = [];
-var entNum = 0;         //戦車の連番設定用変数
-var obstacle = []       //障害物
-var test = []
+const size = 4;             //サイズ倍率(勝手に触らない方が良い)
+const base = 16;              //基準サイズ
+const pixelSize = base*size;
 
+var cur;                //カーソルの位置情報を保持する配列
+
+var j_data;
+var stageData;
+
+var floors = [];        //ステージの障害物を保持する配列
+var walls = [];         //ステージの壁を保持する配列
+var holes = [];         //ステージの穴を保持する配列
+var avoids = [];
+var test = []           //障害物まとめ
+
+var tankEntity = [];    //敵味方の戦車情報を保持する配列
 var bulOb = [[]];       //戦車の弾情報を保持する配列
 var colOb = [[]];       //弾の物理判定を保持する配列
 var bomOb = [[]];       //爆弾の情報を保持する配列
 var bullets = [];       //各戦車の弾数の制御用の配列
 var boms = [];          //各戦車の爆弾設置制御用の配列
-var floors = [];        //ステージの障害物を保持する配列
-var walls = [];         //ステージの壁を保持する配列
-var holes = [];         //ステージの穴を保持する配列
-var circles = [];       //【テスト】ボールを保持する配列
-var colors = [0,0,0,0,0,0,0,0,0,0,0,0];        //【テスト】戦車の色を数える配列
-var colorsName = ["Brown","Gray","Green","Red","LightGreen","EliteGray ","Snow","EliteGreen","Sand","Pink","Random","Dazzle"]
-let fontColor = ['saddlebrown','lightslategray','lime','red','aquamarine','darkslategray','lightcyan','green','coral','pink','black','maroon']
-var rankings = [0,0,0,0,0,0,0,0,0,0]
-var tops = ["_____","_____","_____","_____","_____","_____","_____","_____","_____","_____"]
-var times = [0,0,0,0,0,0,0,0,0,0]
-var deadFlgs = [];      //戦車の生存確認 
-var allyDeadFlg = false;   
 var fireFlgs = [];      //敵の砲撃制御
-var stageNum = 1;       //ステージ番号
-var zanki = 5;          //プレイヤーの残機
-var score = 0;          //総撃破数
-var destruction = 0;    //ステージごとの撃破数
+var deadFlgs = [];      //戦車の生存確認
+var entNum = 0;             //戦車の連番設定用変数
+var addBullet = 0;          //難易度ごとの弾追加数
+
+var allyEntity = [];
+var allyDeadFlg = false; 
+var allyFlg = false;
+
 var worldFlg = false;   //ゲームのon/off制御ボタン
 var victory = false;    //勝利判定
 var defeat = false;     //敗北判定
 var complete = false;   //攻略完了判定
-var allyFlg = false;
 
+var stageNum = 1;           //ステージ番号
 
-var fmap = [
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
-];
-var fcol = [
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+var colors = [0,0,0,0,0,0,0,0,0,0,0,0];        //戦車の色を数える配列
+var colorsName = [
+    "Brown",
+    "Gray",
+    "Green",
+    "Red",
+    "LightGreen",
+    "EliteGray ",
+    "Snow",
+    "EliteGreen",
+    "Sand",
+    "Pink",
+    "Random",
+    "Dazzle"
+]
+let fontColor = [
+    'saddlebrown',
+    'lightslategray',
+    'lime',
+    'red',
+    'aquamarine',
+    'darkslategray',
+    'lightcyan',
+    'green',
+    'coral',
+    'pink',
+    'black',
+    'maroon'
 ]
 
-var j_data;
+var zanki = 5;              //プレイヤーの残機
+var score = 0;              //総撃破数
+var destruction = 0;        //ステージごとの撃破数
 
+var rankings = [0,0,0,0,0,0,0,0,0,0]
+var tops = ["_____","_____","_____","_____","_____","_____","_____","_____","_____","_____"]
 var userName = "Player";
+var times = [0,0,0,0,0,0,0,0,0,0]
 
 var dt = new Date();
 var y = dt.getFullYear();
@@ -93,9 +91,6 @@ var postData = {
     "text": 0,
     "time": nowDay
 };
-
-var stageData;
-
 
 /* ステージ情報格納 */
 const stagePath = [
@@ -181,13 +176,52 @@ const stagePath = [
     './stage/stage78.js',
     './stage/stage79.js'
 ];
+
+/* ステージファイル呼び出し処理用 */
 var script = document.createElement("script");
-script.src = stagePath[stageNum];
+    script.src = stagePath[stageNum];
 var head = document.getElementsByTagName("head");
-head[0].appendChild(script);
+    head[0].appendChild(script);
+
+/* フィルター用マップ配列 */
+var fmap = [
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],
+    [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+];
+var fcol = [
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+]
 
 window.onload = function() {
-    var game = new Core(320*size,240*size);
+    /* ステージ幅：20ブロック　高さ：15ブロック */
+    const game = new Core((base*20)*size,(base*15)*size);
     game.fps = 60;      //画面の更新頻度
     game.preload(       //画像や音源を準備
         './image/ObjectImage/tank2.png',
@@ -235,7 +269,7 @@ window.onload = function() {
         './sound/fire.mp3',
         './sound/FIRST.mp3'
         );
-    /* 入力キー一覧 */
+        /* 入力キー一覧 */
     game.keybind(65, "a");
     game.keybind(87, "w");
     game.keybind(83, "s");
@@ -244,66 +278,27 @@ window.onload = function() {
     game.keybind(81, "q");
     game.time = 0;
 
-
-    var Aisle = Class.create(Sprite, {
-        initialize: function(x,y,scene) {
-            Sprite.call(this, pixelSize, pixelSize);
-            this.time = 0;
-            //this.backgroundColor = "#00f1";
+    /* ステージ端の壁クラス */
+    var Wall = Class.create(PhyBoxSprite, {
+        initialize: function(width,height,x,y,scene) {
+            PhyBoxSprite.call(this, width*pixelSize, height*pixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
+            //this.backgroundColor = "#ddd4";
             this.x = x*pixelSize;
-            this.y = y*pixelSize-(8*size);
-            this.onenterframe = function(){
-                scene.removeChild(this); 
-            }  
+            this.y = y*pixelSize-base;
+            scene.addChild(this);
+        }
+    });
+    /* 1ブロック分の壁クラス */
+    var Floor = Class.create(PhyBoxSprite, {
+        initialize: function(x,y,scene) {
+            PhyBoxSprite.call(this, pixelSize, pixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
+            //this.backgroundColor = "#ddd4";
+            this.x = x*pixelSize;
+            this.y = y*pixelSize-base;
             scene.addChild(this);
         }
     });
     
-    var Search = Class.create(Sprite, {
-        initialize: function(x,y,scene) {
-            Sprite.call(this, pixelSize/2, pixelSize/2);
-            this.time = 0;
-            //this.backgroundColor = "#00f1";
-            this.x = x*pixelSize;
-            this.y = y*pixelSize-16;
-            this.onenterframe = function(){
-                this.time++
-                if(this.time % 64 == 0)
-                scene.removeChild(this); 
-            }  
-            scene.addChild(this);
-        }
-    });
-    /* ステージ端の壁クラス */
-    var Wall = Class.create(PhyBoxSprite, {
-        initialize: function(w,h,x,y,scene) {
-            PhyBoxSprite.call(this, w*pixelSize, h*pixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
-            obstacle.push(this)
-            //this.backgroundColor = "#ddd4";
-            this.x = x*pixelSize;
-            this.y = y*pixelSize-16;
-            scene.addChild(this);
-        }
-    });
-    /* 障害物クラス */
-    var Floor = Class.create(PhyBoxSprite, {
-        initialize: function(x,y,scene) {
-            PhyBoxSprite.call(this, pixelSize, pixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
-            obstacle.push(this)
-            //this.backgroundColor = "#ddd4";
-            this.x = x*pixelSize;
-            this.y = y*pixelSize-16;
-            scene.addChild(this);
-        }
-    });
-    var WallIntercept = Class.create(Sprite,{
-        initialize: function(x,y,scene) {
-            Sprite.call(this, pixelSize+6, pixelSize+6);
-            //this.backgroundColor = "#ddd4";
-            this.moveTo(x*pixelSize-3,y*pixelSize-19)
-            scene.addChild(this);
-        }
-    })
     /* 穴クラス */
     var Hole = Class.create(Sprite, {
         initialize: function(x,y,scene) {
@@ -321,7 +316,6 @@ window.onload = function() {
     var HoleImage = Class.create(Sprite, {
         initialize: function(val,x,y,scene) {
             Sprite.call(this, (base*(size-val)), (base*(size-val)));
-            //obstacle.push(this)
             this.backgroundColor = "#0008";
             this.x = x+(8*val);
             this.y = y+(8*val);
@@ -331,19 +325,26 @@ window.onload = function() {
     var Avoid = Class.create(Sprite, {
         initialize: function(x,y,scene) {
             Sprite.call(this, pixelSize/2, pixelSize/2);
-            //obstacle.push(this)
             //this.backgroundColor = "#fdda";
-            
             this.x = x*pixelSize+(4*4);
             this.y = y*pixelSize-(3*2);
             
             scene.addChild(this);
         }
     });
+    /* 障害物クラス */
+    var WallIntercept = Class.create(Sprite,{
+        initialize: function(x,y,scene) {
+            Sprite.call(this, pixelSize+6, pixelSize+6);
+            //this.backgroundColor = "#ddd4";
+            this.moveTo(x*pixelSize-3,y*pixelSize-(base+3))
+            scene.addChild(this);
+        }
+    })
     /* カーソル描画クラス */
     var Cursor = Class.create(Sprite,{
         initialize: function(scene){
-            Sprite.call(this,16,16);
+            Sprite.call(this,base,base);
             this.backgroundColor = "#6af8"
             this.moveTo(0,0)
             scene.addChild(this);
@@ -352,7 +353,7 @@ window.onload = function() {
     /* 戦車の車体クラス */
     var Tank = Class.create(Sprite, {
         initialize: function(area,path,num,scene,filterMap) {
-            Sprite.call(this, 16*(size+0.3), 16*(size-0.55));
+            Sprite.call(this, base*(size+0.3), base*(size-0.55));
             //this.backgroundColor = "#fff";
             this.image = game.assets[path]
             this.x = area.x+0.5;
@@ -372,7 +373,7 @@ window.onload = function() {
     /* 戦車の砲塔クラス */
     var Cannon = Class.create(Sprite, {
         initialize: function(area,path,num,scene,filterMap) {
-            Sprite.call(this, (16*(size+0.5)*2), 16*(size+0.5));
+            Sprite.call(this, (base*(size+0.5)*2), base*(size+0.5));
             this.image = game.assets[path]
             this.x = area.x-37;
             this.y = area.y-8;
@@ -392,7 +393,7 @@ window.onload = function() {
     /* 弱点クラス */
     var Weak = Class.create(Sprite, {
         initialize: function(area,num,scene,filterMap) {
-            Sprite.call(this,16*(size/1.5),16*(size/1.5));
+            Sprite.call(this,base*(size/1.5),base*(size/1.5));
             //this.backgroundColor = "#f00a";
             this.onenterframe = function(){
                 this.x = area.x+9.25;
@@ -410,7 +411,7 @@ window.onload = function() {
     /* 撃破後の描画クラス */
     var Mark = Class.create(Sprite, {
         initialize: function(tank,area,num,scene,filterMap) {
-            Sprite.call(this,16*(size/1.3),16*(size/1.3));
+            Sprite.call(this,base*(size/1.3),base*(size/1.3));
             this.image = game.assets['./image/ObjectImage/mark.png']
             this.opacity = 0.0;
             this.x = area.x+9.25;
@@ -423,7 +424,7 @@ window.onload = function() {
     /* 照準クラス */
     var Aim = Class.create(Sprite,{
         initialize: function(target,cannon,shotSpeed,num,scene){
-            Sprite.call(this,8,8);
+            Sprite.call(this,base/2,base/2);
             if(num == 0) 
             this.backgroundColor = "#aff4"
             this.moveTo(cannon.x+70,cannon.y+32)
@@ -432,7 +433,7 @@ window.onload = function() {
                 y: target.y - cannon.y-28
             };
             this.rad = Math.atan2(vector.y, vector.x);
-            this.moveTo(this.x+48*Math.cos(this.rad), this.y+48*Math.sin(this.rad));
+            this.moveTo(this.x+(base*3)*Math.cos(this.rad), this.y+(base*3)*Math.sin(this.rad));
             cannon.rotation = (270+(Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI)*-1;
             this.onenterframe = function(){
                 this.x += Math.cos(this.rad) * shotSpeed;
@@ -446,7 +447,7 @@ window.onload = function() {
     /* 照準クラス */
     var BulAim = Class.create(Sprite,{
         initialize: function(target,shotSpeed,scene){
-            Sprite.call(this,8,8);
+            Sprite.call(this,base/2,base/2);
             //this.backgroundColor = "#aff8"
             this.moveTo(target.x,target.y)
             this.time = 0;
@@ -461,87 +462,12 @@ window.onload = function() {
             scene.addChild(this);
         }
     })
-    /*var TestBullet = Class.create(PhyCircleSprite,{
-        initialize: function(cannon,shotSpeed,refMax,grade,num,scene){
-            PhyCircleSprite.call(this,6,enchant.box2d.DYNAMIC_SPRITE,0.0,0.0,1.0,true)
-            //this.image = game.assets['./image/ObjectImage/R2.png'];
-            this.time = 0;
-            let random0 = 0;
-            let random1 = 0;
-            if(grade == 10){
-                random0 = Math.floor( Math.random() * 15)-7.5;
-                random1 = Math.floor( Math.random() * 15)-7.5;
-            }else if(grade >= 2){
-                random0 = Math.floor( Math.random() * 30)-15;
-                random1 = Math.floor( Math.random() * 30)-15;
-            }
-            this.backgroundColor = "blue"
-            var rad = cannon.rotation * (Math.PI / 180.0);
-            var dx = Math.cos(rad)+random0;
-            var dy = Math.sin(rad)+random1;
-            this.moveTo(cannon.x + dx*(cannon.width/4),cannon.y + dy*(cannon.width/4));
-            this.applyImpulse(new b2Vec2(Math.cos(rad)*shotSpeed*6, Math.sin(rad)*shotSpeed*6));
-            let refcnt = 0;
-            let refFlg = false;
-            let img = new TestBulletImg(this,scene)
-            this.onenterframe = function(){
-                if(this.time > 0){
-                    this.time++
-                }
-                this.angle = img.rotation;
-                if(shotSpeed>=12 && this.time % 2 == 0){
-                    new Fire(img,scene)
-                }else if(scene.time % 10 == 0) new Smoke(this,scene)
-                test.forEach(elem=>{
-                    
-                    if(this.within(elem,34)==true && refFlg == false){
-                        refFlg = true;
-                        refcnt++;
-                        if(this.time == 0) this.time = 1;
-                    }
-                    if(this.intersect(elem)==false && refFlg == true){
-                        refFlg = false;
-                    }
-                    if(this.intersect(elem)==true){
-                        if(refFlg == false){
-                            refFlg = true;
-                            refcnt++;
-                            if(this.time == 0) this.time = 1;
-                        }
-                    }
-                    
-                })
-                if(refcnt > refMax){
-                    this.destroy()
-                    scene.removeChild(this)
-                    scene.removeChild(img)
-                }
-            }
-            
-        }
-    })
-    var TestBulletImg = Class.create(Sprite,{
-        initialize: function(target,scene){
-            Sprite.call(this,12,18);
-            this.image = game.assets['./image/ObjectImage/R2.png'];
-            this.onenterframe = function(){
-                var vector = {
-                    x: target.centerX-(this.width/2) - this.x,
-                    y: target.centerY-(target.height/2 + this.height/3) - this.y
-                };
-                this.rad = Math.atan2(vector.y, vector.x);
-                this.moveTo(target.centerX-(this.width/2),target.centerY-(target.height/2 + this.height/3))
-                this.rotation = (180+(Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI)*-1;
-            }
-            scene.addChild(this)
-        }
-    })*/
     /* 弾丸の物理判定クラス */
     var BulletCol = Class.create(PhyCircleSprite,{
         initialize: function(target,cannon,shotSpeed,grade,num,scene){
             PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true)
             //this.backgroundColor = "blue"
-            this.moveTo(cannon.x+64,cannon.y+32);
+            this.moveTo(cannon.x+pixelSize,cannon.y+(pixelSize/2));
             this.time = 0;
             let random0 = 0;
             let random1 = 0;
@@ -564,7 +490,7 @@ window.onload = function() {
                 random1 = Math.floor( Math.random() * 30)-15;
             }
             this.rad = Math.atan2(vector.y+random0, vector.x+random1);
-            this.moveTo(cannon.x+70+Math.cos(this.rad) * 64, cannon.y+32+Math.sin(this.rad) * 64);
+            this.moveTo(cannon.x+70+Math.cos(this.rad) * pixelSize, cannon.y+(pixelSize/2)+Math.sin(this.rad) * pixelSize);
             this.applyImpulse(new b2Vec2(Math.cos(this.rad)*shotSpeed, Math.sin(this.rad)*shotSpeed));
             
             this.onenterframe = function(){
@@ -594,8 +520,7 @@ window.onload = function() {
             if(shotSpeed>=12){
                 this.scaleY = 1.5;
             }
-
-            //this.moveTo(cannon.x+64,cannon.y+32);
+           
             this.moveTo(target.x,target.y)
             this.onenterframe = function(){
                 new BulAim(this,32,scene)
@@ -666,7 +591,6 @@ window.onload = function() {
                         if (bulOb[num][i].intersect(bulOb[num][j])==true&&i != j) {
                             scene.removeChild(bulOb[num][i]);
                             scene.removeChild(bulOb[num][j]);
-                            //game.assets['./sound/s_car_door_O2.mp3'].clone().play();
                             bulOb[num][i]=new Bullet(target,cannon,1,num,max,scene);
                             bulOb[num][j]=new Bullet(target,cannon,1,num,max,scene);
                         }
@@ -677,7 +601,6 @@ window.onload = function() {
                                 if (bulOb[num][i].intersect(bulOb[j][k])==true) {
                                     scene.removeChild(bulOb[num][i]);
                                     scene.removeChild(bulOb[j][k]);
-                                    //game.assets['./sound/s_car_door_O2.mp3'].clone().play();
                                     bulOb[num][i]=new Bullet(target,cannon,1,num,max,scene);
                                     bulOb[j][k]=new Bullet(target,cannon,1,num,max,scene);
                                 }
@@ -696,7 +619,7 @@ window.onload = function() {
     /* 爆弾クラス */
     var Bom = Class.create(Sprite,{
         initialize: function(area,num,scene){
-            Sprite.call(this,48,48);
+            Sprite.call(this,base*3,base*3);
             this.backgroundColor = "yellow";
             this.moveTo(area.x-24+33.5,area.y-24+32);
             this.time = 0;
@@ -723,8 +646,21 @@ window.onload = function() {
                     }
                     
                 })
-                
-                bulOb.forEach(elem=>{
+                for(let i = 0; i < bulOb.length; i++){
+                    for(let j = 0; j < bulOb[i].length; j++){
+                        if(this.intersect(bulOb[i][j])==true && victory == false && defeat == false){
+                            bullets[i] -= 1;
+                            scene.removeChild(bulOb[i][j])
+                            colOb[i][j].destroy()
+                            scene.removeChild(colOb[i][j])
+                            colOb[i][j] = new BulletCol(cur,floors[0],0,0,0,scene);
+                            bulOb[i][j] = new Bullet(colOb[i][j],floors[0],0,0,0,0,scene);
+                            new BombExplosion(this,num,scene)
+                            scene.removeChild(this);
+                        }
+                    }
+                }
+                /*bulOb.forEach(elem=>{
                     elem.forEach(elem2=>{
                         if(this.intersect(elem2)==true && victory == false && defeat == false){
                             scene.removeChild(elem2)
@@ -733,7 +669,7 @@ window.onload = function() {
                         }
                     })
                 })
-                
+                */
                 
             }
             
@@ -759,7 +695,6 @@ window.onload = function() {
                 }
                 
             }
-            //scene.addChild(this);
             scene.insertBefore(this,area);
         }
     })
@@ -790,7 +725,6 @@ window.onload = function() {
                 if(value < 0) scene.removeChild(this);
                 
             }
-            //scene.addChild(this);
             scene.insertBefore(this,scene);
         }
     })
@@ -821,7 +755,6 @@ window.onload = function() {
                 if(value < 0) scene.removeChild(this);
                 
             }
-            //scene.addChild(this);
             scene.insertBefore(this,area);
         }
     })
@@ -853,12 +786,12 @@ window.onload = function() {
                 if(value < 0) scene.removeChild(this);
                 
             }
-            //scene.addChild(this);
             scene.insertBefore(this,filterMap);
         }
     })
     /* 敵判断範囲クラス一覧 */
-    var Intercept = Class.create(Sprite,{
+    //1
+    var Intercept420 = Class.create(Sprite,{
         initialize: function(area,scene){
             Sprite.call(this,420,420);
             //this.backgroundColor = "#0ff2";
@@ -869,7 +802,8 @@ window.onload = function() {
             scene.addChild(this);
         }
     })
-    var Intercept2 = Class.create(Sprite,{
+    //2
+    var Intercept280 = Class.create(Sprite,{
         initialize: function(area,scene){
             Sprite.call(this,280,280);
             this.rotation = (45)
@@ -881,7 +815,8 @@ window.onload = function() {
             scene.addChild(this);
         }
     })
-    var Intercept3 = Class.create(Sprite,{
+    //3
+    var Intercept192 = Class.create(Sprite,{
         initialize: function(area,scene){
             Sprite.call(this,192,192);
             //this.backgroundColor = "#0ff2";
@@ -892,7 +827,8 @@ window.onload = function() {
             scene.addChild(this);
         }
     })
-    var Intercept4 = Class.create(Sprite,{
+    //4
+    var Intercept600 = Class.create(Sprite,{
         initialize: function(area,scene){
             Sprite.call(this,600,600);
             //this.backgroundColor = "#0ff2";
@@ -903,7 +839,7 @@ window.onload = function() {
             scene.addChild(this);
         }
     })
-    var Intercept5 = Class.create(Sprite, {
+    var InterceptA = Class.create(Sprite, {
         initialize: function(cannon,scene) {
             Sprite.call(this, 240, 240);
             //this.backgroundColor = "#0f04";
@@ -917,7 +853,7 @@ window.onload = function() {
             scene.addChild(this);
         }
     });
-    var Intercept6 = Class.create(Sprite, {
+    var InterceptB = Class.create(Sprite, {
         initialize: function(cannon,scene) {
             Sprite.call(this, 240, 240);
             //this.backgroundColor = "#0f04";
@@ -931,7 +867,7 @@ window.onload = function() {
             scene.addChild(this);
         }
     });
-    var Intercept7 = Class.create(Sprite, {
+    var InterceptC = Class.create(Sprite, {
         initialize: function(cannon,scene) {
             Sprite.call(this, cannon.width, 8);
             //this.backgroundColor = "#0f04";
@@ -945,33 +881,20 @@ window.onload = function() {
             scene.addChild(this);
         }
     });
-    
-    var Kari2 = Class.create(Sprite,{
-        initialize: function(area,scene){
-            Sprite.call(this,16*(size+0.3)+20, 16*(size-0.55)-20);
-            //this.backgroundColor = "#0ff2";
-            //this.scaleX = 0.87
-            this.scaleY = 0.95
+    var InterceptF = Class.create(Sprite, {
+        initialize: function(cannon,scene) {
+            Sprite.call(this, cannon.width*4, 8);
+            //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
-                this.moveTo(area.x-9.5,area.y+11);
-                this.rotation = (area.rotation)
+                var rad = cannon.rotation * (Math.PI / 180.0);
+                var dx = Math.cos(rad)*(cannon.width*2);
+                var dy = Math.sin(rad)*(cannon.width*2);
+                this.moveTo(cannon.x-(cannon.width*2.5)+dx+cannon.width, cannon.y-(this.height/2)+dy+cannon.width/4);
+                this.rotation = cannon.rotation;
             }
             scene.addChild(this);
         }
-    })
-    var Kari = Class.create(Sprite,{
-        initialize: function(area,scene){
-            Sprite.call(this,16*(size+0.3)-20, 16*(size-0.55)+20);
-            //this.backgroundColor = "#0ff2";
-            this.scaleX = 0.87
-            //this.scaleY = 0.95
-            this.onenterframe = function(){
-                this.moveTo(area.x+10.5,area.y-9);
-                this.rotation = (area.rotation)
-            }
-            scene.addChild(this);
-        }
-    })
+    });
     /* 撃破時の爆破描画クラス */
     var Explosion = Class.create(Sprite,{
         initialize: function(point,scene){
@@ -997,7 +920,7 @@ window.onload = function() {
     var BombExplosion = Class.create(Sprite,{
         initialize: function(point,num,scene){
             Sprite.call(this,200,200,point);
-            boms[num]-=0.5;
+            boms[num]-=1;
             this.backgroundColor = "red";
             this.time = 0;
             var value = 1.0;
@@ -1007,10 +930,11 @@ window.onload = function() {
                 this.time++;
                 this.rotation+= 45;
                 if(this.time % 2 == 0){
-                    value -= 0.05;
+                    value -= 0.1;
                     this.opacity = value;
-                    if(value < 0) scene.removeChild(this);
                 }
+                if(value < 0) scene.removeChild(this);
+                if(this.time > 20) scene.removeChild(this);
             }
             scene.addChild(this);
         }
@@ -1074,7 +998,6 @@ window.onload = function() {
             scene.addChild(this);
         }
     })
-
     /* 経路探索アルゴリズム */
     var findShortestPath = function(startCoordinates, grid,scene) {
         var distanceFromTop = startCoordinates[0];
@@ -1259,13 +1182,11 @@ window.onload = function() {
     
         return newLocation;
     };
-
     /* プレイヤークラス */
     var Player = Class.create(Sprite,{
         initialize: function(x,y,path1,path2,max,ref,shotSpeed,moveSpeed,scene,filterMap){
             Sprite.call(this,pixelSize-4, pixelSize-4)
-            //obstacle.push(this)
-            //this.backgroundColor = "#0004"
+
             this.x = x*pixelSize;
             this.y = y*pixelSize-16;
 
@@ -1291,10 +1212,6 @@ window.onload = function() {
             var PlBulCount = 0;
             
             for(var i = 0; i < pmax; i++){
-                /*bulOb[Num][i] = new TestBullet(cannon,shotSpeed,ref,0,Num,scene)
-                scene.removeChild(bulOb[Num][i])
-                colOb[Num][i] = new TestBullet(cannon,shotSpeed,ref,0,Num,scene)
-                scene.removeChild(colOb[Num][i])*/
                 colOb[Num][i] = new BulletCol(cur,floors[0],shotSpeed,0,Num,scene);
                 bulOb[Num][i] = new Bullet(colOb[Num][i],floors[0],ref,Num,pmax,shotSpeed,scene);
             }
@@ -1313,15 +1230,9 @@ window.onload = function() {
                         PlBulCount = (PlBulCount+1) % pmax;
                         bullets[Num]++;
                         new OpenFire(cannon,cur,scene,filterMap)
-                        /*bulOb[Num][PlBulCount] = new TestBullet(cannon,shotSpeed,ref,0,Num,scene);
-                        scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
-                        PlBulCount = (PlBulCount+1) % pmax;
-                        bullets[Num]++;*/
-                        //scene.addChild(new TestBullet(cannon,shotSpeed,ref,0,Num,scene));
                     }
                 }
             })
-            
             
             this.onenterframe = function(){
                 stopFlg = false;
@@ -1342,12 +1253,7 @@ window.onload = function() {
                             scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
                             PlBulCount = (PlBulCount+1) % pmax;
                             bullets[Num]++;
-                            new OpenFire(cannon,cur,scene,filterMap)
-                            /*bulOb[Num][PlBulCount] = new TestBullet(cannon,shotSpeed,1,0,Num,scene);
-                            scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
-                            PlBulCount = (PlBulCount+1) % pmax;
-                            bullets[Num]++;*/
-                            
+                            new OpenFire(cannon,cur,scene,filterMap) 
                         }
                     }
                     for(var j = 0; j < bulOb.length; j++){
@@ -1388,10 +1294,10 @@ window.onload = function() {
                         }
                     }
     
-                    if(deadFlgs[Num] == false) new Aim(cur,cannon,48,Num,scene)
+                    if(deadFlgs[Num] == false) new Aim(cur,cannon,base*3,Num,scene)
     
                     test.forEach(elem=>{
-                        if(tank.within(elem,64)==true){
+                        if(tank.within(elem,pixelSize)==true){
                             stopFlg = true;
                         }
                     })
@@ -1462,11 +1368,9 @@ window.onload = function() {
                     weak.rotation = rot;
                 }
             }
-            //scene.addChild(this);
             scene.insertBefore(this,tank)
         }
     })
-
     /* 敵(弱)クラス */
     var newAI = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,target,max,ref,shotSpeed,moveSpeed,fireLate,grade,scene,map,g,filterMap){
@@ -1474,25 +1378,31 @@ window.onload = function() {
             this.x = x*pixelSize;
             this.y = y*pixelSize-16;
             this.time = 0;
-            //this.backgroundColor = "#f004"
 
             const Num = entVal;
-            
-            const tank = new Tank(this,tankPath,Num,scene,filterMap)
-            const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
-            const weak = new Weak(this,Num,scene,filterMap)
-            const mark = new Mark(tank,this,Num,scene,target)
-            const intercept1 = new Intercept(this,scene)
-            const intercept3 = new Intercept3(this,scene)
-            const intercept4 = new Intercept4(this,scene)
-
             entVal++;
             bullets[Num] = 0;
             boms[Num] = 0;
             deadFlgs.push(false)
 
+            const tank = new Tank(this,tankPath,Num,scene,filterMap)
+            const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
+            const weak = new Weak(this,Num,scene,filterMap)
+            const mark = new Mark(tank,this,Num,scene,target)
+            const intercept1 = new Intercept420(this,scene)
+            const intercept3 = new Intercept192(this,scene)
+            const intercept4 = new Intercept600(this,scene)
+            const intercept8 = new InterceptF(cannon,scene)
+            var moveCnt = 0
+            var grid = g;
+            var root;
+
             enemyTarget[Num] = target;
             var alignment = new Target(cannon,Num,scene,weak,target)
+
+            if(stageNum > 20){
+                shotSpeed = shotSpeed + (0.4*(stageNum / 20));
+            }
 
             var PlBulCount = 0;
             for(var i = 0; i < max; i++){
@@ -1505,14 +1415,9 @@ window.onload = function() {
                     Aim.call(this,alignment,cannon,ssp,Num,scene);
                 }
             })
-            if(stageNum > 20){
-                shotSpeed = shotSpeed + (0.4*(stageNum / 20));
-            }
 
+            if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
-            var moveCnt = 0
-            var grid = g;
-            var root;
             this.onenterframe = function(){
                 var myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
                 var targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
@@ -1528,14 +1433,12 @@ window.onload = function() {
                             }else{
                                 grid[i][j] = 'Obstacle';
                             }
-                            
                         }
                     }
                 }
                 
                 if(scene.time == 180){
                     root = findShortestPath([myPath[0],myPath[1]], grid,scene)
-                    //alert(root)
                     if(root[0] == "East"){
                         this.rotation = 0
                     }else if(root[0] == "West"){
@@ -1584,8 +1487,16 @@ window.onload = function() {
                     }
                     alignment.intersect(EnemyAim).forEach(function(){
                         fireFlgs[Num] = true;
-                        //eAim.backgroundColor = "red"
                     })
+                    for(let i = 1; i < tankEntity.length; i++){
+                        bulOb[0].forEach(elem=>{
+                            if(tank.within(elem,400)==false){
+                                if(intercept8.intersect(tankEntity[i])==true && i != Num && deadFlgs[i]==false){
+                                    fireFlgs[Num] = false;
+                                }
+                            }
+                        })
+                    }
                     if(this.time % fireLate == 0 && fireFlgs[Num]==true){
                         if(Math.floor(Math.random() * max*2)>bullets[Num]){
                             if(bullets[Num] < max && deadFlgs[Num] == false){
@@ -1598,9 +1509,7 @@ window.onload = function() {
                                 PlBulCount = (PlBulCount+1) % max;
                                 bullets[Num]++;
                             } 
-                            
                         }
-                        
                     }
                     if(this.time % 2 == 0) enemyTarget[Num] = target;
                     if(tank.within(tankEntity[0],320)==true){
@@ -1665,7 +1574,6 @@ window.onload = function() {
                             this.x -= dx;
                             this.y -= dy;
                         }
-                        
                         moveCnt += moveSpeed;
                     }
                     if(moveCnt == pixelSize){
@@ -1690,14 +1598,11 @@ window.onload = function() {
                         moveCnt = 0
                     }
                 }
-
                 weak.rotation = this.rotation;
             }
-            //scene.addChild(this);
             scene.insertBefore(this,tank)
         }
     })
-
     /* 味方クラス */
     var Ally = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,target,max,ref,shotSpeed,moveSpeed,fireLate,grade,scene,map,g,filterMap){
@@ -1705,21 +1610,22 @@ window.onload = function() {
             this.x = x*pixelSize;
             this.y = y*pixelSize-16;
             this.time = 0;
-            //this.backgroundColor = "#f004"
 
             const Num = entVal;
             entVal++;
+            bullets[Num] = 0;
+            deadFlgs.push(false)
             
             const tank = new Tank(this,tankPath,Num,scene,filterMap)
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
             const weak = new Weak(this,Num,scene,filterMap)
             const mark = new Mark(tank,this,Num,scene,tankEntity[0])
-            const intercept1 = new Intercept(this,scene)
-            const intercept3 = new Intercept3(this,scene)
-            const intercept4 = new Intercept4(this,scene)
-
-            bullets[Num] = 0;
-            deadFlgs.push(false)
+            const intercept1 = new Intercept420(this,scene)
+            const intercept3 = new Intercept192(this,scene)
+            const intercept4 = new Intercept600(this,scene)
+            var moveCnt = 0
+            var grid = g;
+            var root;
 
             enemyTarget[Num] = target;
             var alignment = new Target(cannon,Num,scene,weak,enemyTarget[Num])
@@ -1734,11 +1640,7 @@ window.onload = function() {
                     Aim.call(this,alignment,cannon,ssp,Num,scene);
                 }
             })
-
             
-            var moveCnt = 0
-            var grid = g;
-            var root;
             this.onenterframe = function(){
 
                 for(let i = 1; i < tankEntity.length; i++){
@@ -1755,7 +1657,6 @@ window.onload = function() {
                                     alignment = new Target(cannon,Num,scene,weak,enemyTarget[Num])
                                 }
                             }
-                            
                         }
                     }else if(dist1 > dist2){
                         enemyTarget[Num] = tankEntity[i];
@@ -1782,7 +1683,6 @@ window.onload = function() {
                 }
                 if(scene.time == 180){
                     root = findShortestPath([myPath[0],myPath[1]], grid,scene)
-                    //alert(root)
                     if(root[0] == "East"){
                         this.rotation = 0
                     }else if(root[0] == "West"){
@@ -1824,13 +1724,11 @@ window.onload = function() {
                         new Explosion(this,scene);
                         this.moveTo(-100,-100)
                         scene.removeChild(this);
-                        
                     }
-                    var eAim = new EnemyAim(alignment,cannon,32,Num,scene);
+                    new EnemyAim(alignment,cannon,32,Num,scene);
 
                     alignment.intersect(EnemyAim).forEach(function(){
                         fireFlgs[Num] = true;
-                        //eAim.backgroundColor = "red"
                     })
 
                     tank.intersect(BulAim).forEach(function(){
@@ -1847,7 +1745,6 @@ window.onload = function() {
                         })
                     })
                     
-
                     if(this.time % fireLate == 0 && fireFlgs[Num]==true){
                         if(Math.floor(Math.random() * max*2)>bullets[Num]){
                             if(bullets[Num] < max && deadFlgs[Num] == false){
@@ -1859,10 +1756,8 @@ window.onload = function() {
                                 new OpenFire(cannon,alignment,scene,filterMap)
                                 PlBulCount = (PlBulCount+1) % max;
                                 bullets[Num]++;
-                            } 
-                            
+                            }  
                         }
-                        
                     }
                     
                     if(root == false && victory == false && defeat == false && complete == false) {
@@ -1881,7 +1776,6 @@ window.onload = function() {
                             this.x -= dx;
                             this.y -= dy;
                         }
-                        
                         moveCnt += moveSpeed;
                     }
                     if(moveCnt == pixelSize){
@@ -1906,60 +1800,17 @@ window.onload = function() {
                         moveCnt = 0
                     }
                 }
-
                 weak.rotation = this.rotation;
             }
-            //scene.addChild(this);
             scene.insertBefore(this,tank)
         }
     })
-    
-    /* タイトルの戦車クラス */
-    var AI = Class.create(Sprite,{
-        initialize: function(x,y,tankPath,cannonPath,shotSpeed,moveSpeed,scene){
-            Sprite.call(this, pixelSize-4, pixelSize-4)
-            //this.backgroundColor = "#fff"
-            this.x = x*pixelSize;
-            this.y = y*pixelSize-16;
-            this.time = 0;
-
-            const Num = 0;
-            const tank = new Tank(this,tankPath,Num,scene)
-            const cannon = new Cannon(this,cannonPath,Num,scene)
-            const weak = new Weak(this,Num,scene)
-
-            var onFire = false;
-
-            this.onenterframe = function(){
-                this.time++;
-                onFire = false;
-                var rad = this.rotation * (Math.PI / 180.0);
-                var dx = Math.cos(rad) * moveSpeed;
-                var dy = Math.sin(rad) * moveSpeed;
-                this.x += dx;
-                this.y += dy;
-                if(this.time % 64 == 0){
-                    var value = Math.floor(Math.random() * 4);
-                    if(value == 0) this.rotation = 0
-                    else if(value == 1) this.rotation = 180
-                    else if(value == 2) this.rotation = 270
-                    else this.rotation = 90
-                }
-                
-                tank.rotation = this.rotation;
-                cannon.rotation = this.rotation;
-            }
-            scene.addChild(this)
-            
-        }
-    })
-    
     /* 敵(強)クラス */
     var Elite = Class.create(Sprite,{
         initialize: function(x,y,path1,path2,target,max,ref,shotSpeed,moveSpeed,fireLate,grade,scene,filterMap){
             Sprite.call(this, pixelSize-4, pixelSize-4)
             this.x = x*pixelSize;
-            this.y = y*pixelSize-32;
+            this.y = y*pixelSize-16;
             this.time = 0;
 
             var emax = max;
@@ -1969,40 +1820,31 @@ window.onload = function() {
             boms[Num] = 0;
             deadFlgs.push(false)
             
-            
             const tank = new Tank(this,path1,Num,scene,filterMap)
             const weak = new Weak(this,Num,scene,filterMap)
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const mark = new Mark(tank,this,Num,scene,target)
-            const intercept = new Intercept(this,scene)
-            const intercept2 = new Intercept2(this,scene)
-            const intercept3 = new Intercept3(this,scene)
-            const intercept4 = new Intercept4(this,scene)
-            
-            
-            const kari = new Kari(this,scene)
-            const kari2 = new Kari2(this,scene)
-            var escapeFlg = false; 
-            var bomFlg = false;
-
-            
-
-            enemyTarget[Num] = target;
-            var alignment = new Target(cannon,Num,scene,weak,target)
-            
-
+            const intercept = new Intercept420(this,scene)
+            const intercept2 = new Intercept280(this,scene)
+            const intercept3 = new Intercept192(this,scene)
+            const intercept4 = new Intercept600(this,scene)
+            const intercept8 = new InterceptF(cannon,scene)
             var value = Math.floor(Math.random() * 4);;
             var speed = moveSpeed;
-            if(stageNum >= 20 && moveSpeed > 0){
-                speed = moveSpeed + (0.2*(stageNum / 20));
-            }
+            var bomFlg = false;
             var rot = 0;
             var option = [0,2,3]
             var stopFlg = false;
             var opaFlg = false;
 
+            if(stageNum >= 20 && moveSpeed > 0){
+                speed = moveSpeed + (0.2*(stageNum / 20));
+            }
+
+            enemyTarget[Num] = target;
+            var alignment = new Target(cannon,Num,scene,weak,target)
+
             var PlBulCount = 0;
-            //var plbul = [new BulletCol(alignment,cannon,shotSpeed,Num),new BulletCol(alignment,cannon,shotSpeed,Num),new BulletCol(alignment,cannon,shotSpeed,Num)];
             for(var i = 0; i < emax; i++){
                 colOb[Num][i] = new BulletCol(alignment,floors[i],shotSpeed,grade,Num,scene);
                 bulOb[Num][i] = new Bullet(colOb[Num][i],floors[i],ref,Num,emax,shotSpeed,scene);
@@ -2024,22 +1866,26 @@ window.onload = function() {
                 while(nvalue == option[0] || nvalue == option[1] || nvalue == option[2]) nvalue = Math.floor(Math.random() * 4);
                 return nvalue;
             }
-            
+
+            if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
                 stopFlg = false;
                 
                 if(worldFlg == true){
                     this.time++;
-                    if(grade == 6 && tank.within(tankEntity[0],200)==true && bomFlg == false && boms[Num] == 0){
+                    if(grade == 6 && tank.within(tankEntity[0],220)==true && bomFlg == false && boms[Num] == 0){
                         bomOb[Num][boms[Num]] = new Bom(this,Num,scene);
-                        scene.insertBefore(bomOb[Num][boms[Num]],tank);
+                        scene.insertBefore(bomOb[Num][0],tank);
                         this.time = 0;
                         bomFlg = true;
                         boms[Num]++;
                     }
-                    if(grade == 6 && bomFlg == true && this.time % 600 == 0){
+                    
+                    if(grade == 6 && bomFlg == true && boms[Num] <= 0){
                         bomFlg = false;
+                        bomOb[Num][0] = new Bom(this,Num,scene);
+                        if(boms[Num]!=0) boms[Num] = 0
                     }
                     if(grade == 7 && tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],300)==false){
                         tank.opacity-=0.1
@@ -2078,10 +1924,8 @@ window.onload = function() {
                             }
                         }
                         
-                        var eAim = new EnemyAim(alignment,cannon,32,Num,scene);
-                        if(enemyTarget[Num] == eAim){
-                            enemyTarget[Num] = target
-                        }
+                        new EnemyAim(alignment,cannon,32,Num,scene);
+                        
                         if(deadFlgs[Num] == true){
                             mark.opacity = 1.0
                             mark.moveTo(this.x,this.y+16)
@@ -2091,30 +1935,76 @@ window.onload = function() {
                             scene.removeChild(this);
                         }
                         
-                        
                         alignment.intersect(EnemyAim).forEach(function(){
                             fireFlgs[Num] = true;
-                            //eAim.backgroundColor = "red"
                         })
-                        if(game.time % fireLate == 0 && fireFlgs[Num]==true){
-                            if(Math.floor(Math.random() * emax*2)>bullets[Num]){
-                                if(bullets[Num] < emax && deadFlgs[Num] == false){
-                                    game.assets['./sound/putting_a_book2.mp3'].clone().play();
-                                    colOb[Num][PlBulCount] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene);
-                                    bulOb[Num][PlBulCount] = new Bullet(colOb[Num][PlBulCount],cannon,ref,Num,emax,shotSpeed,scene)
-                                    scene.insertBefore(colOb[Num][PlBulCount],filterMap);
-                                    scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
-                                    new OpenFire(cannon,alignment,scene,filterMap)
-                                    PlBulCount = (PlBulCount+1) % emax;
-                                    bullets[Num]++;
-                                    
-                                    
-                                } 
-                                
-                            }
-                            
+                        for(let i = 1; i < tankEntity.length; i++){
+                            bulOb[0].forEach(elem=>{
+                                if(tank.within(elem,400)==false){
+                                    if(intercept8.intersect(tankEntity[i])==true && i != Num && deadFlgs[i]==false){
+                                        fireFlgs[Num] = false;
+                                    }
+                                }
+                            })
                         }
                         
+                        if(game.time % fireLate == 0 && fireFlgs[Num]==true){
+                            if(Math.floor(Math.random() * emax*2)>bullets[Num]){
+                                if(grade == 6){
+                                    if(bullets[Num] < emax && deadFlgs[Num] == false && boms[Num] > 0){
+                                        if(Math.floor(Math.random() * 3) == 0 && ref > 0){
+                                            let r1 = 0;
+                                            let r2 = 0;
+                                            if(Math.floor(Math.random() * 2) == 1){
+                                                r1 = -1;
+                                            }else{
+                                                r1 = 1;
+                                            }
+                                            if(Math.floor(Math.random() * 2) == 1){
+                                                r2 = -1;
+                                            }else{
+                                                r2 = 1;
+                                            }
+                                            alignment.moveTo(alignment.x+(30*r1),alignment.y+(30*r2));
+                                        }
+                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
+                                        colOb[Num][PlBulCount] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene);
+                                        bulOb[Num][PlBulCount] = new Bullet(colOb[Num][PlBulCount],cannon,ref,Num,emax,shotSpeed,scene)
+                                        scene.insertBefore(colOb[Num][PlBulCount],filterMap);
+                                        scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
+                                        new OpenFire(cannon,alignment,scene,filterMap)
+                                        PlBulCount = (PlBulCount+1) % emax;
+                                        bullets[Num]++;  
+                                    }
+                                }else{
+                                    if(bullets[Num] < emax && deadFlgs[Num] == false){
+                                        if(Math.floor(Math.random() * 3) == 0 && ref > 0){
+                                            let r1 = 0;
+                                            let r2 = 0;
+                                            if(Math.floor(Math.random() * 2) == 1){
+                                                r1 = -1;
+                                            }else{
+                                                r1 = 1;
+                                            }
+                                            if(Math.floor(Math.random() * 2) == 1){
+                                                r2 = -1;
+                                            }else{
+                                                r2 = 1;
+                                            }
+                                            alignment.moveTo(alignment.x+(30*r1),alignment.y+(30*r2));
+                                        }
+                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
+                                        colOb[Num][PlBulCount] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene);
+                                        bulOb[Num][PlBulCount] = new Bullet(colOb[Num][PlBulCount],cannon,ref,Num,emax,shotSpeed,scene)
+                                        scene.insertBefore(colOb[Num][PlBulCount],filterMap);
+                                        scene.insertBefore(bulOb[Num][PlBulCount],filterMap);
+                                        new OpenFire(cannon,alignment,scene,filterMap)
+                                        PlBulCount = (PlBulCount+1) % emax;
+                                        bullets[Num]++; 
+                                    }
+                                }
+                            }
+                        }
                         
                         if(game.time % 2 == 0){
                             fireFlgs[Num] = false;
@@ -2151,14 +2041,36 @@ window.onload = function() {
                                                     }
                                                 } 
                                             }
-                                            
-                                        })
-                                          
+                                        }) 
                                     }
                                 }
                             })
                             
-
+                            if(grade == 6 && tank.within(bomOb[Num][0],400)==true && tank.intersect(Floor)==false){
+                                let dist = Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2));
+                                if(dist < 400){
+                                    fireFlgs[Num] = false;
+                                    if(this.time % 5 == 0){
+                                        if(weak.x-2.75 > bomOb[Num][0].x){
+                                            if(weak.y-2.75 > bomOb[Num][0].y){
+                                                while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                            }
+                                            else{
+                                                while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                            }
+                                                        
+                                        }else{
+                                            if(weak.y-2.75 > bomOb[Num][0].y){
+                                                while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                            }
+                                            else{
+                                                while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
                             if(grade > 3){
                                 bomOb.forEach(elem=>{
                                     elem.forEach(elem2=>{
@@ -2253,25 +2165,29 @@ window.onload = function() {
                                 for(var i = 0; i < tankEntity.length; i++){
                                     if(i != Num && deadFlgs[i] == false){
                                         if(intercept3.intersect(tankEntity[i])==true){
-                                            if(weak.x-2.75 > tankEntity[i].x){
+                                            if(this.time % 5 == 0){
+                                                if(weak.x-2.75 > tankEntity[i].x){
                                                 
-                                                if(weak.y-2.75 > tankEntity[i].y){
-                                                    while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
-                                                }
-                                                else{
-                                                    while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
-                                                }
-                                            }else{
-                                                if(weak.y-2.75 > tankEntity[i].y){
-                                                    while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
-                                                }
-                                                else{
-                                                    while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                    if(weak.y-2.75 > tankEntity[i].y){
+                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                    else{
+                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                }else{
+                                                    if(weak.y-2.75 > tankEntity[i].y){
+                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                    else{
+                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                    }
                                                 }
                                             }
+                                            
                                         }else{
                                             let dist = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                             if(grade == 7 && dist > 240){
+                                                
                                                 if(weak.x-2.75 > enemyTarget[Num].x){
                                                     if(weak.y-2.75 > enemyTarget[Num].y){
                                                         while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
@@ -2288,40 +2204,66 @@ window.onload = function() {
                                                         while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
                                                     }
                                                 }
+                                            }
+                                            if(grade == 6 && dist > 400){
+                                                if(this.time % 5 == 0){
+                                                    if(weak.x-2.75 > enemyTarget[Num].x){
+                                                        if(weak.y-2.75 > enemyTarget[Num].y){
+                                                            while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                            
+                                                    }else{
+                                                        if(weak.y-2.75 > enemyTarget[Num].y){
+                                                            while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                    }
+                                                }
+                                                
                                             }else if(dist > 160){
-                                                    
-                                                if(weak.x-2.75 > enemyTarget[Num].x){
-                                                    if(weak.y-2.75 > enemyTarget[Num].y){
-                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                if(this.time % 5 == 0){
+                                                    if(weak.x-2.75 > enemyTarget[Num].x){
+                                                        if(weak.y-2.75 > enemyTarget[Num].y){
+                                                            while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                            
+                                                    }else{
+                                                        if(weak.y-2.75 > enemyTarget[Num].y){
+                                                            while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
                                                     }
-                                                    else{
-                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
-                                                    }
-                                                        
-                                                }else{
-                                                    if(weak.y-2.75 > enemyTarget[Num].y){
-                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
-                                                    }
-                                                    else{
-                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
-                                                    }
-                                                }
+                                                }    
+                                                
                                             }else{
-                                                if(weak.x-2.75 > enemyTarget[Num].x){
-                                                    if(weak.y-2.75 > enemyTarget[Num].y){
-                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                if(this.time % 5 == 0){
+                                                    if(weak.x-2.75 > enemyTarget[Num].x){
+                                                        if(weak.y-2.75 > enemyTarget[Num].y){
+                                                            while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                    }else{
+                                                        if(weak.y-2.75 > enemyTarget[Num].y){
+                                                            while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                                        }
+                                                        else{
+                                                            while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                        }
                                                     }
-                                                    else{
-                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
-                                                    }
-                                                }else{
-                                                    if(weak.y-2.75 > enemyTarget[Num].y){
-                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
-                                                    }
-                                                    else{
-                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
-                                                    }
-                                                }
+                                                } 
+                                                
                                             }
                                             if(allyFlg == true){
                                                 if(allyDeadFlg == false){
@@ -2335,9 +2277,7 @@ window.onload = function() {
                                                 }
                                             }
                                         }
-     
                                     }
-                                    
                                 }
                             }
 
@@ -2404,12 +2344,10 @@ window.onload = function() {
                                 if(dist1 > dist2){
                                     tank.intersect(BulAim).forEach(function(){
                                         enemyTarget[Num] = elem2;
-                                    })
-                                      
+                                    }) 
                                 }
                             }
                         })
-                        
                         
                         /* 戦車本体の角度 */
                         if(moveSpeed > 0){
@@ -2418,86 +2356,11 @@ window.onload = function() {
                             weak.rotation = rot;
                         }
                     }
-                
                 }
             }
-            //scene.addChild(this);
             scene.insertBefore(this,tank)
         }
     })
-    /*
-    var BulKari = Class.create(Sprite,{
-        initialize: function(area,x,y,scene){
-            Sprite.call(this,4, 4);
-            this.backgroundColor = "#0ff2";
-            this.onenterframe = function(){
-                this.moveTo(area.x+2+x,area.y+2+y);
-            }
-            scene.addChild(this);
-        }
-    })*/
-    /* 【テスト】照準クラス */
-    /*var NewAim = Class.create(Sprite,{
-        initialize: function(start,goal,speed,ref,num,scene){
-            Sprite.call(this,8,8);
-            this.backgroundColor = "#aff4"
-            this.time = 0;
-            this.moveTo(start.x+(start.width/2),start.y+(start.height/2))
-            const vector = {
-                x: goal.x - start.x-((start.width/2) - (this.width/2)),
-                y: goal.y - start.y-((start.height/2) - (this.height/2))
-            };
-            this.rad = Math.atan2(vector.y, vector.x);
-            this.moveTo(this.x+48*Math.cos(this.rad), this.y+48*Math.sin(this.rad));
-            start.rotation = (270+(Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI)*-1;
-
-            var rcnt = 0;
-            var rflg = false;
-
-            var dx = Math.cos(this.rad) * speed;
-            var dy = Math.sin(this.rad) * speed;
-
-            const bk = [new BulKari(this,0,48,scene),new BulKari(this,0,-48,scene)]
-            const bk2 = [new BulKari(this,48,0,scene),new BulKari(this,-48,0,scene)]
-            var b = [false,false]
-
-            this.onenterframe = function(){
-                
-                if(rflg == true) this.time++;
-                
-                if((this.intersect(walls[0])==true || this.intersect(walls[1])==true)&&rflg == false){
-                    this.backgroundColor = "#faf4"
-                    rflg = true
-                    rcnt++;
-                    this.time = 0;
-                    dy = dy * -1;
-                }else if((this.intersect(walls[2])==true || this.intersect(walls[3])==true)&&rflg == false){
-                    this.backgroundColor = "#faf4"
-                    rflg = true
-                    rcnt++;
-                    this.time = 0;
-                    dx = dx * -1; 
-                }else{
-                    rflg=false
-                }
-              
-                if(rcnt > ref){
-                    scene.removeChild(this)
-                    bk.forEach(elem2=>{
-                        scene.removeChild(elem2)
-                    })
-                    bk2.forEach(elem2=>{
-                        scene.removeChild(elem2)
-                    })
-                    
-                }
-                this.x += dx;
-                this.y += dy;
-            }
-            scene.addChild(this);
-        }
-    })*/
-    
     /* 【テスト】強敵クラス */
     var Boss = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,target,max,ref,shotSpeed,moveSpeed,fireLate,grade,scene,filterMap){
@@ -2505,7 +2368,6 @@ window.onload = function() {
             this.x = x*pixelSize;
             this.y = y*pixelSize-16;
             this.time = 0;
-
             
             const Num = entVal;
             entVal++;
@@ -2517,25 +2379,21 @@ window.onload = function() {
             const weak = new Weak(this,Num,scene,filterMap)
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
             const mark = new Mark(tank,this,Num,scene,target)
-            const intercept = new Intercept(this,scene)
-            const intercept2 = new Intercept2(this,scene)
-            const intercept3 = new Intercept3(this,scene)
-            const intercept4 = new Intercept4(this,scene)
-            const intercept5 = new Intercept5(cannon,scene)
-            const intercept6 = new Intercept6(cannon,scene)
-            const intercept7 = new Intercept7(cannon,scene)
-
+            const intercept = new Intercept420(this,scene)
+            const intercept2 = new Intercept280(this,scene)
+            const intercept3 = new Intercept192(this,scene)
+            const intercept4 = new Intercept600(this,scene)
+            const intercept5 = new InterceptA(cannon,scene)
+            const intercept6 = new InterceptB(cannon,scene)
+            const intercept7 = new InterceptC(cannon,scene)
             var value = 0;
             var rot = 0;
             var emax = max
             var speed = moveSpeed;
             var option = [0,4,6,2,3]
             var stopFlg = false;
-
             var dflg = false;
-
             var defenseMax = parseInt(max/2)-1;
-
             var escapeFlg = false;
             var opaFlg = false;
 
@@ -2543,18 +2401,12 @@ window.onload = function() {
             var alignment = new Target(cannon,Num,scene,weak,target)
 
             var PlBulCount = 0;
-
             for(var i = 0; i < max+defenseMax; i++){
                 colOb[Num][i] = new BulletCol(alignment,floors[i],shotSpeed,grade,Num,scene);
                 bulOb[Num][i] = new Bullet(colOb[Num][i],floors[i],ref,Num,max,shotSpeed,scene);
             }
             bomOb[Num][0] = new Bom(this,Num,scene);
 
-            /*var EnemyAim = Class.create(Aim,{
-                initialize: function(target,shotSpeed,num,scene){
-                    Aim.call(this,target,cannon,shotSpeed,num,scene);
-                }
-            })*/
             var EnemyAim = Class.create(Aim,{
                 initialize: function(target,shotSpeed,num,scene){
                     Aim.call(this,target,cannon,shotSpeed,num,scene);
@@ -2575,6 +2427,8 @@ window.onload = function() {
                 while(nvalue == option[0] || nvalue == option[1] || nvalue == option[2] || nvalue == option[3] || nvalue == option[4]) nvalue = Math.floor(Math.random() * 8);
                 return nvalue;
             }
+
+            if(addBullet != 0 && shotSpeed < 15) shotSpeed += 1; 
 
             this.onenterframe = function(){
                 stopFlg = false;
@@ -2625,7 +2479,7 @@ window.onload = function() {
                             }
                         }
 
-                        var eAim = new EnemyAim(alignment,32,Num,scene);
+                        new EnemyAim(alignment,32,Num,scene);
   
                         if(deadFlgs[Num] == true){
                             mark.opacity = 1.0
@@ -2636,10 +2490,8 @@ window.onload = function() {
                             scene.removeChild(this);
                         }
                         
-                        
                         alignment.intersect(EnemyAim).forEach(function(){
                             fireFlgs[Num] = true;
-                            //eAim.backgroundColor = "red"
                         })
                         if(fireFlgs[Num]==true && intercept7.intersect(Floor)==false){
                             if(dflg == true){
@@ -2684,13 +2536,8 @@ window.onload = function() {
                                         if(grade == 11) opaFlg = true;
                                     } 
                                 }
-                                
                             }
-                            
-                            
-                            
                         }
-                        
                         
                         if(game.time % 2 == 0){
                             fireFlgs[Num] = false;
@@ -2761,6 +2608,21 @@ window.onload = function() {
                                             }else{
                                                 if(weak.x-2.75 > enemyTarget[Num].x){
                                                     if(weak.y-2.75 > enemyTarget[Num].y){
+                                                        while(value == 4) value = Math.floor(Math.random() * 8);
+                                                    }
+                                                    else{
+                                                        while(value == 6) value = Math.floor(Math.random() * 8);
+                                                    }
+                                                }else{
+                                                    if(weak.y-2.75 > enemyTarget[Num].y){
+                                                        while(value == 5) value = Math.floor(Math.random() * 8);
+                                                    }
+                                                    else{
+                                                        while(value == 7) value = Math.floor(Math.random() * 8);
+                                                    }
+                                                }
+                                                /*if(weak.x-2.75 > enemyTarget[Num].x){
+                                                    if(weak.y-2.75 > enemyTarget[Num].y){
                                                         while(value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
                                                     }
                                                     else{
@@ -2773,7 +2635,7 @@ window.onload = function() {
                                                     else{
                                                         while(value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
                                                     }
-                                                }
+                                                }*/
                                             }
                                             if(allyFlg == true){
                                                 if(allyDeadFlg == false){
@@ -2787,14 +2649,10 @@ window.onload = function() {
                                                 }
                                             }
                                         }
-     
                                     }
-                                    
                                 }
                             }
-                            
-                            
-                            
+
                             if(value == 4){
                                 //左上
                                 rot = 45
@@ -2829,7 +2687,6 @@ window.onload = function() {
                                 this.y += speed;
                             }
                             
-                            
                         }else{
                             if(value == 0){
                                 this.x += (speed*2);
@@ -2862,9 +2719,7 @@ window.onload = function() {
                                 ChangeOp(value)
                                 value = ChangeVal(value)
                             }
-                            
-                            
-                            
+
                         }
                         if(stopFlg == false){
                             
@@ -2892,8 +2747,6 @@ window.onload = function() {
                                                         }
                                                     }
                                                 }
-                                                
-                                                
                                             }
                                         }
                                     })
@@ -2994,9 +2847,7 @@ window.onload = function() {
                                                 }
                                             }
                                         }
-                                    }
-                                    
-                                    
+                                    }   
                                 }else if(intercept4.intersect(elem) && tank.intersect(Floor)==false){
                                     
                                     let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
@@ -3021,15 +2872,11 @@ window.onload = function() {
                                                 }
                                             }
                                         })
-                                        
                                     }
                                 }
-                                
                             })
                         }
-                        
-                        
-                        
+
                         /* 戦車本体の角度 */
                         if(moveSpeed > 0){
                             this.rotation = rot;
@@ -3037,11 +2884,8 @@ window.onload = function() {
                             weak.rotation = rot;
                         }
                     }
-                    
                 }
-                
             }
-            
             scene.insertBefore(this,filterMap)
         }
     })
@@ -3050,7 +2894,7 @@ window.onload = function() {
         initialize: function(player,scene){
             Label.call(this,1,1)
             this.x = player.x-((player.width*2))
-            this.y = player.y-64
+            this.y = player.y-pixelSize
             this.time = 0
             this.text = userName+"<br><br>↓"
             this.textAlign = 'center';
@@ -3183,7 +3027,6 @@ window.onload = function() {
         new DispLine(x,y,width,height,"#eea",scene)
         //new DispLine(x,y+height,width,120,"#a00d",scene)
     }
-    
     /* 警告演出クラス */
     var Warning = Class.create(Sprite,{
         initialize: function(scene){
@@ -3261,7 +3104,6 @@ window.onload = function() {
             scene.addChild(this)
         }
     })
-
     function getJson() {
         //var xmlhttp = createXMLHttpRequest(); //旧バージョンのIEなどに対応する場合
         var xmlhttp = new XMLHttpRequest();
@@ -3304,14 +3146,11 @@ window.onload = function() {
             }
             xhr.send(sendParam); 
         }
-        
     }
     new getJson()
 
     game.onload = function() { // ゲームの準備が整ったらメインの処理を実行します
-        
         var world = new PhysicsWorld(0, 0);
-        
         /* タイトルシーン */
         var createTitleScene = function(){
 
@@ -3321,56 +3160,79 @@ window.onload = function() {
 
             scene.backgroundColor = '#cacaca';                      // シーンの背景色を設定
             // スタート画像設定
-            /*var startImage = */new DispHead(100,240,360*3,240*2.25,"#a00d",scene)
+            new DispHead(100,240,360*3,240*2.25,"#a00d",scene)
             
             // タイトルラベル設定
-            /*var title = */new DispText(100,320,260*size,96,'Battle Tank Game','96px sans-serif','#ebe799','center',scene)
+            new DispText(100,320,260*size,96,'Battle Tank Game','96px sans-serif','#ebe799','center',scene)
             
             // サブタイトルラベル設定
-            var toPlay = new DispText(0,480,320*size,32,'➡プレイする','32px sans-serif','#ebe799','center',scene)
+            var toPlay = new DispText(game.width/2-180,480,320,40,'➡　S t a r t !','40px sans-serif','#ebe799','left',scene)
             
-            var toRank = new DispText(0,540,320*size,32,'➡ランキング画面へ','32px sans-serif','#ebe799','center',scene)
+            var toRank = new DispText(game.width/2-180,560,600,40,'➡　ランキング画面','40px sans-serif','#ebe799','left',scene)
 
-            var inputName = new DispText(0,600,320*size,32,'➡ユーザ名入力','32px sans-serif','#ebe799','center',scene)
+            var level = new DispText(game.width/2-180,640,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
 
-            var allyYN = new DispText(0,660,320*size,32,'➡味方の有無','32px sans-serif','#ebe799','center',scene)
+            var nomal = new DispText(level.x+level.width-16,640,40,40,'普','40px sans-serif','#ebe799','left',scene)
+            var hard = new DispText(level.x+level.width+nomal.width+16,640,40,40,'難','40px sans-serif','#888','left',scene)
 
-            /*var tank = */new AI(160,120,'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',8,1,scene)
+            let lvFlg = false;
+
+            nomal.addEventListener(Event.TOUCH_START, function() {
+                if(lvFlg == true){
+                    nomal.color = '#ebe799';
+                    hard.color = '#888';
+                    lvFlg = false;
+                    addBullet = 0;
+                }
+            })
+            hard.addEventListener(Event.TOUCH_START, function() {
+                if(lvFlg == false){
+                    nomal.color = '#888';
+                    hard.color = 'red';
+                    lvFlg = true;
+                    addBullet = 1;
+                }
+            })
+            level.addEventListener(Event.TOUCH_START, function() {
+                if(lvFlg == true){
+                    nomal.color = '#ebe799';
+                    hard.color = '#888';
+                    lvFlg = false;
+                    addBullet = 0;
+                }else{
+                    nomal.color = '#888';
+                    hard.color = 'red';
+                    lvFlg = true;
+                    addBullet = 1;
+                }
+            })
 
             var orflg = 0;
-            allyYN.addEventListener(Event.TOUCH_START, function() {
-                if(confirm("味方を追加しますか？")) {
+            
+            // 移動先をプレイ画面に設定
+            toPlay.addEventListener(Event.TOUCH_START, function() {
+                let returnFlg = true;
+                while(returnFlg){
+                    userName = prompt("\r\nユーザ名を入力してください\r\n", "ここにユーザ名を入力");
+                    if(userName == "" || userName == null || userName == "ここにユーザ名を入力"){
+                        if(confirm("\r\nユーザ名を設定していません。\r\nよろしいですか？")) {
+                            returnFlg = false;
+                            userName = "Player"
+                        }
+                    }else{
+                        alert("ユーザ名を「" + userName + "」に設定しました。");
+                        returnFlg = false;
+                    }
+                }
+
+                if(confirm("味方を追加しますか？\r( OK：追加する　キャンセル：追加しない )\r\n")) {
                     allyFlg = true;
                 } else {
                     allyFlg = false;
                 }
-            });
-            
-            
-            // 移動先をプレイ画面に設定
-            toPlay.addEventListener(Event.TOUCH_START, function() {
-                if(userName == "Player"){
-                    if(confirm("\r\nユーザ名を設定していません。\r\nランキングには記録されませんがよろしいですか？")) {
-                        flg = true
-                        orflg = 1;
-                        new FadeOut(scene)
-                    }else{
-                        alert("\r\n「➡ユーザ名入力」で名前を設定できます。")
-                    }
-                }else if(allyFlg == true){
-                    if(confirm("\r\n味方が追加されています。\r\nランキングには記録されませんがよろしいですか？")) {
-                        flg = true
-                        orflg = 1;
-                        new FadeOut(scene)
-                    }else{
-                        alert("\r\n「➡味方の有無」で いいえ を選ぶと解除できます。")
-                    }
-                }else{
-                    flg = true
-                    orflg = 1;
-                    new FadeOut(scene)
-                }
-                
+                flg = true
+                orflg = 1;
+                new FadeOut(scene)
             });
             
             // 移動先をランキング画面に設定
@@ -3379,17 +3241,9 @@ window.onload = function() {
                 orflg = 2;
                 new FadeOut(scene)
             });
-            //  ユーザ名の入力表示&値の受取
-            inputName.addEventListener(Event.TOUCH_START, function() {
-                userName = prompt("ユーザ名を入力してください", "ここにユーザ名を入力");
-                if(userName == "" || userName == null){
-                    userName = "Player"
-                }else{
-                    alert("ユーザ名を「" + userName + "」に設定しました。");
-                }
-                
-            });
+            //画面遷移の処理
             scene.onenterframe = function(){
+                
                 if(flg == true){
                     scene.time++
                     if(scene.time == 30){
@@ -3403,7 +3257,6 @@ window.onload = function() {
                 }
                 
             }
-            
             new FadeIn(scene)
             // タイトルシーンを返します。
             return scene;
@@ -3413,10 +3266,9 @@ window.onload = function() {
             var flg = false;
             scene.time = 0;
             scene.backgroundColor = '#cacaca';                      // シーンの背景色を設定
-
-            /*var headImage = */new DispHead(100,80,360*3,240*3,"#a00d",scene)
-            /*var bodyImage = */new DispBody(100,280,360*3,240*1.75,scene)
-
+    
+            new DispHead(100,80,360*3,240*3,"#a00d",scene)
+            new DispBody(100,280,360*3,240*1.75,scene)
             
             tops = ["_____","_____","_____","_____","_____","_____","_____","_____","_____","_____"]
             rankings = [0,0,0,0,0,0,0,0,0,0]
@@ -3439,29 +3291,30 @@ window.onload = function() {
                     }
                 }
             }
-            /*var title = */new DispText(120,140,260*4,64,'ハイスコア一覧','64px sans-serif','#ebe799','center',scene)
-            /*var sampleRank = */new DispText(320*0.68,300,260*2,32,'順位：名前：スコア','32px sans-serif','#000000','left',scene)
+            new DispText(120,140,260*4,64,'ハイスコア一覧','64px sans-serif','#ebe799','center',scene)
+            new DispText(320*0.68,300,260*2,32,'順位：名前：スコア','32px sans-serif','#000000','left',scene)
             
             for(let i = 0; i < 5; i++){
-                /*var ranks = */new DispText(320*0.75,300+(64*(i+1)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
+                new DispText(320*0.75,300+(64*(i+1)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
                 if(rankings[i] >= 137){
-                    /*var star = */new DispText(320*0.55,300+(64*(i+1)),48,32,"★",'32px sans-serif','goldenrod','center',scene)
+                    new DispText(320*0.55,300+(64*(i+1)),48,32,"★",'32px sans-serif','goldenrod','center',scene)
                     
                 }else if(rankings[i] >= 53){
-                    /*var star = */new DispText(320*0.55,300+(64*(i+1)),48,32,"★",'32px sans-serif','aliceblue','center',scene)
+                    new DispText(320*0.55,300+(64*(i+1)),48,32,"★",'32px sans-serif','aliceblue','center',scene)
                 }
             }
             for(let i = 5; i < 10; i++){
-                /*var ranks = */new DispText(320*2.25,300+(64*(i-4)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
+                new DispText(320*2.25,300+(64*(i-4)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
                 if(rankings[i] >= 137){
-                    /*var star = */new DispText(320*2.05,300+(64*(i-4)),48,32,"★",'32px sans-serif','goldenrod','center',scene)
+                    new DispText(320*2.05,300+(64*(i-4)),48,32,"★",'32px sans-serif','goldenrod','center',scene)
                     
                 }else if(rankings[i] >= 53){
-                    /*var star = */new DispText(320*2.05,300+(64*(i-4)),48,32,"★",'32px sans-serif','aliceblue','center',scene)
+                    new DispText(320*2.05,300+(64*(i-4)),48,32,"★",'32px sans-serif','aliceblue','center',scene)
                 }
             }
             var toTitle = new DispText(480,720,320,32,'➡タイトル画面へ','32px sans-serif','#ebe799','center',scene)
-            /*var kome = */new DispText(0,240,320*size,24,'※スコアが表示されない場合は時間をおいてから画面を読込し直してください。','24px sans-serif','#ebe799','center',scene)
+            //new DispText(0,240,320*size,24,'※スコアが表示されない場合は時間をおいてから画面を読込し直してください。','24px sans-serif','#ebe799','center',scene)
+            new DispText(0,240,320*size,24,'※Github版なのでランキングは機能していません。','24px sans-serif','#ebe799','center',scene)
             
             // スタート画像にタッチイベントを設定
             toTitle.addEventListener(Event.TOUCH_START, function(e) {
@@ -3474,8 +3327,7 @@ window.onload = function() {
                     if(scene.time == 30){
                         game.replaceScene(createTitleScene());    // 現在表示しているシーンをゲームシーンに置き換える
                     }
-                }
-                
+                } 
             }
             new FadeIn(scene)
             return scene;
@@ -3502,40 +3354,35 @@ window.onload = function() {
             destruction = 0;
             victory = false;
             defeat = false;
-
-            /*let elscript = document.createElement("script");
-            elscript.src = stagePath[stageNum+1];
-            head[0].addChild(elscript);
-            nextData = LoadStage();    //ステージ情報引き出し*/
-            
+    
             var nextData = LoadStage();    //ステージ情報引き出し
-
+    
             let count = 0;
             for(var i = 4; i < Object.keys(nextData).length-1; i++){
                 count++;
             }
-
+    
             script = document.createElement("script");
             script.src = stagePath[stageNum];
             head[0].appendChild(script);
             stageData = LoadStage();    //ステージ情報引き出し
-
+    
             var scene = new Scene();                              // 新しいシーンを作る
             scene.time = 0;
             scene.backgroundColor = '#ebf899';                      // シーンの背景色を設定
             // スタート画像設定
-            /*var headImage = */new DispHead(100,240,360*3,240*2,"#a00d",scene)
+            new DispHead(100,240,360*3,240*2,"#a00d",scene)
             
             // タイトルラベル設定
-            /*var title = */new DispText(100,320,260*size,96,'Stage : '+stageNum,'96px sans-serif','#ebe799','center',scene)
+            new DispText(100,320,260*size,96,'Stage : '+stageNum,'96px sans-serif','#ebe799','center',scene)
             
             // サブタイトルラベル設定
-            /*var subTitle = */new DispText(0,480,320*size,32,'敵戦車数：'+count,'32px sans-serif','#ebe799','center',scene)
-
-            /*var zankiLabel = */new DispText(0,550,320*size,32,'残機数：'+zanki,'32px sans-serif','aliceblue','center',scene)
+            new DispText(0,480,320*size,32,'敵戦車数：'+count,'32px sans-serif','#ebe799','center',scene)
+    
+            new DispText(0,550,320*size,32,'残機数：'+zanki,'32px sans-serif','aliceblue','center',scene)
             
             new FadeIn(scene)
-
+    
             scene.onenterframe = function(){
                 scene.time++
                 if((stageNum % 20 == 0) && scene.time == 15) new Warning(scene)
@@ -3546,22 +3393,22 @@ window.onload = function() {
                     game.replaceScene(createGameScene());    // 現在表示しているシーンをゲームシーンに置き換える
                 }
             }
-
+    
             return scene;
         };
         var createBonusScene = function() {
-
+    
             var scene = new Scene();                              // 新しいシーンを作る
             scene.time = 0;
             scene.backgroundColor = '#ebf899';                      // シーンの背景色を設定
-
+    
             zanki++;
-
+    
             // スタート画像設定
-            /*var headImage = */new DispHead(100,240,360*3,240*2,"#a00d",scene)
+            new DispHead(100,240,360*3,240*2,"#a00d",scene)
             
             // タイトルラベル設定
-            /*var title = */new DispText(100,360,260*size,72,'クリアボーナス！','72px sans-serif','#ebe799','center',scene)
+            new DispText(100,360,260*size,72,'クリアボーナス！','72px sans-serif','#ebe799','center',scene)
             
             var zankiLabel = new Label();
                 zankiLabel.width = 64;
@@ -3573,11 +3420,11 @@ window.onload = function() {
                 zankiLabel.color = 'aliceblue';
                 zankiLabel.textAlign = 'center';
                 scene.addChild(zankiLabel)
-
+    
             new DispText(0,500,310*size,48,'残機数：','48px sans-serif','aliceblue','center',scene)
             
             new FadeIn(scene)
-
+    
             scene.onenterframe = function(){
                 scene.time++
                 if(scene.time >= 85 && scene.time < 90){
@@ -3606,41 +3453,36 @@ window.onload = function() {
                     game.replaceScene(createStartScene());    // 現在表示しているシーンをゲームシーンに置き換える
                 }
             }
-
             return scene;
         };
         /* ゲームシーン */
         var createGameScene = function() {
-
-            /*let script = document.createElement("script");
-            script.src = stagePath[stageNum+1];
-            let head = document.getElementsByTagName("head");
-            head[0].appendChild(script);*/
+    
+            game.time = 0;
+            worldFlg = false;
+    
             stageData = LoadStage();    //ステージ情報引き出し
-
+    
             var scene = new Scene();                            // 新しいシーンを作る
                 scene.time = 0;
-            
-            worldFlg = false;
-            
-            //game.assets['./sound/Beat Slappr.wav'].clone().play();
-            game.time = 0;
+    
             let backgroundMap = new Map(pixelSize, pixelSize);
                 backgroundMap.image = game.assets['./image/MapImage/map0.png'];
                 backgroundMap.loadData(stageData[0],stageData[1])
                 backgroundMap.collisionData = stageData[2];
-            scene.addChild(backgroundMap);
+                scene.addChild(backgroundMap);
+    
             walls[0] = new Wall(18,1,1,1,scene)
             walls[1] = new Wall(18,1,1,14,scene)
             walls[2] = new Wall(1,13,0,1,scene)
             walls[3] = new Wall(1,13,19,1,scene)
             walls[4] = new Wall(24,1,0,15,scene)
-
+    
             var i = 0;
             var j = 0;
-
+    
             var grid = [];
-
+    
             /* 壁の当たり判定設置 */
             backgroundMap.collisionData.forEach(colI => {
                 grid[i] = []
@@ -3678,7 +3520,7 @@ window.onload = function() {
                 cur.x = e.x-8;
                 cur.y = e.y-8;
             })
-
+    
             let filterMap = new Map(pixelSize,pixelSize);
             filterMap.image = game.assets['./image/MapImage/map0.png'];
             var filImg = stageData[1];
@@ -3698,37 +3540,33 @@ window.onload = function() {
             bulOb.push([])
             colOb.push([])
             bomOb.push([])
-            tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,8,2,scene,filterMap))
+            tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,9,2,scene,filterMap))
             
             var abn = Math.floor(Math.random() * 10)
-
+    
             for(var i = 4; i < Object.keys(stageData).length-1; i++){
                 bulOb.push([])
                 colOb.push([])
                 bomOb.push([])
                 if(stageData[i][10]==11){
-                    tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4],stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap))
+                    tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap))
                 }else if((abn == 0 && stageNum > 5 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
-                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],Math.floor(Math.random() * 4)+1,Math.floor(Math.random() * 4)+1,Math.floor(Math.random() * 9)+6,Math.floor(Math.random() * 3),Math.floor(Math.random() * 35)+5,Math.floor(Math.random() * 4)+3,scene,filterMap))
+                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],Math.floor(Math.random() * 4)+1+addBullet,Math.floor(Math.random() * 4)+1,Math.floor(Math.random() * 9)+6,Math.floor(Math.random() * 3),Math.floor(Math.random() * 35)+5,Math.floor(Math.random() * 4)+3,scene,filterMap))
                     stageData[i][10] = 10;
                 }else if(stageData[i][9]>2){
-                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4],stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap));
+                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,filterMap));
                 }else{
-                    tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4],stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,backgroundMap,grid,filterMap))
+                    tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],scene,backgroundMap,grid,filterMap))
                 }
             }
             if(allyFlg == true){
-                allyEntity.push(new Ally(stageData[Object.keys(stageData).length-1][0],stageData[Object.keys(stageData).length-1][1],'./image/ObjectImage/brown.png','./image/ObjectImage/browncannon.png',tankEntity[1],3,1,8,1.0,12,11,scene,backgroundMap,grid,filterMap))
+                allyEntity.push(new Ally(stageData[Object.keys(stageData).length-1][0],stageData[Object.keys(stageData).length-1][1],'./image/ObjectImage/brown.png','./image/ObjectImage/browncannon.png',tankEntity[1],3,1,8,1.0,15,11,scene,backgroundMap,grid,filterMap))
                 new AllyLabel(allyEntity[0],scene)
             }
-            
-
             new PlayerLabel(tankEntity[0],scene)
-            
-
             new FadeIn(scene)
             var dcnt = 0;
-
+    
             var startLabel = new Label();
                 startLabel.width = 288;
                 startLabel.height = 72;
@@ -3738,31 +3576,22 @@ window.onload = function() {
                 startLabel.font = '72px "Arial"';
                 startLabel.color = 'yellow';
                 startLabel.textAlign = 'left';
-
+    
             var BGM1 = game.assets['./sound/start.wav'];
                 BGM1.play();
                 BGM1.volume = 0.2
-            
-                
-                
-
+    
             scene.onenterframe = function() {
-                
-                
+    
                 if(BGM1.currentTime == BGM1.duration && victory == false && defeat == false && complete == false){
-
+    
                     BGM1 = game.assets['./sound/FIRST.mp3'];
                     BGM1.currentTime = 0;
                     BGM1.play()
                 }
-                /*if(BGM2.currentTime == BGM2.duration && (victory == false && defeat == false && complete == false)){
-                    BGM2.currentTime = 0;
-                    BGM2.play()
-                }*/
                 
                 scene.time++;
-                
-                    
+       
                 if(scene.time == 210 && complete == false && victory == false){
                     worldFlg = true;
                     scene.addChild(startLabel)   
@@ -3803,12 +3632,11 @@ window.onload = function() {
                         let head = document.getElementsByTagName("head");
                         head[0].appendChild(script);
                         if(stageNum == stagePath.length-1 || stageNum == 20){
+    
                             scene.time = 0;
-
-                            /*var headImage = */new DispHead(100,60,360*3,180,"#a00",scene)
-
-                            /*var label = */new DispText(252,124,720,64,'ミッションコンプリート！','bold 64px "Arial"','yellow','center',scene)
-
+                            new DispHead(100,60,360*3,180,"#a00",scene)
+                            new DispText(252,124,720,64,'ミッションコンプリート！','bold 64px "Arial"','yellow','center',scene)
+    
                             score += destruction
                             complete = true;
                             let v = score+zanki;
@@ -3821,26 +3649,24 @@ window.onload = function() {
                             new getJson()
                             
                         }else{
-                            /*var label = */new DispText(360,300,720,64,'ミッションクリア！','bold 64px "Arial"','red','left',scene)
-                            
+                            new DispText(360,300,720,64,'ミッションクリア！','bold 64px "Arial"','red','left',scene)
                             new DispScore(scene)
                             victory = true;
                             game.time = 0;
-                            
                         }
                         
                     }
                     if(complete == true && scene.time == 120){
-                        /*var bodyImage = */new DispBody(100,240,360*3,240*3,scene)
+                        new DispBody(100,240,360*3,240*3,scene)
                     }
                     
                     if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
-                        /*var enemys = */new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
-                        /*var breaks = */new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
+                        new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
+                        new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
                         dcnt++;
                     }
                     if(complete == true && scene.time == 315){
-                        /*var newScore = */new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
+                        new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
                     }
                     
                     if(complete == true && scene.time >= 345){
@@ -3873,10 +3699,6 @@ window.onload = function() {
                             complete = false;
                             new FadeOut(scene)
                             stageNum++;
-                            obstacle.forEach(elem=>{
-                                elem.destroy();
-                                scene.removeChild(elem);
-                            })
                             bulOb.forEach(elem=>{
                                 elem.forEach(elem2=>{
                                     scene.removeChild(elem2)
@@ -3888,14 +3710,22 @@ window.onload = function() {
                                     scene.removeChild(elem2)
                                 })
                             })
+                            floors.forEach(elem=>{
+                                elem.destroy()
+                                scene.removeChild(elem)
+                            })
+                            walls.forEach(elem=>{
+                                elem.destroy()
+                                scene.removeChild(elem)
+                            })
+                            avoids.forEach(elem=>{
+                                scene.removeChild(elem)
+                            })
                             holes.forEach(elem=>{
                                 scene.removeChild(elem)
                             })
                             game.replaceScene(createStartScene())
                         });
-                        
-                        
-                        
                     }
                     if(deadFlgs[0]==true && defeat == false){
                         game.time = 0;
@@ -3909,9 +3739,13 @@ window.onload = function() {
                         test.forEach(elem=>{
                             scene.removeChild(elem)
                         })
-                        obstacle.forEach(elem=>{
-                            elem.destroy();
-                            scene.removeChild(elem);
+                        floors.forEach(elem=>{
+                            elem.destroy()
+                            scene.removeChild(elem)
+                        })
+                        walls.forEach(elem=>{
+                            elem.destroy()
+                            scene.removeChild(elem)
                         })
                         holes.forEach(elem=>{
                             scene.removeChild(elem)
@@ -3930,7 +3764,6 @@ window.onload = function() {
                                 scene.removeChild(elem2)
                             })
                         })
-                        
                         if(zanki == 0){
                             score += destruction; 
                             postData = {
@@ -3938,12 +3771,10 @@ window.onload = function() {
                                 "text": score,
                                 "time": nowDay
                             };
-                            
                             game.replaceScene(createGameoverScene())
                         }else{
                             game.replaceScene(createStartScene())
                         }
-                       
                     }
                     if(victory == true && game.time == 180 && complete==false){
                         score += destruction
@@ -3951,9 +3782,16 @@ window.onload = function() {
                         test.forEach(elem=>{
                             scene.removeChild(elem)
                         })
-                        obstacle.forEach(elem=>{
-                            elem.destroy();
-                            scene.removeChild(elem);
+                        floors.forEach(elem=>{
+                            elem.destroy()
+                            scene.removeChild(elem)
+                        })
+                        walls.forEach(elem=>{
+                            elem.destroy()
+                            scene.removeChild(elem)
+                        })
+                        avoids.forEach(elem=>{
+                            scene.removeChild(elem)
                         })
                         bulOb.forEach(elem=>{
                             elem.forEach(elem2=>{
@@ -3974,43 +3812,37 @@ window.onload = function() {
                         }else{
                             game.replaceScene(createStartScene())
                         }
-                        
-                        
                     }
                 }
- 
             }
             return scene;
-            
         };
         /* ゲームオーバーシーン */
         var createGameoverScene = function() {
-
+    
             let script = document.createElement("script");
             script.src = stagePath[1];
             let head = document.getElementsByTagName("head");
             head[0].appendChild(script);
             
             stageData = LoadStage();    //ステージ情報引き出し      
-            
-            
-
+      
             var scene = new Scene();                                   // 新しいシーンを作る
             scene.time = 0;
             scene.backgroundColor = '#303030';                         // シーンの背景色を設定
-
+    
             new setJson()
-
+    
             // ゲームオーバー画像設定
             var gameoverImage = new Sprite(256, 192);                   // スプライトを作る
-            gameoverImage.image = game.assets['./image/ObjectImage/gameover.png'];  // ゲームオーバー画像を設定
-            gameoverImage.x = 320*0.9;                                      // 横位置調整
-            gameoverImage.y = 240*1.0;                                     // 縦位置調整
-            gameoverImage.scaleX = 2.0;
-            gameoverImage.scaleY = 2.0;
-            scene.addChild(gameoverImage);                             // シーンに追加
+                gameoverImage.image = game.assets['./image/ObjectImage/gameover.png'];  // ゲームオーバー画像を設定
+                gameoverImage.x = 320*0.9;                                      // 横位置調整
+                gameoverImage.y = 240*1.0;                                     // 縦位置調整
+                gameoverImage.scaleX = 2.0;
+                gameoverImage.scaleY = 2.0;
+                scene.addChild(gameoverImage);                             // シーンに追加
             // スコアラベル設定
-            /*var scoreLabel = */new DispText(0,60,320*2.7,64,score+'両撃破した。','64px sans-serif','#fff','center',scene)
+            new DispText(0,60,320*2.7,64,score+'両撃破した。','64px sans-serif','#fff','center',scene)
             new DispHead(320*2.3,60,240*2.3,240*3.3,"#ddd4",scene)
             
             // リトライラベル(ボタン)設定
@@ -4021,7 +3853,7 @@ window.onload = function() {
                 retryLabel.font = '32px sans-serif';
                 retryLabel.color = '#fff';
                 retryLabel.textAlign = 'left';
-
+    
             var homeLabel = new Label('➡タイトル画面へ');
                 homeLabel.moveTo(120,240*2.5);
                 homeLabel.width = 320*2;
@@ -4029,22 +3861,19 @@ window.onload = function() {
                 homeLabel.font = '32px sans-serif';
                 homeLabel.color = '#fff';
                 homeLabel.textAlign = 'left';
-            
-            tankEntity = [];    //敵味方の戦車情報を保持する配列
-            allyEntity = [];
-            entNum = 0;         //戦車の連番設定用変数
-            obstacle = []       //障害物
-            test = []
 
+            test = []
             bulOb = [[]];       //戦車の弾情報を保持する配列
             colOb = [[]];       //弾の物理判定を保持する配列
             bomOb = [[]];       //爆弾の情報を保持する配列
             bullets = [];       //各戦車の弾数の制御用の配列
             boms = [];          //各戦車の爆弾設置制御用の配列
+            tankEntity = [];    //敵味方の戦車情報を保持する配列
+            allyEntity = [];
+            entNum = 0;         //戦車の連番設定用変数
             floors = [];        //ステージの障害物を保持する配列
             walls = [];         //ステージの壁を保持する配列
             holes = [];         //ステージの穴を保持する配列
-            circles = [];       //【テスト】ボールを保持する配列
             deadFlgs = [];      //戦車の生存確認   
             allyDeadFlg = false; 
             fireFlgs = [];      //敵の砲撃制御
@@ -4056,10 +3885,7 @@ window.onload = function() {
             victory = false;    //勝利判定
             defeat = false;     //敗北判定
             complete = false;   //攻略完了判定
-
-            
-
-            
+    
             // リトライラベルにタッチイベントを設定
             retryLabel.addEventListener(Event.TOUCH_START, function(e) {
                 zanki = 5;
@@ -4085,7 +3911,6 @@ window.onload = function() {
             });
             scene.onenterframe=function(){
                 scene.time++
-                
                 if(scene.time == 150){
                     new getJson()
                     let jlen = j_data.rank.length
@@ -4097,11 +3922,11 @@ window.onload = function() {
                         tops.push(j_data.rank[i].name);
                         times.push(j_data.rank[i].time);
                     }
-
+    
                     tops.push(postData.name)
                     rankings.push(postData.text)
                     times.push(postData.time)
-
+    
                     for(let j = 0; j < (rankings.length)+jlen; j++){
                         for(let i = j+1; i < (rankings.length)+jlen; i++){
                             if(rankings[j]<rankings[i]){
@@ -4135,13 +3960,11 @@ window.onload = function() {
         };
         game.replaceScene(createTitleScene());  // ゲームの_rootSceneをスタートシーンに置き換える
     }
-
     /* 画面外をクリックしても操作できるようにする処理 */
     game.onenterframe = function(){
         if(game.time % 5 == 0){
             window.focus();
         }
-        
     }
     game.start(); // ゲームをスタートさせます
 }
