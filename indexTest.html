@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=960px,user-scalable=no">
+    <meta name="viewport" content="width=device-width,user-scalable=no">
+    <!--960px-->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>ゲーム画面</title>
@@ -23,30 +24,30 @@
             width: 1280px;
             height: 960px;
             top: 0;
-            left:20vw;
+            left:16vw;
         }
         .center .oya{
             position:absolute;
-            left: -16.5vw;
+            left: -15.5vw;
             top: 5vh;
             width: 15vw;
-            font-size: 20px;
+            font-size: 1vw;
             line-height: 1.5em;
-            border: 1px solid #FFFFFF;
+            border: 0.1em solid #FFFFFF;
         }
         .oya th{
-            width: 80px;
-            height: 32px;
+            width: 4vw;
+            height: 1.6vw;
             text-align: center;
         }
         .oya td{
-            width: 120px;
-            height: 32px;
+            width: 6vw;
+            height: 1.6vw;
             text-align: center;
         }
         .ko1 th, .ko1 td, .ko2 th, .ko2 td{
-            width: 60px;
-            height: 32px;
+            width: 3vw;
+            height: 1.6vw;
             text-align: center;
         }
     </style>
@@ -114,6 +115,17 @@
             <tr>
                 <th>爆弾設置</th>
                 <td>qキー</td>
+            </tr>
+            <tr>
+                <th>一時停止</th>
+                <td>Escapeキー</td>
+            </tr>
+            <tr>
+                <th>リタイア</th>
+                <td>Escapeキーを<br>
+                    押すと出現、<br>
+                    それをクリック
+                </td>
             </tr>
         </table>
         <br>
