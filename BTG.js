@@ -35,6 +35,7 @@ var worldFlg = false;   //ゲームのon/off制御ボタン
 var victory = false;    //勝利判定
 var defeat = false;     //敗北判定
 var complete = false;   //攻略完了判定
+var pauseFlg = false;
 
 var stageNum = 1;           //ステージ番号
 
@@ -276,6 +277,7 @@ window.onload = function() {
     game.keybind(68, "d");
     game.keybind(32, "e");
     game.keybind(81, "q");
+    game.keybind(27, "Pause");
     game.time = 0;
 
     /* ステージ端の壁クラス */
@@ -619,13 +621,20 @@ window.onload = function() {
     /* 爆弾クラス */
     var Bom = Class.create(Sprite,{
         initialize: function(area,num,scene){
-            Sprite.call(this,base*3,base*3);
+            Sprite.call(this,base*2,base*2);
             this.backgroundColor = "yellow";
-            this.moveTo(area.x-24+33.5,area.y-24+32);
+            this.moveTo(area.x-base+33.5,area.y-base+32);
             this.time = 0;
             let bombFlg = false;
+            let bomb = this;
             this.onenterframe = function(){
                 this.time++
+                this.intersect(BombExplosion).forEach(function(){
+                    if(victory == false && defeat == false){
+                        new BombExplosion(bomb,num,scene)
+                        scene.removeChild(bomb);
+                    }
+                })
                 tankEntity.forEach(elem=>{
                     if(this.time > 180){
                         if((this.intersect(elem) || this.time > 555) && bombFlg == false){
@@ -925,7 +934,7 @@ window.onload = function() {
             this.time = 0;
             var value = 1.0;
             this.opacity = value;
-            this.moveTo(point.x-62,point.y-62)
+            this.moveTo(point.x-78,point.y-78)
             this.onenterframe = function(){
                 this.time++;
                 this.rotation+= 45;
@@ -1215,7 +1224,7 @@ window.onload = function() {
                 colOb[Num][i] = new BulletCol(cur,floors[0],shotSpeed,0,Num,scene);
                 bulOb[Num][i] = new Bullet(colOb[Num][i],floors[0],ref,Num,pmax,shotSpeed,scene);
             }
-            for(var i = 0; i < pmax; i++){
+            for(var i = 0; i < 2; i++){
                 bomOb[Num][i] = new Bom(this,Num,scene);
             }
             
@@ -1279,7 +1288,7 @@ window.onload = function() {
                         scene.removeChild(this);
                     }
                     
-                    if(game.input.q && bflg == false && boms[Num]<pmax){
+                    if(game.input.q && bflg == false && boms[Num]<2){
                         bomOb[Num][boms[Num]] = new Bom(this,Num,scene)
                         scene.insertBefore(bomOb[Num][boms[Num]],tank);
                         this.time = 0;
@@ -3213,7 +3222,7 @@ window.onload = function() {
             toPlay.addEventListener(Event.TOUCH_START, function() {
                 let returnFlg = true;
                 while(returnFlg){
-                    userName = prompt("\r\nユーザ名を入力してください\r\n", "ここにユーザ名を入力");
+                    userName = prompt("\r\nユーザ名を入力してください\r\n\r\n", "ここにユーザ名を入力");
                     if(userName == "" || userName == null || userName == "ここにユーザ名を入力"){
                         if(confirm("\r\nユーザ名を設定していません。\r\nよろしいですか？")) {
                             returnFlg = false;
@@ -3225,7 +3234,7 @@ window.onload = function() {
                     }
                 }
 
-                if(confirm("味方を追加しますか？\r( OK：追加する　キャンセル：追加しない )\r\n")) {
+                if(confirm("味方を追加しますか？\r( OK：追加する　キャンセル：追加しない )\r\n\r\n")) {
                     allyFlg = true;
                 } else {
                     allyFlg = false;
@@ -3313,8 +3322,7 @@ window.onload = function() {
                 }
             }
             var toTitle = new DispText(480,720,320,32,'➡タイトル画面へ','32px sans-serif','#ebe799','center',scene)
-            //new DispText(0,240,320*size,24,'※スコアが表示されない場合は時間をおいてから画面を読込し直してください。','24px sans-serif','#ebe799','center',scene)
-            new DispText(0,240,320*size,24,'※Github版なのでランキングは機能していません。','24px sans-serif','#ebe799','center',scene)
+            new DispText(0,240,320*size,24,'※Github版ではランキングが機能していません','24px sans-serif','#ebe799','center',scene)
             
             // スタート画像にタッチイベントを設定
             toTitle.addEventListener(Event.TOUCH_START, function(e) {
@@ -3580,9 +3588,69 @@ window.onload = function() {
             var BGM1 = game.assets['./sound/start.wav'];
                 BGM1.play();
                 BGM1.volume = 0.2
-    
+            var pauseButtton = new Label();
+                pauseButtton.width = game.width;
+                pauseButtton.height = 96;
+                pauseButtton.x = 0;
+                pauseButtton.y = game.height/2-96;
+                pauseButtton.text = '';
+                pauseButtton.font = 'bold 96px "sans-serif"';
+                pauseButtton.color = 'aliceblue';
+                pauseButtton.textAlign = 'center';
+           
+            
+            var blackImg = new DispLine(0,0,game.width,game.height,"#00000000",scene)
+            var retire = new DispText(0,0,1,1,'','48px sans-serif','red','center',scene)
+            retire.addEventListener(Event.TOUCH_START, function() {
+                if(confirm("\r\n本当にリタイアしますか？")) {
+                    blackImg.backgroundColor = "#00000000"
+                    worldFlg = true
+                    pauseButtton.text ='';
+                    zanki = 1;
+                    deadFlgs[0] = true;
+                    
+                }
+            });
             scene.onenterframe = function() {
-    
+                
+                /*if(game.input.Pause){
+                    if (worldFlg == false){
+                        scene.backgroundColor = "#00000000"
+                        worldFlg = true
+                        pauseButtton.text ='ポーズ';
+                    }else{
+                        scene.backgroundColor = "#00000044"
+                        pauseButtton.text ='再開'; 
+                        worldFlg = false
+                        pauseFlg = true;
+                    }
+                }*/
+                document.onkeyup = function(e){
+                    if(e.code == 'Escape' && scene.time > 250){
+                        if (worldFlg == false){
+                            blackImg.backgroundColor = "#00000000"
+                            worldFlg = true
+                            pauseButtton.text ='';
+                            BGM1.volume = 1.0
+                            retire.x = 0
+                            retire.y = 0
+                            retire.width = 1;
+                            retire.height = 1;
+                            retire.text = ""
+                        }else{
+                            blackImg.backgroundColor = "#00000044"
+                            pauseButtton.text ='一時停止'; 
+                            worldFlg = false
+                            BGM1.volume = 0.5
+                            retire.x = game.width/2-96
+                            retire.y = game.height/2+96
+                            retire.width = 48*4;
+                            retire.height = 48;
+                            retire.text = "リタイア"
+                        }
+                    }
+                }
+                
                 if(BGM1.currentTime == BGM1.duration && victory == false && defeat == false && complete == false){
     
                     BGM1 = game.assets['./sound/FIRST.mp3'];
@@ -3594,10 +3662,12 @@ window.onload = function() {
        
                 if(scene.time == 210 && complete == false && victory == false){
                     worldFlg = true;
-                    scene.addChild(startLabel)   
+                    scene.addChild(startLabel) 
+                    scene.addChild(pauseButtton)  
                 }
                 
                 if(worldFlg == true){
+                    
                     if(game.input.up)cur.y -= 8;
                     else if(game.input.down)cur.y += 8;
                     if(game.input.right) cur.x += 8;
@@ -3619,6 +3689,9 @@ window.onload = function() {
                     })
                     
                     if(destruction == tankEntity.length-1 && deadFlgs[0]==false && victory == false && complete == false){
+                        scene.removeChild(pauseButtton)
+                        scene.removeChild(blackImg)
+                        scene.removeChild(retire)
                         BGM1.stop();
                         test.forEach(elem=>{
                             scene.removeChild(elem)
@@ -3691,6 +3764,7 @@ window.onload = function() {
                             }
                         }
                         toTitle.addEventListener(Event.TOUCH_START, function() {
+                            
                             game.stop()
                             //location.href = "http://localhost/BattleTankGame/gameTest.html";
                             location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
@@ -3724,6 +3798,7 @@ window.onload = function() {
                             holes.forEach(elem=>{
                                 scene.removeChild(elem)
                             })
+                            
                             game.replaceScene(createStartScene())
                         });
                     }
@@ -3731,6 +3806,9 @@ window.onload = function() {
                         game.time = 0;
                         defeat = true;
                         BGM1.stop();
+                        scene.removeChild(pauseButtton)
+                        scene.removeChild(blackImg)
+                        scene.removeChild(retire)
                     }
                     if((defeat == true || victory == true) && game.time == 150){
                         new FadeOut(scene)
@@ -3764,6 +3842,7 @@ window.onload = function() {
                                 scene.removeChild(elem2)
                             })
                         })
+                        
                         if(zanki == 0){
                             score += destruction; 
                             postData = {
@@ -3807,6 +3886,7 @@ window.onload = function() {
                         holes.forEach(elem=>{
                             scene.removeChild(elem)
                         })
+                        
                         if(stageNum % 6 == 0){
                             game.replaceScene(createBonusScene())
                         }else{
@@ -3965,6 +4045,7 @@ window.onload = function() {
         if(game.time % 5 == 0){
             window.focus();
         }
+        
     }
     game.start(); // ゲームをスタートさせます
 }
