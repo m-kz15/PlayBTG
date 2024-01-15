@@ -5,6 +5,8 @@ const size = 4;             //サイズ倍率(勝手に触らない方が良い)
 const base = 16;              //基準サイズ
 const pixelSize = base*size;
 
+var cheat = false;
+
 var cur;                //カーソルの位置情報を保持する配列
 
 var j_data;
@@ -26,6 +28,7 @@ var fireFlgs = [];      //敵の砲撃制御
 var deadFlgs = [];      //戦車の生存確認
 var entNum = 0;             //戦車の連番設定用変数
 var addBullet = 0;          //難易度ごとの弾追加数
+var addSpeed = 0;
 
 var allyEntity = [];
 var allyDeadFlg = false; 
@@ -77,6 +80,8 @@ var rankings = [0,0,0,0,0,0,0,0,0,0]
 var tops = ["_____","_____","_____","_____","_____","_____","_____","_____","_____","_____"]
 var userName = "Player";
 var times = [0,0,0,0,0,0,0,0,0,0]
+var selectLevel = [false,false,false,false,false,false,false,false,false,false]
+var sl = false;
 
 var dt = new Date();
 var y = dt.getFullYear();
@@ -90,7 +95,8 @@ var nowDay = y + m + d + Hour + Min + Sec;
 var postData = {
     "name": "Player",
     "text": 0,
-    "time": nowDay
+    "time": nowDay,
+    "level": sl
 };
 
 /* ステージ情報格納 */
@@ -1265,28 +1271,31 @@ window.onload = function() {
                             new OpenFire(cannon,cur,scene,filterMap) 
                         }
                     }
-                    for(var j = 0; j < bulOb.length; j++){
-                        for(var k = 0; k < bulOb[j].length; k++){
-                            if(this.within(bulOb[j][k],25)==true && defeat == false && victory == false && complete == false){
-                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                                deadFlgs[Num] = true
-                                colOb[j][k].destroy()
-                                colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)
-                                moveSpeed = 0;
+                    if(cheat == false){
+                        for(var j = 0; j < bulOb.length; j++){
+                            for(var k = 0; k < bulOb[j].length; k++){
+                                if(this.within(bulOb[j][k],25)==true && defeat == false && victory == false && complete == false){
+                                    game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                    deadFlgs[Num] = true
+                                    colOb[j][k].destroy()
+                                    colOb[j][k].moveTo(-200,-200)
+                                    bulOb[j][k].moveTo(-200,-200)
+                                    moveSpeed = 0;
+                                }
                             }
                         }
+        
+                        if(deadFlgs[Num] == true){
+                            mark.opacity = 1.0
+                            mark.moveTo(this.x+9,this.y+16)
+                            
+                            new Explosion(this,scene);
+                            this.moveTo(-100,-100)
+                            zanki--;
+                            scene.removeChild(this);
+                        }
                     }
-    
-                    if(deadFlgs[Num] == true){
-                        mark.opacity = 1.0
-                        mark.moveTo(this.x+9,this.y+16)
-                        
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100)
-                        zanki--;
-                        scene.removeChild(this);
-                    }
+                    
                     
                     if(game.input.q && bflg == false && boms[Num]<2){
                         bomOb[Num][boms[Num]] = new Bom(this,Num,scene)
@@ -1845,10 +1854,14 @@ window.onload = function() {
             var option = [0,2,3]
             var stopFlg = false;
             var opaFlg = false;
-
-            if(stageNum >= 20 && moveSpeed > 0){
-                speed = moveSpeed + (0.2*(stageNum / 20));
+        
+            if(moveSpeed != 0){
+                speed = moveSpeed + addSpeed;
+                if(stageNum >= 20){
+                    speed = speed + (0.2*(stageNum / 20));
+                }
             }
+            
 
             enemyTarget[Num] = target;
             var alignment = new Target(cannon,Num,scene,weak,target)
@@ -1896,6 +1909,7 @@ window.onload = function() {
                         bomOb[Num][0] = new Bom(this,Num,scene);
                         if(boms[Num]!=0) boms[Num] = 0
                     }
+                    
                     if(grade == 7 && tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],300)==false){
                         tank.opacity-=0.1
                         cannon.opacity-=0.1
@@ -1905,7 +1919,8 @@ window.onload = function() {
                             opaFlg = true;
                         }
                     }
-                    if(grade == 7 && ((opaFlg == true && this.time > 300) || tank.within(tankEntity[0],300)==true)){
+                    
+                    if(grade == 7 && (((addBullet == 0 && opaFlg == true && this.time > 300)) || tank.within(tankEntity[0],300)==true)){
                         if(this.time % 2 == 0){
                             tank.opacity += 0.1;
                             cannon.opacity += 0.1;
@@ -3169,20 +3184,20 @@ window.onload = function() {
 
             scene.backgroundColor = '#cacaca';                      // シーンの背景色を設定
             // スタート画像設定
-            new DispHead(100,240,360*3,240*2.25,"#a00d",scene)
+            new DispHead(100,200,360*3,240*2.25,"#a00d",scene)
             
             // タイトルラベル設定
-            new DispText(100,320,260*size,96,'Battle Tank Game','96px sans-serif','#ebe799','center',scene)
+            new DispText(100,280,260*size,96,'Battle Tank Game','96px sans-serif','#ebe799','center',scene)
             
             // サブタイトルラベル設定
-            var toPlay = new DispText(game.width/2-180,480,320,40,'➡　S t a r t !','40px sans-serif','#ebe799','left',scene)
+            var toPlay = new DispText(game.width/2-180,440,320,40,'➡　S t a r t !','40px sans-serif','#ebe799','left',scene)
             
-            var toRank = new DispText(game.width/2-180,560,600,40,'➡　ランキング画面','40px sans-serif','#ebe799','left',scene)
+            var toRank = new DispText(game.width/2-180,520,600,40,'➡　ランキング画面','40px sans-serif','#ebe799','left',scene)
 
-            var level = new DispText(game.width/2-180,640,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
+            var level = new DispText(game.width/2-180,600,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
 
-            var nomal = new DispText(level.x+level.width-16,640,40,40,'普','40px sans-serif','#ebe799','left',scene)
-            var hard = new DispText(level.x+level.width+nomal.width+16,640,40,40,'難','40px sans-serif','#888','left',scene)
+            var nomal = new DispText(level.x+level.width-16,600,40,40,'普','40px sans-serif','#ebe799','left',scene)
+            var hard = new DispText(level.x+level.width+nomal.width+16,600,40,40,'難','40px sans-serif','#888','left',scene)
 
             let lvFlg = false;
             if(addBullet == 0){
@@ -3194,12 +3209,15 @@ window.onload = function() {
                 hard.color = 'red';
                 lvFlg = true;
             }
+
             nomal.addEventListener(Event.TOUCH_START, function() {
                 if(lvFlg == true){
                     nomal.color = '#ebe799';
                     hard.color = '#888';
                     lvFlg = false;
                     addBullet = 0;
+                    addSpeed = 0;
+                    sl = false;
                 }
             })
             hard.addEventListener(Event.TOUCH_START, function() {
@@ -3208,6 +3226,8 @@ window.onload = function() {
                     hard.color = 'red';
                     lvFlg = true;
                     addBullet = 1;
+                    addSpeed = 0.5;
+                    sl = true;
                 }
             })
             level.addEventListener(Event.TOUCH_START, function() {
@@ -3216,11 +3236,15 @@ window.onload = function() {
                     hard.color = '#888';
                     lvFlg = false;
                     addBullet = 0;
+                    addSpeed = 0;
+                    sl = false;
                 }else{
                     nomal.color = '#888';
                     hard.color = 'red';
                     lvFlg = true;
                     addBullet = 1;
+                    addSpeed = 0.5;
+                    sl = true;
                 }
             })
 
@@ -3295,6 +3319,7 @@ window.onload = function() {
             for(let i = 0; i < jlen; i++){
                 rankings.push(j_data.rank[i].score);
                 tops.push(j_data.rank[i].name);
+                selectLevel.push(j_data.rank[i].level);
             }
             for(let j = 0; j < (rankings.length)+jlen; j++){
                 for(let i = j+1; i < (rankings.length)+jlen; i++){
@@ -3305,6 +3330,9 @@ window.onload = function() {
                         let s = tops[j]
                         tops[j]=tops[i]
                         tops[i]=s
+                        let t = selectLevel[j]
+                        selectLevel[j] = selectLevel[i]
+                        selectLevel[i] = t
                     }
                 }
             }
@@ -3312,7 +3340,12 @@ window.onload = function() {
             new DispText(320*0.68,300,260*2,32,'順位：名前：スコア','32px sans-serif','#000000','left',scene)
             
             for(let i = 0; i < 5; i++){
-                new DispText(320*0.75,300+(64*(i+1)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
+                if(selectLevel[i] == "true"){
+                    new DispText(320*0.75,300+(64*(i+1)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#ff0000','left',scene)
+                }else{
+                    new DispText(320*0.75,300+(64*(i+1)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
+                }
+                
                 if(rankings[i] >= 137){
                     new DispText(320*0.55,300+(64*(i+1)),48,32,"★",'32px sans-serif','goldenrod','center',scene)
                     
@@ -3321,7 +3354,12 @@ window.onload = function() {
                 }
             }
             for(let i = 5; i < 10; i++){
-                new DispText(320*2.25,300+(64*(i-4)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
+                if(selectLevel[i]=="true"){
+                    new DispText(320*2.25,300+(64*(i-4)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','red','left',scene)
+                }else{
+                    new DispText(320*2.25,300+(64*(i-4)),260*2,32,(i+1)+'  ： '+tops[i]+' ： '+rankings[i],'32px sans-serif','#000000','left',scene)
+                }
+                
                 if(rankings[i] >= 137){
                     new DispText(320*2.05,300+(64*(i-4)),48,32,"★",'32px sans-serif','goldenrod','center',scene)
                     
@@ -3556,7 +3594,12 @@ window.onload = function() {
             bulOb.push([])
             colOb.push([])
             bomOb.push([])
-            tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,9,2,scene,filterMap))
+            if(cheat == true){
+                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,15,4,scene,filterMap))
+            }else{
+                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,9,2,scene,filterMap))
+            }
+            
             
             var abn = Math.floor(Math.random() * 10)
     
@@ -3634,7 +3677,7 @@ window.onload = function() {
                     }
                 }*/
                 document.onkeyup = function(e){
-                    if(e.code == 'Escape' && scene.time > 250){
+                    if(e.code == 'Escape' && scene.time > 250 && defeat == false && victory == false && complete == false){
                         if (worldFlg == false){
                             blackImg.backgroundColor = "#00000000"
                             worldFlg = true
@@ -3712,7 +3755,8 @@ window.onload = function() {
                         script.src = stagePath[stageNum+1];
                         let head = document.getElementsByTagName("head");
                         head[0].appendChild(script);
-                        if(stageNum == stagePath.length-1 || stageNum == 20){
+                        //if(stageNum == stagePath.length-1 || stageNum == 20){
+                        if(stageNum % 20 == 0){
     
                             scene.time = 0;
                             new DispHead(100,60,360*3,180,"#a00",scene)
@@ -3724,7 +3768,8 @@ window.onload = function() {
                             postData = {
                                 "name": userName,
                                 "text": v,
-                                "time": nowDay
+                                "time": nowDay,
+                                "level": sl
                             };
                             new setJson()
                             new getJson()
@@ -3767,7 +3812,7 @@ window.onload = function() {
                             toProceed.textAlign = 'center';
                         if(scene.time == 345){
                             scene.addChild(toTitle)
-                            if(stageNum == 20){
+                            if(stageNum != 100){
                                 scene.addChild(toProceed)
                             }
                         }
@@ -3856,7 +3901,8 @@ window.onload = function() {
                             postData = {
                                 "name": userName,
                                 "text": score,
-                                "time": nowDay
+                                "time": nowDay,
+                                "level": sl
                             };
                             game.replaceScene(createGameoverScene())
                         }else{
