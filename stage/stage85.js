@@ -53,12 +53,12 @@ function LoadStage(){
         [1,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,1]
     ];
     setting[3] = [10,8];
-    setting[4] = [10,4,'./image/ObjectImage/gray.png','./image/ObjectImage/graycannon.png',2,1,8,1.0,15,1,1]
-    setting[5] = [18,13,'./image/ObjectImage/gray.png','./image/ObjectImage/graycannon.png',2,1,8,1.0,15,1,1]
+    setting[4] = [10,4,'./image/ObjectImage/gray.png','./image/ObjectImage/graycannon.png',2,1,8,1.0,30,1,1]
+    setting[5] = [18,13,'./image/ObjectImage/gray.png','./image/ObjectImage/graycannon.png',2,1,8,1.0,30,1,1]
     setting[6] = [1,2,'./image/ObjectImage/red.png','./image/ObjectImage/redcannon.png',8,0,9,2,10,2,3]
     setting[7] = [1,13,'./image/ObjectImage/red.png','./image/ObjectImage/redcannon.png',8,0,9,2,10,2,3]
     setting[8] = [18,2,'./image/ObjectImage/red.png','./image/ObjectImage/redcannon.png',8,0,9,2,10,2,3]
-    setting[9] = [10,13,'./image/ObjectImage/elite.png','./image/ObjectImage/elitecannon.png',3,1,10,1.5,15,8,5]
+    setting[9] = [5,13,'./image/ObjectImage/elite.png','./image/ObjectImage/elitecannon.png',3,1,10,1.5,15,8,5]
     setting[10] = [8,8]
 
     return setting;
