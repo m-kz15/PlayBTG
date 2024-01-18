@@ -1606,41 +1606,16 @@ window.onload = function() {
                     if(tank.within(tankEntity[0],320)==true){
                         enemyTarget[Num] = tankEntity[0]
                     }
-                    tank.intersect(BulAim).forEach(function(){
-                        if(intercept4.intersect(bulOb[0][0])==true){
+                    bulOb[0].forEach(elem=>{
+                        if(intercept4.intersect(elem)==true){
                             let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][0].x, 2) + Math.pow(weak.y - bulOb[0][0].y, 2));
+                            let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
                             if(dist1 > dist2){
-                                enemyTarget[Num] = bulOb[0][0];
+                                enemyTarget[Num] = elem;
                             }
-                        }else if(intercept4.intersect(bulOb[0][1])==true){
-                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][1].x, 2) + Math.pow(weak.y - bulOb[0][1].y, 2));
-                            if(dist1 > dist2){
-                                enemyTarget[Num] = bulOb[0][1];
-                            }
-                        }else if(intercept4.intersect(bulOb[0][2])==true){
-                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][2].x, 2) + Math.pow(weak.y - bulOb[0][2].y, 2));
-                            if(dist1 > dist2){
-                                enemyTarget[Num] = bulOb[0][2];
-                            }
-                        }else if(intercept4.intersect(bulOb[0][3])==true){
-                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][3].x, 2) + Math.pow(weak.y - bulOb[0][3].y, 2));
-                            if(dist1 > dist2){
-                                enemyTarget[Num] = bulOb[0][3];
-                            }
-                        }else if(intercept4.intersect(bulOb[0][4])==true){
-                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][4].x, 2) + Math.pow(weak.y - bulOb[0][4].y, 2));
-                            if(dist1 > dist2){
-                                enemyTarget[Num] = bulOb[0][4];
-                            }
-                        }else{
-                            enemyTarget[Num] = target
                         }
                     })
+                    
                     if(allyEntity[0] != null){
                         if(allyDeadFlg == false){
                             if(tank.within(allyEntity[0],320)==true){
