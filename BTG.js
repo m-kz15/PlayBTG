@@ -42,7 +42,7 @@ var defeat = false;     //敗北判定
 var complete = false;   //攻略完了判定
 var pauseFlg = false;
 
-var stageNum = 80;           //ステージ番号
+var stageNum = 1;           //ステージ番号
 var BGMs = [
     './sound/FIRST.mp3',
     './sound/SECOND.mp3',
