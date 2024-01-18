@@ -1611,7 +1611,10 @@ window.onload = function() {
                             let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                             let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
                             if(dist1 > dist2){
-                                enemyTarget[Num] = elem;
+                                tank.intersect(PlayerBulAim).forEach(function(){
+                                    enemyTarget[Num] = elem;
+                                })
+                                
                             }
                         }
                     })
