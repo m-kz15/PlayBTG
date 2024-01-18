@@ -2120,7 +2120,7 @@ window.onload = function() {
                                     let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                     let dist2 = Math.sqrt(Math.pow(weak.x - elem2.x, 2) + Math.pow(weak.y - elem2.y, 2));
                                     if(dist1 > dist2){
-                                        tank.intersect(BulAim).forEach(function(){
+                                        tank.intersect(PlayerBulAim).forEach(function(){
                                             enemyTarget[Num] = elem2;
                                             if(this.time % 5 == 0){
                                                 if(weak.x-2.75 > elem2.x){
@@ -2202,7 +2202,7 @@ window.onload = function() {
                                         let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                         let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
                                         if(dist1 > dist2 && intercept3.intersect(elem)==false){
-                                            tank.intersect(BulAim).forEach(function(){
+                                            tank.intersect(EnemyAim).forEach(function(){
                                                 enemyTarget[Num] = elem;
                                             })
                                             if(this.time % 5 == 0){
@@ -2440,7 +2440,7 @@ window.onload = function() {
                                 let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                 let dist2 = Math.sqrt(Math.pow(weak.x - elem2.x, 2) + Math.pow(weak.y - elem2.y, 2));
                                 if(dist1 > dist2){
-                                    tank.intersect(BulAim).forEach(function(){
+                                    tank.intersect(PlayerBulAim).forEach(function(){
                                         enemyTarget[Num] = elem2;
                                     }) 
                                 }
