@@ -49,11 +49,11 @@ var BGMs = [
     './sound/THIRD.mp3',
     './sound/FOURTH.mp3',
     './sound/THIRD.mp3',
-    './sound/FOURTH.mp3',
-    './sound/FOURTH.mp3',
+    './sound/SEVENTH.mp3',
+    './sound/SIXTH.mp3',
     './sound/THIRD.mp3',
-    './sound/THIRD.mp3',
-    './sound/THIRD.mp3',
+    './sound/NINTH.mp3',
+    './sound/EIGHTH.mp3',
     './sound/TENTH.mp3',
     './sound/TENTH.mp3'
 ];
@@ -315,6 +315,10 @@ window.onload = function() {
         './sound/SECOND.mp3',
         './sound/THIRD.mp3',
         './sound/FOURTH.mp3',
+        './sound/SIXTH.mp3',
+        './sound/SEVENTH.mp3',
+        './sound/EIGHTH.mp3',
+        './sound/NINTH.mp3',
         './sound/TENTH.mp3'
         );
         /* 入力キー一覧 */
@@ -998,6 +1002,7 @@ window.onload = function() {
     var BombExplosion = Class.create(Sprite,{
         initialize: function(point,num,scene){
             Sprite.call(this,200,200,point);
+            game.assets['./sound/mini_bomb2.mp3'].clone().play();
             boms[num]-=1;
             this.backgroundColor = "red";
             this.time = 0;
@@ -1608,6 +1613,7 @@ window.onload = function() {
                     }
                     bulOb[0].forEach(elem=>{
                         if(intercept4.intersect(elem)==true){
+                            
                             let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                             let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
                             if(dist1 > dist2){
@@ -2094,6 +2100,30 @@ window.onload = function() {
                         })
                         if(stopFlg == false){
                             bulOb[0].forEach(elem2=>{
+                                if(intercept3.intersect(elem2) && tank.intersect(Floor)==false){
+                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                    let dist2 = Math.sqrt(Math.pow(weak.x - elem2.x, 2) + Math.pow(weak.y - elem2.y, 2));
+                                    if(dist1 > dist2){
+                                        enemyTarget[Num] = elem2;
+                                            if(this.time % 5 == 0){
+                                                if(weak.x-2.75 > elem2.x){
+                                                    if(weak.y-2.75 > elem2.y){
+                                                        while(value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                    else{
+                                                        while(value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                }else{
+                                                    if(weak.y-2.75 > elem2.y){
+                                                        while(value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                    else{
+                                                        while(value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+                                                    }
+                                                } 
+                                            }
+                                    }
+                                }
                                 if(intercept4.intersect(elem2) && tank.intersect(Floor)==false){
                                     let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                     let dist2 = Math.sqrt(Math.pow(weak.x - elem2.x, 2) + Math.pow(weak.y - elem2.y, 2));
