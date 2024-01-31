@@ -3759,7 +3759,7 @@ window.onload = function() {
             //  タイトル画面へ移動できるテキスト
             var toTitle = new DispText(480,720,320,32,'➡タイトル画面へ','32px sans-serif','#ebe799','center',scene)
             //  注意書き
-            new DispText(0,240,320*size,24,'※スコアが表示されない場合は時間をおいてから画面を読込し直してください。','24px sans-serif','#ebe799','center',scene)
+            new DispText(0,240,320*size,24,'※Github版ではランキングが機能していません','24px sans-serif','#ebe799','center',scene)
             
             // スタート画像にタッチイベントを設定
             toTitle.addEventListener(Event.TOUCH_START, function(e) {
@@ -4452,8 +4452,8 @@ window.onload = function() {
                         toTitle.addEventListener(Event.TOUCH_START, function() {
                             
                             game.stop()
-                            location.href = "http://localhost/BattleTankGame/gameTest.html";
-                            //location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
+                            //location.href = "http://localhost/BattleTankGame/gameTest.html";
+                            location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
                         });
                         toProceed.addEventListener(Event.TOUCH_START, function() {
                             complete = false;
@@ -4607,8 +4607,8 @@ window.onload = function() {
                 stageNum = 1;
                 game.stop()
                 
-                location.href = "http://localhost/BattleTankGame/gameTest.html";
-                //location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
+                //location.href = "http://localhost/BattleTankGame/gameTest.html";
+                location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
                 game.replaceScene(createTitleScene());    // 現在表示しているシーンをタイトルシーンに置き換える
             });
             scene.onenterframe=function(){
