@@ -42,6 +42,8 @@ var victory = false;    //勝利判定
 var defeat = false;     //敗北判定
 var complete = false;   //攻略完了判定
 var pauseFlg = false;   //一時停止判定
+var titleFlg = false;
+
 
 var stageNum = 1;           //ステージ番号
 var BGMs = [                //bgm指定用配列
@@ -312,13 +314,16 @@ window.onload = function() {
         './sound/car_door_C1.mp3',
         './sound/s_car_door_O2.mp3',
         './sound/s_car_trunk_O.mp3',
-        './sound/start.wav',
+        './sound/start.mp3',
         './sound/end.mp3',
         './sound/success.mp3',
         './sound/failed.mp3',
         './sound/result.mp3',
-        './sound/base.wav',
+        './sound/RoundStart.mp3',
+        './sound/ExtraTank.mp3',
+        './sound/base.mp3',
         './sound/fire.mp3',
+        './sound/TITLE.mp3',
         './sound/FIRST.mp3',
         './sound/SECOND.mp3',
         './sound/THIRD.mp3',
@@ -339,6 +344,7 @@ window.onload = function() {
     game.keybind(81, "q");
     game.keybind(27, "Pause");
     game.time = 0;
+    
 
     /* ステージ端の壁クラス */
     var Wall = Class.create(PhyBoxSprite, {
@@ -832,7 +838,6 @@ window.onload = function() {
                         if (bulOb[num][i].intersect(bulOb[num][j])==true&&i != j) {
                             if(bulStack[num][i] == true && bulStack[num][j]==true){
                                 game.assets['./sound/s_car_door_O2.mp3'].clone().play();
-                                game.assets['./sound/s_car_door_O2.mp3'].clone().play();
                                 new TouchFire(bulOb[num][i],scene);
                                 new TouchFire(bulOb[num][j],scene);
                                 scene.removeChild(bulOb[num][i]);
@@ -850,7 +855,6 @@ window.onload = function() {
                             if(j != num){
                                 if (bulOb[num][i].intersect(bulOb[j][k])==true) {
                                     if(bulStack[num][i] == true && bulStack[j][k]==true){
-                                        game.assets['./sound/s_car_door_O2.mp3'].clone().play();
                                         game.assets['./sound/s_car_door_O2.mp3'].clone().play();
                                         new TouchFire(bulOb[num][i],scene);
                                         new TouchFire(bulOb[j][k],scene);
@@ -889,6 +893,7 @@ window.onload = function() {
                 this.intersect(BombExplosion).forEach(function(){
                     if(victory == false && defeat == false){
                         new BombExplosion(bomb,num,scene)
+                        bomb.moveTo(-900,-900)
                         scene.removeChild(bomb);
                     }
                 })
@@ -907,6 +912,7 @@ window.onload = function() {
                         }
                         if(this.time == 45){
                             new BombExplosion(this,num,scene)
+                            this.moveTo(-900,-900)
                             scene.removeChild(this);
                         }
                     }
@@ -1528,33 +1534,6 @@ window.onload = function() {
             //  常に稼働する処理
             this.onenterframe = function(){
 
-                //  フィールドの壁に衝突した場合の処理
-                if(this.intersect(walls[0])==true){
-                    this.moveTo(this.x,(64*2)-16)
-                }
-                if(this.intersect(walls[1])==true){
-                    this.moveTo(this.x,(64*13)-12)
-                }
-                if(this.intersect(walls[2])==true){
-                    this.moveTo((64*1),this.y)
-                }
-                if(this.intersect(walls[3])==true){
-                    this.moveTo((64*18),this.y)
-                }
-                for(let i = 0; i < obsdir.length; i++){
-                    if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
-                        this.moveTo(this.x,obsdir[i][0].y-60)
-                    }
-                    if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                        this.moveTo(this.x,obsdir[i][1].y+4)
-                    }
-                    if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
-                        this.moveTo(obsdir[i][2].x-60,this.y)
-                    }
-                    if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                        this.moveTo(obsdir[i][3].x+4,this.y)
-                    }
-                }
                 for(let i = 1; i < tankDir.length; i++){
                     if(deadFlgs[i]==false){
                         if(this.intersect(tankDir[i][0])==true){
@@ -1571,6 +1550,34 @@ window.onload = function() {
                         }
                     }
                 }
+                for(let i = 0; i < obsdir.length; i++){
+                    if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
+                        this.moveTo(this.x,obsdir[i][0].y-60)
+                    }
+                    if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
+                        this.moveTo(this.x,obsdir[i][1].y+3)
+                    }
+                    if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
+                        this.moveTo(obsdir[i][2].x-60,this.y)
+                    }
+                    if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
+                        this.moveTo(obsdir[i][3].x+2,this.y)
+                    }
+                }
+                //  フィールドの壁に衝突した場合の処理
+                if(this.intersect(walls[0])==true){
+                    this.moveTo(this.x,(64*2)-16)
+                }
+                if(this.intersect(walls[1])==true){
+                    this.moveTo(this.x,(64*13)-12)
+                }
+                if(this.intersect(walls[2])==true){
+                    this.moveTo((64*1),this.y)
+                }
+                if(this.intersect(walls[3])==true){
+                    this.moveTo((64*18)+3,this.y)
+                }
+                
                 /*obsdir.forEach(elem=>{
                     if(this.intersect(elem[0])==true){
                         this.moveTo(this.x,elem[0].y+1)
@@ -1818,7 +1825,7 @@ window.onload = function() {
                         this.moveTo((64*1),this.y)
                     }
                     if(this.intersect(walls[3])==true){
-                        this.moveTo((64*18),this.y)
+                        this.moveTo((64*18)+3,this.y)
                     }
                     //  死亡判定がfalseなら
                     if(deadFlgs[Num]==false){
@@ -2132,61 +2139,13 @@ window.onload = function() {
                 if(life > 0){
                     
                     if(game.time == 1800){
-                        if(fireLate >= 12){
-                            fireLate = 10;
+                        if(fireLate < 15){
+                            fireLate = 24;
                         }
                         
                     }
-                    if(this.intersect(walls[0])==true){
-                        this.moveTo(this.x,(64*2)-16)
-                        hittingTime++;
-                    }
-                    if(this.intersect(walls[1])==true){
-                        this.moveTo(this.x,(64*13)-12)
-                        hittingTime++;
-                    }
-                    if(this.intersect(walls[2])==true){
-                        this.moveTo((64*1),this.y)
-                        hittingTime++;
-                    }
-                    if(this.intersect(walls[3])==true){
-                        this.moveTo((64*18),this.y)
-                        hittingTime++;
-                    }
-                    for(let i = 0; i < obsdir.length; i++){
-                        if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
-                            this.moveTo(this.x,obsdir[i][0].y-61)
-                            hittingTime++;
-                        }
-                        if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                            this.moveTo(this.x,obsdir[i][1].y+3)
-                            hittingTime++;
-                        }
-                        if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
-                            this.moveTo(obsdir[i][2].x-61,this.y)
-                            hittingTime++;
-                        }
-                        if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                            this.moveTo(obsdir[i][3].x+3,this.y)
-                            hittingTime++;
-                        }
-                    }
-                    for(let i = 0; i < tankDir.length; i++){
-                        if(deadFlgs[i]==false && i != Num){
-                            if(this.intersect(tankDir[i][0])==true){
-                                this.moveTo(this.x,tankDir[i][0].y-60)
-                            }
-                            if(this.intersect(tankDir[i][1])==true){
-                                this.moveTo(this.x,tankDir[i][1].y+4)
-                            }
-                            if(this.intersect(tankDir[i][2])==true){
-                                this.moveTo(tankDir[i][2].x-60,this.y)
-                            }
-                            if(this.intersect(tankDir[i][3])==true){
-                                this.moveTo(tankDir[i][3].x+4,this.y)
-                            }
-                        }
-                    }
+                    
+                    
                     if(hittingTime>30){
                         let val = value;
                         while(value == val) value = Math.floor(Math.random() * 4);
@@ -2197,21 +2156,22 @@ window.onload = function() {
 
                     if(worldFlg == true){
                         this.time++;
-                        if(grade == 6 && tank.within(tankEntity[0],220)==true && bomFlg == false && boms[Num] == 0){
-                            bomOb[Num][boms[Num]] = new Bom(this,Num,scene);
-                            scene.insertBefore(bomOb[Num][0],tank);
-                            this.time = 0;
-                            bomFlg = true;
-                            boms[Num]++;
+                        if(grade == 6){
+                            if(tank.within(target,300)==true && bomFlg == false && boms[Num] == 0){
+                                bomOb[Num][0] = new Bom(this,Num,scene);
+                                scene.insertBefore(bomOb[Num][0],target);
+                                this.time = 0;
+                                bomFlg = true;
+                                boms[Num]++;
+                            }else if(bomFlg == true && boms[Num] <= 0){
+                                bomFlg = false;
+                                bomOb[Num][0] = new Bom(this,Num,scene);
+                                boms[Num] = 0
+                            }
                         }
                         
-                        if(grade == 6 && bomFlg == true && boms[Num] <= 0){
-                            bomFlg = false;
-                            bomOb[Num][0] = new Bom(this,Num,scene);
-                            if(boms[Num]!=0) boms[Num] = 0
-                        }
                         if(grade == 7){
-                            if(tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],300)==false){
+                            if(tank.opacity > 0 && opaFlg == false && tank.within(target,300)==false){
                                 if(this.time % 2 == 0){
                                     tank.opacity-=0.02
                                     cannon.opacity-=0.02
@@ -2222,7 +2182,7 @@ window.onload = function() {
                                     }
                                 }
                             }
-                            else if(((addBullet == 0 && opaFlg == true && this.time > 300)) || tank.within(tankEntity[0],300)==true){
+                            else if(((addBullet == 0 && opaFlg == true && this.time > 300)) || tank.within(target,300)==true){
                                 if(this.time % 2 == 0){
                                     tank.opacity += 0.1;
                                     cannon.opacity += 0.1;
@@ -2283,21 +2243,6 @@ window.onload = function() {
                                         if(bulStack[Num][i] == false){
                                             if(grade == 6){
                                                 if(bullets[Num] < emax && deadFlgs[Num] == false && boms[Num] > 0){
-                                                    if(Math.floor(Math.random() * 3) == 0 && ref > 0){
-                                                        let r1 = 0;
-                                                        let r2 = 0;
-                                                        if(Math.floor(Math.random() * 2) == 1){
-                                                            r1 = -1;
-                                                        }else{
-                                                            r1 = 1;
-                                                        }
-                                                        if(Math.floor(Math.random() * 2) == 1){
-                                                            r2 = -1;
-                                                        }else{
-                                                            r2 = 1;
-                                                        }
-                                                        alignment.moveTo(alignment.x+(30*r1),alignment.y+(30*r2));
-                                                    }
                                                     game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                     colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
                                                     bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
@@ -2376,7 +2321,7 @@ window.onload = function() {
                                                 }
                                             })
                                         }
-                                        if(grade == 6 && tank.within(bomOb[Num][0],400)==true){
+                                        if(grade == 6 && tank.within(bomOb[Num][0],400)==true && bomFlg == true){
                                             let dist = Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2));
                                             if(dist < 400){
                                                 fireFlgs[Num] = false;
@@ -2439,7 +2384,7 @@ window.onload = function() {
                                                 let dist = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                                 if(
                                                     (grade == 7 && dist > 240)||
-                                                    (grade == 6 && dist > 400)||
+                                                    (grade == 6 && dist > 300)||
                                                     (grade == 4 && dist > 500)||
                                                     (dist > 160)){
                                                     new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,1)
@@ -2535,6 +2480,56 @@ window.onload = function() {
                                 weak.rotation = rot;
                             }
                         }
+                    }
+                    for(let i = 0; i < tankDir.length; i++){
+                        if(deadFlgs[i]==false && i != Num){
+                            if(this.intersect(tankDir[i][0])==true){
+                                this.moveTo(this.x,tankDir[i][0].y-60)
+                            }
+                            if(this.intersect(tankDir[i][1])==true){
+                                this.moveTo(this.x,tankDir[i][1].y+4)
+                            }
+                            if(this.intersect(tankDir[i][2])==true){
+                                this.moveTo(tankDir[i][2].x-60,this.y)
+                            }
+                            if(this.intersect(tankDir[i][3])==true){
+                                this.moveTo(tankDir[i][3].x+4,this.y)
+                            }
+                        }
+                    }
+                    for(let i = 0; i < obsdir.length; i++){
+                        if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
+                            this.moveTo(this.x,obsdir[i][0].y-60)
+                            hittingTime++;
+                        }
+                        if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
+                            this.moveTo(this.x,obsdir[i][1].y+3)
+                            hittingTime++;
+                        }
+                        if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
+                            this.moveTo(obsdir[i][2].x-60,this.y)
+                            hittingTime++;
+                        }
+                        if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
+                            this.moveTo(obsdir[i][3].x+2,this.y)
+                            hittingTime++;
+                        }
+                    }
+                    if(this.intersect(walls[0])==true){
+                        this.moveTo(this.x,(64*2)-16)
+                        hittingTime++;
+                    }
+                    if(this.intersect(walls[1])==true){
+                        this.moveTo(this.x,(64*13)-12)
+                        hittingTime++;
+                    }
+                    if(this.intersect(walls[2])==true){
+                        this.moveTo((64*1),this.y)
+                        hittingTime++;
+                    }
+                    if(this.intersect(walls[3])==true){
+                        this.moveTo((64*18)+3,this.y)
+                        hittingTime++;
                     }
                 }else{
                     scene.removeChild(tank)
@@ -2686,57 +2681,10 @@ window.onload = function() {
                             }
                         }
                     }
-                    if(this.intersect(walls[0])==true){
-                        this.moveTo(this.x,(64*2)-16)
-                        hittingTime++;
-                    }
-                    if(this.intersect(walls[1])==true){
-                        this.moveTo(this.x,(64*13)-12)
-                        hittingTime++;
-                    }
-                    if(this.intersect(walls[2])==true){
-                        this.moveTo((64*1),this.y)
-                        hittingTime++;
-                    }
-                    if(this.intersect(walls[3])==true){
-                        this.moveTo((64*18),this.y)
-                        hittingTime++;
-                    }
-                    for(let i = 0; i < obsdir.length; i++){
-                        if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
-                            this.moveTo(this.x,obsdir[i][0].y-61)
-                            hittingTime++;
-                        }
-                        if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                            this.moveTo(this.x,obsdir[i][1].y+3)
-                            hittingTime++;
-                        }
-                        if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
-                            this.moveTo(obsdir[i][2].x-61,this.y)
-                            hittingTime++;
-                        }
-                        if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                            this.moveTo(obsdir[i][3].x+3,this.y)
-                            hittingTime++;
-                        }
-                    }
-                    for(let i = 0; i < tankDir.length; i++){
-                        if(deadFlgs[i]==false && i != Num){
-                            if(this.intersect(tankDir[i][0])==true){
-                                this.moveTo(this.x,tankDir[i][0].y-60)
-                            }
-                            if(this.intersect(tankDir[i][1])==true){
-                                this.moveTo(this.x,tankDir[i][1].y+4)
-                            }
-                            if(this.intersect(tankDir[i][2])==true){
-                                this.moveTo(tankDir[i][2].x-60,this.y)
-                            }
-                            if(this.intersect(tankDir[i][3])==true){
-                                this.moveTo(tankDir[i][3].x+4,this.y)
-                            }
-                        }
-                    }
-                    if(hittingTime>30){
+
+                    
+                    
+                    if(hittingTime>15 && escapeFlg == false){
                         let val = value;
                         if(grade > 9){
                             while(value == val) value = Math.floor(Math.random() * 8);
@@ -2778,7 +2726,7 @@ window.onload = function() {
                         if(deadFlgs[0] == false){
                             
                             if(grade == 9){
-                                if(tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],300)==false){
+                                if(tank.opacity > 0 && opaFlg == false && tank.within(target,300)==false){
                                     if(tank.opacity > 0){
                                         tank.opacity-=0.02
                                         cannon.opacity-=0.02
@@ -2790,7 +2738,7 @@ window.onload = function() {
                                     }
                                 }
                                 
-                                if(((addBullet == 0 && opaFlg == true && this.time > 300)) || tank.within(tankEntity[0],300)==true){
+                                if(((addBullet == 0 && opaFlg == true && this.time > 300)) || tank.within(target,300)==true){
                                     if(tank.opacity < 1){
                                         tank.opacity += 0.05;
                                         cannon.opacity += 0.05;
@@ -2806,7 +2754,7 @@ window.onload = function() {
                                     }
                                 }
                             }else if(grade == 11){
-                                if(tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],400)==false){
+                                if(tank.opacity > 0 && opaFlg == false && tank.within(target,400)==false){
                                     if(tank.opacity > 0){
                                         tank.opacity-=0.02
                                         cannon.opacity-=0.02
@@ -2816,7 +2764,7 @@ window.onload = function() {
                                         cannon.opacity = 0;
                                     }
                                 }
-                                if(opaFlg == true || tank.within(tankEntity[0],400)==true){
+                                if(opaFlg == true || tank.within(target,399)==true){
                                     if(tank.opacity < 1.0){
                                         tank.opacity += 0.25;
                                         cannon.opacity += 0.25;
@@ -2895,7 +2843,9 @@ window.onload = function() {
                                     
                                     for(var i = 0; i < tankEntity.length; i++){
                                         if(i != Num){
-                                            if(intercept8.intersect(tankEntity[i])==true){
+                                            if(grade > 9 && intercept4.intersect(tankEntity[0])==true){
+                                                new SelDirection(weak.x,weak.y,tankEntity[0].x,tankEntity[0].y,0);
+                                            }else if(intercept8.intersect(tankEntity[i])==true){
                                                 new SelDirection(weak.x,weak.y,tankEntity[i].x,tankEntity[i].y,0);
                                             }else{
                                                 if(escapeFlg == false){
@@ -3270,6 +3220,56 @@ window.onload = function() {
                             }
                         }
                     }
+                    for(let i = 0; i < tankDir.length; i++){
+                        if(deadFlgs[i]==false && i != Num){
+                            if(this.intersect(tankDir[i][0])==true){
+                                this.moveTo(this.x,tankDir[i][0].y-60)
+                            }
+                            if(this.intersect(tankDir[i][1])==true){
+                                this.moveTo(this.x,tankDir[i][1].y+4)
+                            }
+                            if(this.intersect(tankDir[i][2])==true){
+                                this.moveTo(tankDir[i][2].x-60,this.y)
+                            }
+                            if(this.intersect(tankDir[i][3])==true){
+                                this.moveTo(tankDir[i][3].x+4,this.y)
+                            }
+                        }
+                    }
+                    for(let i = 0; i < obsdir.length; i++){
+                        if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
+                            this.moveTo(this.x,obsdir[i][0].y-60)
+                            hittingTime++;
+                        }
+                        if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
+                            this.moveTo(this.x,obsdir[i][1].y+3)
+                            hittingTime++;
+                        }
+                        if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
+                            this.moveTo(obsdir[i][2].x-60,this.y)
+                            hittingTime++;
+                        }
+                        if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
+                            this.moveTo(obsdir[i][3].x+2,this.y)
+                            hittingTime++;
+                        }
+                    }
+                    if(this.intersect(walls[0])==true){
+                        this.moveTo(this.x,(64*2)-16)
+                        hittingTime++;
+                    }
+                    if(this.intersect(walls[1])==true){
+                        this.moveTo(this.x,(64*13)-12)
+                        hittingTime++;
+                    }
+                    if(this.intersect(walls[2])==true){
+                        this.moveTo((64*1),this.y)
+                        hittingTime++;
+                    }
+                    if(this.intersect(walls[3])==true){
+                        this.moveTo((64*18)+3,this.y)
+                        hittingTime++;
+                    }
                 }else{
                     scene.removeChild(tank)
                     scene.removeChild(cannon)
@@ -3535,19 +3535,52 @@ window.onload = function() {
         }
     }
     new getJson()
-
+    
     // ゲームの準備が整ったらメインの処理を実行
     game.onload = function() { 
         var world = new PhysicsWorld(0, 0);
+        
+        var BGM = game.assets['./sound/TITLE.mp3'];
+            BGM.src.loop = true;    
 
+        var createSetUpScene = function() {
+            
+            var scene = new Scene();                              // 新しいシーンを作る
+            scene.time = 0;
+            scene.backgroundColor = 'black';                      // シーンの背景色を設定
+            let flg = false;
+            new DispText(0,440,320*4,40,'Touch to StartUp!','40px sans-serif','white','center',scene)
+
+            scene.addEventListener('touchstart', function(){
+                titleFlg = true;
+                flg = true;
+                new FadeOut(scene)
+            })
+            
+            scene.onenterframe = function(){
+                if(flg == true){
+                    
+                    scene.time++;
+                
+                    if(scene.time == 30){
+                        BGM.play();
+                        game.replaceScene(createTitleScene());
+                    
+                    }
+                }
+                
+            }
+            new FadeIn(scene)
+            return scene;
+        };
         /* タイトルシーン */
         var createTitleScene = function(){
 
             var scene = new Scene();
             scene.time = 0;
-            var flg = false;
-
             scene.backgroundColor = '#cacaca';                      // シーンの背景色を設定
+            var flg = false;
+                
             // スタート画像設定
             new DispHead(100,200,360*3,240*2.5,"#a00d",scene)
             
@@ -3626,7 +3659,7 @@ window.onload = function() {
             toPlay.addEventListener(Event.TOUCH_START, function() {
                 let returnFlg = true;
                 while(returnFlg){
-                    userName = prompt("\r\nユーザ名を入力してください\r\n\r\n(ユーザ名を設定するとランキングにスコアが記録されます)", "ここにユーザ名を入力");
+                    userName = prompt("\r\nユーザ名を入力してください\r\n\r\n", "ここにユーザ名を入力");
                     if(userName == "" || userName == null || userName == "ここにユーザ名を入力"){
                         if(confirm("\r\nユーザ名を設定していません。\r\nよろしいですか？")) {
                             returnFlg = false;
@@ -3645,6 +3678,8 @@ window.onload = function() {
                 }*/
                 flg = true
                 orflg = 1;
+                BGM.stop()
+                titleFlg = false;
                 new FadeOut(scene)
             });
             
@@ -3661,10 +3696,14 @@ window.onload = function() {
                 orflg = 3;
                 new FadeOut(scene)
             });
+
             //画面遷移の処理
             scene.onenterframe = function(){
-                
+                if(titleFlg == true && BGM.currentTime == BGM.duration){
+                    BGM.play();
+                }
                 if(flg == true){
+                    
                     scene.time++
                     if(scene.time == 30){
                         if(orflg == 1){
@@ -3759,7 +3798,7 @@ window.onload = function() {
             //  タイトル画面へ移動できるテキスト
             var toTitle = new DispText(480,720,320,32,'➡タイトル画面へ','32px sans-serif','#ebe799','center',scene)
             //  注意書き
-            new DispText(0,240,320*size,24,'※Github版ではランキングが機能していません','24px sans-serif','#ebe799','center',scene)
+            new DispText(0,240,320*size,24,'※Github版ではランキングが機能していません。','24px sans-serif','#ebe799','center',scene)
             
             // スタート画像にタッチイベントを設定
             toTitle.addEventListener(Event.TOUCH_START, function(e) {
@@ -3767,6 +3806,9 @@ window.onload = function() {
                 new FadeOut(scene)
             });
             scene.onenterframe = function(){
+                if(titleFlg == true && BGM.currentTime == BGM.duration){
+                    BGM.play();
+                }
                 if(flg == true){
                     scene.time++
                     if(scene.time == 30){
@@ -3821,16 +3863,16 @@ window.onload = function() {
             //  戦車ごとのテキストを格納する配列
             let performance = [
                 ["Player","　弾数　：5","　弾速　：普通","跳弾回数：1","移動速度：普通","・プレイヤーが操作する戦車<br>　強いか弱いかはあなた次第。"],
-                [colorsName[0],"　弾数　：1","　弾速　：普通","跳弾回数：1","移動速度：動かない","・一番最初に戦う雑魚敵。<br>　弱いが油断はできない。"],
-                [colorsName[1],"　弾数　：2","　弾速　：普通","跳弾回数：1","移動速度：遅い","・動けるようになったがまだ弱い。<br>　配置によっては化ける。"],
-                [colorsName[2],"　弾数　：1","　弾速　：とても速い","跳弾回数：0","移動速度：動かない～遅い","・とにかく弾が速い。<br>　スナイプされないよう注意！"],
-                [colorsName[4],"　弾数　：4","　弾速　：速い","跳弾回数：2","移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
-                [colorsName[3],"　弾数　：8","　弾速　：普通","跳弾回数：0","移動速度：普通","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
-                [colorsName[5],"　弾数　：3","　弾速　：速い","跳弾回数：1","移動速度：普通","・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
-                [colorsName[7],"　弾数　：3","　弾速　：とても速い","跳弾回数：2","移動速度：速い","・Greenの強化個体。<br>　火力が高すぎて自滅も多々ある。"],
-                [colorsName[6],"　弾数　：2","　弾速　：速い","跳弾回数：1","移動速度：遅い","・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
-                [colorsName[8],"　弾数　：2","　弾速　：とても速い","跳弾回数：2","移動速度：とても速い","・簡潔にいうと爆弾魔。<br>　爆弾を設置しないと攻撃してこない。"],
-                [colorsName[9],"　弾数　：6","　弾速　：速い","跳弾回数：0","移動速度：動かない","・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
+                [colorsName[0],'　弾数　：'+(1+addBullet),"　弾速　：普通","跳弾回数：1","移動速度：動かない","・一番最初に戦う雑魚敵。<br>　弱いが油断はできない。"],
+                [colorsName[1],'　弾数　：'+(2+addBullet),"　弾速　：普通","跳弾回数：1","移動速度：遅い","・動けるようになったがまだ弱い。<br>　配置によっては化ける。"],
+                [colorsName[2],'　弾数　：'+(1+addBullet),"　弾速　：とても速い","跳弾回数：0","移動速度：動かない～遅い","・とにかく弾が速い。<br>　スナイプされないよう注意！"],
+                [colorsName[4],'　弾数　：'+(4+addBullet),"　弾速　：速い","跳弾回数：2","移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
+                [colorsName[3],'　弾数　：'+(8+addBullet),"　弾速　：普通","跳弾回数：0","移動速度：普通","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
+                [colorsName[5],'　弾数　：'+(3+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：普通","・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
+                [colorsName[7],'　弾数　：'+(3+addBullet),"　弾速　：とても速い","跳弾回数：2","移動速度：速い","・Greenの強化個体。<br>　火力が高すぎて自滅も多々ある。"],
+                [colorsName[6],'　弾数　：'+(2+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：遅い","・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
+                [colorsName[8],'　弾数　：'+(2+addBullet),"　弾速　：とても速い","跳弾回数：2","移動速度：とても速い","・簡潔にいうと爆弾魔。<br>　爆弾を設置しないと攻撃してこない。"],
+                [colorsName[9],'　弾数　：'+(6+addBullet),"　弾速　：速い","跳弾回数：0","移動速度：動かない","・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
                 [colorsName[10],"　弾数　：?","　弾速　：?","跳弾回数：?","移動速度：?","・いつ現れるか分からない戦車。<br>　出現したら要注意。"],
                 [colorsName[11],"　弾数　：?","　弾速　：普通~速い","跳弾回数：0~1","移動速度：普通~速い","・攻防ともに優れたボス格。<br>　ステージごとに強さが異なる。"],
                 ["Abyssal","　弾数　：?","　弾速　：速い~とても速い","跳弾回数：0~1","移動速度：普通~速い","・ステルスも使えるボス格。<br>　\"最後\"は真っ向勝負となる。"]
@@ -3881,6 +3923,9 @@ window.onload = function() {
             });
 
             scene.onenterframe = function(){
+                if(titleFlg == true && BGM.currentTime == BGM.duration){
+                    BGM.play();
+                }
                 //  戦車がクリックされたとき、表示を変える処理
                 for(let i = 0; i < 14; i++){
                     dispTanks[i].addEventListener(Event.TOUCH_START, function() {
@@ -3888,6 +3933,8 @@ window.onload = function() {
                         pcnt = i;
                         tankName.text = performance[pcnt][0];
                         tankBulCnt.text = performance[pcnt][1];
+                        if(addBullet != 0 && pcnt != 0) tankBulCnt.color = 'red';
+                        else tankBulCnt.color = 'black';
                         tankBulSpd.text = performance[pcnt][2];
                         tankBulRef.text = performance[pcnt][3];
                         tankSpd.text = performance[pcnt][4];
@@ -3908,6 +3955,8 @@ window.onload = function() {
 
         /* スタートシーン */
         var createStartScene = function() {
+            
+
             obsdir = []
             obsNum = 0;
             test = []
@@ -3947,6 +3996,7 @@ window.onload = function() {
             var scene = new Scene();                              // 新しいシーンを作る
             scene.time = 0;
             scene.backgroundColor = '#ebf899';                      // シーンの背景色を設定
+
             // スタート画像設定
             new DispHead(100,240,360*3,240*2,"#a00d",scene)
             
@@ -3962,6 +4012,7 @@ window.onload = function() {
     
             scene.onenterframe = function(){
                 scene.time++
+                if(scene.time == 15) game.assets['./sound/RoundStart.mp3'].play()
                 if((stageNum % 20 == 0) && scene.time == 15) new Warning(scene)
                 if(scene.time == 150){
                     new FadeOut(scene)
@@ -4004,6 +4055,7 @@ window.onload = function() {
     
             scene.onenterframe = function(){
                 scene.time++
+                if(scene.time == 15) game.assets['./sound/ExtraTank.mp3'].play()
                 if(scene.time >= 85 && scene.time < 90){
                     zankiLabel.opacity -= 0.2;
                     if(zankiLabel.opacity <= 0){
@@ -4037,6 +4089,30 @@ window.onload = function() {
     
             game.time = 0;
             worldFlg = false;
+
+            obsdir = []
+            obsNum = 0;
+            test = []
+            bullets = [];       //各戦車の弾数の制御用配列
+            boms = [];          //爆弾の個数の制御用配列
+            bulOb = [[]];       //戦車の弾情報を保持する配列
+            colOb = [[]];       //弾の物理制御情報を保持する配列
+            bomOb = [[]];       //爆弾の情報を保持する配列
+            bulStack = [];      //弾の状態の制御用配列
+            enemyTarget = [];   //敵戦車が狙うターゲット
+            entVal = 0;         //戦車の連番設定用変数
+            tankEntity = [];    //戦車情報を保持する配列
+            tankDir = [];
+            deadFlgs = [];      //戦車の生存確認 
+            fireFlgs = [];      //敵の砲撃制御
+            floors = [];        //１ブロック分の壁
+            avoids = [];        //(敵のみ)通行不可
+            walls = [];         //ステージの壁
+            holes = [];         //穴
+            tankColorCounts = [0,0,0,0,0,0,0,0,0,0,0,0];
+            destruction = 0;
+            victory = false;
+            defeat = false;
     
             stageData = LoadStage();    //ステージ情報引き出し
     
@@ -4163,7 +4239,7 @@ window.onload = function() {
                 startLabel.color = 'yellow';
                 startLabel.textAlign = 'left';
     
-            let BGM1 = game.assets['./sound/start.wav'];
+            let BGM1 = game.assets['./sound/start.mp3'];
                 BGM1.play();
                 BGM1.volume = 0.2
             let pauseButtton = new Label();
@@ -4175,8 +4251,9 @@ window.onload = function() {
                 pauseButtton.font = 'bold 96px "sans-serif"';
                 pauseButtton.color = 'aliceblue';
                 pauseButtton.textAlign = 'center';
-            let remaining = new DispText(252,960-72,720,48,'敵残数：'+(tankEntity.length-1-destruction),'bold 48px "Arial"','aliceblue','center',scene)
+            let remaining = new DispText(252,960-72,720,48,'敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki,'bold 48px "Arial"','white','center',scene)
             let BGM2 = game.assets['./sound/end.mp3'];
+            let BGM3 = game.assets['./sound/result.mp3'];
             
             let blackImg = new DispLine(0,0,game.width,game.height,"#00000000",scene)
             let retire = new DispText(0,0,1,1,'','48px sans-serif','red','center',scene)
@@ -4241,10 +4318,12 @@ window.onload = function() {
                     scene.removeChild(elem)
                 })
             }
+            let chgBgm = false;
 
             scene.onenterframe = function() {
+                if(complete == false) chgBgm = false;
                 scene.time++;
-                if(defeat == false && victory == false && complete == false) remaining.text = '敵残数：'+(tankEntity.length-1-destruction)
+                if(defeat == false && victory == false && complete == false) remaining.text = '敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki
                 Floor.intersect(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
@@ -4336,7 +4415,7 @@ window.onload = function() {
                 }
                 
                 if(worldFlg == true){
-                    /*if(CngBgmNum != BNum && victory == false && complete == false && defeat == false && BGM1 != game.assets['./sound/start.wav']){
+                    /*if(CngBgmNum != BNum && victory == false && complete == false && defeat == false && BGM1 != game.assets['./sound/start.mp3']){
                         CngBgmNum = BNum
                         
                         
@@ -4409,10 +4488,18 @@ window.onload = function() {
                         if(scene.time == 15){
                             BGM2 = game.assets['./sound/end.mp3'];
                             BGM2.play()
-                        }else if(BGM2.currentTime == BGM2.duration){
-                            BGM2 = game.assets['./sound/result.mp3'];
+                            chgBgm = true;
+                        }else if(scene.time > 100 && chgBgm == true && BGM2.currentTime == BGM2.duration){
                             BGM2.currentTime = 0;
-                            BGM2.play()
+                            BGM2.stop()
+                            BGM3 = game.assets['./sound/result.mp3'];
+                            BGM3.currentTime = 0;
+                            BGM3.play()
+                            chgBgm = false;
+                        }else if(scene.time > 100 && chgBgm == false && BGM3.currentTime == BGM3.duration){
+                            BGM3 = game.assets['./sound/result.mp3'];
+                            BGM3.currentTime = 0;
+                            BGM3.play()
                         }
                     }
                     if(complete == true && scene.time == 120){
@@ -4457,9 +4544,10 @@ window.onload = function() {
                         });
                         toProceed.addEventListener(Event.TOUCH_START, function() {
                             complete = false;
-                            BGM2.stop()
+                            BGM3.stop()
+                            
                             new FadeOut(scene)
-                            stageNum++;
+                            stageNum+=20;
                             AllDelete();
                             
                             game.replaceScene(createStartScene())
@@ -4660,14 +4748,19 @@ window.onload = function() {
             }
             return scene;
         };
-        game.replaceScene(createTitleScene());  // ゲームの_rootSceneをスタートシーンに置き換える
+        
+        game.replaceScene(createSetUpScene());  // ゲームの_rootSceneをスタートシーンに置き換える
+        
     }
+    
     /* 画面外をクリックしても操作できるようにする処理 */
     game.onenterframe = function(){
+        
         if(game.time % 5 == 0){
             window.focus();
         }
         
     }
+
     game.start(); // ゲームをスタートさせます
 }
