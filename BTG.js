@@ -4547,7 +4547,7 @@ window.onload = function() {
                             BGM3.stop()
                             
                             new FadeOut(scene)
-                            stageNum+=20;
+                            stageNum++;
                             AllDelete();
                             
                             game.replaceScene(createStartScene())
