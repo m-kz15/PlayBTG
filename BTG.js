@@ -719,7 +719,7 @@ window.onload = function() {
                 random1 = Math.floor( Math.random() * 30)-15;
             }
             this.rad = Math.atan2(vector.y+random0, vector.x+random1);
-            this.moveTo(cannon.x+70+Math.cos(this.rad) * (pixelSize-12), cannon.y+(pixelSize/2)+Math.sin(this.rad) * (pixelSize-12));
+            this.moveTo(cannon.x+70+Math.cos(this.rad) * (pixelSize-8), cannon.y+(pixelSize/2)+Math.sin(this.rad) * (pixelSize-8));
             this.applyImpulse(new b2Vec2(Math.cos(this.rad)*shotSpeed, Math.sin(this.rad)*shotSpeed));
 
             this.onenterframe = function(){
