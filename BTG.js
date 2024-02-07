@@ -2159,6 +2159,8 @@ window.onload = function() {
                     stopFlg = false;
                     escapeFlg = false;
                     shotNGflg = false;
+                    fireFlgs[Num] = false;
+
 
                     if(worldFlg == true){
                         this.time++;
@@ -2203,7 +2205,6 @@ window.onload = function() {
                         }
                         
                         if(deadFlgs[0] == false){
-                            
                             for(var j = 0; j < bulOb.length; j++){
                                 for(var k = 0; k < bulOb[j].length; k++){
                                     if(tank.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
@@ -2226,6 +2227,15 @@ window.onload = function() {
                                 markEntity[Num] = new Mark(this.x,this.y,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
+                                scene.removeChild(intercept);
+                                scene.removeChild(intercept2);
+                                scene.removeChild(intercept3);
+                                scene.removeChild(intercept4);
+                                scene.removeChild(intercept7);
+                                scene.removeChild(intercept8);
+                                scene.removeChild(tank)
+                                scene.removeChild(cannon)
+                                scene.removeChild(weak)
                                 destruction++
                                 life--;
                             }
@@ -2344,10 +2354,7 @@ window.onload = function() {
                                 }
                             }
                             
-                            if(game.time % 2 == 0){
-                                fireFlgs[Num] = false;
-                                enemyTarget[Num] = target;
-                            }
+                            
     
                             avoids.forEach(elem=>{
                                 if(tank.within(elem,60)==true){
@@ -2355,35 +2362,40 @@ window.onload = function() {
                                 }
                             })
                             if(stopFlg == false){
+                                if(grade == 6 && boms[Num]>0 && bomFlg == true){
+                                    let dist = Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2));
+                                    if(dist < 300){
+                                        fireFlgs[Num] = false;
+                                        if(this.time % 5 == 0){
+                                            new SelDirection(weak.x,weak.y,bomOb[Num][0].x,bomOb[Num][0].y,0)
+                                        }
+                                    }
+                                }
                                 bulOb[0].forEach(elem=>{
-                                    if(intercept2.intersect(elem)==true){
+                                    if(tank.within(elem,210)==true){
                                         escapeFlg = true;
+                                    }
+                                    
+                                    if(this.time % 2 == 0 && escapeFlg == false){
+                                        enemyTarget[Num] = target;
                                     }
                                     let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                     let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
                                     if(dist1 > dist2){
-                                        if(intercept3.intersect(elem)==true){
+                                        if(tank.within(elem,210)==true){
                                             enemyTarget[Num] = elem;
+                                            escapeFlg = true;
                                             if(this.time % 5 == 0){
                                                 new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
                                             }
                                         }
-                                        if(intercept4.intersect(elem)==true){
+                                        if(tank.within(elem,300)==true){
                                             tank.intersect(PlayerBulAim).forEach(function(){
                                                 enemyTarget[Num] = elem;
                                                 if(this.time % 5 == 0){
                                                     new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
                                                 }
                                             })
-                                        }
-                                        if(grade == 6 && tank.within(bomOb[Num][0],400)==true && bomFlg == true){
-                                            let dist = Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2));
-                                            if(dist < 400){
-                                                fireFlgs[Num] = false;
-                                                if(this.time % 5 == 0){
-                                                    new SelDirection(weak.x,weak.y,bomOb[Num][0].x,bomOb[Num][0].y,0)
-                                                }
-                                            }
                                         }
                                         if(intercept.intersect(elem)==true){
                                             tank.intersect(PlayerBulAim).forEach(function(){
@@ -2396,7 +2408,7 @@ window.onload = function() {
                                     let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                     let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
                                     if(dist1 > dist2){
-                                        if(grade == 5){
+                                        if(category == 7){
                                             tank.intersect(EnemyAim).forEach(function(){
                                                 enemyTarget[Num] = elem;
                                                 new EnemyAim(alignment,cannon,32,Num,scene);
@@ -2614,9 +2626,7 @@ window.onload = function() {
                         hittingTime++;
                     }
                 }else{
-                    scene.removeChild(tank)
-                    scene.removeChild(cannon)
-                    scene.removeChild(weak)
+                    
                     scene.removeChild(this);
                 }
             }
