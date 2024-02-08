@@ -2179,28 +2179,32 @@ window.onload = function() {
                         }
                         
                         if(grade == 7){
-                            if(tank.opacity > 0 && opaFlg == false && tank.within(target,300)==false){
-                                if(this.time % 2 == 0){
-                                    tank.opacity-=0.02
-                                    cannon.opacity-=0.02
-                                    if(tank.opacity <= 0){
-                                        tank.opacity = 0
-                                        cannon.opacity = 0;
-                                        opaFlg = true;
-                                    }
+                            if(this.time % 600 == 0 && addBullet == 0){
+                                opaFlg = true;
+                            }
+                            let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
+                            if((opaFlg == false && tank.opacity > 0) && dist > 300){
+                                if(tank.opacity > 0 && this.time % 2 == 0){
+                                    tank.opacity-=0.01
+                                    cannon.opacity-=0.01
+                                }
+                                if(tank.opacity <= 0){
+                                    tank.opacity = 0
+                                    cannon.opacity = 0;
                                 }
                             }
-                            else if(((addBullet == 0 && opaFlg == true && this.time > 300)) || tank.within(target,300)==true){
-                                if(this.time % 2 == 0){
-                                    tank.opacity += 0.1;
-                                    cannon.opacity += 0.1;
+                                
+                            if((((addBullet == 0 && opaFlg == true)) || dist < 300) && tank.opacity < 1.0){
+                                if(tank.opacity < 1 && this.time % 2 == 0){
+                                    tank.opacity += 0.05;
+                                    cannon.opacity += 0.05;
                                 }
-                                if(tank.opacity > 1.0){
+                                if(tank.opacity >= 1.0){
                                     tank.opacity = 1.0;
                                     cannon.opacity = 1.0;
-                                    this.time = 0;
                                     opaFlg = false;
                                 }
+                                
                             }
                         }
                         
@@ -2818,36 +2822,34 @@ window.onload = function() {
                         if(deadFlgs[0] == false){
                             
                             if(grade == 9){
-                                if(tank.opacity > 0 && opaFlg == false && tank.within(target,300)==false){
-                                    if(tank.opacity > 0){
-                                        tank.opacity-=0.02
-                                        cannon.opacity-=0.02
+                                let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
+                                if((opaFlg == false && tank.opacity > 0) && dist > 300){
+                                    if(tank.opacity > 0 && this.time % 2 == 0){
+                                        tank.opacity-=0.01
+                                        cannon.opacity-=0.01
                                     }
-                                    
                                     if(tank.opacity <= 0){
                                         tank.opacity = 0
                                         cannon.opacity = 0;
                                     }
                                 }
                                 
-                                if(((addBullet == 0 && opaFlg == true && this.time > 300)) || tank.within(target,300)==true){
-                                    if(tank.opacity < 1){
+                                if((((addBullet == 0 && opaFlg == true)) || dist < 300) && tank.opacity < 1.0){
+                                    if(tank.opacity < 1 && this.time % 2 == 0){
                                         tank.opacity += 0.05;
                                         cannon.opacity += 0.05;
-                                    }else{
-                                        this.time = 0;
-                                        opaFlg = false;
                                     }
-                                    if(tank.opacity > 1.0){
+                                    if(tank.opacity >= 1.0){
                                         tank.opacity = 1.0;
                                         cannon.opacity = 1.0;
-                                        this.time = 0;
                                         opaFlg = false;
                                     }
                                 }
                             }else if(grade == 11){
-                                if(tank.opacity > 0 && opaFlg == false && tank.within(target,400)==false){
-                                    if(tank.opacity > 0){
+                                let dist = Math.sqrt(Math.pow(weak.x - tankEntity[0].x, 2) + Math.pow(weak.y - tankEntity[0].y, 2));
+                                if(((opaFlg == false) && tank.opacity > 0) && dist > 400){
+                                    
+                                    if(tank.opacity > 0 && this.time % 2 == 0){
                                         tank.opacity-=0.02
                                         cannon.opacity-=0.02
                                     }
@@ -2855,18 +2857,15 @@ window.onload = function() {
                                         tank.opacity = 0
                                         cannon.opacity = 0;
                                     }
-                                }
-                                if(opaFlg == true || tank.within(target,399)==true){
-                                    if(tank.opacity < 1.0){
+                                }else if((opaFlg == true && tank.opacity < 1.0) || dist <= 400){
+                                    if(tank.opacity < 1.0 && this.time % 2 == 0){
                                         tank.opacity += 0.25;
                                         cannon.opacity += 0.25;
-                                    }else{
-                                        opaFlg = false;
                                     }
-                                    if(tank.opacity > 1.0){
+                                    if(tank.opacity >= 1.0){
                                         tank.opacity = 1.0;
                                         cannon.opacity = 1.0;
-                                        
+                                        opaFlg = false;
                                     }
                                 }
                             }/*else if(grade == 13){
