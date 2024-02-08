@@ -2378,61 +2378,71 @@ window.onload = function() {
                                         }
                                     }
                                 }
-                                for(let i = 0; i < bulOb[0].length; i++){
-                                    if(bulStack[0][i]==true){
-                                        
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][i].x, 2) + Math.pow(weak.y - bulOb[0][i].y, 2));
-                                        if(dist1 > dist2){
-                                            if(dist2 < 200 && (category == 4 || category == 5)) escapeFlg = true;
-                                            if(dist2 < 300){
-                                                enemyTarget[Num] = bulOb[0][i];
+                                bulOb[0].forEach(elem=>{
+                                    if(tank.within(elem,210)==true){
+                                        escapeFlg = true;
+                                    }
+                                    
+                                    if(this.time % 2 == 0 && escapeFlg == false){
+                                        enemyTarget[Num] = target;
+                                    }
+                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                    let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
+                                    if(dist1 > dist2){
+                                        if(tank.within(elem,210)==true){
+                                            enemyTarget[Num] = elem;
+                                            escapeFlg = true;
+                                            if(this.time % 5 == 0){
+                                                new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
                                             }
-                                            if(dist2 < 200){
-                                                tank.intersect(PlayerBulAim).forEach(function(){
-                                                    if(this.time % 5 == 0){
-                                                        new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
-                                                    }
-                                                })
-                                            }
-                                            
+                                        }
+                                        if(tank.within(elem,300)==true){
+                                            tank.intersect(PlayerBulAim).forEach(function(){
+                                                enemyTarget[Num] = elem;
+                                                if(this.time % 5 == 0){
+                                                    new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
+                                                }
+                                            })
+                                        }
+                                        if(intercept.intersect(elem)==true){
+                                            tank.intersect(PlayerBulAim).forEach(function(){
+                                                enemyTarget[Num] = elem;
+                                            }) 
                                         }
                                     }
-                                }
-                                for(let i = 0; i < bulOb[Num].length; i++){
-                                    if(bulStack[Num][i]==true){
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[Num][i].x, 2) + Math.pow(weak.y - bulOb[Num][i].y, 2));
-                                        if(dist1 > dist2){
-                                            //if(dist2 < 200) enemyTarget[Num] = bulOb[Num][i];
-                                            if(category == 7){
-                                                
+                                })
+                                bulOb[Num].forEach(elem=>{
+                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                    let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
+                                    if(dist1 > dist2){
+                                        if(category == 7){
+                                            tank.intersect(EnemyAim).forEach(function(){
+                                                enemyTarget[Num] = elem;
+                                                new EnemyAim(alignment,cannon,32,Num,scene);
+                                                if(this.time % 5 == 0){
+                                                    new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
+                                                }
+                                            })
+                                            
+                                        }else{
+                                            if(intercept4.intersect(elem)==true){
                                                 tank.intersect(EnemyAim).forEach(function(){
-                                                    if(tank.within(dist2 < 500)==true) enemyTarget[Num] = bulOb[Num][i];
-                                                    escapeFlg = true;
-                                                    new EnemyAim(alignment,cannon,32,Num,scene);
-                                                    if(this.time % 5 == 0){
-                                                        new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
-                                                    }
+                                                    enemyTarget[Num] = elem;
                                                 })
-                                                
-                                            }else{
-                                                if(intercept4.intersect(bulOb[Num][i])==true || dist2 < 300){
-                                                    
-                                                    tank.intersect(EnemyAim).forEach(function(){
-                                                        escapeFlg = true;
-                                                        enemyTarget[Num] = bulOb[Num][i];
-                                                        
-                                                        if(this.time % 5 == 0){
-                                                            new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
-                                                        }
-                                                    })
-                                                    
+                                                if(this.time % 5 == 0){
+                                                    new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
                                                 }
                                             }
+                                            if(intercept2.intersect(elem)==true){
+                                                if(this.time % 5 == 0){
+                                                    new SelDirection(weak.x,weak.y,elem.x,elem.y,0)
+                                                } 
+                                            }
                                         }
+                                        
+                                        
                                     }
-                                }
+                                })
                                 if(escapeFlg == false){
                                     if(grade == 6){
                                         bomOb[0].forEach(elem=>{
