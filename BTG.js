@@ -36,6 +36,67 @@ var entNum = 0;             //戦車の連番設定用変数
 var addBullet = 0;          //難易度ごとの弾追加数
 var addSpeed = 0;           //難易度ごとの移動速度
 
+/* 各戦車の迎撃判定
+    プレイヤー,自身,他戦車 */
+var cateFlgs = [
+    [true,false,false], //brown
+    [true,false,false], //gray
+    [true,false,true],  //green
+    [true,false,false], //red
+    [true,true,true],   //lightgreen
+    [true,true,true],   //elitegray
+    [true,true,true],   //snow
+    [true,true,true],   //elitegreen
+    [true,true,false],  //sand
+    [true,false,false], //pink
+    [true,false,false], //random
+    [true,true,true]    //dazzle
+]
+/* 各戦車の守備範囲
+    プレイヤー,自身,他戦車 */
+var cateRanges = [
+    [200,0,0],      //brown
+    [200,0,0],      //gray
+    [400,0,150],    //green
+    [200,0,0],      //red
+    [300,200,250],  //lightgreen
+    [300,200,200],  //elitegray
+    [400,300,200],  //snow
+    [400,300,250],  //elitegreen
+    [300,250,0],    //sand
+    [500,0,0],      //pink
+    [200,0,0],      //random
+    [300,300,300]   //dazzle
+]
+var cateEscapes = [
+    [false,0,0,0],  //brown
+    [false,0,0,0],  //gray
+    [true,300,0,120], //green
+    [false,0,0,0],  //red
+    [false,0,0,0],  //lightgreen
+    [true,250,200,180], //elitegray
+    [true,200,0,180], //snow
+    [true,200,0,200], //elitegreen
+    [false,0,0,0],  //sand
+    [false,0,0,0],  //pink
+    [false,0,0,0],  //random
+    [true,190,0,200]  //dazzle
+]
+var cateDistances = [
+    [0],    //brown
+    [0],    //gray
+    [500],  //green
+    [0],    //red
+    [150],  //lightgreen
+    [240],  //elitegray
+    [500],  //snow
+    [400],  //elitegreen
+    [150],  //sand
+    [0],    //pink
+    [200],  //random
+    [300]   //dazzle
+]
+
 var tankColorCounts = [0,0,0,0,0,0,0,0,0,0,0,0];    //配色ごとの敵戦車残数格納配列
 
 var worldFlg = false;   //ゲームのon/off制御ボタン
@@ -44,7 +105,6 @@ var defeat = false;     //敗北判定
 var complete = false;   //攻略完了判定
 var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
-
 
 var stageNum = 1;           //ステージ番号
 var BGMs = [                //bgm指定用配列
@@ -345,7 +405,6 @@ window.onload = function() {
     game.keybind(81, "q");
     game.keybind(27, "Pause");
     game.time = 0;
-    
 
     /* ステージ端の壁クラス */
     var Wall = Class.create(PhyBoxSprite, {
@@ -657,7 +716,7 @@ window.onload = function() {
     
     /* 弾の弾道クラス */
     var BulAim = Class.create(Sprite,{
-        initialize: function(target,shotSpeed,scene){
+        initialize: function(target,shotSpeed,num,value,scene){
             Sprite.call(this,base/2,base/2);
             //this.backgroundColor = "#aff8"
             this.moveTo(target.x,target.y)
@@ -669,13 +728,14 @@ window.onload = function() {
             this.onenterframe = function(){
                 this.x += dx
                 this.y += dy
+                if(bulStack[num][value]==false) scene.removeChild(this)
             }
             scene.addChild(this);
         }
     })
     /* プレイヤーの弾の弾道クラス */
     var PlayerBulAim = Class.create(Sprite,{
-        initialize: function(target,shotSpeed,scene){
+        initialize: function(target,shotSpeed,num,value,scene){
             Sprite.call(this,base/2,base/2);
             //this.backgroundColor = "#aff8"
             this.moveTo(target.x,target.y)
@@ -687,6 +747,7 @@ window.onload = function() {
             this.onenterframe = function(){
                 this.x += dx
                 this.y += dy
+                if(bulStack[num][value]==false) scene.removeChild(this)
             }
             scene.addChild(this);
         }
@@ -757,9 +818,9 @@ window.onload = function() {
             this.moveTo(target.centerX-(this.width/2),target.centerY-(target.height/2 + this.height/3))
             this.onenterframe = function(){
                 if(num != 0){
-                    new BulAim(this,32,scene)
+                    new BulAim(this,32,num,value,scene)
                 }else{
-                    new PlayerBulAim(this,32,scene)
+                    new PlayerBulAim(this,32,num,value,scene)
                 }
                 this.time++;
                 if(shotSpeed>=12 && this.time % 2 == 0){
@@ -1474,85 +1535,7 @@ window.onload = function() {
     
         return newLocation;
     };
-    
-    
-    /* 【テスト】照準クラス */
-    /*var NewAim = Class.create(Sprite,{
-        initialize: function(start,goal,speed,ref,num,scene){
-            Sprite.call(this,8,8);
-            this.backgroundColor = "#aff4"
-            this.time = 0;
-            var body = this;
-            this.moveTo(start.x+(start.width/2),start.y+(start.height/2))
-            const vector = {
-                x: goal.x - start.x-((start.width/2) - (this.width/2)),
-                y: goal.y - start.y-((start.height/2) - (this.height/2))
-            };
-            this.rad = Math.atan2(vector.y, vector.x);
-            this.moveTo(this.x+48*Math.cos(this.rad), this.y+48*Math.sin(this.rad));
-            start.rotation = (270+(Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI)*-1;
 
-            var cnt = 0;
-            var rcnt = 0;
-            var rflg = false;
-
-            var dx = Math.cos(this.rad) * speed;
-            var dy = Math.sin(this.rad) * speed;
-
-            
-
-            this.onenterframe = function(){
-                
-                if(rflg == true) this.time++;
-                this.intersect(ObsTop).forEach(function(elem){
-                    if(rflg == false){
-                        rflg = true
-                        rcnt++;
-                        dy = dy * -1;
-                    }
-                })
-                this.intersect(ObsBottom).forEach(function(elem){
-                    if(rflg == false){
-                        rflg = true
-                        rcnt++;
-                        dy = dy * -1;
-                    }
-                })
-                this.intersect(ObsLeft).forEach(function(elem){
-                    if(rflg == false){
-                        rflg = true
-                        rcnt++;
-                        dx = dx * -1; 
-                    }
-                })
-                this.intersect(ObsRight).forEach(function(elem){
-                    if(rflg == false){
-                        rflg = true
-                        rcnt++;
-                        dx = dx * -1; 
-                    }
-                })
-                
-
-                if(rcnt != cnt){
-                    this.time = 0;
-                    cnt = rcnt;
-                }
-                if(this.time == 10 && rflg == true){
-                    rflg = false;
-                }
-
-                if(rcnt > ref){
-                    scene.removeChild(this)
-                    
-                }
-                this.x += dx;
-                this.y += dy;
-            }
-            scene.addChild(this);
-        }
-    })*/
-    
     /* プレイヤークラス */
     var Player = Class.create(Sprite,{
         initialize: function(x,y,path1,path2,max,ref,shotSpeed,moveSpeed,scene,filterMap){
@@ -1754,7 +1737,6 @@ window.onload = function() {
                     }
                     
                     //  死んでいなければ弾道予測の描画をする
-                    //if(deadFlgs[Num] == false) new NewAim(cannon,cur,16,ref,Num,scene)
                     if(deadFlgs[Num] == false) new Aim(cur,cannon,base*3,Num,scene)
 
                     if(game.input.w && game.input.a){
@@ -1794,37 +1776,7 @@ window.onload = function() {
                         rot = 270;
                         this.y += speed;
                     }
-                    //  移動の制御処理
-                    /*if(Floor.intersect(this) == false && Wall.intersect(this) == false && Hole.intersect(this)==false){
-                        //  対応したキーごとに戦車の角度を設定
-                        
-                    }else{
-                        
-                        //  障害物と衝突状態の処理
-                        
-                        if(value == 0){
-                            this.x = this.x+1;
-                        }else if(value == 1){
-                            this.x = this.x-1;
-                        }else if(value == 2){
-                            this.y += 0.1;
-                        }else if(value == 3){
-                            this.y -= 0.1;
-                        }else if(value == 4){
-                            this.x += 0.1;
-                            this.y += 0.1;
-                        }else if(value == 5){
-                            this.x -= 0.1;
-                            this.y += 0.1;
-                        }else if(value == 6){
-                            this.x += 0.1;
-                            this.y -= 0.1;
-                        }else if(value == 7){
-                            this.x -= 0.1;
-                            this.y -= 0.1;
-                        }
-                        
-                    }*/
+                   
                     /* 戦車本体の角度設定 */
                     this.rotation = rot;
                     tank.rotation = rot;
@@ -1833,7 +1785,7 @@ window.onload = function() {
             }
             scene.insertBefore(this,tank)
         }
-    })
+    });
     /* 敵(弱)クラス */
     var newAI = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,target,max,ref,shotSpeed,moveSpeed,fireLate,grade,category,scene,map,g,filterMap){
@@ -1945,15 +1897,7 @@ window.onload = function() {
                                 this.rotation = 270;
                             }else if(root[0] == "South"){
                                 this.rotation = 90;
-                            }/*else if(root[0] == "Northeast"){
-                                this.rotation = 315;
-                            }else if(root[0] == "Northwest"){
-                                this.rotation = 225;
-                            }else if(root[0] == "Southeast"){
-                                this.rotation = 45;
-                            }else if(root[0] == "Southwest"){
-                                this.rotation = 135;
-                            }*/
+                            }
                         }
 
                         //  実行可能なら
@@ -2018,31 +1962,57 @@ window.onload = function() {
                                     } 
                                 }
                             }
-
-                            //  プレイヤーの弾が警戒範囲内の場合
-                            bulOb[0].forEach(elem=>{
-                                if(intercept4.intersect(elem)==true){
-                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                    let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
-                                    if(dist1 > dist2){
-                                        tank.intersect(PlayerBulAim).forEach(function(){
-                                            enemyTarget[Num] = elem;    //  迎撃のためにターゲット変更
-                                        })
-                                    }
-                                }
-                            })
-                            
-                            /*if(allyEntity[0] != null){
-                                if(allyDeadFlg == false){
-                                    if(tank.within(allyEntity[0],320)==true){
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - allyEntity[0].x, 2) + Math.pow(weak.y - allyEntity[0].y, 2));
-                                        if(dist1 > dist2){
-                                            enemyTarget[Num] = allyEntity[0];
+                            /* 迎撃処理群
+                                優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+                            */
+                            //  他戦車の弾迎撃処理
+                            if(cateFlgs[category][2] == true){
+                                for(let i = 1; i < bulOb.length; i++){
+                                    if(i != Num){
+                                        for(let j = 0; j < bulOb[i].length; j++){
+                                            if(bulStack[i][j] == true){
+                                                let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                                let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[i][j].x, 2) + Math.pow(weak.y - bulOb[i][j].y, 2));
+                                                if(dist1 > dist2 && dist2 < cateRanges[category][2]){
+                                                    tank.intersect(BulAim).forEach(function(){
+                                                        enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
+                                                    })
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }*/
+                            }
+                            //  プレイヤーの弾迎撃処理
+                            if(cateFlgs[category][0] == true){
+                                for(let i = 0; i < bulOb[0].length; i++){
+                                    if(bulStack[0][i] == true){
+                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][i].x, 2) + Math.pow(weak.y - bulOb[0][i].y, 2));
+                                        if(dist1 > dist2 && dist2 < cateRanges[category][0]){
+                                            tank.intersect(PlayerBulAim).forEach(function(){
+                                                enemyTarget[Num] = bulOb[0][i];    //  迎撃のためにターゲット変更
+                                            })
+                                        }
+                                    }
+                                }
+                            }
+                            //  自身の弾迎撃処理
+                            if(cateFlgs[category][1] == true){
+                                for(let i = 0; i < bulOb[Num].length; i++){
+                                    if(bulStack[Num][i] == true){
+                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[Num][i].x, 2) + Math.pow(weak.y - bulOb[Num][i].y, 2));
+                                        if(dist1 > dist2 && dist2 < cateRanges[category][1]){
+                                            tank.intersect(BulAim).forEach(function(){
+                                                enemyTarget[Num] = bulOb[Num][i];    //  迎撃のためにターゲット変更
+                                            })
+                                        }
+                                    }
+                                }
+                            }
+                            
+
                             //  移動処理
                             if(root != false && intercept3.intersect(target)==false){
                                 tank.rotation = this.rotation
@@ -2068,15 +2038,7 @@ window.onload = function() {
                                     this.rotation = 270;
                                 }else if(root[0] == "South"){
                                     this.rotation = 90;
-                                }/*else if(root[0] == "Northeast"){
-                                    this.rotation = 315;
-                                }else if(root[0] == "Northwest"){
-                                    this.rotation = 225;
-                                }else if(root[0] == "Southeast"){
-                                    this.rotation = 45;
-                                }else if(root[0] == "Southwest"){
-                                    this.rotation = 135;
-                                }*/    
+                                }   
                                 moveCnt = 0
                             }
                             weak.rotation = this.rotation;
@@ -2106,8 +2068,7 @@ window.onload = function() {
             }
             scene.insertBefore(this,tank)
         }
-    })
-    
+    });
     /* 敵(強)クラス */
     var Elite = Class.create(Sprite,{
         initialize: function(x,y,path1,path2,target,max,ref,shotSpeed,moveSpeed,fireLate,grade,category,scene,filterMap){
@@ -2127,13 +2088,12 @@ window.onload = function() {
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
             TankFrame(this,Num,scene)
+
+            tank.opacity = 1.0;
+            cannon.opacity = 1.0;
             
-            const intercept = new Intercept420(this,scene)
-            const intercept2 = new Intercept280(this,scene)
-            const intercept3 = new Intercept192(this,scene)
-            const intercept4 = new Intercept600(this,scene)
+            const intercept = new Intercept96(this,scene)
             const intercept7 = new InterceptC(cannon,scene)
-            const intercept8 = new InterceptF(cannon,scene)
             var value = Math.floor(Math.random() * 4);;
             var speed = moveSpeed;
             var bomFlg = false;
@@ -2142,6 +2102,7 @@ window.onload = function() {
             var escapeFlg = false;
             var stopFlg = false;
             var opaFlg = false;
+            var opaVal = 1.0;
             var shotNGflg = false;
             let hittingTime = 0;
 
@@ -2224,6 +2185,14 @@ window.onload = function() {
                     }
                 }
             }
+            function ShotBullet(i){
+                game.assets['./sound/putting_a_book2.mp3'].clone().play();
+                scene.insertBefore(colOb[Num][i],filterMap);
+                scene.insertBefore(bulOb[Num][i],filterMap);
+                new OpenFire(cannon,alignment,scene,filterMap)
+                bullets[Num]++;  
+                bulStack[Num][i] = true;
+            }
 
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
@@ -2235,18 +2204,14 @@ window.onload = function() {
                         if(fireLate < 15){
                             fireLate = 24;
                         }
-                        
                     }
-                    
-                    
+
                     if(hittingTime>30){
                         let val = value;
                         while(value == val) value = Math.floor(Math.random() * 4);
                         hittingTime = 0;
                     }
-                    
-
-
+  
                     if(worldFlg == true){
                         this.time++;
 
@@ -2255,51 +2220,48 @@ window.onload = function() {
                         shotNGflg = false;
                         fireFlgs[Num] = false;
 
-                        if(grade == 6){
-                            if(tank.within(target,300)==true && bomFlg == false && boms[Num] == 0){
-                                bomOb[Num][0] = new Bom(this,Num,scene);
-                                scene.insertBefore(bomOb[Num][0],target);
-                                this.time = 0;
-                                bomFlg = true;
-                                boms[Num]++;
-                            }else if(bomFlg == true && boms[Num] <= 0){
-                                bomFlg = false;
-                                bomOb[Num][0] = new Bom(this,Num,scene);
-                                boms[Num] = 0
-                            }
-                        }
                         
-                        if(grade == 7){
-                            if(this.time % 600 == 0 && addBullet == 0){
-                                opaFlg = true;
-                            }
-                            let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
-                            if((opaFlg == false && tank.opacity > 0) && dist > 300){
-                                if(tank.opacity > 0 && this.time % 2 == 0){
-                                    tank.opacity-=0.01
-                                    cannon.opacity-=0.01
-                                }
-                                if(tank.opacity <= 0){
-                                    tank.opacity = 0
-                                    cannon.opacity = 0;
-                                }
-                            }
-                                
-                            if((((addBullet == 0 && opaFlg == true)) || dist < 300) && tank.opacity < 1.0){
-                                if(tank.opacity < 1 && this.time % 2 == 0){
-                                    tank.opacity += 0.05;
-                                    cannon.opacity += 0.05;
-                                }
-                                if(tank.opacity >= 1.0){
-                                    tank.opacity = 1.0;
-                                    cannon.opacity = 1.0;
-                                    opaFlg = false;
-                                }
-                                
-                            }
-                        }
+                        
                         
                         if(deadFlgs[0] == false){
+                            
+                            if(this.time % 2 == 0){
+                                if(tank.opacity != opaVal){
+                                    tank.opacity = opaVal;
+                                    cannon.opacity = opaVal;
+                                }
+                                if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 300) opaFlg = true;
+                                if(category == 6){
+                                    if(this.time % 600 == 0 && addBullet == 0){
+                                        opaFlg = true;
+                                    }
+                                    if(opaFlg == false && opaVal > 0){
+                                        opaVal -= 0.05;
+                                        if(opaVal <= 0){
+                                            opaVal = 0;
+                                        }
+                                    }else if(opaFlg == true && opaVal <= 1.0){
+                                        opaVal += 0.1;
+                                        if(opaVal >= 1.0){
+                                            opaVal = 1.0;
+                                            opaFlg = false;
+                                        }
+                                    }
+                                }else if(category == 8){
+                                    if(tank.within(target,300)==true && bomFlg == false && boms[Num] == 0){
+                                        bomOb[Num][0] = new Bom(this,Num,scene);
+                                        scene.insertBefore(bomOb[Num][0],target);
+                                        this.time = 0;
+                                        bomFlg = true;
+                                        boms[Num]++;
+                                    }else if(bomFlg == true && boms[Num] <= 0){
+                                        bomFlg = false;
+                                        bomOb[Num][0] = new Bom(this,Num,scene);
+                                        boms[Num] = 0
+                                    }
+                                }
+                            }
+
                             for(var j = 0; j < bulOb.length; j++){
                                 for(var k = 0; k < bulOb[j].length; k++){
                                     if(tank.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
@@ -2322,12 +2284,7 @@ window.onload = function() {
                                 markEntity[Num] = new Mark(this.x,this.y,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
-                                scene.removeChild(intercept);
-                                scene.removeChild(intercept2);
-                                scene.removeChild(intercept3);
-                                scene.removeChild(intercept4);
                                 scene.removeChild(intercept7);
-                                scene.removeChild(intercept8);
                                 scene.removeChild(tank)
                                 scene.removeChild(cannon)
                                 scene.removeChild(weak)
@@ -2351,10 +2308,6 @@ window.onload = function() {
                                 }
                             }
                             
-                            
-                            
-                            
-    
                             avoids.forEach(elem=>{
                                 if(tank.within(elem,60)==true){
                                     stopFlg = true;
@@ -2371,116 +2324,99 @@ window.onload = function() {
                                         }
                                     }
                                 }
-                                for(let i = 1; i < bulOb.length; i++){
-                                    if(i != Num){
-                                        for(let j = 0; j < bulOb[i].length; j++){
-                                            if(bulStack[i][j]==true){
-                                                let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                                let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[i][j].x, 2) + Math.pow(weak.y - bulOb[i][j].y, 2));
-                                                if(dist1 > dist2){
-                                                    tank.intersect(Aim).forEach(function(){
-                                                        if(dist2 < 200)enemyTarget[Num] = bulOb[i][j];
-                                                        if(this.time % 5 == 0){
-                                                            new SelDirection(weak.x,weak.y,bulOb[i][j].x,bulOb[i][j].y,0)
+
+                                /* 迎撃処理群
+                                    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+                                */
+                                //  他戦車の弾迎撃処理
+                                if(cateFlgs[category][2] == true && bulOb.length > 2){
+                                    for(let i = 1; i < bulOb.length; i++){
+                                        if(i != Num){
+                                            for(let j = 0; j < bulOb[i].length; j++){
+                                                if(bulStack[i][j] == true){
+                                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                                    let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[i][j].x, 2) + Math.pow(weak.y - bulOb[i][j].y, 2));
+                                                    if(dist1 > dist2 && dist2 < cateRanges[category][2]){
+                                                        if(cateEscapes[category][0]==true && cateEscapes[category][3] != 0){
+                                                            if(dist2 < cateEscapes[category][3]){
+                                                                if(dist2 < 120) enemyTarget[Num] = bulOb[i][j];
+                                                                escapeFlg = true;
+                                                            } 
+                                                            
                                                         }
-                                                    })
-                                                }
-                                            }
-                                            
-                                        }
-                                    }
-                                }
-                                for(let i = 0; i < bulOb[Num].length; i++){
-                                    if(bulStack[Num][i]==true){
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[Num][i].x, 2) + Math.pow(weak.y - bulOb[Num][i].y, 2));
-                                        if(dist1 > dist2){
-                                            //if(dist2 < 200) enemyTarget[Num] = bulOb[Num][i];
-                                            if(category == 7){
-                                                
-                                                tank.intersect(EnemyAim).forEach(function(){
-                                                    if(tank.within(dist2 < 500)==true) enemyTarget[Num] = bulOb[Num][i];
-                                                    escapeFlg = true;
-                                                    new EnemyAim(alignment,cannon,32,Num,scene);
-                                                    if(this.time % 5 == 0){
-                                                        new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
+                                                        intercept.intersect(BulAim).forEach(function(){
+                                                            if(cateEscapes[category][3] != 0) enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
+                                                            if(this.time % 5 == 0){
+                                                                new SelDirection(weak.x,weak.y,bulOb[i][j].x,bulOb[i][j].y,0)
+                                                            }
+                                                        })
                                                     }
-                                                })
-                                                
-                                            }else{
-                                                if(intercept4.intersect(bulOb[Num][i])==true || dist2 < 220){
-                                                    
-                                                    tank.intersect(EnemyAim).forEach(function(){
-                                                        escapeFlg = true;
-                                                        enemyTarget[Num] = bulOb[Num][i];
-                                                        
-                                                        if(this.time % 5 == 0){
-                                                            new SelDirection(weak.x,weak.y,bulOb[Num][i].x,bulOb[Num][i].y,0)
-                                                        }
-                                                    })
-                                                    
                                                 }
                                             }
                                         }
                                     }
                                 }
-                                for(let i = 0; i < bulOb[0].length; i++){
-                                    if(bulStack[0][i]==true){
-                                        
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][i].x, 2) + Math.pow(weak.y - bulOb[0][i].y, 2));
-                                        if(dist1 > dist2){
-                                            if(category == 5){
-                                                if(dist2 < 250){
-                                                    escapeFlg = true;
+                                //  プレイヤーの弾迎撃処理
+                                if(cateFlgs[category][0] == true){
+                                    for(let i = 0; i < bulOb[0].length; i++){
+                                        if(bulStack[0][i] == true){
+                                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][i].x, 2) + Math.pow(weak.y - bulOb[0][i].y, 2));
+                                            if(dist1 > dist2 && dist2 < cateRanges[category][0]){
+                                                //enemyTarget[Num] = bulOb[0][i];
+                                                if(cateEscapes[category][0] == true && cateEscapes[category][1] != 0){
+                                                    if(dist2 < cateEscapes[category][1]){
+                                                        escapeFlg = true;
+                                                        if(dist2 < 120){
+                                                            enemyTarget[Num] = bulOb[0][i];
+                                                        } 
+                                                    }
                                                 }
-                                                
-                                            } 
-                                            if(dist2 < 300 && (category != 6 && category != 4)){
-                                                enemyTarget[Num] = bulOb[0][i];
-                                            }
-                                            if(dist2 < 200){
-                                                if(category != 6 || (category == 6 && Math.floor(Math.random() * 2)==1))enemyTarget[Num] = bulOb[0][i];
-                                                tank.intersect(PlayerBulAim).forEach(function(){
+                                                intercept.intersect(PlayerBulAim).forEach(function(){
+                                                    if(cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
                                                     if(this.time % 5 == 0){
                                                         new SelDirection(weak.x,weak.y,bulOb[0][i].x,bulOb[0][i].y,0)
                                                     }
                                                 })
-                                            }    
+                                            }
                                         }
                                     }
                                 }
-                                
-                                
+                                //  自身の弾迎撃処理
+                                if(cateFlgs[category][1] == true){
+                                    for(let i = 0; i < bulOb[Num].length; i++){
+                                        if(bulStack[Num][i] == true){
+                                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[Num][i].x, 2) + Math.pow(weak.y - bulOb[Num][i].y, 2));
+                                            if(dist1 > dist2 && dist2 < cateRanges[category][1]){
+             
+                                                this.intersect(BulAim).forEach(function(){     
+                                                    if(cateEscapes[category][2] != 0){
+                                                        enemyTarget[Num] = bulOb[Num][i];
+                                                        if(category == 7){
+                                                            alignment.moveTo(bulOb[Num][i].x,bulOb[Num][i].y)
+                                                            new EnemyAim(alignment,cannon,32,Num,scene);
+                                                        }
+                                                    }
+                                                    if(cateEscapes[category][0]==true && cateEscapes[category][2] != 0){
+                                                        if(dist2 < cateEscapes[category][2] && dist2 > 100){
+                                                            escapeFlg = true
+                                                        }
+                                                    }
+                                                    if(this.time % 5 == 0){
+                                                        new SelDirection(weak.x,weak.y,bulOb[0][i].x,bulOb[0][i].y,0)
+                                                    }
+                                                })
+                                            }
+                                        }
+                                    }
+                                }
+
                                 if(game.time % fireLate == 0 && shotNGflg == false){
                                     if(Math.floor(Math.random() * emax*2)>bullets[Num]){
                                         for(let i = 0; i < emax; i++){
                                             if(bulStack[Num][i] == false){
-                                                if(grade == 6){
-                                                    if(bullets[Num] < emax && deadFlgs[Num] == false && boms[Num] > 0 && fireFlgs[Num]==true){
-                                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                        scene.insertBefore(colOb[Num][i],filterMap);
-                                                        scene.insertBefore(bulOb[Num][i],filterMap);
-                                                        new OpenFire(cannon,alignment,scene,filterMap)
-                                                        bullets[Num]++;  
-                                                        bulStack[Num][i] = true;
-                                                        break;
-                                                    }
-                                                }else if(category == 5){
-                                                    if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                        scene.insertBefore(colOb[Num][i],filterMap);
-                                                        scene.insertBefore(bulOb[Num][i],filterMap);
-                                                        new OpenFire(cannon,alignment,scene,filterMap)
-                                                        bullets[Num]++;  
-                                                        bulStack[Num][i] = true;
-                                                        break;
-                                                    }
-                                                }else if(category == 7){
+                                                if(category == 7){
                                                     if(bullets[Num] < emax-2 && deadFlgs[Num] == false && fireFlgs[Num]==false && game.time % 120 == 0){
                                                         if(Math.floor(Math.random() * 2) == 0){
                                                             let r1 = 0;
@@ -2502,26 +2438,30 @@ window.onload = function() {
                                                             let rad = Math.atan2(vector.y, vector.x);
                                                             alignment.moveTo((cannon.x+(200)*Math.cos(rad)+(100*r1)), (cannon.y+(200)*Math.sin(rad)+(100*r2)));
                                                             new EnemyAim(alignment,cannon,32,Num,scene);
-                                                            game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                             colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
                                                             bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                            scene.insertBefore(colOb[Num][i],filterMap);
-                                                            scene.insertBefore(bulOb[Num][i],filterMap);
-                                                            new OpenFire(cannon,alignment,scene,filterMap)
-                                                            bullets[Num]++;  
-                                                            bulStack[Num][i] = true;
+                                                            ShotBullet(i);
                                                             break;
                                                         }
                                                         
                                                     }else if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                         colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
                                                         bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                        scene.insertBefore(colOb[Num][i],filterMap);
-                                                        scene.insertBefore(bulOb[Num][i],filterMap);
-                                                        new OpenFire(cannon,alignment,scene,filterMap)
-                                                        bullets[Num]++;  
-                                                        bulStack[Num][i] = true;
+                                                        ShotBullet(i);
+                                                        break;
+                                                    }
+                                                }else if(category == 8){
+                                                    if(bullets[Num] < emax && deadFlgs[Num] == false && boms[Num] > 0 && fireFlgs[Num]==true){
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        ShotBullet(i);
+                                                        break;
+                                                    }
+                                                }else if(category == 5 || category == 2){
+                                                    if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        ShotBullet(i);
                                                         break;
                                                     }
                                                 }else{
@@ -2541,70 +2481,63 @@ window.onload = function() {
                                                             }
                                                             alignment.moveTo(alignment.x+(30*r1),alignment.y+(30*r2));
                                                         }
-                                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                         colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
                                                         bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                        scene.insertBefore(colOb[Num][i],filterMap);
-                                                        scene.insertBefore(bulOb[Num][i],filterMap);
-                                                        new OpenFire(cannon,alignment,scene,filterMap)
-                                                        bullets[Num]++;
-                                                        bulStack[Num][i] = true;
+                                                        ShotBullet(i);
                                                         break;
                                                     }
                                                 }
                                             }
                                         }
-                                        
                                     }
                                 }
                                
                                 if(escapeFlg == false){
                                     
-                                    if(grade == 6){
-                                        bomOb[0].forEach(elem=>{
-                                            if(intercept.intersect(elem)==true){
-                                                if(this.time % 5 == 0){
-                                                    new SelDirection(weak.x,weak.y,elem.x,elem.y,0)
+                                    if(category == 8){
+                                        if(boms[0] > 0){
+                                            bomOb[0].forEach(elem=>{
+                                                if(Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2)) < 250){
+                                                    if(this.time % 5 == 0){
+                                                        new SelDirection(weak.x,weak.y,elem.x,elem.y,0)
+                                                    }
                                                 }
-                                            }
-                                        })
-                                        if(intercept.intersect(bomOb[Num][0])==true){
-                                            if(this.time % 5 == 0){
-                                                new SelDirection(weak.x,weak.y,bomOb[Num][0].x,bomOb[Num][0].y,0)
+                                            })
+                                        }
+                                        if(boms[Num] > 0){
+                                            if(Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2)) < 250){
+                                                if(this.time % 5 == 0){
+                                                    new SelDirection(weak.x,weak.y,bomOb[Num][0].x,bomOb[Num][0].y,0)
+                                                }
                                             }
                                         }
-                                        
                                     }else if(grade > 3){
-                                        bomOb[0].forEach(elem=>{
-                                            if(intercept.intersect(elem)==true){
-                                                if(this.time % 5 == 0){
-                                                    new SelDirection(weak.x,weak.y,elem.x,elem.y,0)
+                                        if(boms[0] > 0){
+                                            bomOb[0].forEach(elem=>{
+                                                if(Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2)) < 250){
+                                                    if(this.time % 5 == 0){
+                                                        new SelDirection(weak.x,weak.y,elem.x,elem.y,0)
+                                                    }
                                                 }
-                                            }
-                                        })
+                                            })
+                                        }
                                     }
-                                    
-                                    
                                 }
                                 if(game.time % 5 == 0){
                                     for(var i = 0; i < tankEntity.length; i++){
-                                        if(i != Num && deadFlgs[i] == false){
+                                        if(i != Num && deadFlgs[i] == false && moveSpeed > 0){
                                             if(this.intersect(tankEntity[i])==true){
                                                 new SelDirection(weak.x,weak.y,tankEntity[i].x,tankEntity[i].y,0)
                                             }else{ 
                                                 if(escapeFlg == false){
-                                                    let dist = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                                    if(category == 7 && dist < 400){
+                                                    let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
+                                                    if(dist < cateDistances[category]){
                                                         new SelDirection(weak.x,weak.y,target.x,target.y,0)
-                                                    }else if(
-                                                        (grade == 7 && dist > 600)||
-                                                        (grade == 6 && dist > 250)||
-                                                        (grade == 4 && dist > 600)||
-                                                        (dist > 160)){
-                                                        new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,1)
+                                                    }else{
+                                                        new SelDirection(weak.x,weak.y,target.x,target.y,1) 
                                                     }
                                                 }else{
-                                                    new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0)
+                                                    new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0);
                                                 }
                                             }
                                         }
@@ -2644,37 +2577,6 @@ window.onload = function() {
                                     value = ChangeVal(value)
                                 } 
                             }
-                            /*if(allyEntity[0] != null){
-                                if(allyDeadFlg == false){
-                                    if(tank.within(allyEntity[0],480)==true){
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - allyEntity[0].x, 2) + Math.pow(weak.y - allyEntity[0].y, 2));
-                                        if(dist1 > dist2){
-                                            enemyTarget[Num] = allyEntity[0];
-                                        }
-                                    }
-                                }
-                                bulOb[bulOb.length-1].forEach(elem=>{
-                                    if(intercept.intersect(elem)==true){
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2));
-                                        if(dist1 > dist2){
-                                            enemyTarget[Num] = elem;
-                                        }
-                                    }
-                                })
-                            }*/
-                            /*bulOb[0].forEach(elem2=>{
-                                if(intercept.intersect(elem2) && tank.intersect(Floor)==false){
-                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                    let dist2 = Math.sqrt(Math.pow(weak.x - elem2.x, 2) + Math.pow(weak.y - elem2.y, 2));
-                                    if(dist1 > dist2){
-                                        tank.intersect(PlayerBulAim).forEach(function(){
-                                            enemyTarget[Num] = elem2;
-                                        }) 
-                                    }
-                                }
-                            })*/
                             
                             /* 戦車本体の角度 */
                             if(moveSpeed > 0){
@@ -2742,7 +2644,7 @@ window.onload = function() {
             }
             scene.insertBefore(this,tank)
         }
-    })
+    });
     /* 強敵クラス */
     var Boss = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,target,max,ref,shotSpeed,moveSpeed,fireLate,grade,category,scene,filterMap){
@@ -2761,9 +2663,10 @@ window.onload = function() {
             const tank = new Tank(this,tankPath,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
             TankFrame(this,Num,scene)
+
+            tank.opacity = 1.0;
+            cannon.opacity = 1.0;
             
-            const intercept = new Intercept420(this,scene)
-            const intercept2 = new Intercept280(this,scene)
             const intercept3 = new Intercept192(this,scene)
             const intercept4 = new Intercept600(this,scene)
             const intercept5 = new InterceptA(cannon,scene)
@@ -2780,6 +2683,7 @@ window.onload = function() {
             var defenseMax = parseInt(max/2)-1;
             var escapeFlg = false;
             var opaFlg = false;
+            var opaVal = 1.0;
             let life = 1;
             let hittingTime = 0;
 
@@ -2806,7 +2710,10 @@ window.onload = function() {
                     Aim.call(this,target,cannon,shotSpeed,num,scene);
                 }
             })
-
+            if(addBullet != 0){
+                if(shotSpeed < 14) shotSpeed += 1; 
+                if(fireLate > 19) fireLate = fireLate - ((fireLate/5)*2);
+            }
             var ChangeOp = function(val){
                 if(val == 0) option = [0,4,6,2,3]
                 else if(val == 1) option = [1,5,7,2,3]
@@ -2859,13 +2766,15 @@ window.onload = function() {
                     }
                 }
             }
-
-            if(addBullet != 0){
-                if(shotSpeed < 14) shotSpeed += 1; 
-                if(fireLate > 19) fireLate = fireLate - ((fireLate/5)*2);
+            function ShotBullet(i){
+                game.assets['./sound/putting_a_book2.mp3'].clone().play();
+                scene.insertBefore(colOb[Num][i],filterMap);
+                scene.insertBefore(bulOb[Num][i],filterMap);
+                new OpenFire(cannon,alignment,scene,filterMap)
+                bullets[Num]++;  
+                bulStack[Num][i] = true;
             }
-            
-            
+
             this.onenterframe = function(){
                 intercept8.rotation = this.rotation+45;
                 
@@ -2884,8 +2793,6 @@ window.onload = function() {
                         }
                     }
 
-                    
-                    
                     if(hittingTime>15 && escapeFlg == false){
                         let val = value;
                         if(grade > 9){
@@ -2897,7 +2804,7 @@ window.onload = function() {
                     }
                     stopFlg = false;
 
-                    if(game.time % 2 == 0) dflg = false;
+                    if(this.time % 2 == 0) dflg = false;
                     
                     if(dflg == false && escapeFlg == false){
                         if(moveSpeed != 0){
@@ -2924,96 +2831,64 @@ window.onload = function() {
                     
                     if(worldFlg == true){
                         this.time++;
-                        
+
+                        escapeFlg = false;
+
                         if(deadFlgs[0] == false){
-                            if(game.time % 2 == 0){
+                            
+                            if(this.time % 2 == 0){
+                                if(tank.opacity != opaVal){
+                                    tank.opacity = opaVal;
+                                    cannon.opacity = opaVal;
+                                }
                                 fireFlgs[Num] = false;
                                 enemyTarget[Num] = target;
+                                if(category == 6){
+                                    if(this.time % 600 == 0 && addBullet == 0){
+                                        opaFlg = true;
+                                    }
+                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 300) opaFlg = true;
+                                    if(opaFlg == false && opaVal > 0){
+                                        opaVal-=0.05
+                                        if(opaVal <= 0){
+                                            opaVal = 0
+                                        }
+                                    }else if(opaFlg == true && opaVal <= 1.0){
+                                        opaVal += 0.1;
+                                        if(opaVal >= 1.0){
+                                            opaVal = 1.0;
+                                            opaFlg = false;
+                                        }
+                                    }
+                                }else if(grade == 11){
+                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400){
+                                        opaFlg = true;
+                                    }
+                                    if(opaFlg == false && opaVal > 0){
+                                        opaVal-=0.05
+                                        
+                                        if(opaVal <= 0){
+                                            opaVal = 0
+                                        }
+                                    }else if(opaFlg == true && opaVal <= 1.0){
+                                        opaVal += 0.25;
+
+                                        if(opaVal >= 1.0){
+                                            opaVal = 1.0;
+                                            opaFlg = false;
+                                        }
+                                    }
+                                }
                             }
-                            if(grade == 9){
-                                let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
-                                if((opaFlg == false && tank.opacity > 0) && dist > 300){
-                                    if(tank.opacity > 0 && this.time % 2 == 0){
-                                        tank.opacity-=0.01
-                                        cannon.opacity-=0.01
-                                    }
-                                    if(tank.opacity <= 0){
-                                        tank.opacity = 0
-                                        cannon.opacity = 0;
-                                    }
-                                }
-                                
-                                if((((addBullet == 0 && opaFlg == true)) || dist < 300) && tank.opacity < 1.0){
-                                    if(tank.opacity < 1 && this.time % 2 == 0){
-                                        tank.opacity += 0.05;
-                                        cannon.opacity += 0.05;
-                                    }
-                                    if(tank.opacity >= 1.0){
-                                        tank.opacity = 1.0;
-                                        cannon.opacity = 1.0;
-                                        opaFlg = false;
-                                    }
-                                }
-                            }else if(grade == 11){
-                                let dist = Math.sqrt(Math.pow(weak.x - tankEntity[0].x, 2) + Math.pow(weak.y - tankEntity[0].y, 2));
-                                if(((opaFlg == false) && tank.opacity > 0) && dist > 400){
-                                    
-                                    if(tank.opacity > 0 && this.time % 2 == 0){
-                                        tank.opacity-=0.02
-                                        cannon.opacity-=0.02
-                                    }
-                                    if(tank.opacity <= 0){
-                                        tank.opacity = 0
-                                        cannon.opacity = 0;
-                                    }
-                                }else if((opaFlg == true && tank.opacity < 1.0) || dist <= 400){
-                                    if(tank.opacity < 1.0 && this.time % 2 == 0){
-                                        tank.opacity += 0.25;
-                                        cannon.opacity += 0.25;
-                                    }
-                                    if(tank.opacity >= 1.0){
-                                        tank.opacity = 1.0;
-                                        cannon.opacity = 1.0;
-                                        opaFlg = false;
-                                    }
-                                }
-                            }/*else if(grade == 13){
-                                if(tank.opacity > 0 && opaFlg == false && tank.within(tankEntity[0],360)==false){
-                                    if(tank.opacity > 0){
-                                        tank.opacity-=0.05
-                                        cannon.opacity-=0.05
-                                    }
-                                    
-                                    if(tank.opacity <= 0){
-                                        tank.opacity = 0
-                                        cannon.opacity = 0;
-                                    }
-                                }else if(opaFlg == true || tank.within(tankEntity[0],360)==true){
-                                    if(tank.opacity < 1.0){
-                                        tank.opacity += 0.25;
-                                        cannon.opacity += 0.25;
-                                    }else{
-                                        opaFlg = false;
-                                    }
-                                    
-                                    if(tank.opacity > 1.0){
-                                        tank.opacity = 1.0;
-                                        cannon.opacity = 1.0;
-                                        opaFlg = false;
-                                    }
-                                }
-                            }*/
                             
+
                             new EnemyAim(alignment,32,Num,scene);
       
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
-                                //alert(tankColorCounts)
                                 markEntity[Num] = new Mark(this.x,this.y,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
-                                scene.removeChild(intercept);
-                                scene.removeChild(intercept2);
                                 scene.removeChild(intercept3);
                                 scene.removeChild(intercept4);
                                 scene.removeChild(intercept5);
@@ -3027,12 +2902,6 @@ window.onload = function() {
                                 life--;
                             }
                             
-                            
-                            escapeFlg = false;
-                            /*intercept3.intersect(BulAim).forEach(function(){
-                                dflg = true;
-                            })*/
-    
                             avoids.forEach(elem=>{
                                 if(tank.within(elem,64)==true){
                                     stopFlg = true;
@@ -3044,41 +2913,22 @@ window.onload = function() {
                                 if(game.time % 5 == 0){
                                     
                                     for(var i = 0; i < tankEntity.length; i++){
-                                        if(i != Num && deadFlgs[i]==false){
+                                        if(i != Num && deadFlgs[i]==false && moveSpeed > 0){
                                             
-                                            if(grade > 9 && intercept4.intersect(tankEntity[0])==true){
-                                                new SelDirection(weak.x,weak.y,tankEntity[0].x,tankEntity[0].y,0);
-                                            }else if(intercept8.intersect(tankEntity[i])==true){
+                                            if(intercept8.intersect(tankEntity[i])==true){
                                                 new SelDirection(weak.x,weak.y,tankEntity[i].x,tankEntity[i].y,0);
                                             }else{
                                                 if(escapeFlg == false){
-                                                    let dist = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                                    if(category == 7 && dist < 400){
-                                                        new SelDirection(weak.x,weak.y,tankEntity[0].x,tankEntity[0].y,0);
-                                                    }else if(grade == 10 && dist < 300){
-                                                        new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0);
-                                                    }
-                                                    else if(
-                                                        (dist > 400 && grade >= 10)||
-                                                        (dist > 200)
-                                                    ){
-                                                        new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,1);
+                                                    let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
+                                                    if(dist < cateDistances[category]){
+                                                        new SelDirection(weak.x,weak.y,target.x,target.y,0)
+                                                    }else{
+                                                        new SelDirection(weak.x,weak.y,target.x,target.y,1) 
                                                     }
                                                 }
                                                 else{
                                                     new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0);
                                                 }
-                                                /*if(allyFlg == true){
-                                                    if(allyDeadFlg == false){
-                                                        if(tank.within(allyEntity[0],480)==true){
-                                                            let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                                            let dist2 = Math.sqrt(Math.pow(weak.x - allyEntity[0].x, 2) + Math.pow(weak.y - allyEntity[0].y, 2));
-                                                            if(dist1 > dist2){
-                                                                enemyTarget[Num] = allyEntity[0];
-                                                            }
-                                                        }
-                                                    }
-                                                }*/
                                             }
                                         }
                                     }
@@ -3157,140 +3007,140 @@ window.onload = function() {
                                 dflg = true;
                             })
                             if(stopFlg == false){
-                                
-                                for(let i = 1; i < bulOb.length; i++){
-                                    if(i != Num){
-                                        for(let j = 0; j < bulOb[i].length; j++){
-                                            if(bulStack[i][j]==true){
-                                                let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                                let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[i][j].x, 2) + Math.pow(weak.y - bulOb[i][j].y, 2));
-                                                if(dist1 > dist2){
-                                                    if(dist2 < 300) escapeFlg=true;
-                                                    
-                                                    if(
-                                                        (intercept5.intersect(bulOb[i][j])==true ||
-                                                         intercept6.intersect(bulOb[i][j])==true ||
-                                                         intercept3.intersect(bulOb[i][j])==true)&& grade >= 10){
-                                                        enemyTarget[Num] = bulOb[i][j]
-                                                        alignment.moveTo(bulOb[i][j].x,bulOb[i][j].y)
-                                                        new EnemyAim(alignment,32,Num,scene);
-                                                        
-                                                        if(this.time % 5 == 0){
-                                                            new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0);
-                                                        }  
-                                                    }else if(intercept2.intersect(bulOb[i][j])==true){
-                                                        enemyTarget[Num] = bulOb[i][j]
-                                                        
-                                                        if(this.time % 5 == 0){
-                                                            new SelDirection(weak.x,weak.y,bulOb[i][j].x,bulOb[i][j].y,0);
+
+                                /* 迎撃処理群
+                                    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+                                */
+                                //  他戦車の弾迎撃処理
+                                if(cateFlgs[category][2] == true){
+                                    for(let i = 1; i < bulOb.length; i++){
+                                        if(i != Num){
+                                            for(let j = 0; j < bulOb[i].length; j++){
+                                                if(bulStack[i][j] == true){
+                                                    let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
+                                                    let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[i][j].x, 2) + Math.pow(weak.y - bulOb[i][j].y, 2));
+                                                    if(dist1 > dist2){
+                                                        if(
+                                                            (intercept5.intersect(bulOb[i][j])==true ||
+                                                             intercept6.intersect(bulOb[i][j])==true ||
+                                                             intercept3.intersect(bulOb[i][j])==true)&& grade >= 10){
+                                                            enemyTarget[Num] = bulOb[i][j]
+                                                            alignment.moveTo(bulOb[i][j].x,bulOb[i][j].y)
+                                                            new EnemyAim(alignment,32,Num,scene);
+                                                            
+                                                            if(this.time % 5 == 0){
+                                                                new SelDirection(weak.x,weak.y,bulOb[i][j].x,bulOb[i][j].y,0);
+                                                            }  
+                                                        }else if(dist2 < cateRanges[category][2]){
+                                                            tank.intersect(BulAim).forEach(function(){
+                                                                if(cateEscapes[category][0]==true && cateEscapes[category][3] != 0){
+                                                                    if(dist2 < cateEscapes[category][3]) escapeFlg = true;
+                                                                }
+                                                                if(cateEscapes[category][3] != 0)enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
+                                                                if(this.time % 5 == 0){
+                                                                    new SelDirection(weak.x,weak.y,bulOb[i][j].x,bulOb[i][j].y,0)
+                                                                }
+                                                            })
                                                         }
                                                     }
                                                 }
                                             }
-                                            
                                         }
                                     }
                                 }
-                                for(let i = 0; i < bulOb[Num].length; i++){
-                                    if(bulStack[Num][i]==true){
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[Num][i].x, 2) + Math.pow(weak.y - bulOb[Num][i].y, 2));
-                                        if(dist1 > dist2 && intercept8.intersect(bulOb[Num][i])==false){
-                                            if(intercept4.intersect(bulOb[Num][i])==true && grade != 13){
-                                                tank.intersect(EnemyAim).forEach(function(){
-                                                    enemyTarget[Num] = bulOb[Num][i];
-                                                    if(grade >= 10 || category == 7){
-                                                        alignment.moveTo(bulOb[Num][i].x,bulOb[Num][i].y)
+                                //  プレイヤーの弾迎撃処理
+                                if(cateFlgs[category][0] == true){
+                                    for(let i = 0; i < bulOb[0].length; i++){
+                                        if(bulStack[0][i] == true){
+                                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][i].x, 2) + Math.pow(weak.y - bulOb[0][i].y, 2));
+                                            if(Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2)) > dist2){
+                                                if(grade == 13){
+                                                    if(intercept5.intersect(bulOb[0][i])==true || intercept6.intersect(bulOb[0][i])==true || intercept3.intersect(bulOb[0][i])==true || dist2 < 250){
+                                                        enemyTarget[Num] = bulOb[0][i];
+                                                        alignment.moveTo(bulOb[0][i].x,bulOb[0][i].y)
                                                         new EnemyAim(alignment,32,Num,scene);
+                                                        
+                                                        if(this.time % 3 == 0){
+                                                            new SelDirection(weak.x,weak.y,bulOb[0][i].x,bulOb[0][i].y,0);
+                                                        }
                                                     }
-                                                    if(this.time % 5 == 0){
-                                                        new SelDirection(weak.x,weak.y,bulOb[Num][i].x,bulOb[Num][i].y,0);
-                                                    }
-                                                })
-                                                
-                                            }else if(grade == 13){
-                                                if(intercept3.intersect(bulOb[Num][i])==true && intercept7.intersect(bulOb[Num][i])==false){
-                                                    enemyTarget[Num] = bulOb[Num][i];
-                                                    alignment.moveTo(enemyTarget[Num].x,enemyTarget[Num].y)
-                                                    new EnemyAim(alignment,32,Num,scene);
-                                                }else{
-                                                    if(intercept2.intersect(bulOb[Num][i])==true && intercept7.intersect(bulOb[Num][i])==false){
-                                                        tank.intersect(EnemyAim).forEach(function(){
-                                                            enemyTarget[Num] = bulOb[Num][i];
-                                                            alignment.moveTo(enemyTarget[Num].x,enemyTarget[Num].y)
-                                                            new EnemyAim(alignment,32,Num,scene);
-                                                        })
-                                                    }else if(tank.within(bulOb[Num][i],500)==true && intercept7.intersect(bulOb[Num][i])==false){
-                                                        tank.intersect(EnemyAim).forEach(function(){
-                                                            enemyTarget[Num] = bulOb[Num][i];
-                                                            alignment.moveTo(enemyTarget[Num].x,enemyTarget[Num].y)
-                                                            new EnemyAim(alignment,32,Num,scene);
-                                                        })
-                                                    }
-                                                    
                                                 }
-                                            }
-                                            if(intercept2.intersect(bulOb[Num][i])==true){
-                                                tank.intersect(EnemyAim).forEach(function(){
-                                                    if(this.time % 5 == 0){
-                                                        new SelDirection(weak.x,weak.y,bulOb[Num][i].x,bulOb[Num][i].y,0);
-                                                    }
-                                                })
-                                            }
-                                            
-                                            
-                                            if((dist2 > 80 && dist2 < 180) && bullets[Num]>0 && bullets[Num] < max/2){
-                                                escapeFlg = true;
-                                                enemyTarget[Num] = bulOb[Num][i];
-                                                alignment.moveTo(bulOb[Num][i].x,bulOb[Num][i].y)
-                                                new EnemyAim(alignment,32,Num,scene);
-                                                fireFlgs[Num] = true;
-                                            }
-                                        }
-                                    }
-                                }
-                                for(let i = 0; i < bulOb[0].length; i++){
-                                    if(bulStack[0][i]==true){
-                                        let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-                                        let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][i].x, 2) + Math.pow(weak.y - bulOb[0][i].y, 2));
-                                        if(dist1 > dist2){
-                                            
-                                            if(intercept5.intersect(bulOb[0][i])==true || intercept6.intersect(bulOb[0][i])==true || intercept3.intersect(bulOb[0][i])==true){
-                                                
-                                                if(grade >= 10 && Math.floor(Math.random() * 2)!=0){
-                                                    enemyTarget[Num] = bulOb[0][i]
-                                                    alignment.moveTo(bulOb[0][i].x,bulOb[0][i].y)
-                                                    new EnemyAim(alignment,32,Num,scene);
-                                                }else{
-                                                    if(dist2 < 200){
+                                                if(dist2 < cateRanges[category][0]){
+                                                    if(dist2 < 150 && cateEscapes[category][1] != 0){
                                                         enemyTarget[Num] = bulOb[0][i];
                                                         escapeFlg = true;
-                                                    } 
+                                                    }
                                                     tank.intersect(PlayerBulAim).forEach(function(){
-                                                        enemyTarget[Num] = bulOb[0][i]
-                                                        escapeFlg = true;
+                                                        if(dist2 < cateEscapes[category][1] && cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
+                                                        if(this.time % 5 == 0){
+                                                            new SelDirection(weak.x,weak.y,bulOb[0][i].x,bulOb[0][i].y,0)
+                                                        }
                                                     })
-                                                }
-                                                if(this.time % 5 == 0){
-                                                    new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0);
-                                                }
-                                            }else if(dist2 < 320){
-                                                tank.intersect(PlayerBulAim).forEach(function(){
-                                                    if(this.time % 5 == 0){
-                                                        new SelDirection(weak.x,weak.y,bulOb[0][i].x,bulOb[0][i].y,0);
+                                                    if(cateEscapes[category][0] == true && cateEscapes[category][1] != 0){
+                                                        if(dist2 < cateEscapes[category][1]){
+                                                            enemyTarget[Num] = bulOb[0][i];
+                                                            escapeFlg = true;
+                                                            if(grade >= 10){
+                                                                alignment.moveTo(bulOb[0][i].x,bulOb[0][i].y)
+                                                                new EnemyAim(alignment,32,Num,scene);
+                                                            }
+                                                        } 
                                                     }
-                                                })
+                                                }
                                             }
-                                            if(grade == 13){
-                                                if(intercept5.intersect(bulOb[0][i])==true || intercept6.intersect(bulOb[0][i])==true || intercept3.intersect(bulOb[0][i])==true){
-                                                    enemyTarget[Num] = bulOb[0][i];
-                                                    alignment.moveTo(enemyTarget[Num].x,enemyTarget[Num].y)
-                                                    new EnemyAim(alignment,32,Num,scene);
-                                                    
-                                                    if(this.time % 3 == 0){
-                                                        new SelDirection(weak.x,weak.y,enemyTarget[Num].x,enemyTarget[Num].y,0);
+                                        }
+                                    }
+                                }
+                                //  自身の弾迎撃処理
+                                if(cateFlgs[category][1] == true){
+                                    for(let i = 0; i < bulOb[Num].length; i++){
+                                        if(bulStack[Num][i] == true){
+                                            let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[Num][i].x, 2) + Math.pow(weak.y - bulOb[Num][i].y, 2));
+                                            if(Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2)) > dist2){
+                                                if(dist2 < cateRanges[category][1]){
+                                                    if(cateEscapes[category][0]==true && cateEscapes[category][2] != 0){
+                                                        if(dist2 < cateEscapes[category][2]){
+                                                            this.intersect(BulAim).forEach(function(){
+                                                                escapeFlg = true;
+                                                            })
+                                                            if(grade == 13){
+                                                                enemyTarget[Num] = bulOb[Num][i];
+                                                                alignment.moveTo(bulOb[Num][i].x,bulOb[Num][i].y)
+                                                                new EnemyAim(alignment,32,Num,scene);
+                                                            }
+                                                        }
                                                     }
-                                                }
+                                                    if(grade == 13){
+                                                        if(dist2 < 400){
+                                                            this.intersect(BulAim).forEach(function(){
+                                                                enemyTarget[Num] = bulOb[Num][i];
+                                                                alignment.moveTo(bulOb[Num][i].x,bulOb[Num][i].y)
+                                                                new EnemyAim(alignment,32,Num,scene);
+                                                            })
+                                                        }
+                                                    }else if(grade >= 10){
+                                                        if(dist2 < 180 && bullets[Num]>0 && bullets[Num] < max/2){
+                                                            escapeFlg = true;
+                                                            enemyTarget[Num] = bulOb[Num][i];
+                                                            alignment.moveTo(bulOb[Num][i].x,bulOb[Num][i].y)
+                                                            new EnemyAim(alignment,32,Num,scene);
+                                                            fireFlgs[Num] = true;
+                                                        }
+                                                        
+                                                    }
+                                                    tank.intersect(BulAim).forEach(function(){
+                                                        enemyTarget[Num] = bulOb[Num][i];
+                                                        if(grade >= 10 || category == 7){
+                                                            alignment.moveTo(bulOb[Num][i].x,bulOb[Num][i].y)
+                                                            new EnemyAim(alignment,32,Num,scene);
+                                                        }
+                                                        if(this.time % 5 == 0){
+                                                            new SelDirection(weak.x,weak.y,bulOb[Num][i].x,bulOb[Num][i].y,0);
+                                                        }
+                                                    })
+                                                    
+                                                } 
+                                                
                                             }
                                         }
                                     }
@@ -3310,19 +3160,13 @@ window.onload = function() {
                                 if(fireFlgs[Num]==true && intercept7.intersect(Floor)==false){
                                     if(grade >= 10){
                                         if(grade == 13){
-                                            if(dflg == true){
-                                                if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && (this.time % 11 == 0 || game.time % 17 == 0)){
+                                            if(dflg == true || escapeFlg == true){
+                                                if((bullets[Num] < emax+defenseMax && deadFlgs[Num] == false) && (this.time % 13 == 0 || this.time % 25 == 0)){
                                                     for(let i = 0; i < emax+defenseMax; i++){
                                                         if(bulStack[Num][i] == false){
-                                                            game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                             colOb[Num][i] = new BulletCol(alignment,cannon,15,10,Num,scene,i);
                                                             bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,emax+defenseMax,15,scene,i)
-                                                            scene.insertBefore(colOb[Num][i],filterMap);
-                                                            scene.insertBefore(bulOb[Num][i],filterMap);
-                                                            new OpenFire(cannon,alignment,scene,filterMap)
-                                                            bullets[Num]++;
-                                                            bulStack[Num][i] = true;
-                                                            opaFlg = true;
+                                                            ShotBullet(i);
                                                             break;
                                                         }
                                                     } 
@@ -3332,55 +3176,50 @@ window.onload = function() {
                                                     if(bullets[Num] < emax && deadFlgs[Num] == false){
                                                         for(let i = 0; i < emax; i++){
                                                             if(bulStack[Num][i] == false){
-                                                                game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                                 colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,11,Num,scene,i);
                                                                 bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,1,Num,emax,shotSpeed,scene,i)
-                                                                //Math.floor(Math.random() * (ref))
-                                                                scene.insertBefore(colOb[Num][i],filterMap);
-                                                                scene.insertBefore(bulOb[Num][i],filterMap);
-                                                                new OpenFire(cannon,alignment,scene,filterMap)
-                                                                bullets[Num]++;
-                                                                bulStack[Num][i] = true;
-                                                                opaFlg = true;
+                                                                ShotBullet(i);
                                                                 break;
                                                             }
                                                         }
                                                     }
                                                 } 
                                             }
-                                            
-                                        }else if(grade == 11 && dflg == false){
-                                            if(Math.floor(Math.random() * emax*2)>bullets[Num] && game.time % fireLate == 0){
-                                                if(bullets[Num] < emax && deadFlgs[Num] == false){
-                                                    for(let i = 0; i < emax; i++){
-                                                        if(bulStack[Num][i] == false){
-                                                            game.assets['./sound/putting_a_book2.mp3'].clone().play();
-                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,emax,shotSpeed,scene,i)
-                                                            scene.insertBefore(colOb[Num][i],filterMap);
-                                                            scene.insertBefore(bulOb[Num][i],filterMap);
-                                                            new OpenFire(cannon,alignment,scene,filterMap)
-                                                            bullets[Num]++;
-                                                            bulStack[Num][i] = true;
-                                                            opaFlg = true;
-                                                            break;
+                                        }else if(grade == 11){
+                                            if(dflg == false){
+                                                if(Math.floor(Math.random() * emax*2)>bullets[Num] && game.time % fireLate == 0){
+                                                    if(bullets[Num] < emax && deadFlgs[Num] == false){
+                                                        for(let i = 0; i < emax; i++){
+                                                            if(bulStack[Num][i] == false){
+                                                                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
+                                                                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,emax,shotSpeed,scene,i)
+                                                                ShotBullet(i);
+                                                                opaFlg = true;
+                                                                break;
+                                                            }
                                                         }
                                                     }
+                                                }else{
+                                                    if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 10 == 0){
+                                                        for(let i = 0; i < emax+defenseMax; i++){
+                                                            if(bulStack[Num][i] == false){
+                                                                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
+                                                                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,emax+defenseMax,shotSpeed,scene,i)
+                                                                ShotBullet(i);
+                                                                opaFlg = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }  
                                                 }
-                                            } 
-                                        }else if(dflg == true && grade != 13){
+                                            }
+                                        }else if(grade == 10 && dflg == true){
                                             if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 10 == 0){
                                                 for(let i = 0; i < emax+defenseMax; i++){
                                                     if(bulStack[Num][i] == false){
-                                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                         colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
                                                         bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,emax+defenseMax,shotSpeed,scene,i)
-                                                        scene.insertBefore(colOb[Num][i],filterMap);
-                                                        scene.insertBefore(bulOb[Num][i],filterMap);
-                                                        new OpenFire(cannon,alignment,scene,filterMap)
-                                                        bullets[Num]++;
-                                                        bulStack[Num][i] = true;
-                                                        if(grade == 11) opaFlg = true;
+                                                        ShotBullet(i);
                                                         break;
                                                     }
                                                 }
@@ -3390,15 +3229,9 @@ window.onload = function() {
                                                 if(bullets[Num] < emax && deadFlgs[Num] == false){
                                                     for(let i = 0; i < emax; i++){
                                                         if(bulStack[Num][i] == false){
-                                                            game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                             colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade-1,Num,scene,i);
                                                             bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,emax,shotSpeed,scene,i)
-                                                            scene.insertBefore(colOb[Num][i],filterMap);
-                                                            scene.insertBefore(bulOb[Num][i],filterMap);
-                                                            new OpenFire(cannon,alignment,scene,filterMap)
-                                                            bullets[Num]++;
-                                                            bulStack[Num][i] = true;
-                                                            if(grade == 11) opaFlg = true;
+                                                            ShotBullet(i);
                                                             break;
                                                         }
                                                     }
@@ -3434,19 +3267,13 @@ window.onload = function() {
                                                                 new EnemyAim(alignment,32,Num,scene);
                                                             }
                                                         }
-                                                        game.assets['./sound/putting_a_book2.mp3'].clone().play();
                                                         if(dflg == true){
                                                             colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
                                                         }else{
                                                             colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade-4,Num,scene,i);
                                                         }
                                                         bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                        scene.insertBefore(colOb[Num][i],filterMap);
-                                                        scene.insertBefore(bulOb[Num][i],filterMap);
-                                                        new OpenFire(cannon,alignment,scene,filterMap)
-                                                        bullets[Num]++;
-                                                        bulStack[Num][i] = true;
-                                                        if(grade == 11) opaFlg = true;
+                                                        ShotBullet(i);
                                                         break;
                                                     }
                                                 }
@@ -3515,14 +3342,12 @@ window.onload = function() {
                         hittingTime++;
                     }
                 }else{
-                    
                     scene.removeChild(this);
                 }
             }
             scene.insertBefore(this,filterMap)
         }
-    })
-
+    });
     /* アイコン用戦車クラス */
     var PictureTank = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,scene){
@@ -3913,11 +3738,6 @@ window.onload = function() {
                     }
                 }
 
-                /*if(confirm("味方を追加しますか？\r( OK：追加する　キャンセル：追加しない )\r\n\r\n【注意】\r\n味方を追加するとランキングに記録が残りません。")) {
-                    allyFlg = true;
-                } else {
-                    allyFlg = false;
-                }*/
                 flg = true
                 orflg = 1;
                 BGM.stop()
@@ -4197,8 +4017,6 @@ window.onload = function() {
 
         /* スタートシーン */
         var createStartScene = function() {
-            
-
             obsdir = []
             obsNum = 0;
             test = []
@@ -4409,8 +4227,6 @@ window.onload = function() {
                 //filterMap.collisionData = fcol;
                 scene.addChild(filterMap);
 
-                
-            
             /* カーソルの設置＆位置取得処理 */
             cur = new Cursor(scene);
             document.addEventListener('mousemove', function(e) {
@@ -4591,18 +4407,6 @@ window.onload = function() {
                 else if(tankColorCounts[1]>0)   BNum = 1
                 else                            BNum = 0
                 
-                /*if(game.input.Pause){
-                    if (worldFlg == false){
-                        scene.backgroundColor = "#00000000"
-                        worldFlg = true
-                        pauseButtton.text ='ポーズ';
-                    }else{
-                        scene.backgroundColor = "#00000044"
-                        pauseButtton.text ='再開'; 
-                        worldFlg = false
-                        pauseFlg = true;
-                    }
-                }*/
                 document.onkeyup = function(e){
                     if(e.code == 'Escape' && scene.time > 250 && defeat == false && victory == false && complete == false){
                         if (worldFlg == false){
