@@ -59,10 +59,10 @@ var cateRanges = [
     [200,0,0],      //gray
     [400,0,150],    //green
     [200,0,0],      //red
-    [300,200,250],  //lightgreen
+    [400,200,250],  //lightgreen
     [300,200,200],  //elitegray
-    [400,300,200],  //snow
-    [400,300,250],  //elitegreen
+    [300,300,200],  //snow
+    [400,400,250],  //elitegreen
     [300,250,0],    //sand
     [500,0,0],      //pink
     [200,0,0],      //random
@@ -73,10 +73,10 @@ var cateEscapes = [
     [false,0,0,0],  //gray
     [true,300,0,120], //green
     [false,0,0,0],  //red
-    [false,0,0,0],  //lightgreen
+    [true,200,0,200],  //lightgreen
     [true,250,200,180], //elitegray
     [true,200,0,180], //snow
-    [true,200,0,200], //elitegreen
+    [true,300,380,200], //elitegreen
     [false,0,0,0],  //sand
     [false,0,0,0],  //pink
     [false,0,0,0],  //random
@@ -87,7 +87,7 @@ var cateDistances = [
     [0],    //gray
     [300],  //green
     [0],    //red
-    [150],  //lightgreen
+    [240],  //lightgreen
     [240],  //elitegray
     [400],  //snow
     [400],  //elitegreen
