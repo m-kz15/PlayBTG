@@ -85,11 +85,11 @@ var cateEscapes = [
 var cateDistances = [
     [0],    //brown
     [0],    //gray
-    [500],  //green
+    [300],  //green
     [0],    //red
     [150],  //lightgreen
     [240],  //elitegray
-    [500],  //snow
+    [400],  //snow
     [400],  //elitegreen
     [150],  //sand
     [0],    //pink
