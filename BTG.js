@@ -1974,9 +1974,7 @@ window.onload = function() {
                                                 let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                                 let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[i][j].x, 2) + Math.pow(weak.y - bulOb[i][j].y, 2));
                                                 if(dist1 > dist2 && dist2 < cateRanges[category][2]){
-                                                    tank.intersect(BulAim).forEach(function(){
-                                                        enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
-                                                    })
+                                                    enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
                                                 }
                                             }
                                         }
@@ -1990,10 +1988,9 @@ window.onload = function() {
                                         let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                         let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[0][i].x, 2) + Math.pow(weak.y - bulOb[0][i].y, 2));
                                         if(dist1 > dist2 && dist2 < cateRanges[category][0]){
-                                            tank.intersect(PlayerBulAim).forEach(function(){
-                                                enemyTarget[Num] = bulOb[0][i];    //  迎撃のためにターゲット変更
-                                            })
+                                            enemyTarget[Num] = bulOb[0][i];    //  迎撃のためにターゲット変更
                                         }
+                                        
                                     }
                                 }
                             }
@@ -2004,9 +2001,7 @@ window.onload = function() {
                                         let dist1 = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
                                         let dist2 = Math.sqrt(Math.pow(weak.x - bulOb[Num][i].x, 2) + Math.pow(weak.y - bulOb[Num][i].y, 2));
                                         if(dist1 > dist2 && dist2 < cateRanges[category][1]){
-                                            tank.intersect(BulAim).forEach(function(){
-                                                enemyTarget[Num] = bulOb[Num][i];    //  迎撃のためにターゲット変更
-                                            })
+                                            enemyTarget[Num] = bulOb[Num][i];    //  迎撃のためにターゲット変更
                                         }
                                     }
                                 }
@@ -2367,7 +2362,7 @@ window.onload = function() {
                                                 if(cateEscapes[category][0] == true && cateEscapes[category][1] != 0){
                                                     if(dist2 < cateEscapes[category][1]){
                                                         escapeFlg = true;
-                                                        if(dist2 < 120){
+                                                        if(dist2 < 150){
                                                             enemyTarget[Num] = bulOb[0][i];
                                                         } 
                                                     }
