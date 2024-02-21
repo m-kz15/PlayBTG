@@ -35,6 +35,7 @@ var deadFlgs = [];      //戦車の生存確認
 var entNum = 0;             //戦車の連番設定用変数
 var addBullet = 0;          //難易度ごとの弾追加数
 var addSpeed = 0;           //難易度ごとの移動速度
+var deleteFlg = false;
 
 /* 各戦車の迎撃判定
     プレイヤー,自身,他戦車 */
@@ -657,6 +658,9 @@ window.onload = function() {
             Sprite.call(this,base,base);
             this.backgroundColor = "#6af8"
             this.moveTo(0,0)
+            this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
+            }
             scene.addChild(this);
         }
     })
@@ -745,6 +749,7 @@ window.onload = function() {
             cannon.rotation = (270+(Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI)*-1;
             this.rotation = cannon.rotation;
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.x += Math.cos(this.rad) * shotSpeed;
                 this.y += Math.sin(this.rad) * shotSpeed;
             }
@@ -764,6 +769,7 @@ window.onload = function() {
             var dy = Math.sin(rad) * shotSpeed;
 
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.x += dx
                 this.y += dy
                 if(bulStack[num][value]==false) scene.removeChild(this)
@@ -783,6 +789,7 @@ window.onload = function() {
             var dy = Math.sin(rad) * (shotSpeed*1.5);
 
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.x += dx
                 this.y += dy
                 if(bulStack[num][value]==false) scene.removeChild(this)
@@ -822,6 +829,10 @@ window.onload = function() {
             this.applyImpulse(new b2Vec2(Math.cos(this.rad)*shotSpeed, Math.sin(this.rad)*shotSpeed));
 
             this.onenterframe = function(){
+                if(deleteFlg == true){
+                    this.destroy();
+                    scene.removeChild(this);
+                } 
                 this.time++
                 if(this.time % 10 == 0) new Smoke(this,scene)
                 if(this.time > 1){
@@ -855,6 +866,7 @@ window.onload = function() {
            
             this.moveTo(target.centerX-(this.width/2),target.centerY-(target.height/2 + this.height/3))
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 if(num != 0){
                     new BulAim(this,32,num,value,scene)
                 }else{
@@ -993,6 +1005,7 @@ window.onload = function() {
             let bomb = this;
             
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 this.intersect(BombExplosion).forEach(function(){
                     if(victory == false && defeat == false){
@@ -1064,6 +1077,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 if(this.time % 4 == 0){
                     value -= 0.05;
@@ -1095,6 +1109,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 this.rotation = area.rotation
                 value -= 0.1;
@@ -1126,6 +1141,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 value -= 0.1;
                 this.opacity = value;
@@ -1154,6 +1170,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 this.scaleX = 1 - (value/2);
                 this.scaleY = 1 - (value/2);
@@ -1175,6 +1192,7 @@ window.onload = function() {
             Sprite.call(this,420,420);
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-210+33.5,area.y-210+32);
             }
             scene.addChild(this);
@@ -1187,6 +1205,7 @@ window.onload = function() {
             this.rotation = (45)
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-140+33.5,area.y-140+33.5);
                 this.rotation += 45
             }
@@ -1199,6 +1218,7 @@ window.onload = function() {
             Sprite.call(this,192,192);
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-96+33.5,area.y-96+33.5);
                 this.rotation = area.rotation
             }
@@ -1212,6 +1232,7 @@ window.onload = function() {
             //this.backgroundColor = "#0ff2";
             this.rotation = 45
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-300+33.5,area.y-300+33.5);
             }
             scene.addChild(this);
@@ -1222,6 +1243,7 @@ window.onload = function() {
             Sprite.call(this,96,96);
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-48+32,area.y-48+30);
             }
             scene.addChild(this);
@@ -1232,6 +1254,7 @@ window.onload = function() {
             Sprite.call(this, 240, 240);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width-32);
                 var dy = Math.sin(rad)*(cannon.width-32);
@@ -1246,6 +1269,7 @@ window.onload = function() {
             Sprite.call(this, 240, 240);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width-32);
                 var dy = Math.sin(rad)*(cannon.width-32);
@@ -1260,6 +1284,7 @@ window.onload = function() {
             Sprite.call(this, cannon.width, 8);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width/2);
                 var dy = Math.sin(rad)*(cannon.width/2);
@@ -1274,6 +1299,7 @@ window.onload = function() {
             Sprite.call(this, cannon.width*4, 8);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width*2);
                 var dy = Math.sin(rad)*(cannon.width*2);
@@ -1293,6 +1319,7 @@ window.onload = function() {
             this.opacity = value;
             this.moveTo(point.x-12,point.y-12)
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.time++;
                 this.rotation+= 45;
                 if(this.time % 2 == 0){
@@ -1315,6 +1342,7 @@ window.onload = function() {
             this.opacity = value;
             this.moveTo(point.x-78,point.y-78)
             this.onenterframe = function(){
+                if(deleteFlg == true) scene.removeChild(this);
                 this.time++;
                 this.rotation+= 45;
                 if(this.time % 2 == 0){
@@ -1343,7 +1371,7 @@ window.onload = function() {
             this.rotation = (45)
             let target;
             this.onenterframe = function(){
-                
+                if(deleteFlg == true) scene.removeChild(this);
                 if(deadFlgs[num] == true){
                     scene.removeChild(this);
                 }
@@ -1647,7 +1675,11 @@ window.onload = function() {
             
             //  常に稼働する処理
             this.onenterframe = function(){
-
+                if(deleteFlg == true){
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                }
                 for(let i = 1; i < tankDir.length; i++){
                     if(deadFlgs[i]==false){
                         if(this.intersect(tankDir[i][0])==true){
@@ -1928,6 +1960,16 @@ window.onload = function() {
             
             //  常に処理する
             this.onenterframe = function(){
+                if(deleteFlg == true){
+                        this.moveTo(-100,-100)
+                        scene.removeChild(intercept1);
+                        scene.removeChild(intercept3);
+                        scene.removeChild(intercept4);
+                        scene.removeChild(intercept8);
+                        scene.removeChild(tank)
+                        scene.removeChild(cannon)
+                        scene.removeChild(weak)
+                }
                 //  死んでいなければ処理
                 if(life > 0){   
                     //  壁と衝突時の処理
@@ -2345,7 +2387,13 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept7);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                }
                 if(life > 0){
                     
                     if(game.time == 1800){
@@ -2452,11 +2500,11 @@ window.onload = function() {
                                 }
                             }
                             
-                            avoids.forEach(elem=>{
+                            /*avoids.forEach(elem=>{
                                 if(tank.within(elem,60)==true){
                                     stopFlg = true;
                                 }
-                            })
+                            })*/
                             if(stopFlg == false){
                                 if(this.time % 5 == 0){
                                     if(enemyTarget[Num] != target)enemyTarget[Num] = target;
@@ -3000,9 +3048,21 @@ window.onload = function() {
                 
             }
             this.onenterframe = function(){
-                intercept8.rotation = this.rotation+45;
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept3);
+                    scene.removeChild(intercept4);
+                    scene.removeChild(intercept5);
+                    scene.removeChild(intercept6);
+                    scene.removeChild(intercept7);
+                    scene.removeChild(intercept8);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                }
                 
                 if(life > 0){
+                    intercept8.rotation = this.rotation+45;
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             if((weak.intersect(bulOb[j][k])==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
@@ -3129,11 +3189,11 @@ window.onload = function() {
                                 life--;
                             }
                             
-                            avoids.forEach(elem=>{
+                            /*avoids.forEach(elem=>{
                                 if(tank.within(elem,64)==true){
                                     stopFlg = true;
                                 }
-                            })
+                            })*/
                             
                             if(stopFlg == false){
                                 
@@ -4272,6 +4332,9 @@ window.onload = function() {
 
         /* スタートシーン */
         var createStartScene = function() {
+
+            deleteFlg = false;
+            
             obsdir = []
             obsNum = 0;
             test = []
@@ -4405,6 +4468,7 @@ window.onload = function() {
     
             game.time = 0;
             worldFlg = false;
+            deleteFlg = false;
 
             stageData = LoadStage();    //ステージ情報引き出し
     
@@ -4828,6 +4892,7 @@ window.onload = function() {
                             toProceed.color = 'red';
                             toProceed.textAlign = 'center';
                         if(scene.time == 345){
+                            deleteFlg = true;
                             scene.addChild(toTitle)
                             if(stageNum != 100){
                                 scene.addChild(toProceed)
@@ -4865,6 +4930,9 @@ window.onload = function() {
                     } 
                     if((defeat == true || victory == true) && game.time == 150){
                         new FadeOut(scene)
+                    }
+                    if((defeat == true || victory == true) && game.time == 170){
+                        deleteFlg = true;
                     }
                     if(defeat==true && game.time == 180){
                         AllDelete();
