@@ -1987,7 +1987,7 @@ window.onload = function() {
                     }
                     //  死亡判定がfalseなら
                     if(deadFlgs[Num]==false){
-                        if(moveSpeed != 0){
+                        if(moveSpeed != 0 && game.time % 15 == 0){
                             //  自身の位置とターゲットの位置をざっくり算出
                             var myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
                             var targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
