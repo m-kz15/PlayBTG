@@ -1857,42 +1857,43 @@ window.onload = function() {
                     if(deadFlgs[Num] == false) new Aim(cur,cannon,base*3,Num,scene)
 
                     if(game.input.w && game.input.a){
-                        value = 4;
-                        rot = 45
-                        this.x -= speed/1.5;
-                        this.y -= speed/1.5;
-                    }else if(game.input.w && game.input.d){
-                        value = 5;
-                        rot = 135
-                        this.x += speed/1.5;
-                        this.y -= speed/1.5;
-                    }else if(game.input.s && game.input.a){
-                        value = 6;
-                        rot = 315
-                        this.x -= speed/1.5;
-                        this.y += speed/1.5;
-                    }else if(game.input.s && game.input.d){
-                        value = 7;
-                        rot = 225
-                        this.x += speed/1.5;
-                        this.y += speed/1.5;
-                    }else if(game.input.a){
-                        value = 0;
-                        rot = 0;
-                        this.x -= speed;
-                    }else if(game.input.d){
-                        value = 1;
-                        rot = 180;
-                        this.x += speed;
-                    }else if(game.input.w){
-                        value = 2;
-                        rot = 90;
-                        this.y -= speed;
-                    }else if(game.input.s){
-                        value = 3;
-                        rot = 270;
-                        this.y += speed;
-                    }
+                            value = 4;
+                            rot = 225
+                            this.x -= speed/1.5;
+                            this.y -= speed/1.5;
+                        }else if(game.input.w && game.input.d){
+                            value = 5;
+                            rot = 315
+                            this.x += speed/1.5;
+                            this.y -= speed/1.5;
+                        }else if(game.input.s && game.input.a){
+                            value = 6;
+                            rot = 135
+                            this.x -= speed/1.5;
+                            this.y += speed/1.5;
+                        }else if(game.input.s && game.input.d){
+                            value = 7;
+                            rot = 45
+                            this.x += speed/1.5;
+                            this.y += speed/1.5;
+                        }else if(game.input.a){
+                            value = 0;
+                            rot = 180;
+                            this.x -= speed;
+                        }else if(game.input.d){
+                            value = 1;
+                            rot = 0;
+                            this.x += speed;
+                        }else if(game.input.w){
+                            value = 2;
+                            rot = 270;
+                            this.y -= speed;
+                        }else if(game.input.s){
+                            value = 3;
+                            rot = 90;
+                                    
+                            this.y += speed;
+                        }
                    
                     /* 戦車本体の角度設定 */
                     this.rotation = rot;
