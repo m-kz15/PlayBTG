@@ -5,7 +5,7 @@ const size = 4;                 //サイズ倍率(勝手に触らない方が良
 const base = 16;                //基準サイズ
 const pixelSize = base*size;    //1セルごとのサイズ
 
-var cheat = true;      //チート用
+var cheat = false;      //チート用
 
 var cur;                //カーソルの位置情報を保持する配列
 
@@ -575,72 +575,75 @@ window.onload = function() {
     /* 反射判定クラス群 */
     var RefTop = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,target.width-2,8);
-            this.backgroundColor = "white";
-            this.x = target.x+1;
+            Sprite.call(this,target.width,16);
+            //this.backgroundColor = "white";
+            this.x = target.x;
             this.y = target.y-1;
-            refChk[num][0] = true
-            this.onenterframe = function(){
-                for(let i = 0; i < refdir.length; i++){
-                    if(i != num){
-                        if(this.intersect(refdir[i][1])==true){
-                            refChk[num][0]=false;
-                            refChk[i][1]=false;
-                            scene.removeChild(this);
-                            scene.removeChild(refdir[i][1])
-                        }
-                    }
-                }
-            }
             scene.addChild(this);
         }
     });
     var RefBottom = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,target.width-2,8);
-            this.backgroundColor = "blue";
-            this.x = target.x+1;
-            this.y = target.y+target.height-7;
-            refChk[num][1] = true
-            scene.addChild(this);
-        }
-    });
-    var RefLeft = Class.create(Sprite, {
-        initialize: function(target,num,scene) {
-            Sprite.call(this,8,target.height-2);
-            this.backgroundColor = "green";
-            this.x = target.x-1;
-            this.y = target.y+1;
-            refChk[num][2] = true
+            Sprite.call(this,target.width,16);
+            //this.backgroundColor = "blue";
+            this.x = target.x;
+            this.y = target.y+target.height-(this.height-1);
             this.onenterframe = function(){
-                for(let i = 0; i < refdir.length; i++){
+                let i = 0;
+                while(i < refdir.length){
                     if(i != num){
-                        if(this.intersect(refdir[i][3])==true){
-                            refChk[num][2]=false;
-                            refChk[i][3]=false;
+                        if(this.intersect(refdir[i][0])==true){
+                            refChk[i][0]=false;
+                            refChk[num][1]=false;
                             scene.removeChild(this);
-                            scene.removeChild(refdir[i][3])
+                            scene.removeChild(refdir[i][0])
                         }
                     }
+                    i++;
                 }
             }
             scene.addChild(this);
         }
     });
+    var RefLeft = Class.create(Sprite, {
+        initialize: function(target,num,scene) {
+            Sprite.call(this,16,target.height-2);
+            //this.backgroundColor = "green";
+            this.x = target.x-2;
+            this.y = target.y+1;
+            this.rotation = 0;
+            scene.addChild(this);
+        }
+    });
     var RefRight = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,8,target.height-2);
-            this.backgroundColor = "red";
-            this.x = target.x+target.width-7;
+            Sprite.call(this,16,target.height-2);
+            //this.backgroundColor = "red";
+            this.x = target.x+target.width-(this.width-2);
             this.y = target.y+1;
-            refChk[num][3] = true
+            
+            this.rotation = 180;
+            this.onenterframe = function(){
+                let i = 0;
+                while(i < refdir.length){
+                    if(i != num){
+                        if(this.intersect(refdir[i][2])==true){
+                            refChk[i][2]=false;
+                            refChk[num][3]=false;
+                            scene.removeChild(this);
+                            scene.removeChild(refdir[i][2])
+                        }
+                    }
+                    i++;
+                }
+            }
             scene.addChild(this);
         }
     });
     /* 当たり判定生成処理 */
     function RefObstracle(target,scene){
         refdir[refNum]=[]
-        refChk[refNum]=[false,false,false,false]
+        refChk[refNum]=[true,true,true,true]
         refdir[refNum][0]=new RefTop(target,refNum,scene)
         refdir[refNum][1]=new RefBottom(target,refNum,scene)
         refdir[refNum][2]=new RefLeft(target,refNum,scene)
@@ -804,9 +807,10 @@ window.onload = function() {
     /* 照準クラス */
     var Aim = Class.create(Sprite,{
         initialize: function(target,cannon,shotSpeed,num,ref,scene){
-            Sprite.call(this,base/2,base/2);
-            //if(num == 0) 
+            Sprite.call(this,8,8);
+            if(num == 0) 
             this.backgroundColor = "#aff4"
+            this.time = 0;
             this.moveTo(cannon.x+(cannon.width/2)-3.45,cannon.y+(cannon.height/2)-4.5)
             const vector = {
                 x: (target.x+target.width/2) - (cannon.x+cannon.width/2),
@@ -816,67 +820,74 @@ window.onload = function() {
             var dx = Math.cos(rad) * shotSpeed;
             var dy = Math.sin(rad) * shotSpeed;
             var refcnt = 0;
-            this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
+            this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
             cannon.rotation = (270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1;
-            this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+            this.rotation = (135+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
             this.onenterframe = function(){
+                //this.x += dx
+                //this.y += dy
+
+                this.moveBy(dx,dy);
                 
+                this.rotation = (135+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 for(let i = 0; i < refdir.length; i++){
-                    if(this.intersect(refdir[i][0])==true){
-                        this.moveTo(this.x,refdir[i][0].y-this.height-1)
-                        dy = dy*-1;
+                    if(this.intersect(refdir[i][0])==true && refChk[i][0] == true){
+                        this.moveTo(this.x,floors[i].y-(this.height))
+                        dy *= -1;
                         refcnt++;
-                        //this.backgroundColor = "#aff0"
+                        
                     }
-                    if(this.intersect(refdir[i][1])==true){
-                        this.moveTo(this.x,refdir[i][1].y+refdir[i][1].height)
-                        dy = dy*-1;
+                    if(this.intersect(refdir[i][1])==true && refChk[i][1] == true){
+                        this.moveTo(this.x,floors[i].y+floors[i].height+(this.height))
+                        dy *= -1;
                         refcnt++;
-                        //this.backgroundColor = "#aff0"
+                        
                     }
                     
-                    if(this.intersect(refdir[i][2])==true){
-                        this.moveTo(refdir[i][2].x-this.width-1,this.y)
-                        dx = dx*-1;
+                    if(this.intersect(refdir[i][2])==true && refChk[i][2] == true){
+                        this.moveTo(floors[i].x-(this.width),this.y)
+                        dx *= -1;
                         refcnt++;
-                        //this.backgroundColor = "#aff0"
                     }
-                    if(this.intersect(refdir[i][3])==true){
-                        this.moveTo(refdir[i][3].x+refdir[i][3].width,this.y)
-                        dx = dx*-1;
+                    if(this.intersect(refdir[i][3])==true && refChk[i][3] == true){
+                        this.moveTo(floors[i].x+floors[i].width,this.y)
+                        dx *= -1;
                         refcnt++;
-                        //this.backgroundColor = "#aff0"
+                        
                     }
                 }
                 if(this.intersect(walls[0])==true){
-                    this.moveTo(this.x,walls[0].y+walls[0].height)
-                    dy = dy*-1;
+                    this.moveTo(this.x,walls[0].y+walls[0].height+(this.height/2))
+                    dy *= -1;
                     refcnt++;
-                    //this.backgroundColor = "#aff0"
+                    
                 }
                 if(this.intersect(walls[1])==true){
-                    this.moveTo(this.x,walls[1].y-this.height-1)
-                    dy = dy*-1;
+                    this.moveTo(this.x,walls[1].y-(this.height/2))
+                    dy *= -1;
                     refcnt++;
-                    //this.backgroundColor = "#aff0"
+                    
                 }
                 
                 if(this.intersect(walls[2])==true){
-                    this.moveTo(walls[2].x+walls[2].width,this.y)
-                    dx = dx*-1;
+                    this.moveTo(walls[2].x+walls[2].width+(this.width/2),this.y-(this.height))
+                    dx *= -1;
                     refcnt++;
-                    //this.backgroundColor = "#aff0"
+                    
                 }
                 if(this.intersect(walls[3])==true){
-                    this.moveTo(walls[3].x-this.width-1,this.y)
-                    dx = dx*-1;
+                    this.moveTo(walls[3].x-(this.width/2),this.y-(this.height))
+                    dx *= -1;
                     refcnt++;
-                    //this.backgroundColor = "#aff0"
+                    
                 }
-                this.rotation = (315+(Math.atan2(dx,dy) * 180) / Math.PI)*-1;
-                this.x += dx
-                this.y += dy
+                this.moveBy(dx,dy);
+                if(this.intersect(tankEntity[num])==true){
+                    scene.removeChild(this);
+                }
                 if(refcnt > ref) scene.removeChild(this)
+                
+                
             }
             scene.addChild(this);
             /*const vector = {
@@ -1508,7 +1519,7 @@ window.onload = function() {
             Sprite.call(this,20,20);
             //this.backgroundColor = "#0f0a"
             let speed = 32;
-            //this.rotation = 45;
+            this.rotation = 90;
             let target;
             this.onenterframe = function(){
                 if(deadFlgs[num] == true){
@@ -1519,7 +1530,7 @@ window.onload = function() {
                 let dx = Math.cos(rad) * (target.width/2);
                 let dy = Math.sin(rad) * (target.height/2);
                 let prediction = [(target.x+target.width/2)+dx-(this.width/2),(target.y+target.height/2)+dy-(this.height/2)];
-                this.rotation = ((Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                this.rotation = (270+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 if(this.intersect(target)==false){
                     var vector = {
                         x: target.x - this.x,
@@ -1818,7 +1829,13 @@ window.onload = function() {
             for(var i = 0; i < 2; i++){
                 bomOb[Num][i] = new Bom(this,Num,scene);
             }
-
+            var PlayerAim = Class.create(Aim,{
+                initialize: function(alignment,cannon,ssp,Num){
+                    if(pauseFlg == false){
+                        Aim.call(this,alignment,cannon,ssp,Num,0,scene);
+                    }
+                }
+            })
             //  画面クリック時の砲撃処理
             scene.addEventListener('touchstart', function(){
                 if(worldFlg == true){   //  処理しても良い状態か
@@ -1843,6 +1860,7 @@ window.onload = function() {
             
             //  常に稼働する処理
             this.onenterframe = function(){
+                
                 if(deleteFlg == true){
                     scene.removeChild(tank)
                     scene.removeChild(cannon)
@@ -1986,8 +2004,13 @@ window.onload = function() {
                     }
                     
                     //  死んでいなければ弾道予測の描画をする
-                    if(deadFlgs[Num] == false) new Aim(cur,cannon,base*3,Num,ref,scene)
-
+                    if(deadFlgs[Num] == false) new PlayerAim(cur,cannon,20,Num,scene);
+                    PlayerAim.intersect(Wall).forEach(function(elem){
+                        scene.removeChild(elem[0])
+                    })
+                    PlayerAim.intersect(Floor).forEach(function(elem){
+                        scene.removeChild(elem[0])
+                    })
                     if(game.input.w && game.input.a){
                             value = 4;
                             rot = 225
@@ -2216,7 +2239,7 @@ window.onload = function() {
                                 }
                             }
                             //  敵の照準生成
-                            var eAim = new EnemyAim(alignment,cannon,32,Num,scene);
+                            var eAim = new EnemyAim(alignment,cannon,12,Num,scene);
                             //  照準がバグった場合の処理
                             if(enemyTarget[Num] == eAim){
                                 enemyTarget[Num] = target
@@ -2637,7 +2660,7 @@ window.onload = function() {
                                 }
                             }
                             
-                            new EnemyAim(alignment,cannon,32,Num,scene);
+                            new EnemyAim(alignment,cannon,12,Num,scene);
                             
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
@@ -3313,7 +3336,7 @@ window.onload = function() {
                             }
                             
 
-                            new EnemyAim(alignment,32,Num,scene);
+                            new EnemyAim(alignment,12,Num,scene);
       
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
@@ -4663,7 +4686,7 @@ window.onload = function() {
             bomOb.push([])
             bulStack.push([])
             if(cheat == true){
-                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,15,4,scene,filterMap))
+                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,8,4,scene,filterMap))
             }else{
                 tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,9,2,scene,filterMap))
             }
@@ -4803,12 +4826,12 @@ window.onload = function() {
                 if(complete == false) chgBgm = false;
                 scene.time++;
                 if(defeat == false && victory == false && complete == false) remaining.text = '敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki
-                Floor.intersect(Aim).forEach(function(pair){
+                /*Floor.intersect(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
                 Wall.intersect(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
-                })
+                })*/
                 Floor.intersect(BulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
