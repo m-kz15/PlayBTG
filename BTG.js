@@ -1892,6 +1892,9 @@ window.onload = function() {
             var grid = g;       //  マップの障害物配置情報
             var root;           //  移動ルート
 
+            var myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
+            var targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+
             let shotNGflg = false;
             let reloadFlg = false;
             let reloadTime = 0;
@@ -1980,8 +1983,8 @@ window.onload = function() {
                     if(deadFlgs[Num]==false){
                         if(moveSpeed != 0 && game.time % 20 == 0){
                             //  自身の位置とターゲットの位置をざっくり算出
-                            var myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
-                            var targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+                            myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
+                            targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
                             //  マップの障害物情報に自身とターゲットの位置設定
                             for(var i = 0; i < grid.length; i++){
                                 for(var j = 0; j < grid[i].length; j++){
