@@ -721,14 +721,13 @@ window.onload = function() {
             this.moveTo(ax+9.25,ay+8.5)
             this.scaleY = 0.8;
             scene.insertBefore(this,target);
-            
         }
     });
     /* 照準クラス */
     var Aim = Class.create(Sprite,{
         initialize: function(target,cannon,shotSpeed,num,scene){
             Sprite.call(this,base/2,base/2);
-            //if(num == 0) 
+            if(num == 0) 
             this.backgroundColor = "#aff4"
             this.moveTo(cannon.x+67.5,cannon.y+32)
             const vector = {
@@ -1374,7 +1373,7 @@ window.onload = function() {
     var Target = Class.create(Sprite,{
         initialize: function(cannon,num,scene,player){
             Sprite.call(this,20,20);
-            this.backgroundColor = "#0f0a"
+            //this.backgroundColor = "#0f0a"
             let speed = 32;
             //this.rotation = 45;
             let target;
@@ -3934,9 +3933,9 @@ window.onload = function() {
             //  難易度選択用ラベル
             var level = new DispText(game.width/2-180,600,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
             //  難易度「普通」ラベル
-            var nomal = new DispText(level.x+level.width-16,600,40,40,'普','40px sans-serif','#ebe799','left',scene)
+            var nomal = new DispText(level.x+level.width-16,600,140,40,'Normal','40px sans-serif','#ebe799','left',scene)
             //  難易度「難しい」ラベル
-            var hard = new DispText(level.x+level.width+nomal.width+16,600,40,40,'難','40px sans-serif','#888','left',scene)
+            var hard = new DispText(level.x+level.width+nomal.width+16,600,80,40,'Hard','40px sans-serif','#888','left',scene)
             //  戦車一覧画面用ラベル
             var picture = new DispText(game.width/2-180,680,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)
 
