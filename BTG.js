@@ -5,7 +5,7 @@ const size = 4;                 //サイズ倍率(勝手に触らない方が良
 const base = 16;                //基準サイズ
 const pixelSize = base*size;    //1セルごとのサイズ
 
-var cheat = false;      //チート用
+var cheat = true;      //チート用
 
 var cur;                //カーソルの位置情報を保持する配列
 
@@ -575,9 +575,9 @@ window.onload = function() {
     /* 反射判定クラス群 */
     var RefTop = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,target.width-4,8);
+            Sprite.call(this,target.width-2,8);
             this.backgroundColor = "white";
-            this.x = target.x+2;
+            this.x = target.x+1;
             this.y = target.y-1;
             refChk[num][0] = true
             this.onenterframe = function(){
@@ -597,9 +597,9 @@ window.onload = function() {
     });
     var RefBottom = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,target.width-4,8);
+            Sprite.call(this,target.width-2,8);
             this.backgroundColor = "blue";
-            this.x = target.x+2;
+            this.x = target.x+1;
             this.y = target.y+target.height-7;
             refChk[num][1] = true
             scene.addChild(this);
@@ -607,10 +607,10 @@ window.onload = function() {
     });
     var RefLeft = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,8,target.height-4);
+            Sprite.call(this,8,target.height-2);
             this.backgroundColor = "green";
             this.x = target.x-1;
-            this.y = target.y+2;
+            this.y = target.y+1;
             refChk[num][2] = true
             this.onenterframe = function(){
                 for(let i = 0; i < refdir.length; i++){
@@ -629,10 +629,10 @@ window.onload = function() {
     });
     var RefRight = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,8,target.height-4);
+            Sprite.call(this,8,target.height-2);
             this.backgroundColor = "red";
             this.x = target.x+target.width-7;
-            this.y = target.y+2;
+            this.y = target.y+1;
             refChk[num][3] = true
             scene.addChild(this);
         }
@@ -803,9 +803,9 @@ window.onload = function() {
     });
     /* 照準クラス */
     var Aim = Class.create(Sprite,{
-        initialize: function(target,cannon,shotSpeed,num,scene){
+        initialize: function(target,cannon,shotSpeed,num,ref,scene){
             Sprite.call(this,base/2,base/2);
-            if(num == 0) 
+            //if(num == 0) 
             this.backgroundColor = "#aff4"
             this.moveTo(cannon.x+(cannon.width/2)-3.45,cannon.y+(cannon.height/2)-4.5)
             const vector = {
@@ -815,13 +815,68 @@ window.onload = function() {
             var rad = Math.atan2(vector.y, vector.x);
             var dx = Math.cos(rad) * shotSpeed;
             var dy = Math.sin(rad) * shotSpeed;
+            var refcnt = 0;
             this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
             cannon.rotation = (270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1;
             this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
             this.onenterframe = function(){
+                
+                for(let i = 0; i < refdir.length; i++){
+                    if(this.intersect(refdir[i][0])==true){
+                        this.moveTo(this.x,refdir[i][0].y-this.height-1)
+                        dy = dy*-1;
+                        refcnt++;
+                        //this.backgroundColor = "#aff0"
+                    }
+                    if(this.intersect(refdir[i][1])==true){
+                        this.moveTo(this.x,refdir[i][1].y+refdir[i][1].height)
+                        dy = dy*-1;
+                        refcnt++;
+                        //this.backgroundColor = "#aff0"
+                    }
+                    
+                    if(this.intersect(refdir[i][2])==true){
+                        this.moveTo(refdir[i][2].x-this.width-1,this.y)
+                        dx = dx*-1;
+                        refcnt++;
+                        //this.backgroundColor = "#aff0"
+                    }
+                    if(this.intersect(refdir[i][3])==true){
+                        this.moveTo(refdir[i][3].x+refdir[i][3].width,this.y)
+                        dx = dx*-1;
+                        refcnt++;
+                        //this.backgroundColor = "#aff0"
+                    }
+                }
+                if(this.intersect(walls[0])==true){
+                    this.moveTo(this.x,walls[0].y+walls[0].height)
+                    dy = dy*-1;
+                    refcnt++;
+                    //this.backgroundColor = "#aff0"
+                }
+                if(this.intersect(walls[1])==true){
+                    this.moveTo(this.x,walls[1].y-this.height-1)
+                    dy = dy*-1;
+                    refcnt++;
+                    //this.backgroundColor = "#aff0"
+                }
+                
+                if(this.intersect(walls[2])==true){
+                    this.moveTo(walls[2].x+walls[2].width,this.y)
+                    dx = dx*-1;
+                    refcnt++;
+                    //this.backgroundColor = "#aff0"
+                }
+                if(this.intersect(walls[3])==true){
+                    this.moveTo(walls[3].x-this.width-1,this.y)
+                    dx = dx*-1;
+                    refcnt++;
+                    //this.backgroundColor = "#aff0"
+                }
                 this.rotation = (315+(Math.atan2(dx,dy) * 180) / Math.PI)*-1;
                 this.x += dx
                 this.y += dy
+                if(refcnt > ref) scene.removeChild(this)
             }
             scene.addChild(this);
             /*const vector = {
@@ -1931,7 +1986,7 @@ window.onload = function() {
                     }
                     
                     //  死んでいなければ弾道予測の描画をする
-                    if(deadFlgs[Num] == false) new Aim(cur,cannon,base*3,Num,scene)
+                    if(deadFlgs[Num] == false) new Aim(cur,cannon,base*3,Num,ref,scene)
 
                     if(game.input.w && game.input.a){
                             value = 4;
@@ -2047,7 +2102,7 @@ window.onload = function() {
             //  独自の敵の照準処理
             var EnemyAim = Class.create(Aim,{   //  Aimクラスを継承
                 initialize: function(alignment,cannon,ssp,Num){
-                    Aim.call(this,alignment,cannon,ssp,Num,scene);
+                    Aim.call(this,alignment,cannon,ssp,Num,ref,scene);
                 }
             })
             function ShotBullet(i){
@@ -2390,7 +2445,7 @@ window.onload = function() {
             var EnemyAim = Class.create(Aim,{
                 initialize: function(alignment,cannon,ssp,Num){
                     if(pauseFlg == false){
-                        Aim.call(this,alignment,cannon,ssp,Num,scene);
+                        Aim.call(this,alignment,cannon,ssp,Num,ref,scene);
                     }
                     
                 }
@@ -2994,7 +3049,7 @@ window.onload = function() {
 
             var EnemyAim = Class.create(Aim,{
                 initialize: function(target,shotSpeed,num,scene){
-                    Aim.call(this,target,cannon,shotSpeed,num,scene);
+                    Aim.call(this,target,cannon,shotSpeed,num,ref,scene);
                 }
             })
             if(addBullet != 0){
