@@ -728,7 +728,7 @@ window.onload = function() {
     var Aim = Class.create(Sprite,{
         initialize: function(target,cannon,shotSpeed,num,scene){
             Sprite.call(this,base/2,base/2);
-            if(num == 0) 
+            //if(num == 0) 
             this.backgroundColor = "#aff4"
             this.moveTo(cannon.x+67.5,cannon.y+32)
             const vector = {
@@ -1374,7 +1374,7 @@ window.onload = function() {
     var Target = Class.create(Sprite,{
         initialize: function(cannon,num,scene,player){
             Sprite.call(this,20,20);
-            //this.backgroundColor = "#0f0a"
+            this.backgroundColor = "#0f0a"
             let speed = 32;
             //this.rotation = 45;
             let target;
