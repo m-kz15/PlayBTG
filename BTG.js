@@ -19,6 +19,9 @@ var avoids = [];        //（敵のみ適応）見えない壁を保持する配
 var obsdir = []
 var obsChk = []
 var obsNum = 0;
+var refdir = []
+var refChk = []
+var refNum = 0;
 
 var tankEntity = [];    //敵味方の戦車情報を保持する配列
 var tankDir = []
@@ -569,6 +572,81 @@ window.onload = function() {
         obsdir[obsNum][3]=new ObsRight(target,obsNum,scene)
         obsNum++;
     }
+    /* 反射判定クラス群 */
+    var RefTop = Class.create(Sprite, {
+        initialize: function(target,num,scene) {
+            Sprite.call(this,target.width-4,8);
+            this.backgroundColor = "white";
+            this.x = target.x+2;
+            this.y = target.y-1;
+            refChk[num][0] = true
+            this.onenterframe = function(){
+                for(let i = 0; i < refdir.length; i++){
+                    if(i != num){
+                        if(this.intersect(refdir[i][1])==true){
+                            refChk[num][0]=false;
+                            refChk[i][1]=false;
+                            scene.removeChild(this);
+                            scene.removeChild(refdir[i][1])
+                        }
+                    }
+                }
+            }
+            scene.addChild(this);
+        }
+    });
+    var RefBottom = Class.create(Sprite, {
+        initialize: function(target,num,scene) {
+            Sprite.call(this,target.width-4,8);
+            this.backgroundColor = "blue";
+            this.x = target.x+2;
+            this.y = target.y+target.height-7;
+            refChk[num][1] = true
+            scene.addChild(this);
+        }
+    });
+    var RefLeft = Class.create(Sprite, {
+        initialize: function(target,num,scene) {
+            Sprite.call(this,8,target.height-4);
+            this.backgroundColor = "green";
+            this.x = target.x-1;
+            this.y = target.y+2;
+            refChk[num][2] = true
+            this.onenterframe = function(){
+                for(let i = 0; i < refdir.length; i++){
+                    if(i != num){
+                        if(this.intersect(refdir[i][3])==true){
+                            refChk[num][2]=false;
+                            refChk[i][3]=false;
+                            scene.removeChild(this);
+                            scene.removeChild(refdir[i][3])
+                        }
+                    }
+                }
+            }
+            scene.addChild(this);
+        }
+    });
+    var RefRight = Class.create(Sprite, {
+        initialize: function(target,num,scene) {
+            Sprite.call(this,8,target.height-4);
+            this.backgroundColor = "red";
+            this.x = target.x+target.width-7;
+            this.y = target.y+2;
+            refChk[num][3] = true
+            scene.addChild(this);
+        }
+    });
+    /* 当たり判定生成処理 */
+    function RefObstracle(target,scene){
+        refdir[refNum]=[]
+        refChk[refNum]=[false,false,false,false]
+        refdir[refNum][0]=new RefTop(target,refNum,scene)
+        refdir[refNum][1]=new RefBottom(target,refNum,scene)
+        refdir[refNum][2]=new RefLeft(target,refNum,scene)
+        refdir[refNum][3]=new RefRight(target,refNum,scene)
+        refNum++;
+    }
     /* 戦車同士の当たり判定クラス群 */
     var TankTop = Class.create(Sprite, {
         initialize: function(target,num,scene) {
@@ -729,7 +807,7 @@ window.onload = function() {
             Sprite.call(this,base/2,base/2);
             if(num == 0) 
             this.backgroundColor = "#aff4"
-            this.moveTo(cannon.x+67.5,cannon.y+32)
+            this.moveTo(cannon.x+(cannon.width/2)-3.45,cannon.y+(cannon.height/2)-4.5)
             const vector = {
                 x: (target.x+target.width/2) - (cannon.x+cannon.width/2),
                 y: (target.y+target.height/2) - (cannon.y+cannon.height/2)
@@ -825,7 +903,7 @@ window.onload = function() {
                 random0 = (Math.floor( Math.random() * 30)-15)/2;
                 random1 = (Math.floor( Math.random() * 30)-15)/2;
             }
-            this.moveTo(cannon.x+(cannon.width/2),cannon.y+(cannon.height/2))
+            this.moveTo(cannon.x+(cannon.width/2)-2.25,cannon.y+(cannon.height/2)-3)
             var rad = (cannon.rotation+(random0+random1)) * (Math.PI / 180.0);
             /*const vector = {
                 x: target.x - this.x,
@@ -4307,6 +4385,8 @@ window.onload = function() {
             
             obsdir = []
             obsNum = 0;
+            refdir = []
+            refNum = 0;
             bullets = [];       //各戦車の弾数の制御用配列
             boms = [];          //爆弾の個数の制御用配列
             bulOb = [[]];       //戦車の弾情報を保持する配列
@@ -4485,6 +4565,7 @@ window.onload = function() {
                                 floors.push(new Floor(fx,fy,scene));
                                 grid[fy][fx] = 'Obstacle';
                                 Obstracle(floors[floors.length-1],scene)
+                                RefObstracle(floors[floors.length-1],scene)
                             }else{
                                 grid[fy][fx] = 'Obstacle';
                             } 
@@ -4611,6 +4692,13 @@ window.onload = function() {
                     for(let j = 0; j < obsdir[i].length; j++){
                         if(obsChk[i][j]==true){
                             scene.removeChild(obsdir[i][j])
+                        }
+                    }
+                }
+                for(let i = 0; i < refdir.length; i++){
+                    for(let j = 0; j < refdir[i].length; j++){
+                        if(refChk[i][j]==true){
+                            scene.removeChild(refdir[i][j])
                         }
                     }
                 }
