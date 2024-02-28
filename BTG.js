@@ -1712,16 +1712,16 @@ window.onload = function() {
                 }
                 //  フィールドの壁に衝突した場合の処理
                 if(this.intersect(walls[0])==true){
-                    this.moveTo(this.x,(64*2)-16)
+                    this.moveTo(this.x,walls[0].y+walls[0].height)
                 }
                 if(this.intersect(walls[1])==true){
-                    this.moveTo(this.x,(64*13)-12)
+                    this.moveTo(this.x,walls[1].y-walls[1].height+2)
                 }
                 if(this.intersect(walls[2])==true){
-                    this.moveTo((64*1),this.y)
+                    this.moveTo(walls[2].x+walls[2].width,this.y)
                 }
                 if(this.intersect(walls[3])==true){
-                    this.moveTo((64*18)+3,this.y)
+                    this.moveTo(walls[3].x-walls[3].width+2,this.y)
                 }
                 
                 /*obsdir.forEach(elem=>{
@@ -1974,16 +1974,16 @@ window.onload = function() {
                 if(life > 0){   
                     //  壁と衝突時の処理
                     if(this.intersect(walls[0])==true){
-                        this.moveTo(this.x,(64*2)-16)
+                        this.moveTo(this.x,walls[0].y+walls[0].height)
                     }
                     if(this.intersect(walls[1])==true){
-                        this.moveTo(this.x,(64*13)-12)
+                        this.moveTo(this.x,walls[1].y-walls[1].height+2)
                     }
                     if(this.intersect(walls[2])==true){
-                        this.moveTo((64*1),this.y)
+                        this.moveTo(walls[2].x+walls[2].width,this.y)
                     }
                     if(this.intersect(walls[3])==true){
-                        this.moveTo((64*18)+3,this.y)
+                        this.moveTo(walls[3].x-walls[3].width+2,this.y)
                     }
                     //  死亡判定がfalseなら
                     if(deadFlgs[Num]==false){
@@ -2199,12 +2199,51 @@ window.onload = function() {
                         destruction++
                         life--;
                     }
-                }else{
-                    //  戦車の消去
-                    scene.removeChild(this);
+                    for(let i = 0; i < tankDir.length; i++){
+                        if(deadFlgs[i]==false && i != Num){
+                            if(this.intersect(tankDir[i][0])==true){
+                                this.moveTo(this.x,tankDir[i][0].y-60)
+                            }
+                            if(this.intersect(tankDir[i][1])==true){
+                                this.moveTo(this.x,tankDir[i][1].y+(tankDir[i][1].height))
+                            }
+                            if(this.intersect(tankDir[i][2])==true){
+                                this.moveTo(tankDir[i][2].x-60,this.y)
+                            }
+                            if(this.intersect(tankDir[i][3])==true){
+                                this.moveTo(tankDir[i][3].x+(tankDir[i][3].width),this.y)
+                            }
+                        }
+                    }
+                    for(let i = 0; i < obsdir.length; i++){
+                        if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
+                            this.moveTo(this.x,obsdir[i][0].y-60)
+                        }
+                        if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
+                            this.moveTo(this.x,obsdir[i][1].y+(obsdir[i][1].height))
+                        }
+                        if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
+                            this.moveTo(obsdir[i][2].x-60,this.y)
+                        }
+                        if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
+                            this.moveTo(obsdir[i][3].x+(obsdir[i][3].width),this.y)
+                        }
+                    }
+                    if(this.intersect(walls[0])==true){
+                        this.moveTo(this.x,walls[0].y+walls[0].height)
+                    }
+                    if(this.intersect(walls[1])==true){
+                        this.moveTo(this.x,walls[1].y-walls[1].height+2)
+                    }
+                    if(this.intersect(walls[2])==true){
+                        this.moveTo(walls[2].x+walls[2].width,this.y)
+                    }
+                    if(this.intersect(walls[3])==true){
+                        this.moveTo(walls[3].x-walls[3].width+2,this.y)
+                    }
                 }
             }
-            scene.insertBefore(this,tank)
+            scene.insertBefore(this,target)
         }
     });
     /* 敵(強)クラス */
@@ -2247,6 +2286,7 @@ window.onload = function() {
             let hittingTime = 0;
             let reloadTime = 0;
             let reloadFlg = false;
+            let now = 0;
 
             let life = 1;
         
@@ -2403,8 +2443,7 @@ window.onload = function() {
                     }
 
                     if(hittingTime==30){
-                        let val = value;
-                        while(value == val) value = Math.floor(Math.random() * 4);
+                        while(value == now) value = Math.floor(Math.random() * 4);
                         hittingTime = 0;
                     }
   
@@ -2472,7 +2511,6 @@ window.onload = function() {
                             
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
-                                //alert(tankColorCounts)
                                 markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
@@ -2500,13 +2538,7 @@ window.onload = function() {
                                 }
                             }
                             
-                            /*avoids.forEach(elem=>{
-                                if(tank.within(elem,60)==true){
-                                    stopFlg = true;
-                                }
-                            })*/
-                            if(stopFlg == false){
-                                if(this.time % 5 == 0){
+                            if(this.time % 5 == 0){
                                     if(enemyTarget[Num] != target)enemyTarget[Num] = target;
                                 }
                                 if(grade == 6 && boms[Num]>0 && bomFlg == true){
@@ -2745,26 +2777,6 @@ window.onload = function() {
                                     rot = 270;
                                     this.y += speed;
                                 }
-                            }else{
-                                if(value == 0){
-                                    this.x += (speed);
-                                }else if(value == 1){
-                                    this.x -= (speed);
-                                }else if(value == 2){
-                                    this.y += (speed);
-                                }else if(value == 3){
-                                    this.y -= (speed);
-                                }
-                                let chg = false;
-                                test.forEach(elem=>{
-                                    if(tank.within(elem,60-speed)==true){
-                                        chg = true;
-                                    }
-                                })
-                                if(chg==false){
-                                    ChangeOp(value)
-                                    value = ChangeVal(value)
-                                } 
                             }
                             
                             /* 戦車本体の角度 */
@@ -2781,13 +2793,13 @@ window.onload = function() {
                                 this.moveTo(this.x,tankDir[i][0].y-60)
                             }
                             if(this.intersect(tankDir[i][1])==true){
-                                this.moveTo(this.x,tankDir[i][1].y+4)
+                                this.moveTo(this.x,tankDir[i][1].y+(tankDir[i][1].height))
                             }
                             if(this.intersect(tankDir[i][2])==true){
                                 this.moveTo(tankDir[i][2].x-60,this.y)
                             }
                             if(this.intersect(tankDir[i][3])==true){
-                                this.moveTo(tankDir[i][3].x+4,this.y)
+                                this.moveTo(tankDir[i][3].x+(tankDir[i][3].width),this.y)
                             }
                         }
                     }
@@ -2795,43 +2807,47 @@ window.onload = function() {
                         if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
                             this.moveTo(this.x,obsdir[i][0].y-60)
                             hittingTime++;
+                            now = value;
                         }
                         if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                            this.moveTo(this.x,obsdir[i][1].y+3)
+                            this.moveTo(this.x,obsdir[i][1].y+(obsdir[i][1].height))
                             hittingTime++;
+                            now = value;
                         }
                         if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
                             this.moveTo(obsdir[i][2].x-60,this.y)
                             hittingTime++;
+                            now = value;
                         }
                         if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                            this.moveTo(obsdir[i][3].x+2,this.y)
+                            this.moveTo(obsdir[i][3].x+(obsdir[i][3].width),this.y)
                             hittingTime++;
+                            now = value;
                         }
                     }
                     if(this.intersect(walls[0])==true){
-                        this.moveTo(this.x,(64*2)-16)
+                        this.moveTo(this.x,walls[0].y+walls[0].height)
                         hittingTime++;
+                        now = value;
                     }
                     if(this.intersect(walls[1])==true){
-                        this.moveTo(this.x,(64*13)-12)
+                        this.moveTo(this.x,walls[1].y-walls[1].height+2)
                         hittingTime++;
+                        now = value;
                     }
                     if(this.intersect(walls[2])==true){
-                        this.moveTo((64*1),this.y)
+                        this.moveTo(walls[2].x+walls[2].width,this.y)
                         hittingTime++;
+                        now = value;
                     }
                     if(this.intersect(walls[3])==true){
-                        this.moveTo((64*18)+3,this.y)
+                        this.moveTo(walls[3].x-walls[3].width+2,this.y)
                         hittingTime++;
+                        now = value;
                     }
-                    
-                }else{
-                    
-                    scene.removeChild(this);
                 }
             }
-            scene.insertBefore(this,tank)
+            scene.insertBefore(this,target)
         }
     });
     /* 強敵クラス */
@@ -2880,6 +2896,7 @@ window.onload = function() {
             let reloadFlg = false;
             let reloadTime = 0;
             let shotNGflg = false;
+            let now = 0;
 
             if(moveSpeed != 0){
                 speed = moveSpeed + addSpeed;
@@ -2959,34 +2976,6 @@ window.onload = function() {
                             }
                         }
                     }
-                    /*if((target1.x + target1.width/2) > (target2.x + target2.width/2)){
-                        if((target1.y + target1.height/2) > (target2.y + target2.height/2)){
-                            while(value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
-                        }else{
-                            while(value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
-                        }
-                    }else{
-                        if((target1.y + target1.height/2) > (target2.y + target2.height/2)){
-                            while(value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
-                        }else{
-                            while(value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
-                        }
-                    }*/
-                    /*if(weakX-2.75 > targetX){
-                        if(weakY-2.75 > targetY){
-                            while(value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
-                        }
-                        else{
-                            while(value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
-                        }
-                    }else{
-                        if(weakY-2.75 > targetY){
-                            while(value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
-                        }
-                        else{
-                            while(value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
-                        }
-                    }*/
                 }else if(or == 1){
                     if(Math.floor(Math.random() * 2) == 0){
                         if((target1.x + target1.width/2) > (target2.x + target2.width/2)){
@@ -3078,18 +3067,14 @@ window.onload = function() {
                     }
 
                     if(hittingTime>15 && escapeFlg == false){
-                        let val = value;
                         if(grade > 9){
-                            while(value == val) value = Math.floor(Math.random() * 8);
+                            while(value == now) value = Math.floor(Math.random() * 8);
                         }else{
-                            while(value == val) value = Math.floor(Math.random() * 4);
+                            while(value == now) value = Math.floor(Math.random() * 4);
                         }
                         hittingTime = 0;
                     }
-                    
-
-                    
-                    
+            
                     if(dflg == false && escapeFlg == false){
                         if(moveSpeed != 0){
                             speed = moveSpeed + addSpeed;
@@ -3195,31 +3180,29 @@ window.onload = function() {
                                 }
                             })*/
                             
-                            if(stopFlg == false){
-                                
-                                if(game.time % 5 == 0){
+                            if(game.time % 5 == 0){
                                     
-                                    for(var i = 0; i < tankEntity.length; i++){
-                                        if(i != Num && deadFlgs[i]==false && moveSpeed > 0){
+                                for(var i = 0; i < tankEntity.length; i++){
+                                    if(i != Num && deadFlgs[i]==false && moveSpeed > 0){
                                             
-                                            if(intercept8.intersect(tankEntity[i])==true){
-                                                SelDirection(weak,tankEntity[i],0);
-                                            }else{
-                                                if(escapeFlg == false){
-                                                    let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
-                                                    if(dist < cateDistances[category]){
-                                                        SelDirection(weak,target,0)
-                                                    }else{
-                                                        SelDirection(weak,target,1) 
-                                                    }
+                                        if(intercept8.intersect(tankEntity[i])==true){
+                                            SelDirection(weak,tankEntity[i],0);
+                                        }else{
+                                            if(escapeFlg == false){
+                                                let dist = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
+                                                if(dist < cateDistances[category]){
+                                                    SelDirection(weak,target,0)
+                                                }else{
+                                                    SelDirection(weak,target,1) 
                                                 }
-                                                else{
-                                                    SelDirection(weak,enemyTarget[Num],0);
-                                                }
+                                            }
+                                            else{
+                                                SelDirection(weak,enemyTarget[Num],0);
                                             }
                                         }
                                     }
                                 }
+                            }
     
                                 if(value == 4){
                                     //左上
@@ -3254,86 +3237,51 @@ window.onload = function() {
                                     rot = 270;
                                     this.y += speed;
                                 }
-                            }else{
-                                if(value == 0){
-                                    this.x += (speed*2);
-                                }else if(value == 1){
-                                    this.x -= (speed*2);
-                                }else if(value == 2){
-                                    this.y += (speed*2);
-                                }else if(value == 3){
-                                    this.y -= (speed*2);
-                                }else if(value == 4){
-                                    this.x += (speed*2)/1.5;
-                                    this.y += (speed*2)/1.5;
-                                }else if(value == 5){
-                                    this.x -= (speed*2)/1.5;
-                                    this.y += (speed*2)/1.5;
-                                }else if(value == 6){
-                                    this.x += (speed*2)/1.5;
-                                    this.y -= (speed*2)/1.5;
-                                }else if(value == 7){
-                                    this.x -= (speed*2)/1.5;
-                                    this.y -= (speed*2)/1.5;
-                                }
-                                let chg = false;
-                                test.forEach(elem=>{
-                                    if(tank.within(elem,58)==true){
-                                        chg = true;
-                                    }
-                                })
-                                if(chg==false){
-                                    ChangeOp(value)
-                                    value = ChangeVal(value)
-                                }
-                            }
                             tank.intersect(PlayerBulAim).forEach(function(){
                                 dflg = true;
                             })
                             tank.intersect(EnemyAim).forEach(function(){
                                 dflg = true;
                             })
-                            if(stopFlg == false){
-
-                                /* 迎撃処理群
-                                    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
-                                */
-                                //  他戦車の弾迎撃処理
-                                if(cateFlgs[category][2] == true){
-                                    for(let i = 1; i < bulOb.length; i++){
-                                        if(i != Num){
-                                            for(let j = 0; j < bulOb[i].length; j++){
-                                                if(bulStack[i][j] == true){
-                                                    let dist = Instrumentation(enemyTarget[Num],bulOb[i][j]);
-                                                    if(dist != null){
-                                                        if(
-                                                            (intercept5.intersect(bulOb[i][j])==true ||
-                                                             intercept6.intersect(bulOb[i][j])==true ||
-                                                             intercept3.intersect(bulOb[i][j])==true)&& grade >= 10){
-                                                            enemyTarget[Num] = bulOb[i][j]
-                                                            alignment.moveTo(bulOb[i][j].x,bulOb[i][j].y)
-                                                            new EnemyAim(alignment,32,Num,scene);
+                            /* 迎撃処理群
+                                優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+                            */
+                            //  他戦車の弾迎撃処理
+                            if(cateFlgs[category][2] == true){
+                                for(let i = 1; i < bulOb.length; i++){
+                                    if(i != Num){
+                                        for(let j = 0; j < bulOb[i].length; j++){
+                                            if(bulStack[i][j] == true){
+                                                let dist = Instrumentation(enemyTarget[Num],bulOb[i][j]);
+                                                if(dist != null){
+                                                    if(
+                                                        (intercept5.intersect(bulOb[i][j])==true ||
+                                                        intercept6.intersect(bulOb[i][j])==true ||
+                                                        intercept3.intersect(bulOb[i][j])==true)&& grade >= 10){
+                                                        enemyTarget[Num] = bulOb[i][j]
+                                                        alignment.moveTo(bulOb[i][j].x,bulOb[i][j].y)
+                                                        new EnemyAim(alignment,32,Num,scene);
                                                             
+                                                        if(this.time % 5 == 0){
+                                                            SelDirection(weak,bulOb[i][j],0);
+                                                        }  
+                                                    }else if(dist < cateRanges[category][2]){
+                                                        tank.intersect(BulAim).forEach(function(){
+                                                            if(cateEscapes[category][0]==true && cateEscapes[category][3] != 0){
+                                                                if(dist < cateEscapes[category][3]) escapeFlg = true;
+                                                            }
+                                                            if(cateEscapes[category][3] != 0)enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
                                                             if(this.time % 5 == 0){
-                                                                SelDirection(weak,bulOb[i][j],0);
-                                                            }  
-                                                        }else if(dist < cateRanges[category][2]){
-                                                            tank.intersect(BulAim).forEach(function(){
-                                                                if(cateEscapes[category][0]==true && cateEscapes[category][3] != 0){
-                                                                    if(dist < cateEscapes[category][3]) escapeFlg = true;
-                                                                }
-                                                                if(cateEscapes[category][3] != 0)enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
-                                                                if(this.time % 5 == 0){
-                                                                    SelDirection(weak,bulOb[i][j],0)
-                                                                }
-                                                            })
-                                                        }
+                                                                SelDirection(weak,bulOb[i][j],0)
+                                                            }
+                                                        })
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                 }
+                            }
                                 //  プレイヤーの弾迎撃処理
                                 if(cateFlgs[category][0] == true){
                                     for(let i = 0; i < bulOb[0].length; i++){
@@ -3583,7 +3531,6 @@ window.onload = function() {
                                         
                                     }
                                 }
-                            }
     
                             /* 戦車本体の角度 */
                             if(moveSpeed > 0){
@@ -3599,13 +3546,13 @@ window.onload = function() {
                                 this.moveTo(this.x,tankDir[i][0].y-60)
                             }
                             if(this.intersect(tankDir[i][1])==true){
-                                this.moveTo(this.x,tankDir[i][1].y+4)
+                                this.moveTo(this.x,tankDir[i][1].y+(tankDir[i][1].height))
                             }
                             if(this.intersect(tankDir[i][2])==true){
                                 this.moveTo(tankDir[i][2].x-60,this.y)
                             }
                             if(this.intersect(tankDir[i][3])==true){
-                                this.moveTo(tankDir[i][3].x+4,this.y)
+                                this.moveTo(tankDir[i][3].x+(tankDir[i][3].width),this.y)
                             }
                         }
                     }
@@ -3613,41 +3560,47 @@ window.onload = function() {
                         if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
                             this.moveTo(this.x,obsdir[i][0].y-60)
                             hittingTime++;
+                            now = value;
                         }
                         if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                            this.moveTo(this.x,obsdir[i][1].y+3)
+                            this.moveTo(this.x,obsdir[i][1].y+(obsdir[i][1].height))
                             hittingTime++;
+                            now = value;
                         }
                         if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
                             this.moveTo(obsdir[i][2].x-60,this.y)
                             hittingTime++;
+                            now = value;
                         }
                         if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                            this.moveTo(obsdir[i][3].x+2,this.y)
+                            this.moveTo(obsdir[i][3].x+(obsdir[i][3].width),this.y)
                             hittingTime++;
+                            now = value;
                         }
                     }
                     if(this.intersect(walls[0])==true){
-                        this.moveTo(this.x,(64*2)-16)
+                        this.moveTo(this.x,walls[0].y+walls[0].height)
                         hittingTime++;
+                        now = value;
                     }
                     if(this.intersect(walls[1])==true){
-                        this.moveTo(this.x,(64*13)-12)
+                        this.moveTo(this.x,walls[1].y-walls[1].height+2)
                         hittingTime++;
+                        now = value;
                     }
                     if(this.intersect(walls[2])==true){
-                        this.moveTo((64*1),this.y)
+                        this.moveTo(walls[2].x+walls[2].width,this.y)
                         hittingTime++;
+                        now = value;
                     }
                     if(this.intersect(walls[3])==true){
-                        this.moveTo((64*18)+3,this.y)
+                        this.moveTo(walls[3].x-walls[3].width+2,this.y)
                         hittingTime++;
+                        now = value;
                     }
-                }else{
-                    scene.removeChild(this);
                 }
             }
-            scene.insertBefore(this,filterMap)
+            scene.insertBefore(this,target)
         }
     });
     /* アイコン用戦車クラス */
@@ -4654,9 +4607,7 @@ window.onload = function() {
                     }
                 }
                 for(let i = 0; i < tankEntity.length; i++){
-                    if(deadFlgs[i]==false){
-                        scene.removeChild(tankEntity[i])
-                    }
+                    scene.removeChild(tankEntity[i]);
                 }
                 for(let i = 0; i < markEntity.length; i++){
                     scene.removeChild(markEntity[i])
