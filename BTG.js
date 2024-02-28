@@ -732,6 +732,22 @@ window.onload = function() {
             this.backgroundColor = "#aff4"
             this.moveTo(cannon.x+67.5,cannon.y+32)
             const vector = {
+                x: (target.x+target.width/2) - (cannon.x+cannon.width/2),
+                y: (target.y+target.height/2) - (cannon.y+cannon.height/2)
+            };
+            var rad = Math.atan2(vector.y, vector.x);
+            var dx = Math.cos(rad) * shotSpeed;
+            var dy = Math.sin(rad) * shotSpeed;
+            this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
+            cannon.rotation = (270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1;
+            this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+            this.onenterframe = function(){
+                this.rotation = (315+(Math.atan2(dx,dy) * 180) / Math.PI)*-1;
+                this.x += dx
+                this.y += dy
+            }
+            scene.addChild(this);
+            /*const vector = {
                 x: target.x - cannon.x-64,
                 y: target.y - cannon.y-32
             };
@@ -744,7 +760,7 @@ window.onload = function() {
                 this.x += Math.cos(this.rad) * shotSpeed;
                 this.y += Math.sin(this.rad) * shotSpeed;
             }
-            scene.addChild(this);
+            scene.addChild(this);*/
         }
     })
     
@@ -793,37 +809,38 @@ window.onload = function() {
         initialize: function(target,cannon,shotSpeed,grade,num,scene,value){
             PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true)
             //this.backgroundColor = "blue"
-            this.moveTo(cannon.x+pixelSize,cannon.y+(pixelSize/2));
             this.time = 0;
             let random0 = 0;
             let random1 = 0;
-            const vector = {
-                x: target.x - this.x,
-                y: target.y+4.7 - this.y
-            };
             if(grade == 10){
-                random0 = Math.floor( Math.random() * 15)-7.5;
-                random1 = Math.floor( Math.random() * 15)-7.5;
-            }else if(grade == 11){
-                random0 = Math.floor( Math.random() * 40)-20;
-                random1 = Math.floor( Math.random() * 40)-20;
-            }else if(grade == 5 || grade == 6){
-                random0 = Math.floor( Math.random() * 60)-30;
-                random1 = Math.floor( Math.random() * 60)-30;
+                random0 = (Math.floor( Math.random() * 15)-7.5)/2;
+                random1 = (Math.floor( Math.random() * 15)-7.5)/2;
+            }else if(grade == 11 || grade == 5){
+                random0 = (Math.floor( Math.random() * 40)-20)/2;
+                random1 = (Math.floor( Math.random() * 40)-20)/2;
+            }else if(grade == 6){
+                random0 = (Math.floor( Math.random() * 60)-30)/2;
+                random1 = (Math.floor( Math.random() * 60)-30)/2;
             }
             else if(grade >= 2){
-                random0 = Math.floor( Math.random() * 30)-15;
-                random1 = Math.floor( Math.random() * 30)-15;
+                random0 = (Math.floor( Math.random() * 30)-15)/2;
+                random1 = (Math.floor( Math.random() * 30)-15)/2;
             }
-            this.rad = Math.atan2(vector.y+random0, vector.x+random1);
-            this.moveTo(cannon.x+70+Math.cos(this.rad) * (pixelSize-6), cannon.y+(pixelSize/2)+Math.sin(this.rad) * (pixelSize-6));
-            this.applyImpulse(new b2Vec2(Math.cos(this.rad)*shotSpeed, Math.sin(this.rad)*shotSpeed));
+            this.moveTo(cannon.x+(cannon.width/2),cannon.y+(cannon.height/2))
+            var rad = (cannon.rotation+(random0+random1)) * (Math.PI / 180.0);
+            /*const vector = {
+                x: target.x - this.x,
+                y: target.y+4.7 - this.y
+            };*/
+            
+            var dx = (Math.cos(rad) * shotSpeed);
+            var dy = (Math.sin(rad) * shotSpeed);
+            this.moveTo(this.x+(base*3.2)*Math.cos(rad), this.y+(base*3.2)*Math.sin(rad));
+            /*this.rad = Math.atan2(vector.y+random0, vector.x+random1);
+            this.moveTo(cannon.x+70+Math.cos(this.rad) * (pixelSize-6), cannon.y+(pixelSize/2)+Math.sin(this.rad) * (pixelSize-6));*/
+            this.applyImpulse(new b2Vec2(dx, dy));
 
             this.onenterframe = function(){
-                if(deleteFlg == true){
-                    this.destroy();
-                    scene.removeChild(this);
-                } 
                 this.time++
                 if(this.time % 10 == 0) new Smoke(this,scene)
                 if(this.time > 1){
@@ -1358,6 +1375,34 @@ window.onload = function() {
         initialize: function(cannon,num,scene,player){
             Sprite.call(this,20,20);
             //this.backgroundColor = "#0f0a"
+            let speed = 32;
+            //this.rotation = 45;
+            let target;
+            this.onenterframe = function(){
+                if(deadFlgs[num] == true){
+                    scene.removeChild(this);
+                }
+                target = enemyTarget[num]
+                let rad = (target.rotation) * (Math.PI / 180.0);
+                let dx = Math.cos(rad) * (target.width/2);
+                let dy = Math.sin(rad) * (target.height/2);
+                let prediction = [(target.x+target.width/2)+dx-(this.width/2),(target.y+target.height/2)+dy-(this.height/2)];
+                this.rotation = ((Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                if(this.intersect(target)==false){
+                    var vector = {
+                        x: target.x - this.x,
+                        y: target.y - this.y
+                    };
+                    this.rad = Math.atan2(vector.y, vector.x);
+                    this.moveTo(this.x + Math.cos(this.rad)*speed,this.y + Math.sin(this.rad)*speed)
+                }else if(this.intersect(target)==true){
+                    this.moveTo(prediction[0],prediction[1]);
+                }
+                
+            }
+            scene.addChild(this);
+            /*Sprite.call(this,20,20);
+            //this.backgroundColor = "#0f0a"
             let speed = 24;
             this.rotation = (45)
             let target;
@@ -1406,7 +1451,7 @@ window.onload = function() {
                     }
                 }
             }
-            scene.addChild(this);
+            scene.addChild(this);*/
         }
     })
     /* 経路探索アルゴリズム */
