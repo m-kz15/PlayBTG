@@ -2786,65 +2786,66 @@ window.onload = function() {
                                 weak.rotation = rot;
                             }
                         }
-                    }
-                    for(let i = 0; i < tankDir.length; i++){
-                        if(deadFlgs[i]==false && i != Num){
-                            if(this.intersect(tankDir[i][0])==true){
-                                this.moveTo(this.x,tankDir[i][0].y-60)
-                            }
-                            if(this.intersect(tankDir[i][1])==true){
-                                this.moveTo(this.x,tankDir[i][1].y+(tankDir[i][1].height))
-                            }
-                            if(this.intersect(tankDir[i][2])==true){
-                                this.moveTo(tankDir[i][2].x-60,this.y)
-                            }
-                            if(this.intersect(tankDir[i][3])==true){
-                                this.moveTo(tankDir[i][3].x+(tankDir[i][3].width),this.y)
+                        for(let i = 0; i < tankDir.length; i++){
+                            if(deadFlgs[i]==false && i != Num){
+                                if(this.intersect(tankDir[i][0])==true){
+                                    this.moveTo(this.x,tankDir[i][0].y-60)
+                                }
+                                if(this.intersect(tankDir[i][1])==true){
+                                    this.moveTo(this.x,tankDir[i][1].y+(tankDir[i][1].height))
+                                }
+                                if(this.intersect(tankDir[i][2])==true){
+                                    this.moveTo(tankDir[i][2].x-60,this.y)
+                                }
+                                if(this.intersect(tankDir[i][3])==true){
+                                    this.moveTo(tankDir[i][3].x+(tankDir[i][3].width),this.y)
+                                }
                             }
                         }
-                    }
-                    for(let i = 0; i < obsdir.length; i++){
-                        if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
-                            this.moveTo(this.x,obsdir[i][0].y-60)
+                        for(let i = 0; i < obsdir.length; i++){
+                            if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
+                                this.moveTo(this.x,obsdir[i][0].y-60)
+                                hittingTime++;
+                                now = value;
+                            }
+                            if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
+                                this.moveTo(this.x,obsdir[i][1].y+(obsdir[i][1].height))
+                                hittingTime++;
+                                now = value;
+                            }
+                            if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
+                                this.moveTo(obsdir[i][2].x-60,this.y)
+                                hittingTime++;
+                                now = value;
+                            }
+                            if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
+                                this.moveTo(obsdir[i][3].x+(obsdir[i][3].width),this.y)
+                                hittingTime++;
+                                now = value;
+                            }
+                        }
+                        if(this.intersect(walls[0])==true){
+                            this.moveTo(this.x,walls[0].y+walls[0].height)
                             hittingTime++;
                             now = value;
                         }
-                        if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                            this.moveTo(this.x,obsdir[i][1].y+(obsdir[i][1].height))
+                        if(this.intersect(walls[1])==true){
+                            this.moveTo(this.x,walls[1].y-walls[1].height+2)
                             hittingTime++;
                             now = value;
                         }
-                        if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
-                            this.moveTo(obsdir[i][2].x-60,this.y)
+                        if(this.intersect(walls[2])==true){
+                            this.moveTo(walls[2].x+walls[2].width,this.y)
                             hittingTime++;
                             now = value;
                         }
-                        if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                            this.moveTo(obsdir[i][3].x+(obsdir[i][3].width),this.y)
+                        if(this.intersect(walls[3])==true){
+                            this.moveTo(walls[3].x-walls[3].width+2,this.y)
                             hittingTime++;
                             now = value;
                         }
                     }
-                    if(this.intersect(walls[0])==true){
-                        this.moveTo(this.x,walls[0].y+walls[0].height)
-                        hittingTime++;
-                        now = value;
-                    }
-                    if(this.intersect(walls[1])==true){
-                        this.moveTo(this.x,walls[1].y-walls[1].height+2)
-                        hittingTime++;
-                        now = value;
-                    }
-                    if(this.intersect(walls[2])==true){
-                        this.moveTo(walls[2].x+walls[2].width,this.y)
-                        hittingTime++;
-                        now = value;
-                    }
-                    if(this.intersect(walls[3])==true){
-                        this.moveTo(walls[3].x-walls[3].width+2,this.y)
-                        hittingTime++;
-                        now = value;
-                    }
+                    
                 }
             }
             scene.insertBefore(this,target)
