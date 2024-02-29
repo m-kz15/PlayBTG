@@ -829,7 +829,7 @@ window.onload = function() {
     var AnotherAim = Class.create(Sprite,{
         initialize: function(target,cannon,ref,num,scene){
             Sprite.call(this,8,8);
-            this.backgroundColor = "#f00";
+            //this.backgroundColor = "#f00";
             this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
             this.time = 0;
             var rad = (cannon.rotation) * (Math.PI / 180.0);
