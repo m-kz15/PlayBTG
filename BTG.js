@@ -5171,7 +5171,7 @@ window.onload = function() {
                 [colorsName[4],'　弾数　：'+(cateMaxBullets[4]+addBullet),"　弾速　：速い","跳弾回数：2","移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
                 [colorsName[3],'　弾数　：'+(cateMaxBullets[3]+addBullet),"　弾速　：普通","跳弾回数：0","移動速度：普通","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
                 [colorsName[5],'　弾数　：'+(cateMaxBullets[5]+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：普通","・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
-                [colorsName[7],'　弾数　：'+(cateMaxBullets[7]+addBullet),"　弾速　：とても速い","跳弾回数：2","移動速度：速い","・Greenの強化個体。<br>　火力が高すぎて自滅も多々ある。"],
+                [colorsName[7],'　弾数　：'+(cateMaxBullets[7]+addBullet),"　弾速　：とても速い","跳弾回数：3","移動速度：動かない","・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
                 [colorsName[6],'　弾数　：'+(cateMaxBullets[6]+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：遅い","・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
                 [colorsName[8],'　弾数　：'+(cateMaxBullets[8]+addBullet),"　弾速　：とても速い","跳弾回数：2","移動速度：とても速い","・簡潔にいうと爆弾魔。<br>　爆弾を設置しないと攻撃してこない。"],
                 [colorsName[9],'　弾数　：'+(cateMaxBullets[9]+addBullet),"　弾速　：速い","跳弾回数：0","移動速度：動かない","・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
