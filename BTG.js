@@ -5521,7 +5521,7 @@ window.onload = function() {
                     }else{
                         tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                     }
-                }else if(addBullet != 0 && (stageData[i][10] == 5)){
+                }else if(addBullet != 0 && stageData[i][10] == 2 && stageData[i][9] > 2){
                     tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                 }else if(stageData[i][9]>2){
                     if(stageData[i][10]==5 || stageData[i][10] == 4){
