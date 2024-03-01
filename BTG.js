@@ -2224,7 +2224,8 @@ window.onload = function() {
                         //  死亡判定処理
                         for(var j = 0; j < bulOb.length; j++){
                             for(var k = 0; k < bulOb[j].length; k++){
-                                if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
+                                if(defeat == false && dist < 28 && bulStack[j][k] == true){
                                     game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                     deadFlgs[Num] = true
                                     bulStack[j][k] = false;
@@ -2233,6 +2234,9 @@ window.onload = function() {
                                     bulOb[j][k].moveTo(-200,-200)
                                     moveSpeed = 0;
                                 }
+                                /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                    
+                                }*/
                             }
                         }
                         if(tankStopFlg == true)tankStopFlg = false;
@@ -2679,7 +2683,24 @@ window.onload = function() {
                         scene.removeChild(weak)
                         scene.removeChild(this)
                     }
-
+                    //  死亡判定処理
+                    for(var j = 0; j < bulOb.length; j++){
+                        for(var k = 0; k < bulOb[j].length; k++){
+                            let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
+                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                deadFlgs[Num] = true
+                                bulStack[j][k] = false;
+                                colOb[j][k].destroy()
+                                colOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)
+                                moveSpeed = 0;
+                            }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
+                        }
+                    }
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -2742,20 +2763,6 @@ window.onload = function() {
                                         bomFlg = false;
                                         bomOb[Num][0] = new Bom(this,Num,scene);
                                         boms[Num] = 0
-                                    }
-                                }
-                            }
-
-                            for(var j = 0; j < bulOb.length; j++){
-                                for(var k = 0; k < bulOb[j].length; k++){
-                                    if(tank.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
-                                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                                        deadFlgs[Num] = true
-                                        colOb[j][k].destroy()
-                                        colOb[j][k].moveTo(-200,-200)
-                                        bulOb[j][k].moveTo(-200,-200)
-                                        bulStack[j][k] = false;
-                                        moveSpeed = 0;
                                     }
                                 }
                             }
@@ -3253,6 +3260,24 @@ window.onload = function() {
             this.onenterframe = function(){
                 
                 if(life > 0){
+                    //  死亡判定処理
+                    for(var j = 0; j < bulOb.length; j++){
+                        for(var k = 0; k < bulOb[j].length; k++){
+                            let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
+                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                deadFlgs[Num] = true
+                                bulStack[j][k] = false;
+                                colOb[j][k].destroy()
+                                colOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)
+                                moveSpeed = 0;
+                            }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
+                        }
+                    }
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -3316,8 +3341,8 @@ window.onload = function() {
                                 shotNGflg = false;
                                 fireFlgs[Num] = false;
                             }
-
-                            for(var j = 0; j < bulOb.length; j++){
+                            
+                            /*for(var j = 0; j < bulOb.length; j++){
                                 for(var k = 0; k < bulOb[j].length; k++){
                                     if(tank.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
                                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
@@ -3329,7 +3354,7 @@ window.onload = function() {
                                         moveSpeed = 0;
                                     }
                                 }
-                            }
+                            }*/
                             
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
@@ -3684,7 +3709,24 @@ window.onload = function() {
             this.onenterframe = function(){
                 
                 if(life > 0){
-                    
+                    //  死亡判定処理
+                    for(var j = 0; j < bulOb.length; j++){
+                        for(var k = 0; k < bulOb[j].length; k++){
+                            let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
+                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                deadFlgs[Num] = true
+                                bulStack[j][k] = false;
+                                colOb[j][k].destroy()
+                                colOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)
+                                moveSpeed = 0;
+                            }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
+                        }
+                    }
                     if(deleteFlg == true){
                         this.moveTo(-100,-100)
                         scene.removeChild(intercept7);
@@ -3701,20 +3743,6 @@ window.onload = function() {
                             if(this.time % 10 == 0 && aimingTime > 0 && fireFlgs[Num]==false) aimingTime--;
                             shotNGflg = false;
                             fireFlgs[Num] = false;
-
-                            for(var j = 0; j < bulOb.length; j++){
-                                for(var k = 0; k < bulOb[j].length; k++){
-                                    if(tank.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
-                                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                                        deadFlgs[Num] = true
-                                        colOb[j][k].destroy()
-                                        colOb[j][k].moveTo(-200,-200)
-                                        bulOb[j][k].moveTo(-200,-200)
-                                        bulStack[j][k] = false;
-                                        moveSpeed = 0;
-                                    }
-                                }
-                            }
                             
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
@@ -4030,7 +4058,24 @@ window.onload = function() {
                 
                 
                 if(life > 0){
-
+                    //  死亡判定処理
+                    for(var j = 0; j < bulOb.length; j++){
+                        for(var k = 0; k < bulOb[j].length; k++){
+                            let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
+                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                deadFlgs[Num] = true
+                                bulStack[j][k] = false;
+                                colOb[j][k].destroy()
+                                colOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)
+                                moveSpeed = 0;
+                            }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
+                        }
+                    }
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -4059,19 +4104,6 @@ window.onload = function() {
 
                         if(deadFlgs[0] == false){
                             if(intercept8.rotation != this.rotation+45)intercept8.rotation = this.rotation+45;
-                            for(var j = 0; j < bulOb.length; j++){
-                                for(var k = 0; k < bulOb[j].length; k++){
-                                    if((weak.intersect(bulOb[j][k])==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
-                                        game.assets['./sound/mini_bomb2.mp3'].play();
-                                        deadFlgs[Num] = true
-                                        colOb[j][k].destroy()
-                                        colOb[j][k].moveTo(-200,-200)
-                                        bulOb[j][k].moveTo(-200,-200)
-                                        bulStack[j][k] = false;
-                                        moveSpeed = 0;    
-                                    }
-                                }
-                            }
 
                             if(hittingTime>15 && escapeFlg == false){
                                 let val = value;
