@@ -5402,7 +5402,7 @@ window.onload = function() {
             /* カーソルの設置＆位置取得処理 */
             cur = new Cursor(scene);
             document.addEventListener('mousemove', function(e) {
-                cur.x = (e.x-36)*2.65-120;
+                cur.x = (e.x-36)*2.7-240;
                 cur.y = (e.y)*2.65;
             })
             scene.addEventListener('touchmove',function(e){
@@ -6137,7 +6137,7 @@ window.onload = function() {
             cur = new Cursor(scene);
             
             document.addEventListener('mousemove', function(e) {
-                cur.x = (e.x-36)*2.65-120;
+                cur.x = (e.x-36)*2.7-240;
                 cur.y = (e.y)*2.65;
             })
             scene.addEventListener('touchmove',function(e){
