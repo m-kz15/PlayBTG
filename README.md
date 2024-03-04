@@ -12,3 +12,7 @@ PC以外でのプレイでは操作ができません。<br><br>
 -------------------------------------------------------<br>
 <a href="https://m-kz15.github.io/PlayBTG/indexTest.html">https://m-kz15.github.io/PlayBTG/indexTest.html</a> <br>
 -------------------------------------------------------<br>
+
+-------------------------------------------------------<br>
+<a href="https://m-kz15.github.io/PlayBTG/index.html">https://m-kz15.github.io/PlayBTG/index.html</a> <br>
+-------------------------------------------------------<br>
