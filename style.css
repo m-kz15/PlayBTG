@@ -1,0 +1,112 @@
+* {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    position: relative;
+    background-color: #222;
+    text-align: center;
+  } 
+  
+#button1{
+    position: absolute;
+    top: 30px;
+    left: 0px;
+    width: 80px;
+    font-size: 6px;
+}
+#button2{
+    position: absolute;
+    top: 50px;
+    left: 0px;
+    width: 80px;
+    font-size: 6px;
+}
+
+  /*ゲーム画面*/
+  #enchant-stage {
+    display: block;
+    margin: 0 120px;
+  }
+  
+  /*v-padの背景*/
+  #pad {
+    position: relative;
+    margin: 0 auto;
+    z-index: 100;
+    pointer-events: none;/*ボードはイベント発生させない*/
+    background-color: #FFFFE0;   
+  }
+  .button {
+    position: absolute;
+    pointer-events: auto;
+    border: solid 2px gray;
+    background-color: rgba(50, 50, 50, 0.2);
+  }
+  .button p {
+    height: 100%;
+    width: 100%;
+    pointer-events: none;
+    color: gray;
+    font-size: 1rem;
+    display: flex; 
+    justify-content: center; 
+    align-items: center;  
+    opacity: 0.5;
+  }
+  .dir-key {
+    position: absolute;
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+  
+  .dir-key .dir {
+    height: calc(100%-2px);
+    width: calc(100%-2px);
+    background-color: rgba(50, 50, 50, 0.2);
+    border: solid 2px gray;
+    pointer-events: none;
+  }
+  
+  .dir.up {
+    grid-row: 1;
+    grid-column: 2;
+    border-bottom: none;
+    border-radius: 20% 20% 0 0;
+  }
+  .dir.down {
+    grid-row: 3;
+    grid-column: 2;
+    border-top: none;
+    border-radius:0 0 20% 20% ;
+  }
+  .dir.right {
+    grid-row: 2;
+    grid-column: 3;
+    border-left: none;
+    border-radius: 0 20% 20% 0;
+  }
+  .dir.left {
+    grid-row: 2;
+    grid-column: 1;
+    border-right: none;
+    border-radius: 20% 0 0 20% ;
+  }
+  .dir.mid {
+    grid-row: 2;
+    grid-column: 2;
+    border: none;
+    position: relative;
+  }
+  .mid .circle {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    top: 10%;
+    right: 10%;
+    background-color: rgba(50, 50, 50, 0.1);
+    pointer-events: none;
+  }

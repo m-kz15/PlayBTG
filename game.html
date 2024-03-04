@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex" />
+    <script type="text/javascript" src="./enchant/enchant.js"></script>
+    <script type="text/javascript" src="./enchant/Box2dWeb-2.1.a.3.js"></script>
+    <script type="text/javascript" src="./enchant/box2d.enchant.js"></script>
+    <script type="text/javascript" src="./enchant/ui.enchant.js"></script>
+    <link type="text/css" rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="BTG_min.js"></script>
+    <script>
+		window.addEventListener('load', function(){
+            
+			// フルスクリーン表示
+			document.getElementById('button1').addEventListener('click', function(){
+
+				// Chrome & Firefox v64以降
+				if( document.body.requestFullscreen ) {
+         				document.body.requestFullscreen();
+                        
+				// Firefox v63以前
+				} else if( document.body.mozRequestFullScreen ) {
+					document.body.mozRequestFullScreen();
+
+				// Safari & Edge & Chrome v68以前
+				} else if( document.body.webkitRequestFullscreen ) {
+					document.body.webkitRequestFullscreen();
+          
+				// IE11
+				} else if( document.body.msRequestFullscreen ) {
+					document.body.msRequestFullscreen();
+				}				
+			});
+
+			// フルスクリーン解除
+			document.getElementById('button2').addEventListener('click', function(){
+        
+				// Chrome & Firefox v64以降
+				if( document.exitFullscreen ) {
+					document.exitFullscreen();
+
+
+				// Firefox v63以前
+				} else if( document.mozCancelFullScreen ) {
+					document.mozCancelFullScreen();
+
+				// Safari & Edge & Chrome v44以前
+				} else if( document.webkitCancelFullScreen ) {
+					document.webkitCancelFullScreen();
+
+				// IE11
+				} else if( document.msExitFullscreen ) {
+					document.msExitFullscreen();
+				}
+			});
+		});
+	</script>
+    <script>
+        if (window == top.window) location.href = "index.html"; //万が一直接ここを読み込まれたとき、index.htmlに戻す
+    </script>
+</head>
+<body>
+    <button id="button1">フルスクリーン表示</button>
+    <button id="button2">解除</button>
+</body>
+</html>
