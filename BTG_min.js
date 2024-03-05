@@ -2264,20 +2264,24 @@ window.onload = function() {
                         }
                     }
                 })
+            }else{
+                scene.addEventListener('touchstart', function(){
+                    cur.x = (e.x);
+                    cur.y = (e.y);
+                })
             }
             //  常に稼働する処理
             this.onenterframe = function(){
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)          //  戦車を移動
+                    //  各パーツと本体の消去
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
 
-                    if(deleteFlg == true){
-                        this.moveTo(-100,-100)          //  戦車を移動
-                        //  各パーツと本体の消去
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
-                    }
-                    
                     //  稼働しても良いなら
                     if(worldFlg == true){
                         if(shotStopFlg == true){
@@ -2311,12 +2315,7 @@ window.onload = function() {
                             new Explosion(this,scene);      //  車体の爆破エフェクト生成
                             this.moveTo(-100,-100)          //  戦車を移動
                             zanki--;                        //  残機を減らす
-                            //  各パーツと本体の消去
-                            scene.removeChild(tank)
-                            scene.removeChild(cannon)
-                            scene.removeChild(weak)
                             life--;
-                            scene.removeChild(this)
                         }
                         if(scene.time > 210){
                             if(shotStopFlg == false){
@@ -2588,7 +2587,18 @@ window.onload = function() {
             
             //  常に処理する
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100);
+                    scene.removeChild(intercept)
+                    scene.removeChild(intercept1);
+                    scene.removeChild(intercept3);
+                    scene.removeChild(intercept4);
+                    scene.removeChild(intercept8);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this);
+                }
                 //  死んでいなければ処理
                 if(life > 0){
                     //  死亡判定処理
@@ -2612,18 +2622,7 @@ window.onload = function() {
                     //  死亡判定がfalseなら
                     if(deadFlgs[Num]==false){
                         
-                        if(deleteFlg == true){
-                            this.moveTo(-100,-100);
-                            scene.removeChild(intercept)
-                            scene.removeChild(intercept1);
-                            scene.removeChild(intercept3);
-                            scene.removeChild(intercept4);
-                            scene.removeChild(intercept8);
-                            scene.removeChild(tank)
-                            scene.removeChild(cannon)
-                            scene.removeChild(weak)
-                            scene.removeChild(this);
-                        }
+                        
                         
                         if(tankStopFlg == true)tankStopFlg = false;
                         fireFlgs[Num] = false;  //  発射状態をリセット
@@ -2898,17 +2897,8 @@ window.onload = function() {
                         markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100);
-                        scene.removeChild(intercept)
-                        scene.removeChild(intercept1);
-                        scene.removeChild(intercept3);
-                        scene.removeChild(intercept4);
-                        scene.removeChild(intercept8);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
                         destruction++
                         life--;
-                        scene.removeChild(this);
                     }
                 }
             }
@@ -3058,17 +3048,17 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept7);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
                     
-                    if(deleteFlg == true){
-                        this.moveTo(-100,-100)
-                        scene.removeChild(intercept7);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
-                    }
+                    
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
@@ -3161,13 +3151,8 @@ window.onload = function() {
                                 markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
-                                scene.removeChild(intercept7);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
                                 destruction++
                                 life--;
-                                scene.removeChild(this)
                             }
 
                             intercept7.intersect(Floor).forEach(function(){
@@ -3644,7 +3629,14 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                
+                if(deadFlgs[Num] == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept7);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)                        
+                }
                 if(life > 0){
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
@@ -3750,13 +3742,8 @@ window.onload = function() {
                                 markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
-                                scene.removeChild(intercept7);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
                                 destruction++
                                 life--;
-                                scene.removeChild(this)
                             }
 
                             intercept7.intersect(Floor).forEach(function(){
@@ -4093,7 +4080,14 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept7);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
@@ -4113,14 +4107,7 @@ window.onload = function() {
                             }*/
                         }
                     }
-                    if(deleteFlg == true){
-                        this.moveTo(-100,-100)
-                        scene.removeChild(intercept7);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
-                    }
+                    
   
                     if(worldFlg == true){
                         this.time++;
@@ -4136,13 +4123,8 @@ window.onload = function() {
                                 markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
-                                scene.removeChild(intercept7);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
                                 destruction++
                                 life--;
-                                scene.removeChild(this)
                             }
                             new EnemyAim();
                             EnemyAim.intersect(target).forEach(function(){
@@ -4442,7 +4424,19 @@ window.onload = function() {
             }
             this.onenterframe = function(){
                 
-                
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept3);
+                    scene.removeChild(intercept4);
+                    scene.removeChild(intercept5);
+                    scene.removeChild(intercept6);
+                    scene.removeChild(intercept7);
+                    scene.removeChild(intercept8);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }    
                 if(life > 0){
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
@@ -4470,19 +4464,7 @@ window.onload = function() {
                         }
                     }
 
-                    if(deleteFlg == true){
-                        this.moveTo(-100,-100)
-                        scene.removeChild(intercept3);
-                        scene.removeChild(intercept4);
-                        scene.removeChild(intercept5);
-                        scene.removeChild(intercept6);
-                        scene.removeChild(intercept7);
-                        scene.removeChild(intercept8);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
-                    }
+                    
                     
                     
                     if(worldFlg == true){
@@ -4583,18 +4565,8 @@ window.onload = function() {
                                 markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
-                                scene.removeChild(intercept3);
-                                scene.removeChild(intercept4);
-                                scene.removeChild(intercept5);
-                                scene.removeChild(intercept6);
-                                scene.removeChild(intercept7);
-                                scene.removeChild(intercept8);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
                                 destruction++
                                 life--;
-                                scene.removeChild(this)
                             }
                             
                             /*avoids.forEach(elem=>{
@@ -5233,7 +5205,17 @@ window.onload = function() {
             scene.addChild(this)
         }
     })
-    
+    function isFullScreen() {
+        if ((document.fullscreenElement !== undefined && document.fullscreenElement !== null) || // HTML5 標準
+            (document.mozFullScreenElement !== undefined && document.mozFullScreenElement !== null) || // Firefox
+            (document.webkitFullscreenElement !== undefined && document.webkitFullscreenElement !== null) || // Chrome・Safari
+            (document.webkitCurrentFullScreenElement !== undefined && document.webkitCurrentFullScreenElement !== null) || // Chrome・Safari (old)
+            (document.msFullscreenElement !== undefined && document.msFullscreenElement !== null)){ // IE・Edge Legacy
+            return true; // fullscreenElement に何か入ってる = フルスクリーン中
+        } else {
+            return false; // フルスクリーンではない or フルスクリーン非対応の環境（iOS Safari など）
+        }
+    }
     // ゲームの準備が整ったらメインの処理を実行
     game.onload = function() { 
         var world = new PhysicsWorld(0, 0);
@@ -5402,7 +5384,7 @@ window.onload = function() {
             /* カーソルの設置＆位置取得処理 */
             cur = new Cursor(scene);
             document.addEventListener('mousemove', function(e) {
-                cur.x = (e.x-36)*2.7-240;
+                cur.x = (e.x-36)*2.70-240;
                 cur.y = (e.y)*2.65;
             })
             scene.addEventListener('touchmove',function(e){
@@ -5442,7 +5424,7 @@ window.onload = function() {
                 tutorialLabel.height = 72;
                 tutorialLabel.x = pixelSize;
                 tutorialLabel.y = pixelSize*14;
-                tutorialLabel.text = '※チュートリアル中はEscapeキーでタイトルに戻れます';
+                tutorialLabel.text = '※チュートリアル中はStartボタンでタイトルに戻れます';
                 tutorialLabel.font = '32px "Arial"';
                 tutorialLabel.color = 'yellow';
                 tutorialLabel.textAlign = 'left';
@@ -5499,12 +5481,12 @@ window.onload = function() {
                 
             }
             new DispLine(0,pixelSize*9,pixelSize*20,pixelSize*8,"#000000ee",scene)
-            new DispText(pixelSize,pixelSize*10,pixelSize*18,pixelSize/2,  '　移動　：WASDキー　（斜め移動可）　　　　砲撃で発射される弾は','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*10.5,pixelSize*18,pixelSize/2,'　　　　　（W：上　A:左　S:下　D:右）　　  壁に当たると跳ね返ります。','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*11,pixelSize*18,pixelSize/2,  '　照準　：十字キー、またはカーソル移動　　','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*11.5,pixelSize*18,pixelSize/2,'　砲撃　：左クリック、またはスペースキー　　跳ね返った弾にも判定があるので','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*12,pixelSize*18,pixelSize/2,  '爆弾設置：Qキー　　　　　　　　　　　　　    自滅には注意してください。','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*12.5,pixelSize*18,pixelSize/2,'一時停止：Escapeキー　　　　　　　　　　　','24px sans-serif','white','left',scene)
+            new DispText(pixelSize,pixelSize*10,pixelSize*18,pixelSize/2,  '　移動　：左の十字パッド　（斜め移動可）　　　　　　砲撃で発射される弾は','24px sans-serif','white','left',scene)
+            new DispText(pixelSize,pixelSize*10.5,pixelSize*18,pixelSize/2,'　　　　　　　　　　　　　　　　　　　　　　 　　　  壁に当たると跳ね返ります。','24px sans-serif','white','left',scene)
+            new DispText(pixelSize,pixelSize*11,pixelSize*18,pixelSize/2,  '　照準　：画面タップか画面スライド　　','24px sans-serif','white','left',scene)
+            new DispText(pixelSize,pixelSize*11.5,pixelSize*18,pixelSize/2,'　砲撃　：右側のAボタン　　　　　　　　　　　　　　跳ね返った弾にも判定があるので','24px sans-serif','white','left',scene)
+            new DispText(pixelSize,pixelSize*12,pixelSize*18,pixelSize/2,  '爆弾設置：右側のBボタン　　　　　　　　　　　　　    自滅には注意してください。','24px sans-serif','white','left',scene)
+            new DispText(pixelSize,pixelSize*12.5,pixelSize*18,pixelSize/2,'一時停止：Startボタン　　　　　　　　　','24px sans-serif','white','left',scene)
                 
             scene.onenterframe = function() {
                 scene.time++;
@@ -5709,7 +5691,7 @@ window.onload = function() {
             // 移動先をプレイ画面に設定
             toPlay.addEventListener(Event.TOUCH_START, function() {
                 let returnFlg = true;
-                while(returnFlg){
+                /*while(returnFlg){
                     userName = prompt("\r\nユーザ名を入力してください\r\n\r\n(ユーザ名を設定するとランキングにスコアが記録されます)", "ここにユーザ名を入力");
                     if(userName == "" || userName == null || userName == "ここにユーザ名を入力"){
                         if(confirm("\r\nユーザ名を設定していません。\r\nよろしいですか？")) {
@@ -5720,7 +5702,7 @@ window.onload = function() {
                         alert("ユーザ名を「" + userName + "」に設定しました。");
                         returnFlg = false;
                     }
-                }
+                }*/
 
                 flg = true
                 orflg = 1;
@@ -6168,6 +6150,8 @@ window.onload = function() {
                     stageData[i][10] = 10;
                 }else if(stageData[i][10] == 7){
                     tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
+                }else if(stageData[i][10]==5 || stageData[i][10] == 4){
+                    tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
                 }else if(stageData[i][9] >= 8){
                     if(stageData[i][10] == 11){
                         tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
@@ -6177,11 +6161,9 @@ window.onload = function() {
                 }else if(addBullet != 0 && (stageData[i][10] == 5)){
                     tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                 }else if(stageData[i][9]>2){
-                    if(stageData[i][10]==5 || stageData[i][10] == 4){
-                        tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
-                    }else{
-                        tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
-                    }
+                    
+                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
+                    
                 }else{
                     tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
                 }
@@ -6226,9 +6208,8 @@ window.onload = function() {
                         blackImg.backgroundColor = "#00000000"
                         worldFlg = true
                         pauseButtton.text ='';
-                        zanki = 1;
-                        deadFlgs[0] = true;
-                        
+                        zanki = 0;
+                        deleteFlg = true;
                     }
                 }
                 
@@ -6421,7 +6402,7 @@ window.onload = function() {
                     game.time++;
                     
                     
-                    if(destruction == tankEntity.length-1 && deadFlgs[0]==false && victory == false && complete == false){
+                    if((destruction == tankEntity.length-1 || zanki <= 0) && deadFlgs[0]==false && victory == false && complete == false){
                         scene.removeChild(pauseButtton)
                         scene.removeChild(blackImg)
                         scene.removeChild(retire)
@@ -6434,8 +6415,13 @@ window.onload = function() {
                             script.src = stagePath[stageNum+1];
                         let head = document.getElementsByTagName("head");
                             head[0].appendChild(script);
-                        //if(stageNum == stagePath.length-1 || stageNum == 20){
-                        if(stageNum % 20 == 0){
+                        if(zanki <= 0){
+                            scene.time = 0;
+                            new DispHead(100,60,360*3,180,"#a00",scene)
+                            new DispText(252,124,720,64,'ミッション終了！','bold 64px "Arial"','yellow','center',scene)
+                            score += destruction
+                            complete = true;
+                        }else if(stageNum % 20 == 0){
                             
                             scene.time = 0;
                             new DispHead(100,60,360*3,180,"#a00",scene)
@@ -6444,7 +6430,6 @@ window.onload = function() {
                             score += destruction
                             complete = true;
                         }else{
-                            
                             new DispText(360,300,720,64,'ミッションクリア！','bold 64px "Arial"','red','left',scene)
                             new DispScore(scene)
                             victory = true;
@@ -6469,201 +6454,103 @@ window.onload = function() {
                             BGM3.currentTime = 0;
                             BGM3.play()
                         }
-                    }
-                    if(complete == true && scene.time == 120){
-                        new DispBody(100,240,360*3,240*3,scene)
-                    }
-                    
-                    if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
-                        new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
-                        new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
-                        dcnt++;
-                    }
-                    if(complete == true && scene.time == 315){
-                        new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
-                    }
-                    
-                    if(complete == true && scene.time >= 345){
-                        var toTitle = new Label('➡タイトル画面へ');
-                            toTitle.moveTo(640,640);
-                            toTitle.width = 320*1.5;
-                            toTitle.height = 36;
-                            toTitle.font = '36px "Arial"';
-                            toTitle.color = '#400';
-                            toTitle.textAlign = 'center';
-                        var toProceed = new Label('➡さらなるステージへ...');
-                            toProceed.moveTo(640,720);
-                            toProceed.width = 320*1.5;
-                            toProceed.height = 36;
-                            toProceed.font = 'bold 36px "Arial"';
-                            toProceed.color = 'red';
-                            toProceed.textAlign = 'center';
-                        if(scene.time == 345){
-                            deleteFlg = true;
-                            scene.addChild(toTitle)
-                            if(stageNum != 100){
-                                scene.addChild(toProceed)
-                            }
+                        if(scene.time == 120){
+                            new DispBody(100,240,360*3,240*3,scene)
                         }
-                        toTitle.addEventListener(Event.TOUCH_START, function() {
+                        if(scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
+                            new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
+                            new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
+                            dcnt++;
+                        }
+                        if(scene.time == 315){
+                            new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
+                        }
+                        if(scene.time >= 345){
+                            var toTitle = new Label('➡タイトル画面へ');
+                                toTitle.moveTo(640,640);
+                                toTitle.width = 320*1.5;
+                                toTitle.height = 36;
+                                toTitle.font = '36px "Arial"';
+                                toTitle.color = '#400';
+                                toTitle.textAlign = 'center';
+                            var toProceed = new Label('➡さらなるステージへ...');
+                                toProceed.moveTo(640,720);
+                                toProceed.width = 320*1.5;
+                                toProceed.height = 36;
+                                toProceed.font = 'bold 36px "Arial"';
+                                toProceed.color = 'red';
+                                toProceed.textAlign = 'center';
+                            if(scene.time == 345){
+                                deleteFlg = true;
+                                scene.addChild(toTitle)
+                                if(stageNum != 100 && zanki > 0){
+                                    scene.addChild(toProceed)
+                                }
+                            }
+                            toTitle.addEventListener(Event.TOUCH_START, function() {
+                                
+                                game.stop()
+                                //location.href = "./game.html";
+                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
+                            });
+                            toProceed.addEventListener(Event.TOUCH_START, function() {
+                                complete = false;
+                                BGM3.stop()
+                                
+                                new FadeOut(scene)
+                                stageNum++;
+                                AllDelete();
+                                
+                                game.replaceScene(createStartScene())
+                            });
+                        }
+                    }else{
+                        if(deadFlgs[0]==true && defeat == false && zanki > 0){
+                            game.time = 0;
                             
-                            game.stop()
-                            //location.href = "./game.html";
-                            location.href = "https://m-kz15.github.io/PlayBTG/game.html";
-                        });
-                        toProceed.addEventListener(Event.TOUCH_START, function() {
-                            complete = false;
-                            BGM3.stop()
+                            defeat = true;
+                            BGM1.stop();
+                            scene.removeChild(pauseButtton)
+                            scene.removeChild(blackImg)
+                            scene.removeChild(retire)
+                        }
+                        if(defeat == true && zanki > 0 && game.time == 15){
                             
+                            BGM2 = game.assets['./sound/failed.mp3'].play()
+                        } 
+                        if((defeat == true || victory == true && zanki > 0) && game.time == 150){
                             new FadeOut(scene)
-                            stageNum++;
+                        }
+                        if((defeat == true || victory == true && zanki > 0) && game.time == 170){
+                            deleteFlg = true;
+                        }
+                        if(defeat==true && game.time == 180 && zanki > 0){
                             AllDelete();
                             
                             game.replaceScene(createStartScene())
-                        });
-                    }
-                    if(deadFlgs[0]==true && defeat == false){
-                        game.time = 0;
-                        
-                        defeat = true;
-                        BGM1.stop();
-                        scene.removeChild(pauseButtton)
-                        scene.removeChild(blackImg)
-                        scene.removeChild(retire)
-                    }
-                    if(defeat == true && game.time == 15){
-                        
-                        BGM2 = game.assets['./sound/failed.mp3'].play()
-                    } 
-                    if((defeat == true || victory == true) && game.time == 150){
-                        new FadeOut(scene)
-                    }
-                    if((defeat == true || victory == true) && game.time == 170){
-                        deleteFlg = true;
-                    }
-                    if(defeat==true && game.time == 180){
-                        AllDelete();
-                        
-                        if(zanki == 0){
-                            score += destruction; 
-                            game.replaceScene(createGameoverScene())
-                        }else{
-                            game.replaceScene(createStartScene())
+                        }
+                        if(victory == true && game.time == 15){
+                            
+                            BGM2 = game.assets['./sound/success.mp3'].play()
+                        }
+                        if(victory == true && game.time == 180 && complete==false){
+                            score += destruction
+                            stageNum++;
+                            AllDelete();
+                            
+                            if(stageNum % 6 == 0){
+                                game.replaceScene(createBonusScene())
+                            }else{
+                                game.replaceScene(createStartScene())
+                            }
                         }
                     }
-                    if(victory == true && game.time == 15){
-                        
-                        BGM2 = game.assets['./sound/success.mp3'].play()
-                    }
-                    if(victory == true && game.time == 180 && complete==false){
-                        score += destruction
-                        stageNum++;
-                        AllDelete();
-                        
-                        if(stageNum % 6 == 0){
-                            game.replaceScene(createBonusScene())
-                        }else{
-                            game.replaceScene(createStartScene())
-                        }
-                    }
-                }
-            }
-            return scene;
-        };
-        /* ゲームオーバーシーン */
-        var createGameoverScene = function() {
-    
-            let script = document.createElement("script");
-            script.src = stagePath[1];
-            let head = document.getElementsByTagName("head");
-            head[0].appendChild(script);
-            
-            stageData = LoadStage();    //ステージ情報引き出し      
-      
-            var scene = new Scene();                                   // 新しいシーンを作る
-            scene.time = 0;
-            scene.backgroundColor = '#303030';                         // シーンの背景色を設定
-    
-            // ゲームオーバー画像設定
-            var gameoverImage = new Sprite(256, 192);                   // スプライトを作る
-                gameoverImage.image = game.assets['./image/ObjectImage/gameover.png'];  // ゲームオーバー画像を設定
-                gameoverImage.x = 320*0.9;                                      // 横位置調整
-                gameoverImage.y = 240*1.0;                                     // 縦位置調整
-                gameoverImage.scaleX = 2.0;
-                gameoverImage.scaleY = 2.0;
-                scene.addChild(gameoverImage);                             // シーンに追加
-            // スコアラベル設定
-            new DispText(0,60,320*2.7,64,score+'両撃破した。','64px sans-serif','#fff','center',scene)
-            new DispHead(320*2.3,60,240*2.3,240*3.3,"#ddd4",scene)
-            
-            // リトライラベル(ボタン)設定
-            var retryLabel = new Label('➡もう一度遊ぶ');
-                retryLabel.moveTo(240*2,240*2.5);
-                retryLabel.width = 320*2;
-                retryLabel.height = 32;
-                retryLabel.font = '32px sans-serif';
-                retryLabel.color = '#fff';
-                retryLabel.textAlign = 'left';
-    
-            var homeLabel = new Label('➡タイトル画面へ');
-                homeLabel.moveTo(120,240*2.5);
-                homeLabel.width = 320*2;
-                homeLabel.height = 32;
-                homeLabel.font = '32px sans-serif';
-                homeLabel.color = '#fff';
-                homeLabel.textAlign = 'left';
 
-            obsdir = []
-            obsChk = []
-            obsNum = 0;
-            bulOb = [[]];       //戦車の弾情報を保持する配列
-            colOb = [[]];       //弾の物理判定を保持する配列
-            bomOb = [[]];       //爆弾の情報を保持する配列
-            bullets = [];       //各戦車の弾数の制御用の配列
-            boms = [];          //各戦車の爆弾設置制御用の配列
-            bulStack = [];
-            tankEntity = [];    //敵味方の戦車情報を保持する配列
-            entNum = 0;         //戦車の連番設定用変数
-            floors = [];        //ステージの障害物を保持する配列
-            walls = [];         //ステージの壁を保持する配列
-            holes = [];         //ステージの穴を保持する配列
-            deadFlgs = [];      //戦車の生存確認   
-            tankColorCounts = [0,0,0,0,0,0,0,0,0,0,0,0];
-            fireFlgs = [];      //敵の砲撃制御
-            stageNum = 1;       //ステージ番号
-            zanki = 5;          //プレイヤーの残機
-            score = 0;          //総撃破数
-            destruction = 0;    //ステージごとの撃破数
-            worldFlg = false;   //ゲームのon/off制御ボタン
-            victory = false;    //勝利判定
-            defeat = false;     //敗北判定
-            complete = false;   //攻略完了判定
-    
-            // リトライラベルにタッチイベントを設定
-            retryLabel.addEventListener(Event.TOUCH_START, function(e) {
-                zanki = 5;
-                stageNum = 1;
-                game.replaceScene(createStartScene());    // 現在表示しているシーンをタイトルシーンに置き換える
-            });
-            homeLabel.addEventListener(Event.TOUCH_START, function(e) {
-                zanki = 5;
-                stageNum = 1;
-                game.stop()
-                
-                //location.href = "./game.html";
-                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
-                game.replaceScene(createTitleScene());    // 現在表示しているシーンをタイトルシーンに置き換える
-            });
-            scene.onenterframe=function(){
-                scene.time++
-                if(scene.time == 150){
-                    scene.addChild(retryLabel);                                // シーンに追加
-                    scene.addChild(homeLabel);                                // シーンに追加
+                    
                 }
             }
             return scene;
         };
-        
         game.replaceScene(createSetUpScene());  // ゲームの_rootSceneをスタートシーンに置き換える
         
     }
@@ -6671,8 +6558,28 @@ window.onload = function() {
     /* 画面外をクリックしても操作できるようにする処理 */
     game.onenterframe = function(){
         
-        if(game.time % 5 == 0){
+        if(game.time % 5 == 0 && game.time > 0){
             window.focus();
+            // フルスクリーン表示
+            if(!isFullScreen()){
+                // Chrome & Firefox v64以降
+                if( document.body.requestFullscreen ) {
+                    document.body.requestFullscreen();
+                        
+                // Firefox v63以前
+                } else if( document.body.mozRequestFullScreen ) {
+                document.body.mozRequestFullScreen();
+
+                // Safari & Edge & Chrome v68以前
+                } else if( document.body.webkitRequestFullscreen ) {
+                document.body.webkitRequestFullscreen();
+
+                // IE11
+                } else if( document.body.msRequestFullscreen ) {
+                document.body.msRequestFullscreen();
+                }
+            }
+			
         }
         
     }
