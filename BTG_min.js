@@ -731,7 +731,7 @@ window.onload = function() {
     /* ステージ幅：20ブロック　高さ：15ブロック */
     const game = new Game(pixelSize*stage_w,pixelSize*stage_h);
     inputManager = new InputManager();
-    game.fps = 60;      //画面の更新頻度
+    game.fps = 120;      //画面の更新頻度
     game.preload(       //画像や音源を準備
         './image/ObjectImage/tank2.png',
         './image/ObjectImage/cannon.png',
@@ -1394,7 +1394,7 @@ window.onload = function() {
             this.moveTo(cannon.x+(cannon.width/2)-2.25,cannon.y+(cannon.height/2)-3)
             var rad = (cannon.rotation+(random0+random1)) * (Math.PI / 180.0);
             this.moveTo(this.x+(base*3.2)*Math.cos(rad), this.y+(base*3.2)*Math.sin(rad));
-            this.applyImpulse(new b2Vec2(Math.cos(rad) * shotSpeed, Math.sin(rad) * shotSpeed));
+            this.applyImpulse(new b2Vec2(Math.cos(rad) * (shotSpeed*2), Math.sin(rad) * (shotSpeed*2)));
 
             this.onenterframe = function(){
                 this.time++
