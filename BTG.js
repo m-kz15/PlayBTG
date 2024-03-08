@@ -25,6 +25,7 @@ var refNum = 0;
 
 var tankEntity = [];    //敵味方の戦車情報を保持する配列
 var tankDir = []
+var weeks = [];
 var markEntity = [];
 var bulOb = [[]];       //戦車の弾情報を保持する配列
 var colOb = [[]];       //弾の物理判定を保持する配列
@@ -1172,10 +1173,10 @@ window.onload = function() {
                     }
                     
                 }
-                if(this.time > 30 && defeat == false && victory == false && complete == false){
+                if(this.time > 30){
                     for(let i = 0; i < tankEntity.length; i++){
                         if(bulStack[num][value]==true && deadFlgs[i]==false){
-                            if(this.intersect(tankEntity[i])==true){
+                            if(this.intersect(weeks[i])==true && defeat == false && victory == false && complete == false){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[i] = true
                                 bulStack[num][value] = false;
@@ -1183,6 +1184,7 @@ window.onload = function() {
                                 this.moveTo(-200,-200)
                                 colOb[num][value].destroy()
                                 scene.removeChild(this);
+                                break;
                             }
                         }
                     }
@@ -1860,6 +1862,7 @@ window.onload = function() {
             const weak = new Weak(this,Num,scene)                       //  弱点
             const cannon = new Cannon(this,path2,Num,scene,filterMap)   //  砲塔
             const tank = new Tank(this,path1,Num,scene,cannon)          //  車体
+            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -2126,6 +2129,7 @@ window.onload = function() {
             const weak = new Weak(this,Num,scene)                           //  弱点生成
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)  //  砲塔生成
             const tank = new Tank(this,tankPath,Num,scene,cannon)           //  車体生成
+            weeks[Num] = weak;
             TankFrame(this,Num,scene)
             
             markEntity[Num] = null;
@@ -2540,6 +2544,7 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -3116,6 +3121,7 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -3641,6 +3647,7 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             cannon.rotation = 0;
@@ -3850,6 +3857,7 @@ window.onload = function() {
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
             const tank = new Tank(this,tankPath,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -5309,6 +5317,7 @@ window.onload = function() {
             entVal = 0;         //戦車の連番設定用変数
             tankEntity = [];    //戦車情報を保持する配列
             tankDir = [];
+            weeks = [];
             markEntity = [];
             deadFlgs = [];      //戦車の生存確認 
             fireFlgs = [];      //敵の砲撃制御
