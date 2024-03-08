@@ -1172,16 +1172,18 @@ window.onload = function() {
                     }
                     
                 }
-                for(let i = 0; i < tankEntity.length; i++){
-                    if(bulStack[num][value]==true && deadFlgs[i]==false){
-                        if(this.intersect(tankEntity[i])==true){
-                            game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                            deadFlgs[i] = true
-                            bulStack[num][value] = false;
-                            colOb[num][value].moveTo(-200,-200)
-                            this.moveTo(-200,-200)
-                            colOb[num][value].destroy()
-                            scene.removeChild(this);
+                if(this.time > 30){
+                    for(let i = 0; i < tankEntity.length; i++){
+                        if(bulStack[num][value]==true && deadFlgs[i]==false){
+                            if(this.intersect(tankEntity[i])==true){
+                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                deadFlgs[i] = true
+                                bulStack[num][value] = false;
+                                colOb[num][value].moveTo(-200,-200)
+                                this.moveTo(-200,-200)
+                                colOb[num][value].destroy()
+                                scene.removeChild(this);
+                            }
                         }
                     }
                 }
