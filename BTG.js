@@ -1896,16 +1896,40 @@ window.onload = function() {
             
             //  常に稼働する処理
             this.onenterframe = function(){
+                if(deleteFlg == true){
+                    //  各パーツと本体の消去
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
-                    if(deleteFlg == true){
-                        this.moveTo(-100,-100)          //  戦車を移動
-                        //  各パーツと本体の消去
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
+                    //  チートを使ってなければ死亡判定処理をする
+                    if(cheat == false){
+                        for(var j = 0; j < bulOb.length; j++){
+                            for(var k = 0; k < bulOb[j].length; k++){
+                                if((tank.within(bulOb[j][k],25)==true || weak.intersect(bulOb[j][k])==true) &&
+                                    defeat == false && victory == false && complete == false){
+
+                                    game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                    deadFlgs[Num] = true
+                                    bulStack[j][k] = false;
+                                    colOb[j][k].destroy()
+                                    colOb[j][k].moveTo(-200,-200)
+                                    bulOb[j][k].moveTo(-200,-200)
+                                    moveSpeed = 0;
+                                }
+                            }
+                        }
                     }
-                    
+                    //  死亡判定時の処理
+                    if(deadFlgs[Num] == true){
+                        markEntity[Num] = new Mark(this.x,this.y,this,scene)   //  撃破後の物体設置
+                        new Explosion(this,scene);      //  車体の爆破エフェクト生成
+                        this.moveTo(-100,-100)          //  戦車を移動
+                        zanki--;                        //  残機を減らす
+                        life--;
+                    }
                     //  稼働しても良いなら
                     if(worldFlg == true){
                         if(shotStopFlg == true){
@@ -1915,37 +1939,8 @@ window.onload = function() {
                                 shotStopTime = 0;
                             }
                         }
-                        //  チートを使ってなければ死亡判定処理をする
-                        if(cheat == false){
-                            for(var j = 0; j < bulOb.length; j++){
-                                for(var k = 0; k < bulOb[j].length; k++){
-                                    if((tank.within(bulOb[j][k],25)==true || weak.intersect(bulOb[j][k])==true) &&
-                                        defeat == false && victory == false && complete == false){
-    
-                                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                                        deadFlgs[Num] = true
-                                        bulStack[j][k] = false;
-                                        colOb[j][k].destroy()
-                                        colOb[j][k].moveTo(-200,-200)
-                                        bulOb[j][k].moveTo(-200,-200)
-                                        moveSpeed = 0;
-                                    }
-                                }
-                            }
-                        }
-                        //  死亡判定時の処理
-                        if(deadFlgs[Num] == true){
-                            markEntity[Num] = new Mark(this.x,this.y,this,scene)   //  撃破後の物体設置
-                            new Explosion(this,scene);      //  車体の爆破エフェクト生成
-                            this.moveTo(-100,-100)          //  戦車を移動
-                            zanki--;                        //  残機を減らす
-                            //  各パーツと本体の消去
-                            scene.removeChild(tank)
-                            scene.removeChild(cannon)
-                            scene.removeChild(weak)
-                            life--;
-                            scene.removeChild(this)
-                        }
+                        
+                        
                         if(scene.time > 210){
                             //  キーボードで弾を発射時の処理
                             if(game.input.e && late == 0 && worldFlg == true){
@@ -2202,296 +2197,281 @@ window.onload = function() {
             
             //  常に処理する
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    scene.removeChild(intercept)
+                    scene.removeChild(intercept1);
+                    scene.removeChild(intercept3);
+                    scene.removeChild(intercept4);
+                    scene.removeChild(intercept8);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this);
+                }
                 //  死んでいなければ処理
                 if(life > 0){
                     
-                    //  死亡判定がfalseなら
-                    if(deadFlgs[Num]==false){
-                        
-                        if(deleteFlg == true){
-                            this.moveTo(-100,-100);
-                            scene.removeChild(intercept)
-                            scene.removeChild(intercept1);
-                            scene.removeChild(intercept3);
-                            scene.removeChild(intercept4);
-                            scene.removeChild(intercept8);
-                            scene.removeChild(tank)
-                            scene.removeChild(cannon)
-                            scene.removeChild(weak)
-                            scene.removeChild(this);
-                        }
-                        //  死亡判定処理
-                        for(var j = 0; j < bulOb.length; j++){
-                            for(var k = 0; k < bulOb[j].length; k++){
-                                let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                                if(defeat == false && dist < 28 && bulStack[j][k] == true){
-                                    game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                                    deadFlgs[Num] = true
-                                    bulStack[j][k] = false;
-                                    colOb[j][k].destroy()
-                                    colOb[j][k].moveTo(-200,-200)
-                                    bulOb[j][k].moveTo(-200,-200)
-                                    moveSpeed = 0;
-                                }
-                                /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
-                                    
-                                }*/
+                    //  死亡判定処理
+                    for(var j = 0; j < bulOb.length; j++){
+                        for(var k = 0; k < bulOb[j].length; k++){
+                            let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
+                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                deadFlgs[Num] = true
+                                bulStack[j][k] = false;
+                                colOb[j][k].destroy()
+                                colOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)
+                                moveSpeed = 0;
                             }
                         }
-                        if(tankStopFlg == true)tankStopFlg = false;
-                        fireFlgs[Num] = false;  //  発射状態をリセット
-                        shotNGflg = false;
-                        if(moveSpeed != 0){
-                            //  自身の位置とターゲットの位置をざっくり算出
-                            myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
-                            targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
-                            //  マップの障害物情報に自身とターゲットの位置設定
-                            for(var i = 0; i < grid.length; i++){
-                                for(var j = 0; j < grid[i].length; j++){
-                                    if(i == myPath[0] && j == myPath[1]){
-                                        grid[i][j] = 'Start';
-                                    }else if(i == targetPath[0] && j == targetPath[1]){
-                                        grid[i][j] = 'Goal';
+                    }
+                    if(deadFlgs[Num]==true){
+                        tankColorCounts[category]--;
+                        //alert(tankColorCwwsaounts)
+                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100);
+                        destruction++
+                        life--;
+                    }
+                    if(tankStopFlg == true)tankStopFlg = false;
+                    fireFlgs[Num] = false;  //  発射状態をリセット
+                    shotNGflg = false;
+                    if(moveSpeed != 0){
+                        //  自身の位置とターゲットの位置をざっくり算出
+                        myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
+                        targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+                        //  マップの障害物情報に自身とターゲットの位置設定
+                        for(var i = 0; i < grid.length; i++){
+                            for(var j = 0; j < grid[i].length; j++){
+                                if(i == myPath[0] && j == myPath[1]){
+                                    grid[i][j] = 'Start';
+                                }else if(i == targetPath[0] && j == targetPath[1]){
+                                    grid[i][j] = 'Goal';
+                                }else{
+                                    //  StartやGoalの位置が更新されている場合の処理
+                                    if(map.collisionData[i][j] == 0){
+                                        grid[i][j] = 'Empty';
                                     }else{
-                                        //  StartやGoalの位置が更新されている場合の処理
-                                        if(map.collisionData[i][j] == 0){
-                                            grid[i][j] = 'Empty';
-                                        }else{
-                                            grid[i][j] = 'Obstacle';
-                                        }
+                                        grid[i][j] = 'Obstacle';
                                     }
-                                }
-                            }
-                            if(this.time == 0){
-                                root = findShortestPath([myPath[0],myPath[1]], grid,scene);
-                                if(root[0] == "East"){
-                                    this.rotation = 0
-                                }else if(root[0] == "West"){
-                                    this.rotation = 180;
-                                }else if(root[0] == "North"){
-                                    this.rotation = 270;
-                                }else if(root[0] == "South"){
-                                    this.rotation = 90;
                                 }
                             }
                         }
-                        //  実行可能なら
-                        if(worldFlg == true){
-                            this.time++;
-                            
-                            for(let i = 0; i < tankEntity.length; i++){
-                                if(i != Num && deadFlgs[i] == false){
-                                    if(tankDir[Num][0].intersect(tankEntity[i])==true){
-                                        shotNGflg = true;
-                                        if(this.rotation == 270){
-                                            tankStopFlg = true;
-                                            if(shotStopFlg == false){
-                                                this.y += moveSpeed;
-                                                moveCnt -= moveSpeed;
-                                            }        
-                                        }
-                                    }else if(tankDir[Num][1].intersect(tankEntity[i])==true){
-                                        shotNGflg = true;
-                                        if(this.rotation == 90){
-                                            tankStopFlg = true;
-                                            if(shotStopFlg == false){
-                                                this.y -= moveSpeed;
-                                                moveCnt -= moveSpeed;
-                                            }
-                                            
-                                        }
-                                    }else if(tankDir[Num][2].intersect(tankEntity[i])==true){
-                                        shotNGflg = true;
-                                        if(this.rotation == 0){
-                                            tankStopFlg = true;
-                                            if(shotStopFlg == false){
-                                                this.x += moveSpeed;
-                                                moveCnt -= moveSpeed;
-                                            }
-                                            
-                                        }
-                                    }else if(tankDir[Num][3].intersect(tankEntity[i])==true){
-                                        shotNGflg = true;
-                                        if(this.rotation == 180){
-                                            tankStopFlg = true;
-                                            if(shotStopFlg == false){
-                                                this.x -= moveSpeed;
-                                                moveCnt -= moveSpeed;
-                                            }
-                                        }
+                        if(this.time == 0){
+                            root = findShortestPath([myPath[0],myPath[1]], grid,scene);
+                            if(root[0] == "East"){
+                                this.rotation = 0
+                            }else if(root[0] == "West"){
+                                this.rotation = 180;
+                            }else if(root[0] == "North"){
+                                this.rotation = 270;
+                            }else if(root[0] == "South"){
+                                this.rotation = 90;
+                            }
+                        }
+                    }
+                    //  実行可能なら
+                    if(worldFlg == true){
+                        this.time++;
+                        
+                        for(let i = 0; i < tankEntity.length; i++){
+                            if(i != Num && deadFlgs[i] == false){
+                                if(tankDir[Num][0].intersect(tankEntity[i])==true){
+                                    shotNGflg = true;
+                                    if(this.rotation == 270){
+                                        tankStopFlg = true;
+                                        if(shotStopFlg == false){
+                                            this.y += moveSpeed;
+                                            moveCnt -= moveSpeed;
+                                        }        
                                     }
-                                }
-                            }
-                            for(let i = 0; i < obsdir.length; i++){
-                                if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
-                                    this.moveTo(this.x,obsdir[i][0].y-61)
-                                }
-                                if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                                    this.moveTo(this.x,obsdir[i][1].y+obsdir[i][1].height+3)
-                                }
-                                if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
-                                    this.moveTo(obsdir[i][2].x-62,this.y)
-                                }
-                                if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                                    this.moveTo(obsdir[i][3].x+obsdir[i][3].width+3,this.y)
-                                }
-                            }
-                            if(this.intersect(walls[0])==true){
-                                this.moveTo(this.x,(64*2)-15)
-                            }
-                            if(this.intersect(walls[1])==true){
-                                this.moveTo(this.x,(64*13)-13)
-                            }
-                            if(this.intersect(walls[2])==true){
-                                this.moveTo((64*1)+3,this.y)
-                            }
-                            if(this.intersect(walls[3])==true){
-                                this.moveTo((64*18)+3,this.y)
-                            }
-                            if(shotStopFlg == true){
-                                shotStopTime++;
-                                if(shotStopTime > 10){
-                                    shotStopFlg = false;
-                                    shotStopTime = 0;
-                                }
-                            }
-                            
-                            //  敵の照準生成
-                            new EnemyAim(alignment,cannon,32,Num,scene);
-                            //  照準がバグった場合の処理
-                            /*if(enemyTarget[Num] == eAim){
-                                enemyTarget[Num] = target
-                            }*/
-                            if(this.time % 5 == 0){
-                                if(enemyTarget[Num] != target)enemyTarget[Num] = target;
-                            }
-                            
-                            //  一定範囲内にターゲットがいた場合
-                            if(tank.within(target,320)==true){
-                                enemyTarget[Num] = target
-                            }
-                            //  照準がターゲット追跡オブジェと重なったら
-                            alignment.intersect(EnemyAim).forEach(function(){
-                                fireFlgs[Num] = true;   //  発射可能状態にする
-                            })
-                            
-                            
-                            /* 迎撃処理群
-                                優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
-                            */
-                            //  他戦車の弾迎撃処理
-                            if(cateFlgs[category][2] == true){
-                                for(let i = 1; i < bulOb.length; i++){
-                                    if(i != Num){
-                                        for(let j = 0; j < bulOb[i].length; j++){
-                                            if(bulStack[i][j] == true){
-                                                let dist = Instrumentation(enemyTarget[Num],bulOb[i][j]);
-                                                intercept.intersect(BulAim).forEach(function(){
-                                                    if(dist != null && dist < cateRanges[category][2]){
-                                                        enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
-                                                    }
-                                                })
-                                                
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            //  プレイヤーの弾迎撃処理
-                            if(cateFlgs[category][0] == true){
-                                for(let i = 0; i < bulOb[0].length; i++){
-                                    if(bulStack[0][i] == true){
-                                        let dist = Instrumentation(enemyTarget[Num],bulOb[0][i]);
-                                        if(dist != null && dist < cateRanges[category][0]){
-                                            this.intersect(PlayerBulAim).forEach(function(){
-                                                enemyTarget[Num] = bulOb[0][i];    //  迎撃のためにターゲット変更
-                                            })
+                                }else if(tankDir[Num][1].intersect(tankEntity[i])==true){
+                                    shotNGflg = true;
+                                    if(this.rotation == 90){
+                                        tankStopFlg = true;
+                                        if(shotStopFlg == false){
+                                            this.y -= moveSpeed;
+                                            moveCnt -= moveSpeed;
                                         }
                                         
                                     }
-                                }
-                            }
-                            //  自身の弾迎撃処理
-                            if(cateFlgs[category][1] == true){
-                                for(let i = 0; i < bulOb[Num].length; i++){
-                                    if(bulStack[Num][i] == true){
-                                        let dist = Instrumentation(enemyTarget[Num],bulOb[Num][i]);
-                                        if(dist != null && dist < cateRanges[category][1]){
-                                            enemyTarget[Num] = bulOb[Num][i];    //  迎撃のためにターゲット変更
+                                }else if(tankDir[Num][2].intersect(tankEntity[i])==true){
+                                    shotNGflg = true;
+                                    if(this.rotation == 0){
+                                        tankStopFlg = true;
+                                        if(shotStopFlg == false){
+                                            this.x += moveSpeed;
+                                            moveCnt -= moveSpeed;
+                                        }
+                                        
+                                    }
+                                }else if(tankDir[Num][3].intersect(tankEntity[i])==true){
+                                    shotNGflg = true;
+                                    if(this.rotation == 180){
+                                        tankStopFlg = true;
+                                        if(shotStopFlg == false){
+                                            this.x -= moveSpeed;
+                                            moveCnt -= moveSpeed;
                                         }
                                     }
                                 }
                             }
-
-                            if(reloadFlg == false){
-                                if(bullets[Num] == max) reloadFlg = true;
-                            }else{
-                                if(reloadTime < cateReloadTimes[category]){
-                                    reloadTime++;
-                                    if(shotNGflg == false) shotNGflg = true;
-                                }else{
-                                    shotNGflg = false;
-                                    reloadFlg = false;
-                                    reloadTime = 0;
+                        }
+                        for(let i = 0; i < obsdir.length; i++){
+                            if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
+                                this.moveTo(this.x,obsdir[i][0].y-61)
+                            }
+                            if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
+                                this.moveTo(this.x,obsdir[i][1].y+obsdir[i][1].height+3)
+                            }
+                            if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
+                                this.moveTo(obsdir[i][2].x-62,this.y)
+                            }
+                            if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
+                                this.moveTo(obsdir[i][3].x+obsdir[i][3].width+3,this.y)
+                            }
+                        }
+                        if(this.intersect(walls[0])==true){
+                            this.moveTo(this.x,(64*2)-15)
+                        }
+                        if(this.intersect(walls[1])==true){
+                            this.moveTo(this.x,(64*13)-13)
+                        }
+                        if(this.intersect(walls[2])==true){
+                            this.moveTo((64*1)+3,this.y)
+                        }
+                        if(this.intersect(walls[3])==true){
+                            this.moveTo((64*18)+3,this.y)
+                        }
+                        if(shotStopFlg == true){
+                            shotStopTime++;
+                            if(shotStopTime > 10){
+                                shotStopFlg = false;
+                                shotStopTime = 0;
+                            }
+                        }
+                        
+                        //  敵の照準生成
+                        new EnemyAim(alignment,cannon,32,Num,scene);
+                        //  照準がバグった場合の処理
+                        /*if(enemyTarget[Num] == eAim){
+                            enemyTarget[Num] = target
+                        }*/
+                        if(this.time % 5 == 0){
+                            if(enemyTarget[Num] != target)enemyTarget[Num] = target;
+                        }
+                        
+                        //  一定範囲内にターゲットがいた場合
+                        if(tank.within(target,320)==true){
+                            enemyTarget[Num] = target
+                        }
+                        //  照準がターゲット追跡オブジェと重なったら
+                        alignment.intersect(EnemyAim).forEach(function(){
+                            fireFlgs[Num] = true;   //  発射可能状態にする
+                        })
+                        
+                        
+                        /* 迎撃処理群
+                            優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+                        */
+                        //  他戦車の弾迎撃処理
+                        if(cateFlgs[category][2] == true){
+                            for(let i = 1; i < bulOb.length; i++){
+                                if(i != Num){
+                                    for(let j = 0; j < bulOb[i].length; j++){
+                                        if(bulStack[i][j] == true){
+                                            let dist = Instrumentation(enemyTarget[Num],bulOb[i][j]);
+                                            intercept.intersect(BulAim).forEach(function(){
+                                                if(dist != null && dist < cateRanges[category][2]){
+                                                    enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
+                                                }
+                                            })
+                                            
+                                        }
+                                    }
                                 }
-                                
+                            }
+                        }
+                        //  プレイヤーの弾迎撃処理
+                        if(cateFlgs[category][0] == true){
+                            for(let i = 0; i < bulOb[0].length; i++){
+                                if(bulStack[0][i] == true){
+                                    let dist = Instrumentation(enemyTarget[Num],bulOb[0][i]);
+                                    if(dist != null && dist < cateRanges[category][0]){
+                                        this.intersect(PlayerBulAim).forEach(function(){
+                                            enemyTarget[Num] = bulOb[0][i];    //  迎撃のためにターゲット変更
+                                        })
+                                    }
+                                    
+                                }
+                            }
+                        }
+                        //  自身の弾迎撃処理
+                        if(cateFlgs[category][1] == true){
+                            for(let i = 0; i < bulOb[Num].length; i++){
+                                if(bulStack[Num][i] == true){
+                                    let dist = Instrumentation(enemyTarget[Num],bulOb[Num][i]);
+                                    if(dist != null && dist < cateRanges[category][1]){
+                                        enemyTarget[Num] = bulOb[Num][i];    //  迎撃のためにターゲット変更
+                                    }
+                                }
+                            }
+                        }
+
+                        if(reloadFlg == false){
+                            if(bullets[Num] == max) reloadFlg = true;
+                        }else{
+                            if(reloadTime < cateReloadTimes[category]){
+                                reloadTime++;
+                                if(shotNGflg == false) shotNGflg = true;
+                            }else{
+                                shotNGflg = false;
+                                reloadFlg = false;
+                                reloadTime = 0;
                             }
                             
-                            //  砲撃処理
-                            if(shotNGflg == false){
-                                if(this.time % fireLate == 0 && fireFlgs[Num]==true){
-                                    if(Math.floor(Math.random() * max*2)>bullets[Num]){
-                                        if(bullets[Num] < max && deadFlgs[Num] == false){
-                                            for(let i = 0; i < max; i++){
-                                                if(bulStack[Num][i] == false){
-                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,max,shotSpeed,scene,i)
-                                                    ShotBullet(i)
-                                                    break;
-                                                }
-                                                
+                        }
+                        
+                        //  砲撃処理
+                        if(shotNGflg == false){
+                            if(this.time % fireLate == 0 && fireFlgs[Num]==true){
+                                if(Math.floor(Math.random() * max*2)>bullets[Num]){
+                                    if(bullets[Num] < max && deadFlgs[Num] == false){
+                                        for(let i = 0; i < max; i++){
+                                            if(bulStack[Num][i] == false){
+                                                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
+                                                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,max,shotSpeed,scene,i)
+                                                ShotBullet(i)
+                                                break;
                                             }
                                             
-                                        } 
-                                    }
+                                        }
+                                        
+                                    } 
                                 }
                             }
-                            
-                            
-                            if(moveSpeed != 0 && shotStopFlg == false && tankStopFlg == false){
-                                //  移動処理
-                                if(root != false && intercept.intersect(target)==false){
-                                    tank.rotation = this.rotation
-                                    var rad = this.rotation * (Math.PI / 180.0);
-                                    var dx = Math.cos(rad) * moveSpeed;
-                                    var dy = Math.sin(rad) * moveSpeed;
-                                    if(this.intersect(Floor)==false){
-                                        this.x += dx;
-                                        this.y += dy;
-                                    }else{
-                                        this.x -= dx;
-                                        this.y -= dy;
-                                    }
-                                    moveCnt += moveSpeed;
+                        }
+                        
+                        
+                        if(moveSpeed != 0 && shotStopFlg == false && tankStopFlg == false){
+                            //  移動処理
+                            if(root != false && intercept.intersect(target)==false){
+                                tank.rotation = this.rotation
+                                var rad = this.rotation * (Math.PI / 180.0);
+                                var dx = Math.cos(rad) * moveSpeed;
+                                var dy = Math.sin(rad) * moveSpeed;
+                                if(this.intersect(Floor)==false){
+                                    this.x += dx;
+                                    this.y += dy;
+                                }else{
+                                    this.x -= dx;
+                                    this.y -= dy;
                                 }
-                                if(moveCnt == pixelSize && moveSpeed != 0){
-                                    root = findShortestPath([myPath[0],myPath[1]], grid,scene)
-                                    if(root[0] == "East"){
-                                        this.rotation = 0
-                                    }else if(root[0] == "West"){
-                                        this.rotation = 180;
-                                    }else if(root[0] == "North"){
-                                        this.rotation = 270;
-                                    }else if(root[0] == "South"){
-                                        this.rotation = 90;
-                                    }
-                                    moveCnt = 0    
-                                }        
-                                
-                                weak.rotation = this.rotation;
+                                moveCnt += moveSpeed;
                             }
-                            if(root == false && moveSpeed != 0){
+                            if(moveCnt == pixelSize && moveSpeed != 0){
                                 root = findShortestPath([myPath[0],myPath[1]], grid,scene)
                                 if(root[0] == "East"){
                                     this.rotation = 0
@@ -2503,26 +2483,23 @@ window.onload = function() {
                                     this.rotation = 90;
                                 }
                                 moveCnt = 0    
-                            }
+                            }        
+                            
+                            weak.rotation = this.rotation;
                         }
-                    //  死亡判定時の処理
-                    }else{
-                        tankColorCounts[category]--;
-                        //alert(tankColorCwwsaounts)
-                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100);
-                        scene.removeChild(intercept)
-                        scene.removeChild(intercept1);
-                        scene.removeChild(intercept3);
-                        scene.removeChild(intercept4);
-                        scene.removeChild(intercept8);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        destruction++
-                        life--;
-                        scene.removeChild(this);
+                        if(root == false && moveSpeed != 0){
+                            root = findShortestPath([myPath[0],myPath[1]], grid,scene)
+                            if(root[0] == "East"){
+                                this.rotation = 0
+                            }else if(root[0] == "West"){
+                                this.rotation = 180;
+                            }else if(root[0] == "North"){
+                                this.rotation = 270;
+                            }else if(root[0] == "South"){
+                                this.rotation = 90;
+                            }
+                            moveCnt = 0    
+                        }
                     }
                 }
             }
@@ -2672,17 +2649,15 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    scene.removeChild(intercept7);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
                     
-                    if(deleteFlg == true){
-                        this.moveTo(-100,-100)
-                        scene.removeChild(intercept7);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
-                    }
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
@@ -2696,10 +2671,16 @@ window.onload = function() {
                                 bulOb[j][k].moveTo(-200,-200)
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
-                                
-                            }*/
                         }
+                    }
+                    if(deadFlgs[Num] == true){
+                        tankColorCounts[category]--;
+                        //alert(tankColorCounts)
+                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100)
+                        destruction++
+                        life--;
                     }
                     if(shotStopFlg == true){
                         shotStopTime++;
@@ -2768,21 +2749,6 @@ window.onload = function() {
                             }
                             
                             new EnemyAim(alignment,cannon,12,Num,scene);
-                            
-                            if(deadFlgs[Num] == true){
-                                tankColorCounts[category]--;
-                                //alert(tankColorCounts)
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                scene.removeChild(intercept7);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
-                                destruction++
-                                life--;
-                                scene.removeChild(this)
-                            }
 
                             intercept7.intersect(Floor).forEach(function(){
                                 shotNGflg = true;
@@ -3258,7 +3224,14 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept7);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
@@ -3278,6 +3251,16 @@ window.onload = function() {
                             }*/
                         }
                     }
+                    if(deadFlgs[Num] == true){
+                        tankColorCounts[category]--;
+                        //alert(tankColorCounts)
+                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100)
+                        destruction++
+                        life--;
+                    }
+
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -3358,20 +3341,7 @@ window.onload = function() {
                             
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
-                            if(deadFlgs[Num] == true){
-                                tankColorCounts[category]--;
-                                //alert(tankColorCounts)
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                scene.removeChild(intercept7);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
-                                destruction++
-                                life--;
-                                scene.removeChild(this)
-                            }
+                            
 
                             intercept7.intersect(Floor).forEach(function(){
                                 shotNGflg = true;
@@ -3707,7 +3677,13 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                
+                if(deleteFlg == true){
+                    scene.removeChild(intercept7);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
@@ -3727,14 +3703,16 @@ window.onload = function() {
                             }*/
                         }
                     }
-                    if(deleteFlg == true){
+                    if(deadFlgs[Num] == true){
+                        tankColorCounts[category]--;
+                        //alert(tankColorCounts)
+                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        new Explosion(this,scene);
                         this.moveTo(-100,-100)
-                        scene.removeChild(intercept7);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
+                        destruction++
+                        life--;
                     }
+                    
   
                     if(worldFlg == true){
                         this.time++;
@@ -3744,20 +3722,7 @@ window.onload = function() {
                             shotNGflg = false;
                             fireFlgs[Num] = false;
                             
-                            if(deadFlgs[Num] == true){
-                                tankColorCounts[category]--;
-                                //alert(tankColorCounts)
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                scene.removeChild(intercept7);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
-                                destruction++
-                                life--;
-                                scene.removeChild(this)
-                            }
+                            
                             new EnemyAim();
                             EnemyAim.intersect(target).forEach(function(){
                                 fireFlgs[Num] = true;
@@ -4056,7 +4021,19 @@ window.onload = function() {
             }
             this.onenterframe = function(){
                 
-                
+                if(deleteFlg == true){
+                    this.moveTo(-100,-100)
+                    scene.removeChild(intercept3);
+                    scene.removeChild(intercept4);
+                    scene.removeChild(intercept5);
+                    scene.removeChild(intercept6);
+                    scene.removeChild(intercept7);
+                    scene.removeChild(intercept8);
+                    scene.removeChild(tank)
+                    scene.removeChild(cannon)
+                    scene.removeChild(weak)
+                    scene.removeChild(this)
+                }
                 if(life > 0){
                     //  死亡判定処理
                     for(var j = 0; j < bulOb.length; j++){
@@ -4076,6 +4053,14 @@ window.onload = function() {
                             }*/
                         }
                     }
+                    if(deadFlgs[Num] == true){
+                        tankColorCounts[category]--;
+                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100)
+                        destruction++
+                        life--;
+                    }
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -4084,19 +4069,7 @@ window.onload = function() {
                         }
                     }
 
-                    if(deleteFlg == true){
-                        this.moveTo(-100,-100)
-                        scene.removeChild(intercept3);
-                        scene.removeChild(intercept4);
-                        scene.removeChild(intercept5);
-                        scene.removeChild(intercept6);
-                        scene.removeChild(intercept7);
-                        scene.removeChild(intercept8);
-                        scene.removeChild(tank)
-                        scene.removeChild(cannon)
-                        scene.removeChild(weak)
-                        scene.removeChild(this)
-                    }
+                    
                     
                     
                     if(worldFlg == true){
@@ -4192,24 +4165,7 @@ window.onload = function() {
 
                             new EnemyAim(alignment,12,Num,scene);
       
-                            if(deadFlgs[Num] == true){
-                                tankColorCounts[category]--;
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                scene.removeChild(intercept3);
-                                scene.removeChild(intercept4);
-                                scene.removeChild(intercept5);
-                                scene.removeChild(intercept6);
-                                scene.removeChild(intercept7);
-                                scene.removeChild(intercept8);
-                                scene.removeChild(tank)
-                                scene.removeChild(cannon)
-                                scene.removeChild(weak)
-                                destruction++
-                                life--;
-                                scene.removeChild(this)
-                            }
+                            
                             
                             /*avoids.forEach(elem=>{
                                 if(tank.within(elem,64)==true){
