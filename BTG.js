@@ -1172,7 +1172,7 @@ window.onload = function() {
                     }
                     
                 }
-                if(this.time > 30){
+                if(this.time > 30 && defeat == false && victory == false && complete == false){
                     for(let i = 0; i < tankEntity.length; i++){
                         if(bulStack[num][value]==true && deadFlgs[i]==false){
                             if(this.intersect(tankEntity[i])==true){
