@@ -1183,8 +1183,9 @@ window.onload = function() {
                             bulStack[num][value] = false;
                             colOb[num][value].moveTo(-200,-200)
                             bulOb[num][value].moveTo(-100,-100)
-                            /*colOb[num][value].destroy()
-                            scene.removeChild(bulOb[num][value]);*/
+                            //colOb[num][value].destroy()
+                            scene.removeChild(bulOb[num][value]);
+                            bulOb[num][value]=new Bullet(target,cannon,1,num,max,scene,value);
                             break;
                         }
                     }
