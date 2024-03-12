@@ -1033,10 +1033,11 @@ window.onload = function() {
                 if(this.time > 1){
                     if(this.intersect(Bullet)==false){
                         if(bullets[num]>0) bullets[num]--;
-                        this.moveTo(-100,-100)
-                        this.destroy()
                         bulStack[num][value] = false;
-                        scene.removeChild(this);
+                        bulOb[num][value].moveTo(-120,-120);
+                        this.moveTo(-100,-100);
+                        scene.removeChild(bulOb[num][value]);
+                        this.destroy();
                     }
                 }
             }
@@ -5546,6 +5547,8 @@ window.onload = function() {
                     stageData[i][10] = 10;
                 }else if(stageData[i][10] == 7){
                     tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
+                }else if(stageData[i][10]==5 || stageData[i][10] == 4){
+                        tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
                 }else if(stageData[i][9] >= 8){
                     if(stageData[i][10] == 11){
                         tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
@@ -5555,11 +5558,7 @@ window.onload = function() {
                 }else if(addBullet != 0 && (stageData[i][10] == 5)){
                     tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                 }else if(stageData[i][9]>2){
-                    if(stageData[i][10]==5 || stageData[i][10] == 4){
-                        tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
-                    }else{
-                        tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
-                    }
+                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
                 }else{
                     tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
                 }
@@ -5645,7 +5644,6 @@ window.onload = function() {
                     for(let j = 0; j < colOb[i].length; j++){
                         if(bulStack[i][j] == true){
                             colOb[i][j].destroy();
-                            scene.removeChild(colOb[i][j])
                         }
                     }
                 }
