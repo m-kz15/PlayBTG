@@ -10,6 +10,7 @@ var cheat = false;      //チート用
 var cur;                //カーソルの位置情報を保持する配列
 
 var j_data;             //jsonファイルから引っ張ってきたデータ
+var l_data = [];
 var stageData;          //ステージ情報を管理する変数
 
 var floors = [];        //ステージの障害物を保持する配列
@@ -4872,7 +4873,21 @@ window.onload = function() {
             xhr.send(sendParam); 
         }
     }
-    new getJson()
+    function LocalLoad() {
+        for (let i = 0; i < localStorage.length; i++) {
+            l_data[i] = localStorage.getItem(i);
+            /*let storageValue = localStorage.key(i);
+            l_data[i] = storageValue;*/
+            //console.log(`Item at ${ i }: ${storageValue}`);
+        }
+        
+      }
+      // 保存
+    function LocalSave() {
+          localStorage.setItem(localStorage.length, JSON.stringify(postData));
+    }
+    //new getJson()
+    LocalLoad();
     
     // ゲームの準備が整ったらメインの処理を実行
     game.onload = function() { 
