@@ -1178,14 +1178,13 @@ window.onload = function() {
                 }
                 for(let i = 0; i < tankEntity.length; i++){
                     if(bulStack[num][value]==true && deadFlgs[i]==false){
-                        if(this.intersect(weeks[i])==true && defeat == false && victory == false && complete == false){
-                            game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                        if(bulOb[num][value].intersect(weeks[i])==true && defeat == false && victory == false && complete == false){
                             deadFlgs[i] = true
                             bulStack[num][value] = false;
                             colOb[num][value].moveTo(-200,-200)
-                            this.moveTo(-100,-100)
-                            colOb[num][value].destroy()
-                            scene.removeChild(this);
+                            bulOb[num][value].moveTo(-100,-100)
+                            /*colOb[num][value].destroy()
+                            scene.removeChild(bulOb[num][value]);*/
                             break;
                         }
                     }
