@@ -4875,7 +4875,8 @@ window.onload = function() {
     }
     function LocalLoad() {
         for (let i = 0; i < localStorage.length; i++) {
-            l_data[i] = localStorage.getItem(i);
+            
+            l_data[i] = JSON.parse(localStorage.getItem(i));
             /*let storageValue = localStorage.key(i);
             l_data[i] = storageValue;*/
             //console.log(`Item at ${ i }: ${storageValue}`);
@@ -5087,11 +5088,12 @@ window.onload = function() {
             selectLevel = [false,false,false,false,false,false,false,false,false,false]
             
             //  jsonから取得したデータをランキング情報に格納する処理
-            let jlen = j_data.rank.length;
+            
+            let jlen = l_data.length;
             for(let i = 0; i < jlen; i++){
-                rankings.push(j_data.rank[i].score);
-                tops.push(j_data.rank[i].name);
-                selectLevel.push(j_data.rank[i].level);
+                rankings.push(l_data[i].score);
+                tops.push(l_data[i].name);
+                selectLevel.push(l_data[i].level);
             }
             //  取得したデータを昇順に入れ替える処理
             for(let j = 0; j < (rankings.length)+jlen; j++){
@@ -5815,8 +5817,10 @@ window.onload = function() {
                                 "time": nowDay,
                                 "level": sl
                             };
-                            new setJson()
-                            new getJson()
+                            LocalSave();
+                            LocalLoad();
+                            //new setJson()
+                            //new getJson()
                             
                         }else{
                             
@@ -6049,14 +6053,14 @@ window.onload = function() {
                 scene.time++
                 if(scene.time == 150){
                     new getJson()
-                    let jlen = j_data.rank.length
+                    let jlen = l_data.length;
                     rankings = [0,0,0,0,0,0,0,0,0,0]
                     tops = ["_____","_____","_____","_____","_____","_____","_____","_____","_____","_____"]
                     times = [0,0,0,0,0,0,0,0,0,0]
                     for(let i = 0; i < jlen; i++){
-                        rankings.push(j_data.rank[i].score);
-                        tops.push(j_data.rank[i].name);
-                        times.push(j_data.rank[i].time);
+                        rankings.push(l_data[i].score);
+                        tops.push(l_data[i].name);
+                        times.push(l_data[i].time);
                     }
     
                     tops.push(postData.name)
