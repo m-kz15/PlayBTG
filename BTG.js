@@ -818,21 +818,7 @@ window.onload = function() {
             var dx = Math.cos(rad) * shotSpeed;
             var dy = Math.sin(rad) * shotSpeed;
             this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
-            let angle = vector.y < 0 ? -1 : 1;
-            angle = vector.x < 0 ? -angle : angle;
-            var v1 = {
-                x: cannon.x+(cannon.width/2),
-                y: cannon.y+(cannon.height/2)
-            }
-            var v2 = {
-                x: target.x+(target.width/2),
-                y: target.y+(target.height/2)
-            }
-            if(((270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1) == cannon.rotation){
-                angle = 0;
-            }
-            cannon.rotation += angle;
-            //cannon.rotation = (270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1;
+            cannon.rotation = (270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1;
             this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
             this.onenterframe = function(){
                 this.rotation = (315+(Math.atan2(dx,dy) * 180) / Math.PI)*-1;
