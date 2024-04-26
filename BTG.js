@@ -827,7 +827,7 @@ window.onload = function() {
                 x: target.x+(target.width/2),
                 y: target.y+(target.height/2)
             }
-            if((v1.x * v2.y - v1.y * v2.x)===0){
+            if(((270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1) == cannon.rotation){
                 angle = 0;
             }
             cannon.rotation += angle;
