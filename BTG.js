@@ -819,6 +819,7 @@ window.onload = function() {
             var dy = Math.sin(rad) * shotSpeed;
             this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
             let angle = vector.y < 0 ? -1 : 1;
+            angle = vector.x < 0 ? -angle : angle;
             var v1 = {
                 x: cannon.x+(cannon.width/2),
                 y: cannon.y+(cannon.height/2)
