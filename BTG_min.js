@@ -2311,7 +2311,7 @@ window.onload = function() {
                         }
                         //  死亡判定時の処理
                         if(deadFlgs[Num] == true){
-                            markEntity[Num] = new Mark(this.x,this.y,this,scene)   //  撃破後の物体設置
+                            //markEntity[Num] = new Mark(this.x,this.y,this,scene)   //  撃破後の物体設置
                             new Explosion(this,scene);      //  車体の爆破エフェクト生成
                             this.moveTo(-100,-100)          //  戦車を移動
                             zanki--;                        //  残機を減らす
@@ -2894,7 +2894,7 @@ window.onload = function() {
                     }else{
                         tankColorCounts[category]--;
                         //alert(tankColorCwwsaounts)
-                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100);
                         destruction++
@@ -3148,7 +3148,7 @@ window.onload = function() {
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
@@ -3739,7 +3739,7 @@ window.onload = function() {
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
@@ -4120,7 +4120,7 @@ window.onload = function() {
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
@@ -4562,7 +4562,7 @@ window.onload = function() {
       
                             if(deadFlgs[Num] == true){
                                 tankColorCounts[category]--;
-                                markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                               //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
