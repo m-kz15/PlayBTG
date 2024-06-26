@@ -1945,7 +1945,7 @@ window.onload = function() {
                     //  死亡判定時の処理
                     if(deadFlgs[Num] == true){
                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                        markEntity[Num] = new Mark(this.x,this.y,this,scene)   //  撃破後の物体設置
+                        //markEntity[Num] = new Mark(this.x,this.y,this,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);      //  車体の爆破エフェクト生成
                         this.moveTo(-100,-100)          //  戦車を移動
                         zanki--;                        //  残機を減らす
@@ -2252,7 +2252,7 @@ window.onload = function() {
                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
                         tankColorCounts[category]--;
                         //alert(tankColorCwwsaounts)
-                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100);
                         destruction++
@@ -2701,7 +2701,7 @@ window.onload = function() {
                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
                         tankColorCounts[category]--;
                         //alert(tankColorCounts)
-                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100)
                         destruction++
@@ -3278,7 +3278,7 @@ window.onload = function() {
                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
                         tankColorCounts[category]--;
                         //alert(tankColorCounts)
-                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100)
                         destruction++
@@ -3729,7 +3729,7 @@ window.onload = function() {
                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
                         tankColorCounts[category]--;
                         //alert(tankColorCounts)
-                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100)
                         destruction++
@@ -4077,7 +4077,7 @@ window.onload = function() {
                     if(deadFlgs[Num] == true){
                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
                         tankColorCounts[category]--;
-                        markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100)
                         destruction++
