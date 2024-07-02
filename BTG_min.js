@@ -4152,7 +4152,7 @@ window.onload = function() {
                                     
                                 }
 
-                                if(game.time % fireLate == 0 && shotNGflg == false && aimingTime > 10){
+                                if(game.time % fireLate == 0 && shotNGflg == false && aimingTime > 30){
                                     if(Math.floor(Math.random() * emax*2)>bullets[Num]){
                                         for(let i = 0; i < emax; i++){
                                             if(bulStack[Num][i] == false){
