@@ -4041,6 +4041,8 @@ window.onload = function() {
             let aimingTime = 0;
             let aimRot = 1.2;
 
+	    let aimCmpTime = 30;
+
             let life = 1;
 
             enemyTarget[Num] = target;
@@ -4152,7 +4154,7 @@ window.onload = function() {
                                     
                                 }
 
-                                if(game.time % fireLate == 0 && shotNGflg == false && aimingTime > 30){
+                                if(game.time % fireLate == 0 && shotNGflg == false && aimingTime > aimCmpTime){
                                     if(Math.floor(Math.random() * emax*2)>bullets[Num]){
                                         for(let i = 0; i < emax; i++){
                                             if(bulStack[Num][i] == false){
@@ -4161,6 +4163,7 @@ window.onload = function() {
                                                     bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
                                                     ShotBullet(i);
                                                     aimingTime = 0;
+						    aimCmpTime = Math.floor(Math.random() * 25)+25;
                                                     break;
                                                 }
                                             }
