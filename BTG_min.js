@@ -2318,6 +2318,9 @@ window.onload = function() {
                             this.moveTo(-100,-100)          //  戦車を移動
                             zanki--;                        //  残機を減らす
                             life--;
+			    if(zanki <= 0){
+				gameover = true;
+			    }
                         }
                         if(scene.time > 210){
                             if(shotStopFlg == false){
@@ -6422,7 +6425,7 @@ window.onload = function() {
                             script.src = stagePath[stageNum+1];
                         let head = document.getElementsByTagName("head");
                             head[0].appendChild(script);
-                        if(zanki <= 0){
+                        if(zanki <= 0 || gameover == true){
                             scene.time = 0;
                             new DispHead(100,60,360*3,180,"#a00",scene)
                             new DispText(252,124,720,64,'ミッション終了！','bold 64px "Arial"','yellow','center',scene)
@@ -6520,14 +6523,10 @@ window.onload = function() {
                             scene.removeChild(pauseButtton)
                             scene.removeChild(blackImg)
                             scene.removeChild(retire)
-			    if(zanki <= 1){
-				gameover = true;
-			    }else{
-				defeat = true;
-			    }
+				    defeat = true;
+			    
                         }
-			if(gameover == false){
-			    if(defeat == true && zanki > 0 && game.time == 15){
+			if(defeat == true && zanki > 0 && game.time == 15){
                             
 	                            BGM2 = game.assets['./sound/failed.mp3'].play()
 	                        } 
@@ -6542,60 +6541,6 @@ window.onload = function() {
 	                            
 	                            game.replaceScene(createStartScene())
 	                        }
-			}else{
-			    scene.time = 0;
-                            new DispHead(100,60,360*3,180,"#a00",scene)
-                            new DispText(252,124,720,64,'ミッション終了！','bold 64px "Arial"','yellow','center',scene)
-                            score += destruction
-                            complete = true;
-
-			    if(scene.time == 15){
-	                            BGM2 = game.assets['./sound/end.mp3'];
-	                            BGM2.play()
-	                            chgBgm = true;
-	                        }else if(scene.time > 100 && chgBgm == true && BGM2.currentTime == BGM2.duration){
-	                            BGM2.currentTime = 0;
-	                            BGM2.stop()
-	                            BGM3 = game.assets['./sound/result.mp3'];
-	                            BGM3.currentTime = 0;
-	                            BGM3.play()
-	                            chgBgm = false;
-	                        }else if(scene.time > 100 && chgBgm == false && BGM3.currentTime == BGM3.duration){
-	                            BGM3 = game.assets['./sound/result.mp3'];
-	                            BGM3.currentTime = 0;
-	                            BGM3.play()
-	                        }
-	                        if(scene.time == 120){
-	                            new DispBody(100,240,360*3,240*3,scene)
-	                        }
-	                        if(scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
-	                            new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
-	                            new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
-	                            dcnt++;
-	                        }
-	                        if(scene.time == 315){
-	                            new DispText(650,420,320*2,64,'撃破数：'+(score),'bold 64px "Arial"','#622','left',scene)
-	                        }
-	                        if(scene.time >= 345){
-	                            var toTitle = new Label('➡タイトル画面へ');
-	                                toTitle.moveTo(640,640);
-	                                toTitle.width = 320*1.5;
-	                                toTitle.height = 36;
-	                                toTitle.font = '36px "Arial"';
-	                                toTitle.color = '#400';
-	                                toTitle.textAlign = 'center';
-	                            if(scene.time == 345){
-	                                deleteFlg = true;
-	                                scene.addChild(toTitle)
-	                            }
-	                            toTitle.addEventListener(Event.TOUCH_START, function() {
-	                                
-	                                game.stop()
-	                                //location.href = "./game.html";
-	                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
-	                            });
-	                        }
-                        } 
                         if((defeat == true || victory == true && zanki > 0) && game.time == 150){
                             new FadeOut(scene)
                         }
