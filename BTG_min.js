@@ -42,6 +42,8 @@ var addSpeed = 0;           //難易度ごとの移動速度
 var deleteFlg = false;
 var enemyTarget = [];   //敵戦車が狙うターゲット
 
+var gameover = false;
+
 var userName = "Player";
 
 /* 各戦車の迎撃判定
@@ -2627,7 +2629,7 @@ window.onload = function() {
                         if(tankStopFlg == true)tankStopFlg = false;
                         fireFlgs[Num] = false;  //  発射状態をリセット
                         shotNGflg = false;
-                        if(moveSpeed != 0){
+                        if(moveSpeed != 0 && (movecnt == pixelSize || movecnt == 0)){
                             //  自身の位置とターゲットの位置をざっくり算出
                             myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
                             targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
@@ -6513,15 +6515,86 @@ window.onload = function() {
                         if(deadFlgs[0]==true && defeat == false && zanki > 0){
                             game.time = 0;
                             
-                            defeat = true;
+                            
                             BGM1.stop();
                             scene.removeChild(pauseButtton)
                             scene.removeChild(blackImg)
                             scene.removeChild(retire)
+			    if(zanki <= 1){
+				gameover = true;
+			    }else{
+				defeat = true;
+			    }
                         }
-                        if(defeat == true && zanki > 0 && game.time == 15){
+			if(gameover == false){
+			    if(defeat == true && zanki > 0 && game.time == 15){
                             
-                            BGM2 = game.assets['./sound/failed.mp3'].play()
+	                            BGM2 = game.assets['./sound/failed.mp3'].play()
+	                        } 
+	                        if((defeat == true || victory == true && zanki > 0) && game.time == 150){
+	                            new FadeOut(scene)
+	                        }
+	                        if((defeat == true || victory == true && zanki > 0) && game.time == 170){
+	                            deleteFlg = true;
+	                        }
+	                        if(defeat==true && game.time == 180 && zanki > 0){
+	                            AllDelete();
+	                            
+	                            game.replaceScene(createStartScene())
+	                        }
+			}else{
+			    scene.time = 0;
+                            new DispHead(100,60,360*3,180,"#a00",scene)
+                            new DispText(252,124,720,64,'ミッション終了！','bold 64px "Arial"','yellow','center',scene)
+                            score += destruction
+                            complete = true;
+
+			    if(scene.time == 15){
+	                            BGM2 = game.assets['./sound/end.mp3'];
+	                            BGM2.play()
+	                            chgBgm = true;
+	                        }else if(scene.time > 100 && chgBgm == true && BGM2.currentTime == BGM2.duration){
+	                            BGM2.currentTime = 0;
+	                            BGM2.stop()
+	                            BGM3 = game.assets['./sound/result.mp3'];
+	                            BGM3.currentTime = 0;
+	                            BGM3.play()
+	                            chgBgm = false;
+	                        }else if(scene.time > 100 && chgBgm == false && BGM3.currentTime == BGM3.duration){
+	                            BGM3 = game.assets['./sound/result.mp3'];
+	                            BGM3.currentTime = 0;
+	                            BGM3.play()
+	                        }
+	                        if(scene.time == 120){
+	                            new DispBody(100,240,360*3,240*3,scene)
+	                        }
+	                        if(scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
+	                            new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
+	                            new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
+	                            dcnt++;
+	                        }
+	                        if(scene.time == 315){
+	                            new DispText(650,420,320*2,64,'撃破数：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
+	                        }
+	                        if(scene.time >= 345){
+	                            var toTitle = new Label('➡タイトル画面へ');
+	                                toTitle.moveTo(640,640);
+	                                toTitle.width = 320*1.5;
+	                                toTitle.height = 36;
+	                                toTitle.font = '36px "Arial"';
+	                                toTitle.color = '#400';
+	                                toTitle.textAlign = 'center';
+	                            if(scene.time == 345){
+	                                deleteFlg = true;
+	                                scene.addChild(toTitle)
+	                            }
+	                            toTitle.addEventListener(Event.TOUCH_START, function() {
+	                                
+	                                game.stop()
+	                                //location.href = "./game.html";
+	                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
+	                            });
+	                        }
                         } 
                         if((defeat == true || victory == true && zanki > 0) && game.time == 150){
                             new FadeOut(scene)
@@ -6534,6 +6607,8 @@ window.onload = function() {
                             
                             game.replaceScene(createStartScene())
                         }
+			}
+                        
                         if(victory == true && game.time == 15){
                             
                             BGM2 = game.assets['./sound/success.mp3'].play()
