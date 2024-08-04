@@ -6552,7 +6552,7 @@ window.onload = function() {
                             
                             game.replaceScene(createStartScene())
                         }
-			}
+			
                         
                         if(victory == true && game.time == 15){
                             
