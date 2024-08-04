@@ -6574,7 +6574,7 @@ window.onload = function() {
 	                            dcnt++;
 	                        }
 	                        if(scene.time == 315){
-	                            new DispText(650,420,320*2,64,'撃破数：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
+	                            new DispText(650,420,320*2,64,'撃破数：'+(score),'bold 64px "Arial"','#622','left',scene)
 	                        }
 	                        if(scene.time >= 345){
 	                            var toTitle = new Label('➡タイトル画面へ');
