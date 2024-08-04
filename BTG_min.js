@@ -6529,18 +6529,18 @@ window.onload = function() {
 			if(defeat == true && zanki > 0 && game.time == 15){
                             
 	                            BGM2 = game.assets['./sound/failed.mp3'].play()
-	                        } 
-	                        if((defeat == true || victory == true && zanki > 0) && game.time == 150){
-	                            new FadeOut(scene)
-	                        }
-	                        if((defeat == true || victory == true && zanki > 0) && game.time == 170){
-	                            deleteFlg = true;
-	                        }
-	                        if(defeat==true && game.time == 180 && zanki > 0){
-	                            AllDelete();
+	                } 
+	                if((defeat == true || victory == true && zanki > 0) && game.time == 150){
+	                        new FadeOut(scene)
+	                }
+	                if((defeat == true || victory == true && zanki > 0) && game.time == 170){
+	                        deleteFlg = true;
+	                }
+	                if(defeat==true && game.time == 180 && zanki > 0){
+	                        AllDelete();
 	                            
-	                            game.replaceScene(createStartScene())
-	                        }
+	                        game.replaceScene(createStartScene())
+	                }
                         if((defeat == true || victory == true && zanki > 0) && game.time == 150){
                             new FadeOut(scene)
                         }
