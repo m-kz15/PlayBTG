@@ -42,8 +42,6 @@ var addSpeed = 0;           //難易度ごとの移動速度
 var deleteFlg = false;
 var enemyTarget = [];   //敵戦車が狙うターゲット
 
-var gameover = false;
-
 var userName = "Player";
 
 /* 各戦車の迎撃判定
@@ -2318,9 +2316,6 @@ window.onload = function() {
                             this.moveTo(-100,-100)          //  戦車を移動
                             zanki--;                        //  残機を減らす
                             life--;
-			    if(zanki <= 0){
-				gameover = true;
-			    }
                         }
                         if(scene.time > 210){
                             if(shotStopFlg == false){
@@ -2632,7 +2627,7 @@ window.onload = function() {
                         if(tankStopFlg == true)tankStopFlg = false;
                         fireFlgs[Num] = false;  //  発射状態をリセット
                         shotNGflg = false;
-                        if(moveSpeed != 0 && (movecnt == pixelSize || movecnt == 0)){
+                        if(moveSpeed != 0){
                             //  自身の位置とターゲットの位置をざっくり算出
                             myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
                             targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
@@ -6425,7 +6420,7 @@ window.onload = function() {
                             script.src = stagePath[stageNum+1];
                         let head = document.getElementsByTagName("head");
                             head[0].appendChild(script);
-                        if(zanki <= 0 || gameover == true){
+                        if(zanki <= 0){
                             scene.time = 0;
                             new DispHead(100,60,360*3,180,"#a00",scene)
                             new DispText(252,124,720,64,'ミッション終了！','bold 64px "Arial"','yellow','center',scene)
@@ -6518,29 +6513,16 @@ window.onload = function() {
                         if(deadFlgs[0]==true && defeat == false && zanki > 0){
                             game.time = 0;
                             
-                            
+                            defeat = true;
                             BGM1.stop();
                             scene.removeChild(pauseButtton)
                             scene.removeChild(blackImg)
                             scene.removeChild(retire)
-				    defeat = true;
-			    
                         }
-			if(defeat == true && zanki > 0 && game.time == 15){
+                        if(defeat == true && zanki > 0 && game.time == 15){
                             
-	                            BGM2 = game.assets['./sound/failed.mp3'].play()
-	                } 
-	                if((defeat == true || victory == true && zanki > 0) && game.time == 150){
-	                        new FadeOut(scene)
-	                }
-	                if((defeat == true || victory == true && zanki > 0) && game.time == 170){
-	                        deleteFlg = true;
-	                }
-	                if(defeat==true && game.time == 180 && zanki > 0){
-	                        AllDelete();
-	                            
-	                        game.replaceScene(createStartScene())
-	                }
+                            BGM2 = game.assets['./sound/failed.mp3'].play()
+                        } 
                         if((defeat == true || victory == true && zanki > 0) && game.time == 150){
                             new FadeOut(scene)
                         }
@@ -6552,8 +6534,6 @@ window.onload = function() {
                             
                             game.replaceScene(createStartScene())
                         }
-			
-                        
                         if(victory == true && game.time == 15){
                             
                             BGM2 = game.assets['./sound/success.mp3'].play()
