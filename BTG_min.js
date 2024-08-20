@@ -2624,10 +2624,10 @@ window.onload = function() {
                         
                         
                         
-                        if(tankStopFlg == true)tankStopFlg = false;
+                        
                         fireFlgs[Num] = false;  //  発射状態をリセット
                         shotNGflg = false;
-                        if(moveSpeed != 0){
+                        if(moveSpeed != 0 && tankStopFlg == false){
                             //  自身の位置とターゲットの位置をざっくり算出
                             myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
                             targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
@@ -2661,6 +2661,7 @@ window.onload = function() {
                                 }
                             }
                         }
+			if(tankStopFlg == true)tankStopFlg = false;
                         //  実行可能なら
                         if(worldFlg == true){
                             this.time++;
