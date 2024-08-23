@@ -3562,6 +3562,7 @@ window.onload = function() {
             let shotStopFlg = false;
             let shotStopTime = 0;
             let now = 0;
+            var tankStopFlg = false;
 
             var grid = g;       //  マップの障害物配置情報
             var root;           //  移動ルート
@@ -3701,7 +3702,7 @@ window.onload = function() {
                     }
                     if(escapeFlg == false)rootFlg = false;
                     if(enemyTarget[Num] != target) rootFlg = true;
-                    if(moveSpeed != 0 && escapeFlg == false){
+                    if(moveSpeed != 0 && escapeFlg == false && tankStopFlg == false){
                         //  自身の位置とターゲットの位置をざっくり算出
                         myPath = [parseInt((this.y+(this.height/2)-1)/pixelSize),parseInt((this.x+(this.width/2)-1)/pixelSize)]
                         targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
@@ -3738,6 +3739,7 @@ window.onload = function() {
                         }
                         
                     }
+                    if(tankStopFlg) tankStopFlg = false;
                     
                     if(worldFlg == true && defeat == false && victory == false && complete == false){
                         this.time++;
@@ -3796,6 +3798,7 @@ window.onload = function() {
                             for(let i = 1; i < tankEntity.length; i++){
                                 if(tank.within(tankEntity[i],64) && i != Num && deadFlgs[i]==false){
                                     fireFlgs[Num] = false;
+                                    tankStopFlg = true;
                                 }
                             }
                             
@@ -4199,7 +4202,7 @@ window.onload = function() {
                                                     bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
                                                     ShotBullet(i);
                                                     aimingTime = 0;
-						    aimCmpTime = Math.floor(Math.random() * 25)+25;
+						                            aimCmpTime = Math.floor(Math.random() * 50)+30;
                                                     break;
                                                 }
                                             }
@@ -5967,6 +5970,7 @@ window.onload = function() {
             destruction = 0;
             victory = false;
             defeat = false;
+            resultFlg = false;
             
             var nextData = LoadStage();    //ステージ情報引き出し
     
@@ -6376,7 +6380,7 @@ window.onload = function() {
                 }
                 
                 document.onkeyup = function(e){
-                    if((e.code == 'Escape') && scene.time > 250 && defeat == false && victory == false && complete == false){
+                    if((e.code == 'Escape') && scene.time > 250 && defeat == false && victory == false && complete == false && resultFlg == false){
                         if (worldFlg == false){
                             blackImg.backgroundColor = "#00000000"
                             worldFlg = true
@@ -6404,7 +6408,7 @@ window.onload = function() {
                 }
                 
                 
-                if(BGM1.currentTime == BGM1.duration && victory == false && defeat == false && complete == false){
+                if(BGM1.currentTime == BGM1.duration && (victory == false && defeat == false && complete == false && resultFlg == false)){
     
                     //BGM1 = game.assets['./sound/FIRST.mp3'];
                     BGM1 = game.assets[BGMs[BNum]];
@@ -6412,7 +6416,7 @@ window.onload = function() {
                     BGM1.play()
                 }
        
-                if(scene.time == 210 && complete == false && victory == false){
+                if(scene.time == 210 && (complete == false && victory == false && defeat == false && resultFlg == false)){
                     worldFlg = true;
                     scene.addChild(startLabel) 
                     scene.addChild(pauseButtton)  
@@ -6476,10 +6480,10 @@ window.onload = function() {
                                 scene.removeChild(retire)
                                 BGM1.stop();
                                 
-                                let script = document.createElement("script");
+                                /*let script = document.createElement("script");
                                     script.src = stagePath[stageNum+1];
                                 let head = document.getElementsByTagName("head");
-                                    head[0].appendChild(script);
+                                    head[0].appendChild(script);*/
                                 defeat = true;
                                 if(zanki <= 0){
                                     for(var i = 4; i < Object.keys(stageData).length; i++){
@@ -6496,7 +6500,7 @@ window.onload = function() {
                                     game.time = 0;
                                 }
                             }else{
-                                
+
                             }
                         }else if(victory == true){
                             if(game.time == 15){
