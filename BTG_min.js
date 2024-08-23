@@ -141,6 +141,7 @@ var defeat = false;     //敗北判定
 var complete = false;   //攻略完了判定
 var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
+var resultFlg = false;
 
 var stageNum = 1;           //ステージ番号
 var BGMs = [                //bgm指定用配列
@@ -2661,7 +2662,7 @@ window.onload = function() {
                                 }
                             }
                         }
-			if(tankStopFlg == true)tankStopFlg = false;
+                        if(tankStopFlg == true)tankStopFlg = false;
                         //  実行可能なら
                         if(worldFlg == true){
                             this.time++;
@@ -2904,6 +2905,40 @@ window.onload = function() {
                 }
             }
             scene.insertBefore(this,tank)
+        },
+        MoveAction(){
+            //  自身の位置とターゲットの位置をざっくり算出
+            myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
+            targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+            //  マップの障害物情報に自身とターゲットの位置設定
+            for(var i = 0; i < grid.length; i++){
+                for(var j = 0; j < grid[i].length; j++){
+                    if(i == myPath[0] && j == myPath[1]){
+                        grid[i][j] = 'Start';
+                    }else if(i == targetPath[0] && j == targetPath[1]){
+                        grid[i][j] = 'Goal';
+                    }else{
+                        //  StartやGoalの位置が更新されている場合の処理
+                        if(map.collisionData[i][j] == 0){
+                            grid[i][j] = 'Empty';
+                        }else{
+                            grid[i][j] = 'Obstacle';
+                        }
+                    }
+                }
+            }
+            if(this.time == 0){
+                root = findShortestPath([myPath[0],myPath[1]], grid,scene);
+                if(root[0] == "East"){
+                    this.rotation = 0
+                }else if(root[0] == "West"){
+                    this.rotation = 180;
+                }else if(root[0] == "North"){
+                    this.rotation = 270;
+                }else if(root[0] == "South"){
+                    this.rotation = 90;
+                }
+            }
         }
     });
     /* 敵(強)クラス */
@@ -6215,6 +6250,7 @@ window.onload = function() {
                         worldFlg = true
                         pauseButtton.text ='';
                         zanki = 0;
+                        deadFlgs[0] = true;
                         deleteFlg = true;
                     }
                 }
@@ -6406,9 +6442,178 @@ window.onload = function() {
                     if(scene.time == 240) scene.removeChild(startLabel)
                     world.step(game.fps);
                     game.time++;
+
+                    if(resultFlg == false){
+                        if(defeat == false && victory == false && complete == false){
+                            if(destruction == tankEntity.length-1 && zanki > 0 && deadFlgs[0] == false){
+                                scene.removeChild(pauseButtton)
+                                scene.removeChild(blackImg)
+                                scene.removeChild(retire)
+                                BGM1.stop();
+                                for(var i = 4; i < Object.keys(stageData).length; i++){
+                                    colors[stageData[i][10]] += 1;
+                                }
+                                let script = document.createElement("script");
+                                    script.src = stagePath[stageNum+1];
+                                let head = document.getElementsByTagName("head");
+                                    head[0].appendChild(script);
+                                if(stageNum % 20 == 0){
+                                    complete = true;
+                                    resultFlg = true;
+                                    score += destruction
+                                    scene.time = 0;
+                                    new DispHead(100,60,360*3,180,"#a00",scene)
+                                    new DispText(252,124,720,64,'ミッションコンプリート！','bold 60px "Arial"','yellow','center',scene)
+                                }else{
+                                    victory = true;
+                                    game.time = 0;
+                                    new DispText(360,300,720,64,'ミッションクリア！','bold 60px "Arial"','red','left',scene)
+                                    new DispScore(scene)
+                                }
+                            }else if(deadFlgs[0]==true){
+                                scene.removeChild(pauseButtton)
+                                scene.removeChild(blackImg)
+                                scene.removeChild(retire)
+                                BGM1.stop();
+                                
+                                let script = document.createElement("script");
+                                    script.src = stagePath[stageNum+1];
+                                let head = document.getElementsByTagName("head");
+                                    head[0].appendChild(script);
+                                defeat = true;
+                                if(zanki <= 0){
+                                    for(var i = 4; i < Object.keys(stageData).length; i++){
+                                        if(deadFlgs[i-3]){
+                                            colors[stageData[i][10]] += 1;
+                                        }
+                                    }
+                                    resultFlg = true;
+                                    score += destruction
+                                    scene.time = 0;
+                                    new DispHead(100,60,360*3,180,"#a00",scene)
+                                    new DispText(252,124,720,64,'ミッション終了！','bold 60px "Arial"','yellow','center',scene)
+                                }else{
+                                    game.time = 0;
+                                }
+                            }else{
+                                
+                            }
+                        }else if(victory == true){
+                            if(game.time == 15){
+                                BGM2 = game.assets['./sound/success.mp3'].play()
+                            }
+                            if(game.time == 150){
+                                new FadeOut(scene)
+                            }
+                            if(game.time == 170){
+                                deleteFlg = true;
+                            }
+                            if(game.time == 180){
+                                score += destruction
+                                stageNum++;
+                                AllDelete();
+                                
+                                if(stageNum % 6 == 0){
+                                    game.replaceScene(createBonusScene())
+                                }else{
+                                    game.replaceScene(createStartScene())
+                                }
+                            }
+                        }else if(defeat == true){
+                            if(game.time == 15){
+                                BGM2 = game.assets['./sound/failed.mp3'].play()
+                            } 
+                            if(game.time == 150){
+                                new FadeOut(scene)
+                            }
+                            if(game.time == 170){
+                                deleteFlg = true;
+                            }
+                            if(game.time == 180){
+                                AllDelete();
+                                
+                                game.replaceScene(createStartScene())
+                            }
+                        }
+                    }else{
+                        if(scene.time == 15){
+                            BGM2 = game.assets['./sound/end.mp3'];
+                            BGM2.play()
+                            chgBgm = true;
+                        }else if(scene.time > 100 && chgBgm == true && BGM2.currentTime == BGM2.duration){
+                            BGM2.currentTime = 0;
+                            BGM2.stop()
+                            BGM3 = game.assets['./sound/result.mp3'];
+                            BGM3.currentTime = 0;
+                            BGM3.play()
+                            chgBgm = false;
+                        }else if(scene.time > 100 && chgBgm == false && BGM3.currentTime == BGM3.duration){
+                            BGM3 = game.assets['./sound/result.mp3'];
+                            BGM3.currentTime = 0;
+                            BGM3.play()
+                        }
+                        if(scene.time == 120){
+                            new DispBody(100,240,360*3,240*3,scene)
+                        }
+                        if(scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
+                            new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
+                            new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
+                            dcnt++;
+                        }
+                        if(scene.time == 315){
+                            if(defeat){
+                                new DispText(650,420,320*2,64,'撃破数：'+(score),'bold 64px "Arial"','#622','left',scene)
+                            }else{
+                                new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
+                            }
+                            
+                        }
+                        if(scene.time >= 345){
+                            var toTitle = new Label('➡タイトル画面へ');
+                                toTitle.moveTo(640,640);
+                                toTitle.width = 320*1.5;
+                                toTitle.height = 36;
+                                toTitle.font = '36px "Arial"';
+                                toTitle.color = '#400';
+                                toTitle.textAlign = 'center';
+                            var toProceed = new Label('➡さらなるステージへ...');
+                                toProceed.moveTo(640,720);
+                                toProceed.width = 320*1.5;
+                                toProceed.height = 36;
+                                toProceed.font = 'bold 36px "Arial"';
+                                toProceed.color = 'red';
+                                toProceed.textAlign = 'center';
+                            if(scene.time == 345){
+                                deleteFlg = true;
+                                scene.addChild(toTitle)
+                                if(stageNum != 100 && defeat == false){
+                                    scene.addChild(toProceed)
+                                }
+                            }
+                            toTitle.addEventListener(Event.TOUCH_START, function() {
+                                
+                                game.stop()
+                                //location.href = "./game.html";
+                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
+                            });
+                            toProceed.addEventListener(Event.TOUCH_START, function() {
+                                complete = false;
+                                BGM3.stop()
+                                
+                                new FadeOut(scene)
+                                stageNum++;
+                                AllDelete();
+                                
+                                game.replaceScene(createStartScene())
+                            });
+                        }
+                    }
                     
                     
-                    if((destruction == tankEntity.length-1 || zanki <= 0) && deadFlgs[0]==false && victory == false && complete == false){
+                    
+                    
+                    
+                    /*if((destruction == tankEntity.length-1 || zanki <= 0) && deadFlgs[0]==false && victory == false && complete == false){
                         scene.removeChild(pauseButtton)
                         scene.removeChild(blackImg)
                         scene.removeChild(retire)
@@ -6550,9 +6755,7 @@ window.onload = function() {
                                 game.replaceScene(createStartScene())
                             }
                         }
-                    }
-
-                    
+                    }*/
                 }
             }
             return scene;
