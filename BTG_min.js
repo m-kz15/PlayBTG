@@ -4323,6 +4323,7 @@ window.onload = function() {
 
             enemyTarget[Num] = target;
             var alignment = new Target(Num,scene)
+            shotSpeed -= 2;
 
             for(var i = 0; i < max+defenseMax; i++){
                 colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
@@ -4341,7 +4342,6 @@ window.onload = function() {
             })
             if(addBullet != 0){
                 if(shotSpeed < 14) shotSpeed += 1; 
-                if(fireLate > 19) fireLate = fireLate - ((fireLate/5)*2);
             }
 
             function SelDirection(target1,target2,or){
@@ -4543,9 +4543,7 @@ window.onload = function() {
                                     }
                                     if(stopFlg == false){
                                         if(grade == 13){
-                                            speed = speed + 1.2;
-                                        }else if(grade >= 10){
-                                            speed = speed + 0.8;
+                                            speed = speed + 0.4;
                                         }
                                     }
                                 }
