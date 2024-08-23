@@ -6315,7 +6315,7 @@ window.onload = function() {
             let chgBgm = false;
 
             scene.onenterframe = function() {
-                if(complete == false) chgBgm = false;
+                
                 scene.time++;
                 if(defeat == false && victory == false && complete == false) remaining.text = '敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki
                 Floor.intersect(Aim).forEach(function(pair){
@@ -6448,6 +6448,7 @@ window.onload = function() {
                     game.time++;
 
                     if(resultFlg == false){
+                        chgBgm = false;
                         if(defeat == false && victory == false && complete == false){
                             if(destruction == tankEntity.length-1 && zanki > 0 && deadFlgs[0] == false){
                                 scene.removeChild(pauseButtton)
@@ -6539,7 +6540,7 @@ window.onload = function() {
                                 game.replaceScene(createStartScene())
                             }
                         }
-                    }else{
+                    }else if(resultFlg){
                         if(scene.time == 15){
                             BGM2 = game.assets['./sound/end.mp3'];
                             BGM2.play()
