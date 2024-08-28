@@ -54,7 +54,7 @@ var cateFlgs = [
     [true,true,true],   //lightgreen
     [true,true,true],   //elitegray
     [true,true,true],   //snow
-    [true,true,true],   //elitegreen
+    [false,false,false],   //elitegreen
     [true,true,false],  //sand
     [true,false,false], //pink
     [true,false,false], //random
@@ -4079,8 +4079,15 @@ window.onload = function() {
             let reloadFlg = false;
             let aimingTime = 0;
             let aimRot = 1.2;
+            let aimCmpTime = 30;
+            let baseAimRot = 1.2;
+            if(category == 0){
+                aimRot = 1.5;
+                baseAimRot = 1.5;
+                aimCmpTime = 20;
+            }
 
-	    let aimCmpTime = 30;
+	        
 
             let life = 1;
 
@@ -4172,8 +4179,18 @@ window.onload = function() {
                                 fireFlgs[Num] = true;
                                 aimingTime++;
                             })
-                            if(aimingTime % 5 == 0 && aimingTime > 0){
-                                aimRot *= -1;
+                            if(aimingTime % 5 == 0){
+                                if(aimingTime > 0){
+                                    if(fireFlgs[category] == true)aimRot = baseAimRot / 2;
+                                    aimRot *= -1;
+                                }else{
+                                    if(aimRot > 0){
+                                        if(aimRot != baseAimRot)aimRot = baseAimRot;
+                                    }else{
+                                        if(aimRot != -baseAimRot)aimRot = -baseAimRot;
+                                    }
+                                }
+                                
                             }
                             if(fireFlgs[Num] == false)cannon.rotation += aimRot;
 
@@ -6600,8 +6617,8 @@ window.onload = function() {
                             toTitle.addEventListener(Event.TOUCH_START, function() {
                                 
                                 game.stop()
-                                //location.href = "./game.html";
-                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
+                                location.href = "./game.html";
+                                //location.href = "https://m-kz15.github.io/PlayBTG/game.html";
                             });
                             toProceed.addEventListener(Event.TOUCH_START, function() {
                                 complete = false;
