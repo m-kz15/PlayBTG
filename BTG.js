@@ -138,6 +138,7 @@ var defeat = false;     //敗北判定
 var complete = false;   //攻略完了判定
 var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
+var resultFlg = false;
 
 var stageNum = 1;           //ステージ番号
 var BGMs = [                //bgm指定用配列
@@ -2131,7 +2132,6 @@ window.onload = function() {
             const weak = new Weak(this,Num,scene)                           //  弱点生成
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)  //  砲塔生成
             const tank = new Tank(this,tankPath,Num,scene,cannon)           //  車体生成
-            weeks[Num] = weak;
             TankFrame(this,Num,scene)
             
             markEntity[Num] = null;
@@ -2220,6 +2220,7 @@ window.onload = function() {
             //  常に処理する
             this.onenterframe = function(){
                 if(deleteFlg == true){
+                    this.moveTo(-100,-100);
                     scene.removeChild(intercept)
                     scene.removeChild(intercept1);
                     scene.removeChild(intercept3);
@@ -2232,12 +2233,11 @@ window.onload = function() {
                 }
                 //  死んでいなければ処理
                 if(life > 0){
-                    
                     //  死亡判定処理
-                    /*for(var j = 0; j < bulOb.length; j++){
+                    for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 bulStack[j][k] = false;
@@ -2246,255 +2246,270 @@ window.onload = function() {
                                 bulOb[j][k].moveTo(-200,-200)
                                 moveSpeed = 0;
                             }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
                         }
-                    }*/
-                    if(deadFlgs[Num]==true){
-                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                        tankColorCounts[category]--;
-                        //alert(tankColorCwwsaounts)
-                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100);
-                        destruction++
-                        life--;
                     }
-                    if(tankStopFlg == true)tankStopFlg = false;
-                    fireFlgs[Num] = false;  //  発射状態をリセット
-                    shotNGflg = false;
-                    if(moveSpeed != 0){
-                        //  自身の位置とターゲットの位置をざっくり算出
-                        myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
-                        targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
-                        //  マップの障害物情報に自身とターゲットの位置設定
-                        for(var i = 0; i < grid.length; i++){
-                            for(var j = 0; j < grid[i].length; j++){
-                                if(i == myPath[0] && j == myPath[1]){
-                                    grid[i][j] = 'Start';
-                                }else if(i == targetPath[0] && j == targetPath[1]){
-                                    grid[i][j] = 'Goal';
-                                }else{
-                                    //  StartやGoalの位置が更新されている場合の処理
-                                    if(map.collisionData[i][j] == 0){
-                                        grid[i][j] = 'Empty';
+                    //  死亡判定がfalseなら
+                    if(deadFlgs[Num]==false){
+                        
+                        
+                        
+                        
+                        fireFlgs[Num] = false;  //  発射状態をリセット
+                        shotNGflg = false;
+                        if(moveSpeed != 0 && tankStopFlg == false){
+                            //  自身の位置とターゲットの位置をざっくり算出
+                            myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
+                            targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+                            //  マップの障害物情報に自身とターゲットの位置設定
+                            for(var i = 0; i < grid.length; i++){
+                                for(var j = 0; j < grid[i].length; j++){
+                                    if(i == myPath[0] && j == myPath[1]){
+                                        grid[i][j] = 'Start';
+                                    }else if(i == targetPath[0] && j == targetPath[1]){
+                                        grid[i][j] = 'Goal';
                                     }else{
-                                        grid[i][j] = 'Obstacle';
-                                    }
-                                }
-                            }
-                        }
-                        if(this.time == 0){
-                            root = findShortestPath([myPath[0],myPath[1]], grid,scene);
-                            if(root[0] == "East"){
-                                this.rotation = 0
-                            }else if(root[0] == "West"){
-                                this.rotation = 180;
-                            }else if(root[0] == "North"){
-                                this.rotation = 270;
-                            }else if(root[0] == "South"){
-                                this.rotation = 90;
-                            }
-                        }
-                    }
-                    //  実行可能なら
-                    if(worldFlg == true){
-                        this.time++;
-                        
-                        for(let i = 0; i < tankEntity.length; i++){
-                            if(i != Num && deadFlgs[i] == false){
-                                if(tankDir[Num][0].intersect(tankEntity[i])==true){
-                                    shotNGflg = true;
-                                    if(this.rotation == 270){
-                                        tankStopFlg = true;
-                                        if(shotStopFlg == false){
-                                            this.y += moveSpeed;
-                                            moveCnt -= moveSpeed;
-                                        }        
-                                    }
-                                }else if(tankDir[Num][1].intersect(tankEntity[i])==true){
-                                    shotNGflg = true;
-                                    if(this.rotation == 90){
-                                        tankStopFlg = true;
-                                        if(shotStopFlg == false){
-                                            this.y -= moveSpeed;
-                                            moveCnt -= moveSpeed;
-                                        }
-                                        
-                                    }
-                                }else if(tankDir[Num][2].intersect(tankEntity[i])==true){
-                                    shotNGflg = true;
-                                    if(this.rotation == 0){
-                                        tankStopFlg = true;
-                                        if(shotStopFlg == false){
-                                            this.x += moveSpeed;
-                                            moveCnt -= moveSpeed;
-                                        }
-                                        
-                                    }
-                                }else if(tankDir[Num][3].intersect(tankEntity[i])==true){
-                                    shotNGflg = true;
-                                    if(this.rotation == 180){
-                                        tankStopFlg = true;
-                                        if(shotStopFlg == false){
-                                            this.x -= moveSpeed;
-                                            moveCnt -= moveSpeed;
+                                        //  StartやGoalの位置が更新されている場合の処理
+                                        if(map.collisionData[i][j] == 0){
+                                            grid[i][j] = 'Empty';
+                                        }else{
+                                            grid[i][j] = 'Obstacle';
                                         }
                                     }
                                 }
                             }
-                        }
-                        for(let i = 0; i < obsdir.length; i++){
-                            if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
-                                this.moveTo(this.x,obsdir[i][0].y-61)
-                            }
-                            if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
-                                this.moveTo(this.x,obsdir[i][1].y+obsdir[i][1].height+3)
-                            }
-                            if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
-                                this.moveTo(obsdir[i][2].x-62,this.y)
-                            }
-                            if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
-                                this.moveTo(obsdir[i][3].x+obsdir[i][3].width+3,this.y)
-                            }
-                        }
-                        if(this.intersect(walls[0])==true){
-                            this.moveTo(this.x,(64*2)-15)
-                        }
-                        if(this.intersect(walls[1])==true){
-                            this.moveTo(this.x,(64*13)-13)
-                        }
-                        if(this.intersect(walls[2])==true){
-                            this.moveTo((64*1)+3,this.y)
-                        }
-                        if(this.intersect(walls[3])==true){
-                            this.moveTo((64*18)+3,this.y)
-                        }
-                        if(shotStopFlg == true){
-                            shotStopTime++;
-                            if(shotStopTime > 10){
-                                shotStopFlg = false;
-                                shotStopTime = 0;
-                            }
-                        }
-                        
-                        //  敵の照準生成
-                        new EnemyAim(alignment,cannon,32,Num,scene);
-                        //  照準がバグった場合の処理
-                        /*if(enemyTarget[Num] == eAim){
-                            enemyTarget[Num] = target
-                        }*/
-                        if(this.time % 5 == 0){
-                            if(enemyTarget[Num] != target)enemyTarget[Num] = target;
-                        }
-                        
-                        //  一定範囲内にターゲットがいた場合
-                        if(tank.within(target,320)==true){
-                            enemyTarget[Num] = target
-                        }
-                        //  照準がターゲット追跡オブジェと重なったら
-                        alignment.intersect(EnemyAim).forEach(function(){
-                            fireFlgs[Num] = true;   //  発射可能状態にする
-                        })
-                        
-                        
-                        /* 迎撃処理群
-                            優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
-                        */
-                        //  他戦車の弾迎撃処理
-                        if(cateFlgs[category][2] == true){
-                            for(let i = 1; i < bulOb.length; i++){
-                                if(i != Num){
-                                    for(let j = 0; j < bulOb[i].length; j++){
-                                        if(bulStack[i][j] == true){
-                                            let dist = Instrumentation(enemyTarget[Num],bulOb[i][j]);
-                                            intercept.intersect(BulAim).forEach(function(){
-                                                if(dist != null && dist < cateRanges[category][2]){
-                                                    enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
-                                                }
-                                            })
-                                            
-                                        }
-                                    }
+                            if(this.time == 0){
+                                root = findShortestPath([myPath[0],myPath[1]], grid,scene);
+                                if(root[0] == "East"){
+                                    this.rotation = 0
+                                }else if(root[0] == "West"){
+                                    this.rotation = 180;
+                                }else if(root[0] == "North"){
+                                    this.rotation = 270;
+                                }else if(root[0] == "South"){
+                                    this.rotation = 90;
                                 }
                             }
                         }
-                        //  プレイヤーの弾迎撃処理
-                        if(cateFlgs[category][0] == true){
-                            for(let i = 0; i < bulOb[0].length; i++){
-                                if(bulStack[0][i] == true){
-                                    let dist = Instrumentation(enemyTarget[Num],bulOb[0][i]);
-                                    if(dist != null && dist < cateRanges[category][0]){
-                                        this.intersect(PlayerBulAim).forEach(function(){
-                                            enemyTarget[Num] = bulOb[0][i];    //  迎撃のためにターゲット変更
-                                        })
-                                    }
-                                    
-                                }
-                            }
-                        }
-                        //  自身の弾迎撃処理
-                        if(cateFlgs[category][1] == true){
-                            for(let i = 0; i < bulOb[Num].length; i++){
-                                if(bulStack[Num][i] == true){
-                                    let dist = Instrumentation(enemyTarget[Num],bulOb[Num][i]);
-                                    if(dist != null && dist < cateRanges[category][1]){
-                                        enemyTarget[Num] = bulOb[Num][i];    //  迎撃のためにターゲット変更
-                                    }
-                                }
-                            }
-                        }
-
-                        if(reloadFlg == false){
-                            if(bullets[Num] == max) reloadFlg = true;
-                        }else{
-                            if(reloadTime < cateReloadTimes[category]){
-                                reloadTime++;
-                                if(shotNGflg == false) shotNGflg = true;
-                            }else{
-                                shotNGflg = false;
-                                reloadFlg = false;
-                                reloadTime = 0;
-                            }
+                        if(tankStopFlg == true)tankStopFlg = false;
+                        //  実行可能なら
+                        if(worldFlg == true){
+                            this.time++;
                             
-                        }
-                        
-                        //  砲撃処理
-                        if(shotNGflg == false){
-                            if(this.time % fireLate == 0 && fireFlgs[Num]==true){
-                                if(Math.floor(Math.random() * max*2)>bullets[Num]){
-                                    if(bullets[Num] < max && deadFlgs[Num] == false){
-                                        for(let i = 0; i < max; i++){
-                                            if(bulStack[Num][i] == false){
-                                                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,max,shotSpeed,scene,i)
-                                                ShotBullet(i)
-                                                break;
+                            for(let i = 0; i < tankEntity.length; i++){
+                                if(i != Num && deadFlgs[i] == false){
+                                    if(tankDir[Num][0].intersect(tankEntity[i])==true){
+                                        shotNGflg = true;
+                                        if(this.rotation == 270){
+                                            tankStopFlg = true;
+                                            if(shotStopFlg == false){
+                                                this.y += moveSpeed;
+                                                moveCnt -= moveSpeed;
+                                            }        
+                                        }
+                                    }else if(tankDir[Num][1].intersect(tankEntity[i])==true){
+                                        shotNGflg = true;
+                                        if(this.rotation == 90){
+                                            tankStopFlg = true;
+                                            if(shotStopFlg == false){
+                                                this.y -= moveSpeed;
+                                                moveCnt -= moveSpeed;
                                             }
                                             
                                         }
+                                    }else if(tankDir[Num][2].intersect(tankEntity[i])==true){
+                                        shotNGflg = true;
+                                        if(this.rotation == 0){
+                                            tankStopFlg = true;
+                                            if(shotStopFlg == false){
+                                                this.x += moveSpeed;
+                                                moveCnt -= moveSpeed;
+                                            }
+                                            
+                                        }
+                                    }else if(tankDir[Num][3].intersect(tankEntity[i])==true){
+                                        shotNGflg = true;
+                                        if(this.rotation == 180){
+                                            tankStopFlg = true;
+                                            if(shotStopFlg == false){
+                                                this.x -= moveSpeed;
+                                                moveCnt -= moveSpeed;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            for(let i = 0; i < obsdir.length; i++){
+                                if(this.intersect(obsdir[i][0])==true && obsChk[i][0]==true){
+                                    this.moveTo(this.x,obsdir[i][0].y-61)
+                                }
+                                if(this.intersect(obsdir[i][1])==true && obsChk[i][1]==true){
+                                    this.moveTo(this.x,obsdir[i][1].y+obsdir[i][1].height+3)
+                                }
+                                if(this.intersect(obsdir[i][2])==true && obsChk[i][2]==true){
+                                    this.moveTo(obsdir[i][2].x-62,this.y)
+                                }
+                                if(this.intersect(obsdir[i][3])==true && obsChk[i][3]==true){
+                                    this.moveTo(obsdir[i][3].x+obsdir[i][3].width+3,this.y)
+                                }
+                            }
+                            if(this.intersect(walls[0])==true){
+                                this.moveTo(this.x,(64*2)-15)
+                            }
+                            if(this.intersect(walls[1])==true){
+                                this.moveTo(this.x,(64*13)-13)
+                            }
+                            if(this.intersect(walls[2])==true){
+                                this.moveTo((64*1)+3,this.y)
+                            }
+                            if(this.intersect(walls[3])==true){
+                                this.moveTo((64*18)+3,this.y)
+                            }
+                            if(shotStopFlg == true){
+                                shotStopTime++;
+                                if(shotStopTime > 10){
+                                    shotStopFlg = false;
+                                    shotStopTime = 0;
+                                }
+                            }
+                            
+                            //  敵の照準生成
+                            new EnemyAim(alignment,cannon,32,Num,scene);
+                            //  照準がバグった場合の処理
+                            /*if(enemyTarget[Num] == eAim){
+                                enemyTarget[Num] = target
+                            }*/
+                            if(this.time % 5 == 0){
+                                if(enemyTarget[Num] != target)enemyTarget[Num] = target;
+                            }
+                            
+                            //  一定範囲内にターゲットがいた場合
+                            if(tank.within(target,320)==true){
+                                enemyTarget[Num] = target
+                            }
+                            //  照準がターゲット追跡オブジェと重なったら
+                            alignment.intersect(EnemyAim).forEach(function(){
+                                fireFlgs[Num] = true;   //  発射可能状態にする
+                            })
+                            
+                            
+                            /* 迎撃処理群
+                                優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+                            */
+                            //  他戦車の弾迎撃処理
+                            if(cateFlgs[category][2] == true){
+                                for(let i = 1; i < bulOb.length; i++){
+                                    if(i != Num){
+                                        for(let j = 0; j < bulOb[i].length; j++){
+                                            if(bulStack[i][j] == true){
+                                                let dist = Instrumentation(enemyTarget[Num],bulOb[i][j]);
+                                                intercept.intersect(BulAim).forEach(function(){
+                                                    if(dist != null && dist < cateRanges[category][2]){
+                                                        enemyTarget[Num] = bulOb[i][j];    //  迎撃のためにターゲット変更
+                                                    }
+                                                })
+                                                
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            //  プレイヤーの弾迎撃処理
+                            if(cateFlgs[category][0] == true){
+                                for(let i = 0; i < bulOb[0].length; i++){
+                                    if(bulStack[0][i] == true){
+                                        let dist = Instrumentation(enemyTarget[Num],bulOb[0][i]);
+                                        if(dist != null && dist < cateRanges[category][0]){
+                                            this.intersect(PlayerBulAim).forEach(function(){
+                                                enemyTarget[Num] = bulOb[0][i];    //  迎撃のためにターゲット変更
+                                            })
+                                        }
                                         
-                                    } 
+                                    }
                                 }
                             }
-                        }
-                        
-                        
-                        if(moveSpeed != 0 && shotStopFlg == false && tankStopFlg == false){
-                            //  移動処理
-                            if(root != false && intercept.intersect(target)==false){
-                                tank.rotation = this.rotation
-                                var rad = this.rotation * (Math.PI / 180.0);
-                                var dx = Math.cos(rad) * moveSpeed;
-                                var dy = Math.sin(rad) * moveSpeed;
-                                if(this.intersect(Floor)==false){
-                                    this.x += dx;
-                                    this.y += dy;
+                            //  自身の弾迎撃処理
+                            if(cateFlgs[category][1] == true){
+                                for(let i = 0; i < bulOb[Num].length; i++){
+                                    if(bulStack[Num][i] == true){
+                                        let dist = Instrumentation(enemyTarget[Num],bulOb[Num][i]);
+                                        if(dist != null && dist < cateRanges[category][1]){
+                                            enemyTarget[Num] = bulOb[Num][i];    //  迎撃のためにターゲット変更
+                                        }
+                                    }
+                                }
+                            }
+
+                            if(reloadFlg == false){
+                                if(bullets[Num] == max) reloadFlg = true;
+                            }else{
+                                if(reloadTime < cateReloadTimes[category]){
+                                    reloadTime++;
+                                    if(shotNGflg == false) shotNGflg = true;
                                 }else{
-                                    this.x -= dx;
-                                    this.y -= dy;
+                                    shotNGflg = false;
+                                    reloadFlg = false;
+                                    reloadTime = 0;
                                 }
-                                moveCnt += moveSpeed;
+                                
                             }
-                            if(moveCnt == pixelSize && moveSpeed != 0){
+                            
+                            //  砲撃処理
+                            if(shotNGflg == false){
+                                if(this.time % fireLate == 0 && fireFlgs[Num]==true){
+                                    if(Math.floor(Math.random() * max*2)>bullets[Num]){
+                                        if(bullets[Num] < max && deadFlgs[Num] == false){
+                                            for(let i = 0; i < max; i++){
+                                                if(bulStack[Num][i] == false){
+                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
+                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,max,shotSpeed,scene,i)
+                                                    ShotBullet(i)
+                                                    break;
+                                                }
+                                                
+                                            }
+                                            
+                                        } 
+                                    }
+                                }
+                            }
+                            
+                            
+                            if(moveSpeed != 0 && shotStopFlg == false && tankStopFlg == false){
+                                //  移動処理
+                                if(root != false && intercept.intersect(target)==false){
+                                    tank.rotation = this.rotation
+                                    var rad = this.rotation * (Math.PI / 180.0);
+                                    var dx = Math.cos(rad) * moveSpeed;
+                                    var dy = Math.sin(rad) * moveSpeed;
+                                    if(this.intersect(Floor)==false){
+                                        this.x += dx;
+                                        this.y += dy;
+                                    }else{
+                                        this.x -= dx;
+                                        this.y -= dy;
+                                    }
+                                    moveCnt += moveSpeed;
+                                }
+                                if(moveCnt == pixelSize && moveSpeed != 0){
+                                    root = findShortestPath([myPath[0],myPath[1]], grid,scene)
+                                    if(root[0] == "East"){
+                                        this.rotation = 0
+                                    }else if(root[0] == "West"){
+                                        this.rotation = 180;
+                                    }else if(root[0] == "North"){
+                                        this.rotation = 270;
+                                    }else if(root[0] == "South"){
+                                        this.rotation = 90;
+                                    }
+                                    moveCnt = 0    
+                                }        
+                                
+                                weak.rotation = this.rotation;
+                            }
+                            if(root == false && moveSpeed != 0){
                                 root = findShortestPath([myPath[0],myPath[1]], grid,scene)
                                 if(root[0] == "East"){
                                     this.rotation = 0
@@ -2506,27 +2521,55 @@ window.onload = function() {
                                     this.rotation = 90;
                                 }
                                 moveCnt = 0    
-                            }        
-                            
-                            weak.rotation = this.rotation;
-                        }
-                        if(root == false && moveSpeed != 0){
-                            root = findShortestPath([myPath[0],myPath[1]], grid,scene)
-                            if(root[0] == "East"){
-                                this.rotation = 0
-                            }else if(root[0] == "West"){
-                                this.rotation = 180;
-                            }else if(root[0] == "North"){
-                                this.rotation = 270;
-                            }else if(root[0] == "South"){
-                                this.rotation = 90;
                             }
-                            moveCnt = 0    
                         }
+                    //  死亡判定時の処理
+                    }else{
+                        tankColorCounts[category]--;
+                        //alert(tankColorCwwsaounts)
+                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100);
+                        destruction++
+                        life--;
                     }
                 }
             }
             scene.insertBefore(this,tank)
+        },
+        MoveAction(){
+            //  自身の位置とターゲットの位置をざっくり算出
+            myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
+            targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+            //  マップの障害物情報に自身とターゲットの位置設定
+            for(var i = 0; i < grid.length; i++){
+                for(var j = 0; j < grid[i].length; j++){
+                    if(i == myPath[0] && j == myPath[1]){
+                        grid[i][j] = 'Start';
+                    }else if(i == targetPath[0] && j == targetPath[1]){
+                        grid[i][j] = 'Goal';
+                    }else{
+                        //  StartやGoalの位置が更新されている場合の処理
+                        if(map.collisionData[i][j] == 0){
+                            grid[i][j] = 'Empty';
+                        }else{
+                            grid[i][j] = 'Obstacle';
+                        }
+                    }
+                }
+            }
+            if(this.time == 0){
+                root = findShortestPath([myPath[0],myPath[1]], grid,scene);
+                if(root[0] == "East"){
+                    this.rotation = 0
+                }else if(root[0] == "West"){
+                    this.rotation = 180;
+                }else if(root[0] == "North"){
+                    this.rotation = 270;
+                }else if(root[0] == "South"){
+                    this.rotation = 90;
+                }
+            }
         }
     });
     /* 敵(強)クラス */
@@ -2547,7 +2590,6 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
-            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -2674,6 +2716,7 @@ window.onload = function() {
             
             this.onenterframe = function(){
                 if(deleteFlg == true){
+                    this.moveTo(-100,-100)
                     scene.removeChild(intercept7);
                     scene.removeChild(tank)
                     scene.removeChild(cannon)
@@ -2682,11 +2725,12 @@ window.onload = function() {
                 }
                 if(life > 0){
                     
+                    
                     //  死亡判定処理
-                    /*for(var j = 0; j < bulOb.length; j++){
+                    for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 bulStack[j][k] = false;
@@ -2695,17 +2739,10 @@ window.onload = function() {
                                 bulOb[j][k].moveTo(-200,-200)
                                 moveSpeed = 0;
                             }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
                         }
-                    }*/
-                    if(deadFlgs[Num] == true){
-                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                        tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100)
-                        destruction++
-                        life--;
                     }
                     if(shotStopFlg == true){
                         shotStopTime++;
@@ -2774,6 +2811,16 @@ window.onload = function() {
                             }
                             
                             new EnemyAim(alignment,cannon,12,Num,scene);
+                            
+                            if(deadFlgs[Num] == true){
+                                tankColorCounts[category]--;
+                                //alert(tankColorCounts)
+                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                new Explosion(this,scene);
+                                this.moveTo(-100,-100)
+                                destruction++
+                                life--;
+                            }
 
                             intercept7.intersect(Floor).forEach(function(){
                                 shotNGflg = true;
@@ -3125,7 +3172,6 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
-            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -3147,6 +3193,7 @@ window.onload = function() {
             let shotStopFlg = false;
             let shotStopTime = 0;
             let now = 0;
+            var tankStopFlg = false;
 
             var grid = g;       //  マップの障害物配置情報
             var root;           //  移動ルート
@@ -3250,20 +3297,20 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                if(deleteFlg == true){
+                if(deadFlgs[Num] == true){
                     this.moveTo(-100,-100)
                     scene.removeChild(intercept7);
                     scene.removeChild(tank)
                     scene.removeChild(cannon)
                     scene.removeChild(weak)
-                    scene.removeChild(this)
+                    scene.removeChild(this)                        
                 }
                 if(life > 0){
                     //  死亡判定処理
-                    /*for(var j = 0; j < bulOb.length; j++){
+                    for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 bulStack[j][k] = false;
@@ -3272,19 +3319,11 @@ window.onload = function() {
                                 bulOb[j][k].moveTo(-200,-200)
                                 moveSpeed = 0;
                             }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
                         }
-                    }*/
-                    if(deadFlgs[Num] == true){
-                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                        tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100)
-                        destruction++
-                        life--;
                     }
-
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -3294,7 +3333,7 @@ window.onload = function() {
                     }
                     if(escapeFlg == false)rootFlg = false;
                     if(enemyTarget[Num] != target) rootFlg = true;
-                    if(moveSpeed != 0 && escapeFlg == false){
+                    if(moveSpeed != 0 && escapeFlg == false && tankStopFlg == false){
                         //  自身の位置とターゲットの位置をざっくり算出
                         myPath = [parseInt((this.y+(this.height/2)-1)/pixelSize),parseInt((this.x+(this.width/2)-1)/pixelSize)]
                         targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
@@ -3331,6 +3370,7 @@ window.onload = function() {
                         }
                         
                     }
+                    if(tankStopFlg) tankStopFlg = false;
                     
                     if(worldFlg == true && defeat == false && victory == false && complete == false){
                         this.time++;
@@ -3365,7 +3405,15 @@ window.onload = function() {
                             
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
-                            
+                            if(deadFlgs[Num] == true){
+                                tankColorCounts[category]--;
+                                //alert(tankColorCounts)
+                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                new Explosion(this,scene);
+                                this.moveTo(-100,-100)
+                                destruction++
+                                life--;
+                            }
 
                             intercept7.intersect(Floor).forEach(function(){
                                 shotNGflg = true;
@@ -3381,6 +3429,7 @@ window.onload = function() {
                             for(let i = 1; i < tankEntity.length; i++){
                                 if(tank.within(tankEntity[i],64) && i != Num && deadFlgs[i]==false){
                                     fireFlgs[Num] = false;
+                                    tankStopFlg = true;
                                 }
                             }
                             
@@ -3649,7 +3698,6 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
-            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             cannon.rotation = 0;
@@ -3662,6 +3710,8 @@ window.onload = function() {
             let reloadFlg = false;
             let aimingTime = 0;
             let aimRot = 1.2;
+
+	    let aimCmpTime = 30;
 
             let life = 1;
 
@@ -3703,6 +3753,7 @@ window.onload = function() {
             
             this.onenterframe = function(){
                 if(deleteFlg == true){
+                    this.moveTo(-100,-100)
                     scene.removeChild(intercept7);
                     scene.removeChild(tank)
                     scene.removeChild(cannon)
@@ -3711,10 +3762,10 @@ window.onload = function() {
                 }
                 if(life > 0){
                     //  死亡判定処理
-                    /*for(var j = 0; j < bulOb.length; j++){
+                    for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 bulStack[j][k] = false;
@@ -3723,17 +3774,10 @@ window.onload = function() {
                                 bulOb[j][k].moveTo(-200,-200)
                                 moveSpeed = 0;
                             }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
                         }
-                    }*/
-                    if(deadFlgs[Num] == true){
-                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                        tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100)
-                        destruction++
-                        life--;
                     }
                     
   
@@ -3745,7 +3789,15 @@ window.onload = function() {
                             shotNGflg = false;
                             fireFlgs[Num] = false;
                             
-                            
+                            if(deadFlgs[Num] == true){
+                                tankColorCounts[category]--;
+                                //alert(tankColorCounts)
+                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                new Explosion(this,scene);
+                                this.moveTo(-100,-100)
+                                destruction++
+                                life--;
+                            }
                             new EnemyAim();
                             EnemyAim.intersect(target).forEach(function(){
                                 fireFlgs[Num] = true;
@@ -3772,7 +3824,7 @@ window.onload = function() {
                                     
                                 }
 
-                                if(game.time % fireLate == 0 && shotNGflg == false && aimingTime > 10){
+                                if(game.time % fireLate == 0 && shotNGflg == false && aimingTime > aimCmpTime){
                                     if(Math.floor(Math.random() * emax*2)>bullets[Num]){
                                         for(let i = 0; i < emax; i++){
                                             if(bulStack[Num][i] == false){
@@ -3781,6 +3833,12 @@ window.onload = function() {
                                                     bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
                                                     ShotBullet(i);
                                                     aimingTime = 0;
+                                                    if(category != 0){
+                                                        aimCmpTime = Math.floor(Math.random() * 50)+30;
+                                                    }else{
+                                                        aimCmpTime = Math.floor(Math.random() * 30)+10;
+                                                    }
+						                            
                                                     break;
                                                 }
                                             }
@@ -3857,7 +3915,6 @@ window.onload = function() {
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
             const tank = new Tank(this,tankPath,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
-            weeks[Num] = weak;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -3920,7 +3977,6 @@ window.onload = function() {
             })
             if(addBullet != 0){
                 if(shotSpeed < 14) shotSpeed += 1; 
-                if(fireLate > 19) fireLate = fireLate - ((fireLate/5)*2);
             }
 
             function SelDirection(target1,target2,or){
@@ -4057,13 +4113,13 @@ window.onload = function() {
                     scene.removeChild(cannon)
                     scene.removeChild(weak)
                     scene.removeChild(this)
-                }
+                }    
                 if(life > 0){
                     //  死亡判定処理
-                    /*for(var j = 0; j < bulOb.length; j++){
+                    for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && dist < 28 && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 bulStack[j][k] = false;
@@ -4072,16 +4128,10 @@ window.onload = function() {
                                 bulOb[j][k].moveTo(-200,-200)
                                 moveSpeed = 0;
                             }
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                                
+                            }*/
                         }
-                    }*/
-                    if(deadFlgs[Num] == true){
-                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                        tankColorCounts[category]--;
-                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100)
-                        destruction++
-                        life--;
                     }
                     if(shotStopFlg == true){
                         shotStopTime++;
@@ -4128,9 +4178,7 @@ window.onload = function() {
                                     }
                                     if(stopFlg == false){
                                         if(grade == 13){
-                                            speed = speed + 1.2;
-                                        }else if(grade >= 10){
-                                            speed = speed + 0.8;
+                                            speed = speed + 0.4;
                                         }
                                     }
                                 }
@@ -4187,7 +4235,14 @@ window.onload = function() {
 
                             new EnemyAim(alignment,12,Num,scene);
       
-                            
+                            if(deadFlgs[Num] == true){
+                                tankColorCounts[category]--;
+                               //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                new Explosion(this,scene);
+                                this.moveTo(-100,-100)
+                                destruction++
+                                life--;
+                            }
                             
                             /*avoids.forEach(elem=>{
                                 if(tank.within(elem,64)==true){
@@ -4825,6 +4880,7 @@ window.onload = function() {
             scene.addChild(this)
         }
     })
+    /*
     //  jsonからデータを取得する処理
     function getJson() {
         //var xmlhttp = createXMLHttpRequest(); //旧バージョンのIEなどに対応する場合
@@ -4873,8 +4929,8 @@ window.onload = function() {
         for (let i = 0; i < localStorage.length; i++) {
             
             l_data[i] = JSON.parse(localStorage.getItem(i));
-            /*let storageValue = localStorage.key(i);
-            l_data[i] = storageValue;*/
+            //let storageValue = localStorage.key(i);
+            //l_data[i] = storageValue;
             //console.log(`Item at ${ i }: ${storageValue}`);
         }
         
@@ -4884,14 +4940,14 @@ window.onload = function() {
           localStorage.setItem(localStorage.length, JSON.stringify(postData));
     }
     //new getJson()
-    LocalLoad();
+    LocalLoad();*/
     
     // ゲームの準備が整ったらメインの処理を実行
     game.onload = function() { 
         var world = new PhysicsWorld(0, 0);
         
         var BGM = game.assets['./sound/TITLE.mp3'];
-            BGM.src.loop = true;    
+            //BGM.src.loop = true;    
 
         var createSetUpScene = function() {
             
@@ -4940,7 +4996,7 @@ window.onload = function() {
             // ゲーム開始用ラベル
             var toPlay = new DispText(game.width/2-180,440,320,40,'➡　S t a r t !','40px sans-serif','#ebe799','left',scene)
             //  ランキング画面用ラベル
-            var toRank = new DispText(game.width/2-180,520,600,40,'➡　ランキング画面','40px sans-serif','#ebe799','left',scene)
+            /*var toRank = new DispText(game.width/2-180,520,600,40,'➡　ランキング画面','40px sans-serif','#ebe799','left',scene)
             //  難易度選択用ラベル
             var level = new DispText(game.width/2-180,600,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
             //  難易度「普通」ラベル
@@ -4948,7 +5004,16 @@ window.onload = function() {
             //  難易度「難しい」ラベル
             var hard = new DispText(level.x+level.width+nomal.width+16,600,80,40,'Hard','40px sans-serif','#888','left',scene)
             //  戦車一覧画面用ラベル
-            var picture = new DispText(game.width/2-180,680,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)
+            var picture = new DispText(game.width/2-180,680,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)*/
+
+            //  難易度選択用ラベル
+            var level = new DispText(game.width/2-180,520,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
+            //  難易度「普通」ラベル
+            var nomal = new DispText(level.x+level.width-16,520,140,40,'Normal','40px sans-serif','#ebe799','left',scene)
+            //  難易度「難しい」ラベル
+            var hard = new DispText(level.x+level.width+nomal.width+16,520,80,40,'Hard','40px sans-serif','#888','left',scene)
+            //  戦車一覧画面用ラベル
+            var picture = new DispText(game.width/2-180,600,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)
 
             let lvFlg = false;
             //  難易度選択状態での表示変更処理
@@ -5009,12 +5074,14 @@ window.onload = function() {
             toPlay.addEventListener(Event.TOUCH_START, function() {
                 let returnFlg = true;
                 while(returnFlg){
-                    userName = prompt("\r\nユーザ名を入力してください\r\n\r\n(ユーザ名を設定するとランキングにスコアが記録されます)", "ここにユーザ名を入力");
+                    userName = prompt("\r\nユーザ名を入力してください(任意)", "ここにユーザ名を入力");
                     if(userName == "" || userName == null || userName == "ここにユーザ名を入力"){
-                        if(confirm("\r\nユーザ名を設定していません。\r\nよろしいですか？")) {
+                        /*if(confirm("\r\nユーザ名を設定していません。\r\nよろしいですか？")) {
                             returnFlg = false;
                             userName = "Player"
-                        }
+                        }*/
+                        returnFlg = false;
+                        userName = "Player"
                     }else{
                         alert("ユーザ名を「" + userName + "」に設定しました。");
                         returnFlg = false;
@@ -5027,13 +5094,13 @@ window.onload = function() {
                 titleFlg = false;
                 new FadeOut(scene)
             });
-            
+            /*
             // 移動先をランキング画面に設定
             toRank.addEventListener(Event.TOUCH_START, function() {
                 flg = true
                 orflg = 2;
                 new FadeOut(scene)
-            });
+            });*/
 
             // 移動先を戦車一覧画面に設定
             picture.addEventListener(Event.TOUCH_START, function() {
@@ -5053,9 +5120,9 @@ window.onload = function() {
                     if(scene.time == 30){
                         if(orflg == 1){
                             game.replaceScene(createStartScene());    // 現在表示しているシーンをゲームシーンに置き換える
-                        }else if(orflg == 2){
+                        }/*else if(orflg == 2){
                             game.replaceScene(createRankingScene());    // 現在表示しているシーンをゲームシーンに置き換える
-                        }else if(orflg == 3){
+                        }*/else if(orflg == 3){
                             game.replaceScene(createPictureScene());
                         }
                         
@@ -5067,7 +5134,7 @@ window.onload = function() {
             // タイトルシーンを返します。
             return scene;
         }
-
+        /*
         //  ランキング画面
         var createRankingScene = function(){
             var scene = new Scene();
@@ -5164,7 +5231,7 @@ window.onload = function() {
             }
             new FadeIn(scene)
             return scene;
-        }
+        }*/
 
         //  戦車一覧画面
         var createPictureScene = function() {
@@ -5343,6 +5410,7 @@ window.onload = function() {
             destruction = 0;
             victory = false;
             defeat = false;
+            resultFlg = false;
             
             var nextData = LoadStage();    //ステージ情報引き出し
     
@@ -5562,6 +5630,8 @@ window.onload = function() {
                     tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
                 }else if(stageData[i][10]==5 || stageData[i][10] == 4){
                         tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
+                }else if(stageData[i][10] == 0){
+                    tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
                 }else if(stageData[i][9] >= 8){
                     if(stageData[i][10] == 11){
                         tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
@@ -5616,9 +5686,9 @@ window.onload = function() {
                         blackImg.backgroundColor = "#00000000"
                         worldFlg = true
                         pauseButtton.text ='';
-                        zanki = 1;
+                        zanki = 0;
                         deadFlgs[0] = true;
-                        
+                        deleteFlg = true;
                     }
                 }
                 
@@ -5677,7 +5747,7 @@ window.onload = function() {
             let chgBgm = false;
 
             scene.onenterframe = function() {
-                if(complete == false) chgBgm = false;
+                
                 scene.time++;
                 if(defeat == false && victory == false && complete == false) remaining.text = '敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki
                 Floor.intersect(Aim).forEach(function(pair){
@@ -5713,8 +5783,36 @@ window.onload = function() {
                 else if(tankColorCounts[1]>0)   BNum = 1
                 else                            BNum = 0
                 
+                if(screen.width < 844){
+                    if(inputManager.checkButton("Start") == inputManager.keyStatus.DOWN && scene.time > 250 && defeat == false && victory == false && complete == false){
+                        if (worldFlg == false){
+                            blackImg.backgroundColor = "#00000000"
+                            worldFlg = true
+                            pauseButtton.text ='';
+                            BGM1.volume = 1.0
+                            pauseFlg = false;
+                            retire.x = 0
+                            retire.y = 0
+                            retire.width = 1;
+                            retire.height = 1;
+                            retire.text = ""
+                        }else{
+                            blackImg.backgroundColor = "#00000044"
+                            pauseButtton.text ='一時停止'; 
+                            worldFlg = false
+                            pauseFlg = true;
+                            BGM1.volume = 0.5
+                            retire.x = game.width/2-96
+                            retire.y = game.height/2+96
+                            retire.width = 48*4;
+                            retire.height = 48;
+                            retire.text = "リタイア"
+                        }
+                    }
+                }
+                
                 document.onkeyup = function(e){
-                    if(e.code == 'Escape' && scene.time > 250 && defeat == false && victory == false && complete == false){
+                    if((e.code == 'Escape') && scene.time > 250 && defeat == false && victory == false && complete == false && resultFlg == false){
                         if (worldFlg == false){
                             blackImg.backgroundColor = "#00000000"
                             worldFlg = true
@@ -5742,17 +5840,15 @@ window.onload = function() {
                 }
                 
                 
-                if(BGM1.currentTime == BGM1.duration && victory == false && defeat == false && complete == false){
+                if(BGM1.currentTime == BGM1.duration && (victory == false && defeat == false && complete == false && resultFlg == false)){
     
                     //BGM1 = game.assets['./sound/FIRST.mp3'];
                     BGM1 = game.assets[BGMs[BNum]];
                     BGM1.currentTime = 0;
                     BGM1.play()
                 }
-                
-                
        
-                if(scene.time == 210 && complete == false && victory == false){
+                if(scene.time == 210 && (complete == false && victory == false && defeat == false && resultFlg == false)){
                     worldFlg = true;
                     scene.addChild(startLabel) 
                     scene.addChild(pauseButtton)  
@@ -5782,9 +5878,179 @@ window.onload = function() {
                     if(scene.time == 240) scene.removeChild(startLabel)
                     world.step(game.fps);
                     game.time++;
+
+                    if(resultFlg == false){
+                        chgBgm = false;
+                        if(defeat == false && victory == false && complete == false){
+                            if(destruction == tankEntity.length-1 && zanki > 0 && deadFlgs[0] == false){
+                                scene.removeChild(pauseButtton)
+                                scene.removeChild(blackImg)
+                                scene.removeChild(retire)
+                                BGM1.stop();
+                                for(var i = 4; i < Object.keys(stageData).length; i++){
+                                    colors[stageData[i][10]] += 1;
+                                }
+                                let script = document.createElement("script");
+                                    script.src = stagePath[stageNum+1];
+                                let head = document.getElementsByTagName("head");
+                                    head[0].appendChild(script);
+                                if(stageNum % 20 == 0){
+                                    complete = true;
+                                    resultFlg = true;
+                                    score += destruction
+                                    scene.time = 0;
+                                    new DispHead(100,60,360*3,180,"#a00",scene)
+                                    new DispText(252,124,720,64,'ミッションコンプリート！','bold 60px "Arial"','yellow','center',scene)
+                                }else{
+                                    victory = true;
+                                    game.time = 0;
+                                    new DispText(360,300,720,64,'ミッションクリア！','bold 60px "Arial"','red','left',scene)
+                                    new DispScore(scene)
+                                }
+                            }else if(deadFlgs[0]==true){
+                                scene.removeChild(pauseButtton)
+                                scene.removeChild(blackImg)
+                                scene.removeChild(retire)
+                                BGM1.stop();
+                                
+                                /*let script = document.createElement("script");
+                                    script.src = stagePath[stageNum+1];
+                                let head = document.getElementsByTagName("head");
+                                    head[0].appendChild(script);*/
+                                defeat = true;
+                                if(zanki <= 0){
+                                    for(var i = 4; i < Object.keys(stageData).length; i++){
+                                        if(deadFlgs[i-3]){
+                                            colors[stageData[i][10]] += 1;
+                                        }
+                                    }
+                                    resultFlg = true;
+                                    score += destruction
+                                    scene.time = 0;
+                                    new DispHead(100,60,360*3,180,"#a00",scene)
+                                    new DispText(252,124,720,64,'ミッション終了！','bold 60px "Arial"','yellow','center',scene)
+                                }else{
+                                    game.time = 0;
+                                }
+                            }else{
+
+                            }
+                        }else if(victory == true){
+                            if(game.time == 15){
+                                BGM2 = game.assets['./sound/success.mp3'].play()
+                            }
+                            if(game.time == 150){
+                                new FadeOut(scene)
+                            }
+                            if(game.time == 170){
+                                deleteFlg = true;
+                            }
+                            if(game.time == 180){
+                                score += destruction
+                                stageNum++;
+                                AllDelete();
+                                
+                                if(stageNum % 6 == 0){
+                                    game.replaceScene(createBonusScene())
+                                }else{
+                                    game.replaceScene(createStartScene())
+                                }
+                            }
+                        }else if(defeat == true){
+                            if(game.time == 15){
+                                BGM2 = game.assets['./sound/failed.mp3'].play()
+                            } 
+                            if(game.time == 150){
+                                new FadeOut(scene)
+                            }
+                            if(game.time == 170){
+                                deleteFlg = true;
+                            }
+                            if(game.time == 180){
+                                AllDelete();
+                                
+                                game.replaceScene(createStartScene())
+                            }
+                        }
+                    }else if(resultFlg){
+                        if(scene.time == 15){
+                            BGM2 = game.assets['./sound/end.mp3'];
+                            BGM2.play()
+                            chgBgm = true;
+                        }else if(scene.time > 100 && chgBgm == true && BGM2.currentTime == BGM2.duration){
+                            BGM2.currentTime = 0;
+                            BGM2.stop()
+                            BGM3 = game.assets['./sound/result.mp3'];
+                            BGM3.currentTime = 0;
+                            BGM3.play()
+                            chgBgm = false;
+                        }else if(scene.time > 100 && chgBgm == false && BGM3.currentTime == BGM3.duration){
+                            BGM3 = game.assets['./sound/result.mp3'];
+                            BGM3.currentTime = 0;
+                            BGM3.play()
+                        }
+                        if(scene.time == 120){
+                            new DispBody(100,240,360*3,240*3,scene)
+                        }
+                        if(scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
+                            new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
+                            new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
+                            dcnt++;
+                        }
+                        if(scene.time == 315){
+                            if(defeat){
+                                new DispText(650,420,320*2,64,'撃破数：'+(score),'bold 64px "Arial"','#622','left',scene)
+                            }else{
+                                new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
+                            }
+                            
+                        }
+                        if(scene.time >= 345){
+                            var toTitle = new Label('➡タイトル画面へ');
+                                toTitle.moveTo(640,640);
+                                toTitle.width = 320*1.5;
+                                toTitle.height = 36;
+                                toTitle.font = '36px "Arial"';
+                                toTitle.color = '#400';
+                                toTitle.textAlign = 'center';
+                            var toProceed = new Label('➡さらなるステージへ...');
+                                toProceed.moveTo(640,720);
+                                toProceed.width = 320*1.5;
+                                toProceed.height = 36;
+                                toProceed.font = 'bold 36px "Arial"';
+                                toProceed.color = 'red';
+                                toProceed.textAlign = 'center';
+                            if(scene.time == 345){
+                                deleteFlg = true;
+                                scene.addChild(toTitle)
+                                if(stageNum != 100 && defeat == false){
+                                    scene.addChild(toProceed)
+                                }
+                            }
+                            toTitle.addEventListener(Event.TOUCH_START, function() {
+                                
+                                game.stop()
+                                location.href = "./gameTest.html";
+                                //location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
+                            });
+                            toProceed.addEventListener(Event.TOUCH_START, function() {
+                                complete = false;
+                                BGM3.stop()
+                                
+                                new FadeOut(scene)
+                                stageNum++;
+                                AllDelete();
+                                
+                                game.replaceScene(createStartScene())
+                            });
+                        }
+                    }
                     
                     
-                    if(destruction == tankEntity.length-1 && deadFlgs[0]==false && victory == false && complete == false){
+                    
+                    
+                    
+                    /*if((destruction == tankEntity.length-1 || zanki <= 0) && deadFlgs[0]==false && victory == false && complete == false){
                         scene.removeChild(pauseButtton)
                         scene.removeChild(blackImg)
                         scene.removeChild(retire)
@@ -5797,8 +6063,13 @@ window.onload = function() {
                             script.src = stagePath[stageNum+1];
                         let head = document.getElementsByTagName("head");
                             head[0].appendChild(script);
-                        //if(stageNum == stagePath.length-1 || stageNum == 20){
-                        if(stageNum % 20 == 0){
+                        if(zanki <= 0){
+                            scene.time = 0;
+                            new DispHead(100,60,360*3,180,"#a00",scene)
+                            new DispText(252,124,720,64,'ミッション終了！','bold 64px "Arial"','yellow','center',scene)
+                            score += destruction
+                            complete = true;
+                        }else if(stageNum % 20 == 0){
                             
                             scene.time = 0;
                             new DispHead(100,60,360*3,180,"#a00",scene)
@@ -5806,20 +6077,7 @@ window.onload = function() {
     
                             score += destruction
                             complete = true;
-                            let v = score+zanki;
-                            postData = {
-                                "name": userName,
-                                "text": v,
-                                "time": nowDay,
-                                "level": sl
-                            };
-                            LocalSave();
-                            LocalLoad();
-                            //new setJson()
-                            //new getJson()
-                            
                         }else{
-                            
                             new DispText(360,300,720,64,'ミッションクリア！','bold 64px "Arial"','red','left',scene)
                             new DispScore(scene)
                             victory = true;
@@ -5844,115 +6102,103 @@ window.onload = function() {
                             BGM3.currentTime = 0;
                             BGM3.play()
                         }
-                    }
-                    if(complete == true && scene.time == 120){
-                        new DispBody(100,240,360*3,240*3,scene)
-                    }
-                    
-                    if(complete == true && scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
-                        new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
-                        new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
-                        dcnt++;
-                    }
-                    if(complete == true && scene.time == 315){
-                        new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
-                    }
-                    
-                    if(complete == true && scene.time >= 345){
-                        var toTitle = new Label('➡タイトル画面へ');
-                            toTitle.moveTo(640,640);
-                            toTitle.width = 320*1.5;
-                            toTitle.height = 36;
-                            toTitle.font = '36px "Arial"';
-                            toTitle.color = '#400';
-                            toTitle.textAlign = 'center';
-                        var toProceed = new Label('➡さらなるステージへ...');
-                            toProceed.moveTo(640,720);
-                            toProceed.width = 320*1.5;
-                            toProceed.height = 36;
-                            toProceed.font = 'bold 36px "Arial"';
-                            toProceed.color = 'red';
-                            toProceed.textAlign = 'center';
-                        if(scene.time == 345){
-                            deleteFlg = true;
-                            scene.addChild(toTitle)
-                            if(stageNum != 100){
-                                scene.addChild(toProceed)
-                            }
+                        if(scene.time == 120){
+                            new DispBody(100,240,360*3,240*3,scene)
                         }
-                        toTitle.addEventListener(Event.TOUCH_START, function() {
+                        if(scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
+                            new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
+                            new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
+                            dcnt++;
+                        }
+                        if(scene.time == 315){
+                            new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
+                        }
+                        if(scene.time >= 345){
+                            var toTitle = new Label('➡タイトル画面へ');
+                                toTitle.moveTo(640,640);
+                                toTitle.width = 320*1.5;
+                                toTitle.height = 36;
+                                toTitle.font = '36px "Arial"';
+                                toTitle.color = '#400';
+                                toTitle.textAlign = 'center';
+                            var toProceed = new Label('➡さらなるステージへ...');
+                                toProceed.moveTo(640,720);
+                                toProceed.width = 320*1.5;
+                                toProceed.height = 36;
+                                toProceed.font = 'bold 36px "Arial"';
+                                toProceed.color = 'red';
+                                toProceed.textAlign = 'center';
+                            if(scene.time == 345){
+                                deleteFlg = true;
+                                scene.addChild(toTitle)
+                                if(stageNum != 100 && zanki > 0){
+                                    scene.addChild(toProceed)
+                                }
+                            }
+                            toTitle.addEventListener(Event.TOUCH_START, function() {
+                                
+                                game.stop()
+                                //location.href = "./game.html";
+                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
+                            });
+                            toProceed.addEventListener(Event.TOUCH_START, function() {
+                                complete = false;
+                                BGM3.stop()
+                                
+                                new FadeOut(scene)
+                                stageNum++;
+                                AllDelete();
+                                
+                                game.replaceScene(createStartScene())
+                            });
+                        }
+                    }else{
+                        if(deadFlgs[0]==true && defeat == false && zanki > 0){
+                            game.time = 0;
                             
-                            game.stop()
-                            //location.href = "http://localhost/BattleTankGame/game.html";
-                            location.href = "https://m-kz15.github.io/PlayBTG/gameTest.html";
-                        });
-                        toProceed.addEventListener(Event.TOUCH_START, function() {
-                            complete = false;
-                            BGM3.stop()
+                            defeat = true;
+                            BGM1.stop();
+                            scene.removeChild(pauseButtton)
+                            scene.removeChild(blackImg)
+                            scene.removeChild(retire)
+                        }
+                        if(defeat == true && zanki > 0 && game.time == 15){
                             
+                            BGM2 = game.assets['./sound/failed.mp3'].play()
+                        } 
+                        if((defeat == true || victory == true && zanki > 0) && game.time == 150){
                             new FadeOut(scene)
-                            stageNum++;
+                        }
+                        if((defeat == true || victory == true && zanki > 0) && game.time == 170){
+                            deleteFlg = true;
+                        }
+                        if(defeat==true && game.time == 180 && zanki > 0){
                             AllDelete();
                             
                             game.replaceScene(createStartScene())
-                        });
-                    }
-                    if(deadFlgs[0]==true && defeat == false){
-                        game.time = 0;
-                        
-                        defeat = true;
-                        BGM1.stop();
-                        scene.removeChild(pauseButtton)
-                        scene.removeChild(blackImg)
-                        scene.removeChild(retire)
-                    }
-                    if(defeat == true && game.time == 15){
-                        
-                        BGM2 = game.assets['./sound/failed.mp3'].play()
-                    } 
-                    if((defeat == true || victory == true) && game.time == 150){
-                        new FadeOut(scene)
-                    }
-                    if((defeat == true || victory == true) && game.time == 170){
-                        deleteFlg = true;
-                    }
-                    if(defeat==true && game.time == 180){
-                        AllDelete();
-                        
-                        if(zanki == 0){
-                            score += destruction; 
-                            postData = {
-                                "name": userName,
-                                "text": score,
-                                "time": nowDay,
-                                "level": sl
-                            };
-                            game.replaceScene(createGameoverScene())
-                        }else{
-                            game.replaceScene(createStartScene())
                         }
-                    }
-                    if(victory == true && game.time == 15){
-                        
-                        BGM2 = game.assets['./sound/success.mp3'].play()
-                    }
-                    if(victory == true && game.time == 180 && complete==false){
-                        score += destruction
-                        stageNum++;
-                        AllDelete();
-                        
-                        if(stageNum % 6 == 0){
-                            game.replaceScene(createBonusScene())
-                        }else{
-                            game.replaceScene(createStartScene())
+                        if(victory == true && game.time == 15){
+                            
+                            BGM2 = game.assets['./sound/success.mp3'].play()
                         }
-                    }
+                        if(victory == true && game.time == 180 && complete==false){
+                            score += destruction
+                            stageNum++;
+                            AllDelete();
+                            
+                            if(stageNum % 6 == 0){
+                                game.replaceScene(createBonusScene())
+                            }else{
+                                game.replaceScene(createStartScene())
+                            }
+                        }
+                    }*/
                 }
             }
             return scene;
         };
         /* ゲームオーバーシーン */
-        var createGameoverScene = function() {
+        /*var createGameoverScene = function() {
     
             let script = document.createElement("script");
             script.src = stagePath[1];
@@ -6093,7 +6339,7 @@ window.onload = function() {
                 }
             }
             return scene;
-        };
+        };*/
         
         game.replaceScene(createSetUpScene());  // ゲームの_rootSceneをスタートシーンに置き換える
         
