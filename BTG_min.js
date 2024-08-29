@@ -143,7 +143,7 @@ var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
 var resultFlg = false;
 
-var stageNum = 6;           //ステージ番号
+var stageNum = 1;           //ステージ番号
 var BGMs = [                //bgm指定用配列
     './sound/FIRST.mp3',
     './sound/SECOND.mp3',
