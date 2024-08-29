@@ -4079,16 +4079,11 @@ window.onload = function() {
             let reloadFlg = false;
             let aimingTime = 0;
             let aimRot = 1.2;
+            if(Math.floor(Math.random() * 2)){
+                aimRot *= -1;
+            }
             let aimCmpTime = 30;
-            let baseAimRot = 1.2;
             if(category == 0){
-                aimRot = 1.0;
-                if(Math.floor(Math.random() * 2)){
-                    baseAimRot = 1.0;
-                }else{
-                    baseAimRot = -1.0;
-                }
-                
                 aimCmpTime = 15;
             }
 
@@ -4166,7 +4161,7 @@ window.onload = function() {
                         this.time++;
 
                         if(deadFlgs[0] == false){
-                            if(this.time % 5 == 0 && aimingTime > 0 && fireFlgs[Num]==false) aimingTime--;
+        
                             shotNGflg = false;
                             fireFlgs[Num] = false;
                             
@@ -4182,26 +4177,20 @@ window.onload = function() {
                             new EnemyAim();
                             EnemyAim.intersect(target).forEach(function(){
                                 fireFlgs[Num] = true;
-                                if(aimingTime <= aimCmpTime+22)aimingTime++;
+                                if(aimingTime < aimCmpTime+10)aimingTime++;
                             })
+                            
                             if(aimingTime % 5 == 0){
                                 if(aimingTime > 0){
-                                    if(fireFlgs[Num] == true)baseAimRot *= -1;
-                                    if(aimingTime > 10){
-                                        aimRot = baseAimRot / 2;
-                                    }else{
-                                        aimRot = baseAimRot;
-                                    }
-                                }else{
-                                    aimRot = baseAimRot;
+                                    if(fireFlgs[Num] == true)aimRot *= -1;
                                 }
-                                
-                                
                             }
-                            if(fireFlgs[Num] == false)cannon.rotation += aimRot;
-
+                            if(fireFlgs[Num] == false){
+                                if(aimingTime < aimCmpTime)cannon.rotation += aimRot;
+                            }
+                            
                             if(this.time % 5 == 0){
-
+                                if(this.time % 10 == 0 && aimingTime > 0) aimingTime--;
                                 if(reloadFlg == false){
                                     if(bullets[Num] == emax) reloadFlg = true;
                                 }else{
