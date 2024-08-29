@@ -54,7 +54,7 @@ var cateFlgs = [
     [true,true,true],   //lightgreen
     [true,true,true],   //elitegray
     [true,true,true],   //snow
-    [true,true,true],   //elitegreen
+    [false,false,false],   //elitegreen
     [true,true,false],  //sand
     [true,false,false], //pink
     [true,false,false], //random
@@ -105,14 +105,14 @@ var cateDistances = [
     300   //dazzle
 ]
 var cateReloadTimes = [
-    60,    //brown
+    12,    //brown
     120,    //gray
     120,  //green
     240,    //red
     300,  //lightgreen
     180,  //elitegray
     600,  //snow
-    180,  //elitegreen
+    90,  //elitegreen
     360,  //sand
     240,    //pink
     120,  //random
@@ -143,7 +143,7 @@ var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
 var resultFlg = false;
 
-var stageNum = 1;           //ステージ番号
+var stageNum = 6;           //ステージ番号
 var BGMs = [                //bgm指定用配列
     './sound/FIRST.mp3',
     './sound/SECOND.mp3',
@@ -4079,8 +4079,20 @@ window.onload = function() {
             let reloadFlg = false;
             let aimingTime = 0;
             let aimRot = 1.2;
+            let aimCmpTime = 30;
+            let baseAimRot = 1.2;
+            if(category == 0){
+                aimRot = 1.0;
+                if(Math.floor(Math.random() * 2)){
+                    baseAimRot = 1.0;
+                }else{
+                    baseAimRot = -1.0;
+                }
+                
+                aimCmpTime = 15;
+            }
 
-	    let aimCmpTime = 30;
+	        
 
             let life = 1;
 
@@ -4154,7 +4166,7 @@ window.onload = function() {
                         this.time++;
 
                         if(deadFlgs[0] == false){
-                            if(this.time % 10 == 0 && aimingTime > 0 && fireFlgs[Num]==false) aimingTime--;
+                            if(this.time % 5 == 0 && aimingTime > 0 && fireFlgs[Num]==false) aimingTime--;
                             shotNGflg = false;
                             fireFlgs[Num] = false;
                             
@@ -4170,10 +4182,21 @@ window.onload = function() {
                             new EnemyAim();
                             EnemyAim.intersect(target).forEach(function(){
                                 fireFlgs[Num] = true;
-                                aimingTime++;
+                                if(aimingTime <= aimCmpTime+22)aimingTime++;
                             })
-                            if(aimingTime % 5 == 0 && aimingTime > 0){
-                                aimRot *= -1;
+                            if(aimingTime % 5 == 0){
+                                if(aimingTime > 0){
+                                    if(fireFlgs[Num] == true)baseAimRot *= -1;
+                                    if(aimingTime > 10){
+                                        aimRot = baseAimRot / 2;
+                                    }else{
+                                        aimRot = baseAimRot;
+                                    }
+                                }else{
+                                    aimRot = baseAimRot;
+                                }
+                                
+                                
                             }
                             if(fireFlgs[Num] == false)cannon.rotation += aimRot;
 
@@ -4205,7 +4228,7 @@ window.onload = function() {
                                                     if(category != 0){
                                                         aimCmpTime = Math.floor(Math.random() * 50)+30;
                                                     }else{
-                                                        aimCmpTime = Math.floor(Math.random() * 30)+10;
+                                                        aimCmpTime = Math.floor(Math.random() * 11)+5;
                                                     }
 						                            
                                                     break;
@@ -6600,8 +6623,8 @@ window.onload = function() {
                             toTitle.addEventListener(Event.TOUCH_START, function() {
                                 
                                 game.stop()
-                                //location.href = "./game.html";
-                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
+                                location.href = "./game.html";
+                                //location.href = "https://m-kz15.github.io/PlayBTG/game.html";
                             });
                             toProceed.addEventListener(Event.TOUCH_START, function() {
                                 complete = false;
@@ -6777,7 +6800,7 @@ window.onload = function() {
         if(game.time % 5 == 0 && game.time > 0){
             window.focus();
             // フルスクリーン表示
-            if(!isFullScreen()){
+            /*if(!isFullScreen()){
                 // Chrome & Firefox v64以降
                 if( document.body.requestFullscreen ) {
                     document.body.requestFullscreen();
@@ -6794,7 +6817,7 @@ window.onload = function() {
                 } else if( document.body.msRequestFullscreen ) {
                 document.body.msRequestFullscreen();
                 }
-            }
+            }*/
 			
         }
         
