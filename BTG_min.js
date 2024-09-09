@@ -4180,13 +4180,11 @@ window.onload = function() {
                                 if(aimingTime < aimCmpTime+10)aimingTime++;
                             })
                             
-                            if(aimingTime % 5 == 0){
-                                if(aimingTime > 0){
-                                    if(fireFlgs[Num] == true)aimRot *= -1;
-                                }
+                            if(aimingTime % 5 == 0 && aimingTime > 0 && fireFlgs[Num] == true){
+                                aimRot *= -1;
                             }
-                            if(fireFlgs[Num] == false){
-                                if(aimingTime < aimCmpTime)cannon.rotation += aimRot;
+                            if(fireFlgs[Num] == false && aimingTime < aimCmpTime + 5){
+                                cannon.rotation += aimRot;
                             }
                             
                             if(this.time % 5 == 0){
