@@ -8,6 +8,13 @@ const pixelSize = base*size;    //1セルごとのサイズ
 const stage_w = 20;
 const stage_h = 15;
 
+var game;
+var now_scene;
+
+let scl = 1;
+
+var ScreenMargin = 120;
+
 var cheat = false;      //チート用
 
 var cur;                //カーソルの位置情報を保持する配列
@@ -87,7 +94,7 @@ var cateEscapes = [
     [true,200,0,200], //elitegreen
     [false,0,0,0],  //sand
     [false,0,0,0],  //pink
-    [false,0,0,0],  //random
+    [true,200,0,0],  //random
     [true,190,0,200]  //dazzle
 ]
 var cateDistances = [
@@ -187,7 +194,7 @@ var colorsName = [                              //各戦車の表示名格納配
     "EliteGreen",
     "Sand",
     "Pink",
-    "Random",
+    "Black",
     "Dazzle"
 ]
 let fontColor = [                               //各戦車の表示色格納配列
@@ -319,6 +326,7 @@ var terminal = false;
 /* ステージファイル呼び出し処理用 */
 var script = document.createElement("script");
     script.src = stagePath[stageNum];
+    script.id = 'stage_'+stageNum;
 var head = document.getElementsByTagName("head");
     head[0].appendChild(script);
 
@@ -359,6 +367,40 @@ var fcol = [
 ]
 
 let inputManager;
+
+var delStageFile = function(){
+    if(stageNum > 0){
+        for(let elem of head[0].childNodes){
+            if(elem.id == 'stage_'+(stageNum-1)){
+                
+                elem.remove();
+            };
+        };
+    };
+};
+
+var Rot_to_Vec = function(rot, add){
+    let rad = (rot + add) * (Math.PI / 180.0);
+    let vector = {
+        x: Math.cos(rad) * 1,
+        y: Math.sin(rad) * 1
+    };
+    return vector;
+};
+
+var Vec_to_Rot = function(vector){
+    let rad = Math.atan2(vector.y, vector.x);
+    let rot = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+    return rot;
+};
+
+var Pos_to_Vec = function(from,to){
+    let vector = {
+        x: from.x - to.x,
+        y: from.y - to.y
+    };
+    return vector;
+};
 
 //設定用
 const Config = {
@@ -745,9 +787,9 @@ class InputManager {
 
 window.onload = function() {
     /* ステージ幅：20ブロック　高さ：15ブロック */
-    const game = new Game(pixelSize*stage_w,pixelSize*stage_h);
+    game = new Game(pixelSize*stage_w,pixelSize*stage_h);
     inputManager = new InputManager();
-    game.fps = 120;      //画面の更新頻度
+    game.fps = 60;      //画面の更新頻度
     game.preload(       //画像や音源を準備
         './image/ObjectImage/tank2.png',
         './image/ObjectImage/cannon.png',
@@ -825,8 +867,27 @@ window.onload = function() {
     game.keybind(27, "Pause");
     game.time = 0;
 
-    
-
+    /*let viewGame = document.getElementById('enchant-stage');
+    alert(game.width / viewGame.clientWidth)
+    scl = game.width / viewGame.clientWidth*/
+    /*let viewGame = document.getElementById('enchant-stage');
+    viewGame.style.display = "block";
+    scl = window.innerWidth / viewGame.clientWidth;
+    if(window.innerWidth > viewGame.clientWidth){
+        scl = window.innerWidth / viewGame.clientWidth;
+        //alert(scl)
+        ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
+        viewGame.style.position = "absolute";
+        viewGame.style.left = ScreenMargin + "px";
+        game._pageX = ScreenMargin;
+        //viewGame.style.margin = "0px " + ScreenMargin + "px";
+    }else{
+        ScreenMargin = 240;
+        viewGame.style.position = "absolute";
+        viewGame.style.left = ScreenMargin + "px";
+        game._pageX = ScreenMargin;
+        ScreenMargin = 120;
+    }*/
 
     /* ステージ端の壁クラス */
     var Wall = Class.create(PhyBoxSprite, {
@@ -1134,8 +1195,9 @@ window.onload = function() {
                 this.y = area.y+2;
                 
             }
-            if(deadFlgs[num]) scene.removeChild(this);
-            scene.insertBefore(this,filterMap);
+            if(deadFlgs[num]) scene.TankGroup.removeChild(this);
+            scene.TankGroup.addChild(this);
+            //scene.insertBefore(this,filterMap);
             //scene.addChild(this);
         }
     });
@@ -1153,10 +1215,11 @@ window.onload = function() {
                 this.y = area.y-6.5;
                 
             }
-            if(deadFlgs[num]) scene.removeChild(this);
+            if(deadFlgs[num]) scene.CannonGroup.removeChild(this);
             //this.opacity = 0.5
             //scene.addChild(this);
-            scene.insertBefore(this,filterMap);
+            //scene.insertBefore(this,filterMap);
+            scene.CannonGroup.addChild(this);
         }
     });
     /* 弱点クラス */
@@ -1167,15 +1230,18 @@ window.onload = function() {
             this.onenterframe = function(){
                 this.x = area.x+9.25;
                 this.y = area.y+8.5;
-                this.intersect(BombExplosion).forEach(function(pair){
-                    if(victory == false && defeat == false && complete == false) deadFlgs[num] = true                
-                })
-                
+                /*this.intersectStrict(BombExplosion).forEach(function(){
+                    if(victory == false && defeat == false && complete == false) deadFlgs[num] = true;                
+                })*/
+                BombExplosion.intersect(this).forEach(elem => {
+                    if(victory == false && defeat == false && complete == false) deadFlgs[num] = true;
+                });
             }
             if(deadFlgs[num]) scene.removeChild(this);
             scene.addChild(this);
             //scene.insertBefore(this,filterMap);
-        }
+        },
+
     });
     /* 撃破後の描画クラス */
     var Mark = Class.create(Sprite, {
@@ -1193,15 +1259,21 @@ window.onload = function() {
             Sprite.call(this,base/2,base/2);
             if(num == 0) 
             this.backgroundColor = "#aff4"
-            this.moveTo(cannon.x+(cannon.width/2)-3.45,cannon.y+(cannon.height/2)-4.5)
+            let vec = Pos_to_Vec(
+                {x: (target.x+target.width/2), y: (target.y+target.height/2)},
+                {x: (cannon.x+cannon.width/2), y: (cannon.y+cannon.height/2)}
+            );
+            let rad = Math.atan2(vec.y, vec.x);
+            this.moveTo((cannon.x+(cannon.width/2)-3.45)+Math.cos(rad)*(56),(cannon.y+(cannon.height/2)-4.5)+Math.sin(rad)*(56));
+            /*this.moveTo(cannon.x+(cannon.width/2)-3.45,cannon.y+(cannon.height/2)-4.5)
             const vector = {
                 x: (target.x+target.width/2) - (cannon.x+cannon.width/2),
                 y: (target.y+target.height/2) - (cannon.y+cannon.height/2)
             };
-            var rad = Math.atan2(vector.y, vector.x);
+            var rad = Math.atan2(vector.y, vector.x);*/
             var dx = Math.cos(rad) * shotSpeed;
             var dy = Math.sin(rad) * shotSpeed;
-            this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
+            //this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
             cannon.rotation = (270+(Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI)*-1;
             this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
             this.onenterframe = function(){
@@ -1215,26 +1287,89 @@ window.onload = function() {
     var AnotherAim = Class.create(Sprite,{
         initialize: function(target,cannon,ref,num,scene){
             Sprite.call(this,8,8);
-            //this.backgroundColor = "#f00";
+            //this.backgroundColor = "#88f8";
             this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
             this.time = 0;
+            this.originX = 4;
+            this.originY = 4;
             var rad = (cannon.rotation) * (Math.PI / 180.0);
-            var dx = Math.cos(rad) * 24;
-            var dy = Math.sin(rad) * 24;
+            var dx = Math.cos(rad) * 20;
+            var dy = Math.sin(rad) * 20;
             this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
             //this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
             let refcnt = 0;
             let agl = cannon.rotation;
             let tgt = [cannon.x+(cannon.width/2)+(dx*3),cannon.y+(cannon.height/2)+(dy*3)];
+            //this.rotation = this.Vec_to_Rot({x: dx, y: dy});
             this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
             this.onenterframe = function(){
                 this.time++;
-                
+
+                //this.rotation = this.Vec_to_Rot({x: dx, y: dy});
+
                 this.x += dx
                 this.y += dy
+
+                //this.rotation = this.Vec_to_Rot({x: dx, y: dy});
+                
                 this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
-                for(let i = 0; i < refdir.length; i++){
-                    if(this.intersect(refdir[i][0])==true){
+                RefTop.intersectStrict(this).forEach(elem => {
+                    if(refcnt == 0){
+                        target.moveTo(this.x-(dx/3),elem.y-(this.height/2));
+                        /*tgt[0] = this.x-(this.width);
+                        tgt[1] = elem.y-(this.height/2);*/
+                        tgt[0] = this.x-(dx/3);
+                        tgt[1] = elem.y-(this.height/2);
+                    }
+                    //this.moveTo(this.x+(this.width/2),elem.y-8);
+                    this.moveTo(this.x-(dx/3)-(this.width/2),elem.y-(this.height));
+                    dy = dy*-1;
+                    refcnt++;
+                })
+                RefBottom.intersectStrict(this).forEach(elem => {
+                    if(refcnt == 0){
+                        target.moveTo(this.x-(dx/3),elem.y+elem.height+(this.height));
+                        /*tgt[0] = this.x-(this.width);
+                        tgt[1] = elem.y+elem.height+(this.height/2);*/
+                        tgt[0] = this.x-(dx/3);
+                        tgt[1] = elem.y+elem.height+(this.height);
+                    }
+                    //this.moveTo(this.x-(this.width)+8,elem.y+elem.height+4)
+                    this.moveTo(this.x-(dx/3)-(this.width/2),elem.y+elem.height+(this.height/2))
+                    dy = dy*-1;
+                    refcnt++;
+                })
+                RefLeft.intersectStrict(this).forEach(elem => {
+                    if(refcnt == 0){
+                        target.moveTo(elem.x-(this.width/2),this.y-(dy/3));
+                        /*tgt[0] = elem.x-(this.width/2)
+                        tgt[1] = this.y-(this.height);*/
+                        tgt[0] = elem.x-(this.width/2);
+                        tgt[1] = this.y-(dy/3);
+                    }
+                    //this.moveTo(elem.x-12,this.y)
+                    //this.moveTo(elem.x-(this.width),this.y-(dy/3)-(this.height/2))
+                    this.moveTo(elem.x,this.y-(dy/3)-(this.height/2))
+                    dx = dx*-1;
+                    refcnt++;
+                })
+                RefRight.intersectStrict(this).forEach(elem => {
+                    if(refcnt == 0){
+                        target.moveTo(elem.x+elem.width+(this.width/2),this.y-(dy/3));
+                        /*tgt[0] = elem.x+elem.width;
+                        tgt[1] = this.y-(this.height);*/
+                        tgt[0] = elem.x+elem.width+(this.width/2);
+                        tgt[1] = this.y-(dy/3);
+                    }
+                    //this.moveTo(elem.x+elem.width+4,this.y)
+                    //this.moveTo(elem.x+elem.width+(this.width),this.y-(dy/3)-(this.height/2))
+                    this.moveTo(elem.x+elem.width,this.y-(dy/3)-(this.height/2))
+                    dx = dx*-1;
+                    refcnt++;
+                })
+                
+                /*for(let i = 0; i < refdir.length; i++){
+                    if(this.intersectStrict(refdir[i][0])==true){
                         if(refcnt == 0){
                             target.moveTo(this.x-(this.width),floors[i].y-(this.height/2));
                             tgt[0] = this.x-(this.width);
@@ -1244,7 +1379,7 @@ window.onload = function() {
                         dy = dy*-1;
                         refcnt++;
                     }
-                    if(this.intersect(refdir[i][1])==true){
+                    if(this.intersectStrict(refdir[i][1])==true){
                         if(refcnt == 0){
                             target.moveTo(this.x-(this.width),floors[i].y+floors[i].height+(this.height/2));
                             tgt[0] = this.x-(this.width);
@@ -1255,7 +1390,7 @@ window.onload = function() {
                         refcnt++;
                     }
                     
-                    if(this.intersect(refdir[i][2])==true){
+                    if(this.intersectStrict(refdir[i][2])==true){
                         if(refcnt == 0){
                             target.moveTo(floors[i].x-(this.width/2),this.y-(this.height));
                             tgt[0] = floors[i].x-(this.width/2)
@@ -1265,7 +1400,7 @@ window.onload = function() {
                         dx = dx*-1;
                         refcnt++;
                     }
-                    if(this.intersect(refdir[i][3])==true){
+                    if(this.intersectStrict(refdir[i][3])==true){
                         if(refcnt == 0){
                             target.moveTo(floors[i].x+floors[i].width,this.y-(this.height));
                             tgt[0] = floors[i].x+floors[i].width;
@@ -1275,50 +1410,60 @@ window.onload = function() {
                         dx = dx*-1;
                         refcnt++;
                     }
-                }
-                if(this.intersect(walls[0])==true){
+                }*/
+                if(this.intersectStrict(walls[0])==true){
                     if(refcnt == 0){
-                        target.moveTo(this.x-(this.width),walls[0].y+walls[0].height+(this.height/2));
-                        tgt[0] = this.x-(this.width);
+                        
+                        target.moveTo(this.x-(dx/3),walls[0].y+walls[0].height+(this.height/2));
+                        /*tgt[0] = this.x-(this.width);
+                        tgt[1] = walls[0].y+walls[0].height+(this.height/2);*/
+                        tgt[0] = this.x-(dx/3);
                         tgt[1] = walls[0].y+walls[0].height+(this.height/2);
-                    } 
-                    this.moveTo(this.x-(this.width),walls[0].y+walls[0].height+4)
+                    }
+                    //this.moveTo(this.x-(this.width),walls[0].y+walls[0].height+4)
+                    this.moveTo(this.x-(dx/3)-(this.width/2),walls[0].y+walls[0].height+(this.height/2))
                     dy = dy*-1;
                     refcnt++;
                 }
-                if(this.intersect(walls[1])==true){
+                if(this.intersectStrict(walls[1])==true){
                     if(refcnt == 0){
-                        target.moveTo(this.x-(this.width),walls[1].y-(this.height/2));
-                        tgt[0] = this.x-(this.width);
+                        target.moveTo(this.x-(dx/3),walls[1].y-(this.height/2));
+                        /*tgt[0] = this.x-(this.width);
+                        tgt[1] = walls[1].y-(this.height/2);*/
+                        tgt[0] = this.x-(dx/3);
                         tgt[1] = walls[1].y-(this.height/2);
                     } 
-                    this.moveTo(this.x-(this.width),walls[1].y-8)
+                    //this.moveTo(this.x-(this.width),walls[1].y-8)
+                    this.moveTo(this.x-(dx/3)-(this.width/2),walls[1].y-(this.height))
                     dy = dy*-1;
                     refcnt++;
                 }
                 
-                if(this.intersect(walls[2])==true){
+                if(this.intersectStrict(walls[2])==true){
                     if(refcnt == 0){
-                        target.moveTo(walls[2].x+walls[2].width+(this.width/2),this.y-(this.height));
+                        target.moveTo(walls[2].x+walls[2].width+(this.width/2),this.y-(dy/3));
+                        /*tgt[0] = walls[2].x+walls[2].width+(this.width/2);
+                        tgt[1] = this.y-(this.height);*/
                         tgt[0] = walls[2].x+walls[2].width+(this.width/2);
-                        tgt[1] = this.y-(this.height);
+                        tgt[1] = this.y-(dy/3);
+                        
                     }
-                    this.moveTo(walls[2].x+walls[2].width+8,this.y-(this.height)+4)
+                    this.moveTo(walls[2].x+walls[2].width+(this.width),this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
                 }
-                if(this.intersect(walls[3])==true){
+                if(this.intersectStrict(walls[3])==true){
                     if(refcnt == 0){
-                        target.moveTo(walls[3].x-(this.width/2),this.y-(this.height));
+                        target.moveTo(walls[3].x-(this.width/2),this.y-(dy/3));
                         tgt[0] = walls[3].x-(this.width/2);
-                        tgt[1] = this.y-(this.height);
+                        tgt[1] = this.y-(dy/3);
                     }
-                    this.moveTo(walls[3].x-8,this.y)
+                    this.moveTo(walls[3].x-(this.width),this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
                 }
                 
-                this.intersect(Player).forEach(function(){
+                this.intersectStrict(Player).forEach(function(){
                     
                     if(fireFlgs[num]==false){
                         cannon.rotation = agl;
@@ -1333,6 +1478,11 @@ window.onload = function() {
                 
             }
             scene.addChild(this);
+        },
+        Vec_to_Rot: function(vector){
+            let rad = Math.atan2(vector.y, vector.x);
+            let rot = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+            return rot;
         }
     })
     /* 照準クラス */
@@ -1392,6 +1542,10 @@ window.onload = function() {
             PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true)
             //this.backgroundColor = "blue"
             this.time = 0;
+            this.shotSpeed = shotSpeed;
+            this.cannon = cannon;
+            this.target = target;
+            this.scene = scene;
             let random0 = 0;
             let random1 = 0;
             if(grade == 10){
@@ -1404,26 +1558,36 @@ window.onload = function() {
                 random0 = (Math.floor( Math.random() * 60)-30)/2;
                 random1 = (Math.floor( Math.random() * 60)-30)/2;
             }else if(grade >= 2){
-                random0 = (Math.floor( Math.random() * 30)-15)/2;
-                random1 = (Math.floor( Math.random() * 30)-15)/2;
+                random0 = (Math.floor( Math.random() * 20)-10)/2;
+                random1 = (Math.floor( Math.random() * 20)-10)/2;
             }
-            this.moveTo(cannon.x+(cannon.width/2)-2.25,cannon.y+(cannon.height/2)-3)
+            let vec = Rot_to_Vec(cannon.rotation+(random0+random1),0);
+            let rad = Math.atan2(vec.y, vec.x);
+            this.vec = vec;
+            this.rad = rad;
+            this.moveTo((cannon.x+(cannon.width/2))+Math.cos(rad)*(56)-2.25, (cannon.y+(cannon.height/2))+Math.sin(rad)*(56)-3);
+            /*this.moveTo(cannon.x+(cannon.width/2)-2.25,cannon.y+(cannon.height/2)-3)
             var rad = (cannon.rotation+(random0+random1)) * (Math.PI / 180.0);
-            this.moveTo(this.x+(base*3.2)*Math.cos(rad), this.y+(base*3.2)*Math.sin(rad));
-            this.applyImpulse(new b2Vec2(Math.cos(rad) * (shotSpeed*2), Math.sin(rad) * (shotSpeed*2)));
+            this.moveTo(this.x+(base*3.8)*Math.cos(rad), this.y+(base*3.8)*Math.sin(rad));*/
+            //this.applyImpulse(new b2Vec2(Math.cos(rad) * (shotSpeed*2), Math.sin(rad) * (shotSpeed*2)));
+            this.applyImpulse(new b2Vec2(Math.cos(rad) * (shotSpeed), Math.sin(rad) * (shotSpeed)));
 
             this.onenterframe = function(){
+                this.vec = {x: this.vx, y: this.vy};
+                this.rad = Math.atan2(this.vec.y, this.vec.x);
                 this.time++
                 if(this.time % 10 == 0) new Smoke(this,scene)
-                if(this.time > 1){
-                    if(this.intersect(Bullet)==false){
+                /*if(this.time > 1){
+                    if(this.intersectStrict(Bullet)==false){
+                        Get_NewBullet(num,value);
                         if(bullets[num]>0) bullets[num]--;
-                        this.moveTo(-100,-100)
-                        this.destroy()
+                        this.moveTo(-100,-100);
+                        scene.BulGroup.removeChild(this);
+                        this.destroy();
                         bulStack[num][value] = false;
-                        scene.removeChild(this);
+                        //scene.removeChild(this);
                     }
-                }
+                }*/
             }
         }
     })
@@ -1436,16 +1600,25 @@ window.onload = function() {
             this.time = 0;
             this.opacity = 0
 
+            this.cannon = cannon;
+            this.target = target;
+            this.scene = scene;
+
             var rcnt = 0;       //反射回数計測
             var rcnt2 = 0;      //反射時の効果音制御変数
             var rflg = false;   //反射フラグ
             let timeCnt = 0;
+            this.force = {x: 0, y: 0};
             if(shotSpeed>=12){
-                this.scaleY = 1.25;
+                //this.scaleY = 1.25;
+                this.force = {x: target.vx/(target.shotSpeed*((target.shotSpeed/3)*2)), y: target.vy/(target.shotSpeed*((target.shotSpeed/3)*2))};
             }
-           
-            this.moveTo(target.centerX-(this.width/2),target.centerY-(target.height/2 + this.height/3))
+            //alert(this.force.x + "  " + this.force.y)
+            let cnt = 0;
+            this.rotation = ((Math.atan2(Math.cos(target.rad), Math.sin(target.rad)) * 180) / Math.PI) * -1 + 90;
+            this.moveTo(target.centerX-(this.width/2)-(this.force.x),target.centerY-(target.height/2 + this.height/3)-(this.force.y))
             this.onenterframe = function(){
+                if(this.time % 2) cnt = 0;
                 if(deleteFlg == true) scene.removeChild(this);
                 if(num != 0){
                     new BulAim(this,32,num,value,scene)
@@ -1453,47 +1626,85 @@ window.onload = function() {
                     new PlayerBulAim(this,32,num,value,scene)
                 }
                 this.time++;
-                if(shotSpeed>=12 && this.time % 2 == 0){
-                    new Fire(this,scene)
+                if(shotSpeed>=12){
+                    if(this.time % 2 == 0) new Fire(this,scene);
                     
+                    this.force = {x: target.vx/(target.shotSpeed*((target.shotSpeed/3)*2)), y: target.vy/(target.shotSpeed*((target.shotSpeed/3)*2))};
                 }
-                var vector = {
+                /*var vector = {
                     x: target.centerX-(this.width/2) - this.x,
                     y: target.centerY-(target.height/2 + this.height/3) - this.y
                 };
                 this.rad = Math.atan2(vector.y, vector.x);
-                this.moveTo(target.centerX-(this.width/2),target.centerY-(target.height/2 + this.height/3))
                 this.rotation = (180+(Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI)*-1;
-                this.opacity = 1.0
-
-                Floor.intersect(this).forEach(function(){
+                this.moveTo(target.centerX-(this.width/2),target.centerY-(target.height/2 + this.height/3))*/
+                
+                this.rotation = Vec_to_Rot(target.vec)+180;
+                this.moveTo(target.centerX-(this.width/2)-(this.force.x),target.centerY-(target.height/2 + this.height/3)-(this.force.y))
+                
+                this.opacity = 1;
+                
+                for(let elem of floors){
+                    if(this.intersectStrict(elem)){
+                        if(rflg == false && cnt == 0){
+                            cnt++;
+                            rcnt++;
+                            rflg = true;
+                            this.time = 0
+                        }
+                        break;
+                    }
+                };
+                for(let elem of walls){
+                    if(this.intersectStrict(elem)){
+                        if(rflg == false && cnt == 0){
+                            cnt++;
+                            rcnt++;
+                            rflg = true;
+                            this.time = 0
+                        }
+                        break;
+                    }
+                };
+                /*Floor.intersectStrict(this).forEach(function(){
                     if(rflg == false){
                         rcnt++;
                         rflg = true;
                         this.time = 0
                     }
                 })
-                Wall.intersect(this).forEach(function(){
+                Wall.intersectStrict(this).forEach(function(){
                     if(rflg == false){
                         rcnt++;
                         rflg = true;
                         this.time = 0
                     }
-                })
+                })*/
                 if(rflg == true){
                     timeCnt++;
-                    let judge = [false,false]
-                    floors.forEach(elem=>{
-                        if(this.intersect(elem)==true) judge[0] = true
-                    })
-                    walls.forEach(elem=>{
-                        if(this.intersect(elem)==true) judge[1] = true
-                    })
-                    if((judge[0]==true || judge[1]==true)&& timeCnt >= 30){
+                    let judge = false;
+                    for(let elem of floors){
+                        if(this.intersectStrict(elem)==true){
+                            judge = true;
+                            break;
+                        };
+                    };
+                    for(let elem of walls){
+                        if(this.intersectStrict(elem)==true){
+                            judge = true;
+                            break;
+                        };
+                    };
+                    /*floors.forEach(elem=>{
+                        if(this.intersectStrict(elem)==true) judge = true;
+                    })*/
+                    /*walls.forEach(elem=>{
+                        if(this.intersectStrict(elem)==true) judge = true;
+                    })*/
+                    if(judge == true && timeCnt >= 30){
                         rflg = false;
                         timeCnt = 0;
-                    }  
-                    if(judge[0] == false && judge[1] == false){
+                    }else if(judge == false){
                         rflg = false;
                         timeCnt = 0;
                     } 
@@ -1502,34 +1713,42 @@ window.onload = function() {
                 
                 if(rcnt > ref){
                     new TouchFire(this,scene);
-                    target.moveTo(-100,-100)
+                    Get_NewBullet(num,value);
+                    /*target.moveTo(-100,-100)
+                    scene.BulGroup.removeChild(target);
                     target.destroy()
-                    game.assets['./sound/Sample_0000.wav'].clone().play();
+                    game.assets['./sound/Sample_0000.wav'].clone().play();*/
                     //game.assets['./sound/Sample_0004.wav'].clone().play();
-                    scene.removeChild(target);
+                    
+                    //scene.removeChild(target);
                 }
-                if(this.intersect(target)==false){
-                    bullets[num]--;
+                if(this.intersectStrict(target)==false){
+                    new TouchFire(this,scene);
+                    /*bullets[num]--;
                     game.assets['./sound/Sample_0000.wav'].clone().play();
                     //game.assets['./sound/Sample_0004.wav'].clone().play();
                     this.moveTo(-100,-100)
                     bulStack[num][value] = false;
-                    scene.removeChild(this);
+                    scene.BulGroup.removeChild(this);
+                    //scene.removeChild(this);*/
+                    Get_NewBullet(num,value);
                 }
                 for(var i = 0;  i < max;  i++){
                     for(var j = 0; j < max; j++){
-                        if (bulOb[num][i].intersect(bulOb[num][j])==true&&i != j) {
+                        if (bulOb[num][i].intersectStrict(bulOb[num][j])==true&&i != j) {
                             if(bulStack[num][i] == true && bulStack[num][j]==true){
                                 game.assets['./sound/Sample_0000.wav'].clone().play();
                                // game.assets['./sound/Sample_0004.wav'].clone().play();
                                 new TouchFire(bulOb[num][i],scene);
                                 new TouchFire(bulOb[num][j],scene);
-                                scene.removeChild(bulOb[num][i]);
-                                scene.removeChild(bulOb[num][j]);
+                                Get_NewBullet(num,i);
+                                Get_NewBullet(num,j);
+                                /*scene.BulGroup.removeChild(bulOb[num][i]);
+                                scene.BulGroup.removeChild(bulOb[num][j]);
                                 bulOb[num][i]=new Bullet(target,cannon,1,num,max,scene,i);
                                 bulStack[num][i] = false;
                                 bulOb[num][j]=new Bullet(target,cannon,1,num,max,scene,j);
-                                bulStack[num][j] = false;
+                                bulStack[num][j] = false;*/
                             }
                             
                         }
@@ -1537,18 +1756,20 @@ window.onload = function() {
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             if(j != num){
-                                if (bulOb[num][i].intersect(bulOb[j][k])==true) {
+                                if (bulOb[num][i].intersectStrict(bulOb[j][k])==true) {
                                     if(bulStack[num][i] == true && bulStack[j][k]==true){
                                         game.assets['./sound/Sample_0000.wav'].clone().play();
                                         //game.assets['./sound/Sample_0004.wav'].clone().play();
                                         new TouchFire(bulOb[num][i],scene);
                                         new TouchFire(bulOb[j][k],scene);
-                                        scene.removeChild(bulOb[num][i]);
-                                        scene.removeChild(bulOb[j][k]);
+                                        Get_NewBullet(num,i);
+                                        Get_NewBullet(j,k);
+                                        /*scene.BulGroup.removeChild(bulOb[num][i]);
+                                        scene.BulGroup.removeChild(bulOb[j][k]);
                                         bulOb[num][i]=new Bullet(target,cannon,1,num,max,scene,i);
                                         bulStack[num][i] = false;
                                         bulOb[j][k]=new Bullet(target,cannon,1,j,max,scene,k);
-                                        bulStack[j][k] = false;
+                                        bulStack[j][k] = false;*/
                                     }
                                     
                                 }
@@ -1563,7 +1784,37 @@ window.onload = function() {
                 }
             }
         }
-    })
+    });
+    var Get_NewBullet = function(num,val){
+        /*let cannon = new Sprite({
+            width: 1,
+            height: 1,
+            x: -100,
+            y: -100
+        });
+        let target = new PhyCircleSprite(2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true)*/
+
+        bullets[num]--;
+        game.assets['./sound/Sample_0000.wav'].clone().play();
+        bulStack[num][val] = false;
+
+        colOb[num][val].moveTo(-100,-100);
+        bulOb[num][val].moveTo(-200,-200);
+
+        colOb[num][val].destroy();
+        now_scene.BulGroup.removeChild(colOb[num][val]);
+        now_scene.BulGroup.removeChild(bulOb[num][val]);
+
+        bulOb[num][val] = new Sprite({
+            width: 1, height: 1, x: -100, y: -100
+        });
+
+        /*colOb[num][val] = new BulletCol(target,cannon,1,0,num,now_scene,val);
+        bulOb[num][val] = new Bullet(colOb[num][val],cannon,0,num,0,1,now_scene,val);
+        colOb[num][val].moveTo(-100,-100);
+        bulOb[num][val].moveTo(-200,-200);*/
+    };
+
     /* 爆弾クラス */
     var Bom = Class.create(Sprite,{
         initialize: function(area,num,scene){
@@ -1581,7 +1832,7 @@ window.onload = function() {
                     if(victory == false && defeat == false){
                         new BombExplosion(bomb,num,scene)
                         bomb.moveTo(-900,-900)
-                        scene.removeChild(bomb);
+                        scene.BomGroup.removeChild(bomb);
                     }
                 })
                 tankEntity.forEach(elem=>{
@@ -1603,29 +1854,30 @@ window.onload = function() {
                         if(this.time == 45){
                             new BombExplosion(this,num,scene)
                             this.moveTo(-900,-900)
-                            scene.removeChild(this);
+                            scene.BomGroup.removeChild(this);
                         }
                     }
                     
                 })
                 for(let i = 0; i < bulOb.length; i++){
                     for(let j = 0; j < bulOb[i].length; j++){
-                        if(this.intersect(bulOb[i][j])==true && victory == false && defeat == false){
-                            bullets[i] -= 1;
-                            scene.removeChild(bulOb[i][j])
+                        if(this.intersectStrict(bulOb[i][j])==true && victory == false && defeat == false){
+                            Get_NewBullet(i,j);
+                            /*bullets[i] -= 1;
+                            scene.BulGroup.removeChild(bulOb[i][j])
                             colOb[i][j].destroy()
-                            scene.removeChild(colOb[i][j])
+                            scene.BulGroup.removeChild(colOb[i][j])
                             colOb[i][j] = new BulletCol(cur,floors[0],0,0,i,scene,j);
                             bulOb[i][j] = new Bullet(colOb[i][j],floors[0],0,i,0,0,scene,j);
-                            bulStack[i][j] = false;
+                            bulStack[i][j] = false;*/
                             new BombExplosion(this,num,scene)
-                            scene.removeChild(this);
+                            scene.BomGroup.removeChild(this);
                         }
                     }
                 }
                 /*bulOb.forEach(elem=>{
                     elem.forEach(elem2=>{
-                        if(this.intersect(elem2)==true && victory == false && defeat == false){
+                        if(this.intersectStrict(elem2)==true && victory == false && defeat == false){
                             scene.removeChild(elem2)
                             new BombExplosion(this,num,scene)
                             scene.removeChild(this);
@@ -1976,13 +2228,13 @@ window.onload = function() {
                     scene.removeChild(this);
                 }
                 target = enemyTarget[num]
-                if(this.intersect(cannon)==false){
-                    if(this.intersect(Weak)==false){
+                if(this.intersectStrict(cannon)==false){
+                    if(this.intersectStrict(Weak)==false){
                         var vector = {
                             x: target.x - this.x,
                             y: target.y - this.y
                         };
-                        if(this.intersect(target)==true){
+                        if(this.intersectStrict(target)==true){
                             this.moveTo(target.x-4,target.y-4)
                         }else{
                             this.rad = Math.atan2(vector.y, vector.x);
@@ -1994,7 +2246,7 @@ window.onload = function() {
                             x: target.x - this.x+20,
                             y: target.y - this.y+20
                         };
-                        if(this.intersect(target)==true){
+                        if(this.intersectStrict(target)==true){
                             this.moveTo(target.x+20,target.y+20)
                         }else{
                             this.rad = Math.atan2(vector.y, vector.x);
@@ -2007,7 +2259,7 @@ window.onload = function() {
                         x: enemyTarget[num].x - this.x+30,
                         y: enemyTarget[num].y - this.y+20
                     };
-                    if(this.intersect(enemyTarget[num])==true){
+                    if(this.intersectStrict(enemyTarget[num])==true){
                         this.moveTo(enemyTarget[num].x+30,enemyTarget[num].y+20)
                     }else{
                         this.rad = Math.atan2(vector.y, vector.x);
@@ -2230,6 +2482,9 @@ window.onload = function() {
             const weak = new Weak(this,Num,scene)                       //  弱点
             const cannon = new Cannon(this,path2,Num,scene,filterMap)   //  砲塔
             const tank = new Tank(this,path1,Num,scene,cannon)          //  車体
+            this.weak = weak;
+            this.cannon = cannon;
+            this.tank = tank;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -2266,8 +2521,10 @@ window.onload = function() {
                                     game.assets['./sound/s_car_door_O2.wav'].clone().play();                            //  発射音再生
                                     colOb[Num][i] = new BulletCol(cur,cannon,shotSpeed,0,Num,scene,i);                  //  弾の物理制御をセット
                                     bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,pmax,shotSpeed,scene,i)     //  弾の制御をセット
-                                    scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
-                                    scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
+                                    //scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
+                                    //scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
+                                    scene.BulGroup.addChild(colOb[Num][i]);
+                                    scene.BulGroup.addChild(bulOb[Num][i]);
                                     bullets[Num]++;                                                                     //  弾の発射済み個数を増やす
                                     bulStack[Num][i] = true;                                                            //  弾の状態をonにする
                                     new OpenFire(cannon,cur,scene,filterMap)                                            //  発砲エフェクト生成
@@ -2291,8 +2548,8 @@ window.onload = function() {
                 if(deleteFlg == true){
                     this.moveTo(-100,-100)          //  戦車を移動
                     //  各パーツと本体の消去
-                    scene.removeChild(tank)
-                    scene.removeChild(cannon)
+                    scene.TankGroup.removeChild(tank)
+                    scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
                     scene.removeChild(this)
                 }
@@ -2311,15 +2568,17 @@ window.onload = function() {
                         if(cheat == false){
                             for(var j = 0; j < bulOb.length; j++){
                                 for(var k = 0; k < bulOb[j].length; k++){
-                                    if((tank.within(bulOb[j][k],25)==true || weak.intersect(bulOb[j][k])==true) &&
+                                    if((tank.within(bulOb[j][k],25)==true || weak.intersectStrict(bulOb[j][k])==true) &&
                                         defeat == false && victory == false && complete == false){
     
                                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                         deadFlgs[Num] = true
-                                        bulStack[j][k] = false;
+                                        Get_NewBullet(j,k);
+                                        /*bulStack[j][k] = false;
+                                        scene.BulGroup.removeChild(colOb[j][k]);
                                         colOb[j][k].destroy()
                                         colOb[j][k].moveTo(-200,-200)
-                                        bulOb[j][k].moveTo(-200,-200)
+                                        bulOb[j][k].moveTo(-200,-200)*/
                                         moveSpeed = 0;
                                     }
                                 }
@@ -2393,8 +2652,10 @@ window.onload = function() {
                                             game.assets['./sound/s_car_door_O2.wav'].clone().play();                            //  発射音再生
                                             colOb[Num][i] = new BulletCol(cur,cannon,shotSpeed,0,Num,scene,i);                  //  弾の物理制御をセット
                                             bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,pmax,shotSpeed,scene,i)     //  弾の制御をセット
-                                            scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
-                                            scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
+                                            //scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
+                                            //scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
+                                            scene.BulGroup.addChild(colOb[Num][i]);
+                                            scene.BulGroup.addChild(bulOb[Num][i]);
                                             bullets[Num]++;                                                                     //  弾の発射済み個数を増やす
                                             bulStack[Num][i] = true;                                                            //  弾の状態をonにする
                                             new OpenFire(cannon,cur,scene,filterMap)                                            //  発砲エフェクト生成
@@ -2409,7 +2670,8 @@ window.onload = function() {
                               if((inputManager.checkButton("B") == inputManager.keyStatus.DOWN || game.input.q) && bflg == false && boms[Num]<2){
                                     game.assets['./sound/Sample_0009.wav'].clone().play();
                                     bomOb[Num][boms[Num]] = new Bom(this,Num,scene)
-                                    scene.insertBefore(bomOb[Num][boms[Num]],tank);
+                                    //scene.insertBefore(bomOb[Num][boms[Num]],tank);
+                                    scene.BomGroup.addChild(bomOb[Num][boms[Num]]);
                                     this.time = 0;
                                     bflg = true;
                                     boms[Num]++;
@@ -2493,7 +2755,8 @@ window.onload = function() {
                 }
                 
             }
-            scene.insertBefore(this,tank)
+            //scene.insertBefore(this,tank)
+            scene.addChild(this);
         }
     });
     /* 敵(弱)クラス */
@@ -2516,6 +2779,9 @@ window.onload = function() {
             const weak = new Weak(this,Num,scene)                           //  弱点生成
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)  //  砲塔生成
             const tank = new Tank(this,tankPath,Num,scene,cannon)           //  車体生成
+            this.weak = weak;
+            this.cannon = cannon;
+            this.tank = tank;
             TankFrame(this,Num,scene)
             
             markEntity[Num] = null;
@@ -2580,8 +2846,10 @@ window.onload = function() {
                 if(shotSpeed >= 12){
                     game.assets['./sound/Sample_0003.wav'].clone().play();
                 }
-                scene.insertBefore(colOb[Num][i],filterMap);
-                scene.insertBefore(bulOb[Num][i],filterMap);
+                //scene.insertBefore(colOb[Num][i],filterMap);
+                //scene.insertBefore(bulOb[Num][i],filterMap);
+                scene.BulGroup.addChild(colOb[Num][i]);
+                scene.BulGroup.addChild(bulOb[Num][i]);
                 new OpenFire(cannon,alignment,scene,filterMap)
                 bullets[Num]++;  
                 bulStack[Num][i] = true;
@@ -2610,8 +2878,8 @@ window.onload = function() {
                     scene.removeChild(intercept3);
                     scene.removeChild(intercept4);
                     scene.removeChild(intercept8);
-                    scene.removeChild(tank)
-                    scene.removeChild(cannon)
+                    scene.TankGroup.removeChild(tank)
+                    scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
                     scene.removeChild(this);
                 }
@@ -2621,16 +2889,18 @@ window.onload = function() {
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
-                                bulStack[j][k] = false;
+                                Get_NewBullet(j,k);
+                                /*bulStack[j][k] = false;
+                                scene.BulGroup.removeChild(colOb[j][k]);
                                 colOb[j][k].destroy()
                                 colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
                                 
                             }*/
                         }
@@ -2868,7 +3138,7 @@ window.onload = function() {
                                     var rad = this.rotation * (Math.PI / 180.0);
                                     var dx = Math.cos(rad) * moveSpeed;
                                     var dy = Math.sin(rad) * moveSpeed;
-                                    if(this.intersect(Floor)==false){
+                                    if(this.intersectStrict(Floor)==false){
                                         this.x += dx;
                                         this.y += dy;
                                     }else{
@@ -2919,7 +3189,8 @@ window.onload = function() {
                     }
                 }
             }
-            scene.insertBefore(this,tank)
+            //scene.insertBefore(this,tank)
+            scene.addChild(this);
         },
         MoveAction(){
             //  自身の位置とターゲットの位置をざっくり算出
@@ -2974,6 +3245,9 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            this.weak = weak;
+            this.cannon = cannon;
+            this.tank = tank;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -3078,8 +3352,10 @@ window.onload = function() {
                 if(shotSpeed >= 12){
                     game.assets['./sound/Sample_0003.wav'].clone().play();
                 }
-                scene.insertBefore(colOb[Num][i],filterMap);
-                scene.insertBefore(bulOb[Num][i],filterMap);
+                //scene.insertBefore(colOb[Num][i],filterMap);
+                //scene.insertBefore(bulOb[Num][i],filterMap);
+                scene.BulGroup.addChild(colOb[Num][i]);
+                scene.BulGroup.addChild(bulOb[Num][i]);
                 new OpenFire(cannon,alignment,scene,filterMap)
                 bullets[Num]++;  
                 bulStack[Num][i] = true;
@@ -3102,8 +3378,8 @@ window.onload = function() {
                 if(deleteFlg == true){
                     this.moveTo(-100,-100)
                     scene.removeChild(intercept7);
-                    scene.removeChild(tank)
-                    scene.removeChild(cannon)
+                    scene.TankGroup.removeChild(tank)
+                    scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
                     scene.removeChild(this)
                 }
@@ -3114,16 +3390,19 @@ window.onload = function() {
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
+                                Get_NewBullet(j,k);
+                                /*
                                 bulStack[j][k] = false;
+                                scene.BulGroup.removeChild(colOb[j][k]);
                                 colOb[j][k].destroy()
                                 colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
                                 
                             }*/
                         }
@@ -3182,7 +3461,8 @@ window.onload = function() {
                                     if(tank.within(target,300)==true && bomFlg == false && boms[Num] == 0){
                                         game.assets['./sound/Sample_0009.wav'].clone().play();
                                         bomOb[Num][0] = new Bom(this,Num,scene);
-                                        scene.insertBefore(bomOb[Num][0],target);
+                                        //scene.insertBefore(bomOb[Num][0],target);
+                                        scene.BomGroup.addChild(bomOb[Num][0]);
                                         this.time = 0;
                                         bomFlg = true;
                                         boms[Num]++;
@@ -3205,13 +3485,24 @@ window.onload = function() {
                                 destruction++
                                 life--;
                             }
-
-                            intercept7.intersect(Floor).forEach(function(){
+                            for(let elem of floors){
+                                if(intercept7.intersect(elem)==true){
+                                    shotNGflg = true;
+                                    break;
+                                }
+                            };
+                            for(let elem of walls){
+                                if(intercept7.intersect(elem)==true){
+                                    shotNGflg = true;
+                                    break;
+                                }
+                            };
+                            /*intercept7.intersectStrict(Floor).forEach(function(){
                                 shotNGflg = true;
                             })
-                            intercept7.intersect(Wall).forEach(function(){
+                            intercept7.intersectStrict(Wall).forEach(function(){
                                 shotNGflg = true;
-                            })
+                            })*/
                             
                             alignment.intersect(EnemyAim).forEach(function(){
                                 fireFlgs[Num] = true;
@@ -3424,8 +3715,16 @@ window.onload = function() {
                                                 }
                                             }
                                         }
-                                    }else if(grade > 3){
-                                        if(boms[0] > 0){
+                                    }else if(grade > 3 && boms[0] > 0){
+                                        for(let elem of bomOb){
+                                            if(this.time % 10 == 0){
+                                                if(Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2)) < 250){
+                                                    SelDirection(weak,elem,0);
+                                                }  
+                                            }
+                                            
+                                        };
+                                        /*if(boms[0] > 0){
                                             bomOb[0].forEach(elem=>{
                                                 if(Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2)) < 250){
                                                     if(this.time % 10 == 0){
@@ -3433,7 +3732,7 @@ window.onload = function() {
                                                     }
                                                 }
                                             })
-                                        }
+                                        }*/
                                     }
                                 }
                                 if(game.time % 5 == 0){
@@ -3536,7 +3835,8 @@ window.onload = function() {
                     
                 }
             }
-            scene.insertBefore(this,tank)
+            //scene.insertBefore(this,tank)
+            scene.addChild(this);
         }
     });
     var AIElite = Class.create(Sprite,{
@@ -3556,6 +3856,9 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            this.weak = weak;
+            this.cannon = cannon;
+            this.tank = tank;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -3660,8 +3963,10 @@ window.onload = function() {
                 if(shotSpeed >= 12){
                     game.assets['./sound/Sample_0003.wav'].clone().play();
                 }
-                scene.insertBefore(colOb[Num][i],filterMap);
-                scene.insertBefore(bulOb[Num][i],filterMap);
+                //scene.insertBefore(colOb[Num][i],filterMap);
+                //scene.insertBefore(bulOb[Num][i],filterMap);
+                scene.BulGroup.addChild(colOb[Num][i]);
+                scene.BulGroup.addChild(bulOb[Num][i]);
                 new OpenFire(cannon,alignment,scene,filterMap)
                 bullets[Num]++;  
                 bulStack[Num][i] = true;
@@ -3684,8 +3989,8 @@ window.onload = function() {
                 if(deadFlgs[Num] == true){
                     this.moveTo(-100,-100)
                     scene.removeChild(intercept7);
-                    scene.removeChild(tank)
-                    scene.removeChild(cannon)
+                    scene.TankGroup.removeChild(tank)
+                    scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
                     scene.removeChild(this)                        
                 }
@@ -3694,16 +3999,18 @@ window.onload = function() {
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
-                                bulStack[j][k] = false;
+                                Get_NewBullet(j,k);
+                                /*bulStack[j][k] = false;
+                                scene.BulGroup.removeChild(colOb[j][k]);
                                 colOb[j][k].destroy()
                                 colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
                                 
                             }*/
                         }
@@ -3775,7 +4082,7 @@ window.onload = function() {
                             
                             /*for(var j = 0; j < bulOb.length; j++){
                                 for(var k = 0; k < bulOb[j].length; k++){
-                                    if(tank.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true){
+                                    if(tank.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true){
                                         game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                         deadFlgs[Num] = true
                                         colOb[j][k].destroy()
@@ -3799,17 +4106,30 @@ window.onload = function() {
                                 life--;
                             }
 
-                            intercept7.intersect(Floor).forEach(function(){
+                            for(let elem of floors){
+                                if(intercept7.intersect(elem)){
+                                    shotNGflg = true;
+                                    break;
+                                }
+                            };
+                            for(let elem of walls){
+                                if(intercept7.intersect(elem)){
+                                    shotNGflg = true;
+                                    break;
+                                }
+                            };
+                            /*intercept7.intersect(Floor).forEach(function(){
                                 shotNGflg = true;
                             })
                             intercept7.intersect(Wall).forEach(function(){
                                 shotNGflg = true;
-                            })
+                            })*/
                             
                             alignment.intersect(EnemyAim).forEach(function(){
                                 fireFlgs[Num] = true;
                                 rootFlg = true;
-                            })
+                            });
+                            
                             for(let i = 1; i < tankEntity.length; i++){
                                 if(tank.within(tankEntity[i],64) && i != Num && deadFlgs[i]==false){
                                     fireFlgs[Num] = false;
@@ -4062,7 +4382,8 @@ window.onload = function() {
                     
                 }
             }
-            scene.insertBefore(this,tank)
+            //scene.insertBefore(this,tank)
+            scene.addChild(this);
         }
     });
     var AnotherElite = Class.create(Sprite,{
@@ -4082,6 +4403,9 @@ window.onload = function() {
             const cannon = new Cannon(this,path2,Num,scene,filterMap)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            this.weak = weak;
+            this.cannon = cannon;
+            this.tank = tank;
             TankFrame(this,Num,scene)
 
             cannon.rotation = 0;
@@ -4132,8 +4456,10 @@ window.onload = function() {
                 if(shotSpeed >= 12){
                     game.assets['./sound/Sample_0003.wav'].clone().play();
                 }
-                scene.insertBefore(colOb[Num][i],filterMap);
-                scene.insertBefore(bulOb[Num][i],filterMap);
+                //scene.insertBefore(colOb[Num][i],filterMap);
+                //scene.insertBefore(bulOb[Num][i],filterMap);
+                scene.BulGroup.addChild(colOb[Num][i]);
+                scene.BulGroup.addChild(bulOb[Num][i]);
                 new OpenFire(cannon,anoPoint,scene,filterMap)
                 bullets[Num]++;  
                 bulStack[Num][i] = true;
@@ -4146,8 +4472,8 @@ window.onload = function() {
                 if(deleteFlg == true){
                     this.moveTo(-100,-100)
                     scene.removeChild(intercept7);
-                    scene.removeChild(tank)
-                    scene.removeChild(cannon)
+                    scene.TankGroup.removeChild(tank)
+                    scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
                     scene.removeChild(this)
                 }
@@ -4156,16 +4482,18 @@ window.onload = function() {
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
-                                bulStack[j][k] = false;
+                                Get_NewBullet(j,k);
+                                /*bulStack[j][k] = false;
+                                scene.BulGroup.removeChild(colOb[j][k]);
                                 colOb[j][k].destroy()
                                 colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
                                 
                             }*/
                         }
@@ -4289,7 +4617,8 @@ window.onload = function() {
                     
                 }
             }
-            scene.insertBefore(this,tank)
+            //scene.insertBefore(this,tank)
+            scene.addChild(this);
         }
     });
     /* 強敵クラス */
@@ -4309,6 +4638,9 @@ window.onload = function() {
             const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
             const tank = new Tank(this,tankPath,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
+            this.weak = weak;
+            this.cannon = cannon;
+            this.tank = tank;
             TankFrame(this,Num,scene)
 
             markEntity[Num] = null;
@@ -4476,8 +4808,10 @@ window.onload = function() {
                 if(shotSpeed >= 12){
                     game.assets['./sound/Sample_0003.wav'].clone().play();
                 }
-                scene.insertBefore(colOb[Num][i],filterMap);
-                scene.insertBefore(bulOb[Num][i],filterMap);
+                //scene.insertBefore(colOb[Num][i],filterMap);
+                //scene.insertBefore(bulOb[Num][i],filterMap);
+                scene.BulGroup.addChild(colOb[Num][i]);
+                scene.BulGroup.addChild(bulOb[Num][i]);
                 new OpenFire(cannon,alignment,scene,filterMap)
                 bullets[Num]++;  
                 bulStack[Num][i] = true;
@@ -4503,8 +4837,8 @@ window.onload = function() {
                     scene.removeChild(intercept6);
                     scene.removeChild(intercept7);
                     scene.removeChild(intercept8);
-                    scene.removeChild(tank)
-                    scene.removeChild(cannon)
+                    scene.TankGroup.removeChild(tank)
+                    scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
                     scene.removeChild(this)
                 }    
@@ -4513,16 +4847,18 @@ window.onload = function() {
                     for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
                             let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            if(defeat == false && (dist < 30 || this.intersect(bulOb[j][k])==true) && bulStack[j][k] == true){
+                            if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
-                                bulStack[j][k] = false;
+                                Get_NewBullet(num,i);
+                                /*bulStack[j][k] = false;
+                                scene.BulGroup.removeChild(colOb[j][k]);
                                 colOb[j][k].destroy()
                                 colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)
+                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersect(bulOb[j][k])==true) && defeat == false){
+                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
                                 
                             }*/
                         }
@@ -5062,7 +5398,8 @@ window.onload = function() {
                     
                 }
             }
-            scene.insertBefore(this,tank)
+            //scene.insertBefore(this,tank)
+            scene.addChild(this);
         }
     });
     /* アイコン用戦車クラス */
@@ -5287,7 +5624,6 @@ window.onload = function() {
     }
     // ゲームの準備が整ったらメインの処理を実行
     game.onload = function() { 
-        var world = new PhysicsWorld(0, 0);
         
         var BGM = game.assets['./sound/TITLE.mp3'];
             //BGM.src.loop = true;    
@@ -5297,6 +5633,7 @@ window.onload = function() {
             var scene = new Scene();                              // 新しいシーンを作る
             scene.time = 0;
             scene.backgroundColor = 'black';                      // シーンの背景色を設定
+            now_scene = scene;
             let flg = false;
             new DispText(0,440,320*4,40,'Touch to StartUp!','40px sans-serif','white','center',scene)
 
@@ -5324,6 +5661,7 @@ window.onload = function() {
         };
 
         var createTutorialScene = function() {
+            var world = new PhysicsWorld(0, 0);
             game.time = 0;
             worldFlg = false;
             deleteFlg = false;
@@ -5384,6 +5722,12 @@ window.onload = function() {
 
             var scene = new Scene();                            // 新しいシーンを作る
                 scene.time = 0;
+                now_scene = scene;
+
+                scene.TankGroup = new Group();
+                scene.CannonGroup = new Group();
+                scene.BulGroup = new Group();
+                scene.BomGroup = new Group();
 
             let backgroundMap = new Map(pixelSize, pixelSize);
                 backgroundMap.image = game.assets['./image/MapImage/map0.png'];
@@ -5433,7 +5777,10 @@ window.onload = function() {
                 fy++;
                 fx = 0;
             });
-            
+            scene.addChild(scene.BomGroup);
+            scene.addChild(scene.TankGroup);
+            scene.addChild(scene.CannonGroup);
+            scene.addChild(scene.BulGroup);
 
             let filterMap = new Map(pixelSize,pixelSize);
                 filterMap.image = backgroundMap.image;
@@ -5453,7 +5800,7 @@ window.onload = function() {
             /* カーソルの設置＆位置取得処理 */
             cur = new Cursor(scene);
             document.addEventListener('mousemove', function(e) {
-                cur.x = (e.x-36)*2.70-240;
+                cur.x = (e.x-36)*2.70-(ScreenMargin*2);
                 cur.y = (e.y)*2.65;
             })
             scene.addEventListener('touchmove',function(e){
@@ -5466,7 +5813,7 @@ window.onload = function() {
             colOb.push([])
             bomOb.push([])
             bulStack.push([])
-            tankEntity.push(new Player(4,5,'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,9,2.2,scene,filterMap))
+            tankEntity.push(new Player(4,5,'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,10,2.2,scene,filterMap))
     
             bulOb.push([])
             colOb.push([])
@@ -5524,14 +5871,15 @@ window.onload = function() {
                 }
                 bulOb.forEach(elem=>{
                     elem.forEach(elem2=>{
-                        scene.removeChild(elem2)
+                        scene.BulGroup.removeChild(elem2)
                     })
                 })
                 for(let i = 0; i < colOb.length; i++){
                     for(let j = 0; j < colOb[i].length; j++){
                         if(bulStack[i][j] == true){
                             colOb[i][j].destroy();
-                            scene.removeChild(colOb[i][j])
+                            scene.BulGroup.removeChild(colOb[i][j])
+                            //scene.removeChild(colOb[i][j])
                         }
                     }
                 }
@@ -5559,22 +5907,22 @@ window.onload = function() {
                 
             scene.onenterframe = function() {
                 scene.time++;
-                Floor.intersect(Aim).forEach(function(pair){
+                Floor.intersectStrict(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Wall.intersect(Aim).forEach(function(pair){
+                Wall.intersectStrict(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Floor.intersect(BulAim).forEach(function(pair){
+                Floor.intersectStrict(BulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Wall.intersect(BulAim).forEach(function(pair){
+                Wall.intersectStrict(BulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Floor.intersect(PlayerBulAim).forEach(function(pair){
+                Floor.intersectStrict(PlayerBulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Wall.intersect(PlayerBulAim).forEach(function(pair){
+                Wall.intersectStrict(PlayerBulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
                 if(inputManager.checkButton("Start") == inputManager.keyStatus.DOWN && scene.time > 240){
@@ -5678,6 +6026,7 @@ window.onload = function() {
         var createTitleScene = function(){
 
             var scene = new Scene();
+            now_scene = scene;
             scene.time = 0;
             scene.backgroundColor = '#cacaca';                      // シーンの背景色を設定
             var flg = false;
@@ -5826,6 +6175,10 @@ window.onload = function() {
             var scene = new Scene();                              // 新しいシーンを作る
                 scene.time = 0;
                 scene.backgroundColor = '#cacaca';                      // シーンの背景色を設定
+                now_scene = scene;
+
+            scene.TankGroup = new Group();
+            scene.CannonGroup = new Group();
 
             //  表示用画像一覧
             let tanks = [
@@ -5837,16 +6190,16 @@ window.onload = function() {
                 './image/ObjectImage/graycannon.png',
                 './image/ObjectImage/green.png',
                 './image/ObjectImage/greencannon.png',
-                './image/ObjectImage/lightgreen.png',
-                './image/ObjectImage/lightgreencannon.png',
                 './image/ObjectImage/red.png',
                 './image/ObjectImage/redcannon.png',
+                './image/ObjectImage/lightgreen.png',
+                './image/ObjectImage/lightgreencannon.png',
                 './image/ObjectImage/elite.png',
                 './image/ObjectImage/elitecannon.png',
-                './image/ObjectImage/elitegreen.png',
-                './image/ObjectImage/elitegreencannon.png',
                 './image/ObjectImage/snow.png',
                 './image/ObjectImage/snowcannon.png',
+                './image/ObjectImage/elitegreen.png',
+                './image/ObjectImage/elitegreencannon.png',
                 './image/ObjectImage/sand.png',
                 './image/ObjectImage/sandcannon.png',
                 './image/ObjectImage/pink.png',
@@ -5867,14 +6220,14 @@ window.onload = function() {
                 [colorsName[0],'　弾数　：'+(cateMaxBullets[0]+addBullet),"　弾速　：普通","跳弾回数：1","移動速度：動かない","・一番最初に戦う雑魚敵。<br>　弱いが油断はできない。"],
                 [colorsName[1],'　弾数　：'+(cateMaxBullets[1]+addBullet),"　弾速　：普通","跳弾回数：1","移動速度：遅い","・動けるようになったがまだ弱い。<br>　配置によっては化ける。"],
                 [colorsName[2],'　弾数　：'+(cateMaxBullets[2]+addBullet),"　弾速　：とても速い","跳弾回数："+addBullet,"移動速度：動かない～遅い","・とにかく弾が速い。<br>　スナイプされないよう注意！"],
-                [colorsName[4],'　弾数　：'+(cateMaxBullets[4]+addBullet),"　弾速　：速い","跳弾回数：2","移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
                 [colorsName[3],'　弾数　：'+(cateMaxBullets[3]+addBullet),"　弾速　：普通","跳弾回数：0","移動速度：普通","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
+                [colorsName[4],'　弾数　：'+(cateMaxBullets[4]+addBullet),"　弾速　：速い","跳弾回数：2","移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
                 [colorsName[5],'　弾数　：'+(cateMaxBullets[5]+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：普通","・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
-                [colorsName[7],'　弾数　：'+(cateMaxBullets[7]+addBullet),"　弾速　：とても速い","跳弾回数：3","移動速度：動かない","・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
                 [colorsName[6],'　弾数　：'+(cateMaxBullets[6]+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：遅い","・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
+                [colorsName[7],'　弾数　：'+(cateMaxBullets[7]+addBullet),"　弾速　：とても速い","跳弾回数：3","移動速度：動かない","・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
                 [colorsName[8],'　弾数　：'+(cateMaxBullets[8]+addBullet),"　弾速　：とても速い","跳弾回数：2","移動速度：とても速い","・簡潔にいうと爆弾魔。<br>　爆弾を設置しないと攻撃してこない。"],
                 [colorsName[9],'　弾数　：'+(cateMaxBullets[9]+addBullet),"　弾速　：速い","跳弾回数：0","移動速度：動かない","・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
-                [colorsName[10],"　弾数　：?","　弾速　：?","跳弾回数：?","移動速度：?","・いつ現れるか分からない戦車。<br>　出現したら要注意。"],
+                [colorsName[10],"　弾数　："+(1+addBullet),"　弾速　：最速","跳弾回数：0","移動速度：普通","・いつ現れるか分からない戦車。<br>　出現したら要注意。"],
                 [colorsName[11],"　弾数　：?","　弾速　：普通~速い","跳弾回数：0~1","移動速度：普通~速い","・攻防ともに優れたボス格。<br>　ステージごとに強さが異なる。"],
                 ["Abyssal","　弾数　：?","　弾速　：速い~とても速い","跳弾回数：0~1","移動速度：普通~速い","・ステルスも使えるボス格。<br>　\"最後\"は真っ向勝負となる。"]
             ]
@@ -5886,6 +6239,9 @@ window.onload = function() {
 
             new DispHead(100,80,360*3,240*3.2,"#a00d",scene)    //  赤い背景追加
             new DispBody(100,240,360*3,240*2,scene)             //  黄色の背景追加
+
+            scene.addChild(scene.TankGroup);
+            scene.addChild(scene.CannonGroup);
 
             //  各戦車を７×２に並べて表示する処理
             for(let i = 0; i < 7; i++){
@@ -5998,6 +6354,7 @@ window.onload = function() {
             victory = false;
             defeat = false;
             resultFlg = false;
+            delStageFile();
             
             var nextData = LoadStage();    //ステージ情報引き出し
     
@@ -6014,7 +6371,8 @@ window.onload = function() {
             var scene = new Scene();                              // 新しいシーンを作る
             scene.time = 0;
             scene.backgroundColor = '#ebf899';                      // シーンの背景色を設定
-
+            now_scene = scene;
+            
             // スタート画像設定
             new DispHead(100,240,360*3,240*2,"#a00d",scene)
             
@@ -6047,7 +6405,8 @@ window.onload = function() {
             var scene = new Scene();                              // 新しいシーンを作る
             scene.time = 0;
             scene.backgroundColor = '#ebf899';                      // シーンの背景色を設定
-    
+            now_scene = scene;
+
             zanki++;
     
             // スタート画像設定
@@ -6104,7 +6463,7 @@ window.onload = function() {
         };
         /* ゲームシーン */
         var createGameScene = function() {
-    
+            var world = new PhysicsWorld(0, 0);
             game.time = 0;
             worldFlg = false;
             deleteFlg = false;
@@ -6113,11 +6472,18 @@ window.onload = function() {
     
             var scene = new Scene();                            // 新しいシーンを作る
                 scene.time = 0;
+                now_scene = scene;
+            
+                scene.BomGroup = new Group();
+                scene.TankGroup = new Group();
+                scene.CannonGroup = new Group();
+                scene.BulGroup = new Group();
+            
 
-            let backgroundMap = new Map(pixelSize, pixelSize);
-                backgroundMap.image = game.assets['./image/MapImage/map0.png'];
+            let backgroundMap = new Map(pixelSize, pixelSize)
+                backgroundMap.image = game.assets['./image/MapImage/map0.png']
                 backgroundMap.loadData(stageData[0],stageData[1])
-                backgroundMap.collisionData = stageData[2];
+                backgroundMap.collisionData = stageData[2]
                 scene.addChild(backgroundMap);
 
                 walls[0] = new Wall(18,1,1,1,scene)
@@ -6167,7 +6533,11 @@ window.onload = function() {
                 fy++;
                 fx = 0;
             });
-            
+
+                scene.addChild(scene.BomGroup);
+                scene.addChild(scene.TankGroup);
+                scene.addChild(scene.CannonGroup);
+                scene.addChild(scene.BulGroup);
 
             let filterMap = new Map(pixelSize,pixelSize);
                 filterMap.image = backgroundMap.image;
@@ -6189,7 +6559,7 @@ window.onload = function() {
             cur = new Cursor(scene);
             
             document.addEventListener('mousemove', function(e) {
-                cur.x = (e.x-36)*2.7-240;
+                cur.x = (e.x-36)*2.7-(ScreenMargin*2);
                 cur.y = (e.y)*2.65;
             })
             scene.addEventListener('touchmove',function(e){
@@ -6205,7 +6575,7 @@ window.onload = function() {
             if(cheat == true){
                 tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,8,4,scene,filterMap))
             }else{
-                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,9,2.2,scene,filterMap))
+                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,10,2.2,scene,filterMap))
             }
             
             let abn = Math.floor(Math.random() * 10);
@@ -6216,7 +6586,7 @@ window.onload = function() {
                 bomOb.push([])
                 bulStack.push([])
                 if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
-                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],Math.floor(Math.random() * 4)+1+addBullet,Math.floor(Math.random() * 3),Math.floor(Math.random() * 9)+6,Math.floor(Math.random() * 3),Math.floor(Math.random() * 35)+5,Math.floor(Math.random() * 4)+3,10,scene,filterMap))
+                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.2,60,10,10,scene,filterMap))
                     stageData[i][10] = 10;
                 }else if(stageData[i][10] == 7){
                     tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
@@ -6291,52 +6661,56 @@ window.onload = function() {
             let CngBgmNum = BNum;
 
             function AllDelete(){
+
                 for(let i = 0; i < obsdir.length; i++){
                     for(let j = 0; j < obsdir[i].length; j++){
                         scene.removeChild(obsdir[i][j])
-                    }
-                }
+                    };
+                };
                 for(let i = 0; i < refdir.length; i++){
                     for(let j = 0; j < refdir[i].length; j++){
                         scene.removeChild(refdir[i][j])
-                    }
-                }
+                    };
+                };
                 for(let i = 0; i < tankDir.length; i++){
                     for(let j = 0; j < tankDir[i].length; j++){
                         scene.removeChild(tankDir[i][j])
-                    }
-                }
+                    };
+                };
                 for(let i = 0; i < tankEntity.length; i++){
-                    scene.removeChild(tankEntity[i])
-                }
+                    scene.removeChild(tankEntity[i]);
+                };
                 for(let i = 0; i < markEntity.length; i++){
-                    scene.removeChild(markEntity[i])
-                }
+                    scene.removeChild(markEntity[i]);
+                };
                 bulOb.forEach(elem=>{
                     elem.forEach(elem2=>{
-                        scene.removeChild(elem2)
-                    })
-                })
+                        scene.BulGroup.removeChild(elem2)
+                    });
+                });
                 for(let i = 0; i < colOb.length; i++){
                     for(let j = 0; j < colOb[i].length; j++){
                         if(bulStack[i][j] == true){
                             colOb[i][j].destroy();
-                            scene.removeChild(colOb[i][j])
-                        }
-                    }
-                }
+                            
+                            scene.BulGroup.removeChild(colOb[i][j]);
+                        };
+                    };
+                };
                 floors.forEach(elem=>{
                     elem.destroy()
-                })
+                });
                 walls.forEach(elem=>{
                     elem.destroy()
-                })
+                });
                 avoids.forEach(elem=>{
                     scene.removeChild(elem)
-                })
+                });
                 holes.forEach(elem=>{
                     scene.removeChild(elem)
-                })
+                });
+                scene.removeChild(backgroundMap);
+                scene.removeChild(filterMap);
                 
             }
             let chgBgm = false;
@@ -6345,22 +6719,22 @@ window.onload = function() {
                 
                 scene.time++;
                 if(defeat == false && victory == false && complete == false) remaining.text = '敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki
-                Floor.intersect(Aim).forEach(function(pair){
+                Floor.intersectStrict(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Wall.intersect(Aim).forEach(function(pair){
+                Wall.intersectStrict(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Floor.intersect(BulAim).forEach(function(pair){
+                Floor.intersectStrict(BulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Wall.intersect(BulAim).forEach(function(pair){
+                Wall.intersectStrict(BulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Floor.intersect(PlayerBulAim).forEach(function(pair){
+                Floor.intersectStrict(PlayerBulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
-                Wall.intersect(PlayerBulAim).forEach(function(pair){
+                Wall.intersectStrict(PlayerBulAim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
                 
@@ -6487,6 +6861,7 @@ window.onload = function() {
                                 }
                                 let script = document.createElement("script");
                                     script.src = stagePath[stageNum+1];
+                                    script.id = 'stage_'+(stageNum+1);
                                 let head = document.getElementsByTagName("head");
                                     head[0].appendChild(script);
                                 if(stageNum % 20 == 0){
@@ -6827,3 +7202,23 @@ window.onload = function() {
 
     game.start(); // ゲームをスタートさせます
 }
+/*window.onresize = function(){
+    let viewGame = document.getElementById('enchant-stage');
+    viewGame.style.display = "block";
+    if(window.innerWidth > viewGame.clientWidth){
+        scl = window.innerWidth / viewGame.clientWidth;
+        //alert(scl)
+        ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
+        viewGame.style.position = "absolute";
+        viewGame.style.left = ScreenMargin + "px";
+        game._pageX = ScreenMargin;
+        //viewGame.style.margin = "0px " + ScreenMargin + "px";
+    }else{
+        scl = window.innerWidth / viewGame.clientWidth;
+        ScreenMargin = 240;
+        viewGame.style.position = "absolute";
+        viewGame.style.left = ScreenMargin + "px";
+        game._pageX = ScreenMargin;
+        ScreenMargin = 120;
+    }
+};*/
