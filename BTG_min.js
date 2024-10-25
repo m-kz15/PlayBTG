@@ -122,7 +122,7 @@ var cateReloadTimes = [
     90,  //elitegreen
     360,  //sand
     240,    //pink
-    120,  //random
+    100,  //random
     30   //dazzle
 ]
 var cateMaxBullets = [
@@ -136,7 +136,7 @@ var cateMaxBullets = [
     3,  //elitegreen
     2,  //sand
     4,    //pink
-    0,  //random
+    1,  //random
     0   //dazzle
 ]
 
@@ -151,7 +151,7 @@ var cateFireLate = [
     10,  //elitegreen
     60,  //sand
     10,    //pink
-    0,  //random
+    20,  //random
     0   //dazzle
 ]
 
@@ -1312,7 +1312,6 @@ window.onload = function() {
 
                 //this.rotation = this.Vec_to_Rot({x: dx, y: dy});
                 
-                this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 RefTop.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
                         target.moveTo(this.x-(dx/3),elem.y-(this.height/2));
@@ -1325,6 +1324,7 @@ window.onload = function() {
                     this.moveTo(this.x-(dx/3)-(this.width/2),elem.y-(this.height));
                     dy = dy*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 })
                 RefBottom.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
@@ -1338,6 +1338,7 @@ window.onload = function() {
                     this.moveTo(this.x-(dx/3)-(this.width/2),elem.y+elem.height+(this.height/2))
                     dy = dy*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 })
                 RefLeft.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
@@ -1352,6 +1353,7 @@ window.onload = function() {
                     this.moveTo(elem.x,this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 })
                 RefRight.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
@@ -1366,6 +1368,7 @@ window.onload = function() {
                     this.moveTo(elem.x+elem.width,this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 })
                 
                 /*for(let i = 0; i < refdir.length; i++){
@@ -1424,6 +1427,7 @@ window.onload = function() {
                     this.moveTo(this.x-(dx/3)-(this.width/2),walls[0].y+walls[0].height+(this.height/2))
                     dy = dy*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
                 if(this.intersectStrict(walls[1])==true){
                     if(refcnt == 0){
@@ -1437,6 +1441,7 @@ window.onload = function() {
                     this.moveTo(this.x-(dx/3)-(this.width/2),walls[1].y-(this.height))
                     dy = dy*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
                 
                 if(this.intersectStrict(walls[2])==true){
@@ -1451,6 +1456,7 @@ window.onload = function() {
                     this.moveTo(walls[2].x+walls[2].width+(this.width),this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
                 if(this.intersectStrict(walls[3])==true){
                     if(refcnt == 0){
@@ -1461,19 +1467,25 @@ window.onload = function() {
                     this.moveTo(walls[3].x-(this.width),this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
-                
-                this.intersectStrict(Player).forEach(function(){
+                Player.intersectStrict(this).forEach(elem => {
+                    if(fireFlgs[num]==false){
+                        target.moveTo(tgt[0],tgt[1]);
+                        cannon.rotation = agl;
+                    }
+                });
+                if(this.intersectStrict(tankEntity[num])==true){
+                    scene.removeChild(this);
+                };
+                /*this.intersectStrict(Player).forEach(function(){
                     
                     if(fireFlgs[num]==false){
+                        target.moveTo(tgt[0],tgt[1]);
                         cannon.rotation = agl;
-                        target.moveTo(tgt[0],tgt[1])
                     } 
-                })
-                if(this.intersect(tankEntity[num])==true){
-                    scene.removeChild(this);
-                }
-                if(this.time > 180) scene.removeChild(this);
+                })*/
+                if(this.time > 150) scene.removeChild(this);
                 if(refcnt > ref) scene.removeChild(this)
                 
             }
@@ -1565,7 +1577,7 @@ window.onload = function() {
             let rad = Math.atan2(vec.y, vec.x);
             this.vec = vec;
             this.rad = rad;
-            this.moveTo((cannon.x+(cannon.width/2))+Math.cos(rad)*(56)-2.25, (cannon.y+(cannon.height/2))+Math.sin(rad)*(56)-3);
+            this.moveTo((cannon.x+(cannon.width/2))+Math.cos(rad)*(58)-2.25, (cannon.y+(cannon.height/2))+Math.sin(rad)*(58)-3);
             /*this.moveTo(cannon.x+(cannon.width/2)-2.25,cannon.y+(cannon.height/2)-3)
             var rad = (cannon.rotation+(random0+random1)) * (Math.PI / 180.0);
             this.moveTo(this.x+(base*3.8)*Math.cos(rad), this.y+(base*3.8)*Math.sin(rad));*/
@@ -1609,10 +1621,10 @@ window.onload = function() {
             var rflg = false;   //反射フラグ
             let timeCnt = 0;
             this.force = {x: 0, y: 0};
-            if(shotSpeed>=12){
-                //this.scaleY = 1.25;
+            if(shotSpeed>=14){
                 this.force = {x: target.vx/(target.shotSpeed*((target.shotSpeed/3)*2)), y: target.vy/(target.shotSpeed*((target.shotSpeed/3)*2))};
             }
+            
             //alert(this.force.x + "  " + this.force.y)
             let cnt = 0;
             this.rotation = ((Math.atan2(Math.cos(target.rad), Math.sin(target.rad)) * 180) / Math.PI) * -1 + 90;
@@ -1628,8 +1640,7 @@ window.onload = function() {
                 this.time++;
                 if(shotSpeed>=12){
                     if(this.time % 2 == 0) new Fire(this,scene);
-                    
-                    this.force = {x: target.vx/(target.shotSpeed*((target.shotSpeed/3)*2)), y: target.vy/(target.shotSpeed*((target.shotSpeed/3)*2))};
+                    if(shotSpeed >= 14)this.force = {x: target.vx/(target.shotSpeed*((target.shotSpeed/3)*2)), y: target.vy/(target.shotSpeed*((target.shotSpeed/3)*2))};
                 }
                 /*var vector = {
                     x: target.centerX-(this.width/2) - this.x,
@@ -1798,8 +1809,8 @@ window.onload = function() {
         game.assets['./sound/Sample_0000.wav'].clone().play();
         bulStack[num][val] = false;
 
-        colOb[num][val].moveTo(-100,-100);
-        bulOb[num][val].moveTo(-200,-200);
+        /*colOb[num][val].moveTo(-100,-100);
+        bulOb[num][val].moveTo(-200,-200);*/
 
         colOb[num][val].destroy();
         now_scene.BulGroup.removeChild(colOb[num][val]);
@@ -4850,7 +4861,7 @@ window.onload = function() {
                             if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
-                                Get_NewBullet(num,i);
+                                Get_NewBullet(j,k);
                                 /*bulStack[j][k] = false;
                                 scene.BulGroup.removeChild(colOb[j][k]);
                                 colOb[j][k].destroy()
@@ -6586,7 +6597,7 @@ window.onload = function() {
                 bomOb.push([])
                 bulStack.push([])
                 if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
-                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.2,60,10,10,scene,filterMap))
+                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.2,45,10,10,scene,filterMap))
                     stageData[i][10] = 10;
                 }else if(stageData[i][10] == 7){
                     tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
