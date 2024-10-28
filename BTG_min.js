@@ -1480,12 +1480,14 @@ window.onload = function() {
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
-                Player.intersectStrict(this).forEach(elem => {
-                    if(fireFlgs[num]==false){
+                if(fireFlgs[num] == false){
+                    Player.intersectStrict(this).forEach(elem => {
                         target.moveTo(tgt[0],tgt[1]);
                         cannon.rotation = agl;
-                    }
-                });
+                        fireFlgs[num] = true;
+                    });
+                }
+                
                 if(this.intersectStrict(tankEntity[num])==true){
                     scene.removeChild(this);
                 };
@@ -4447,7 +4449,8 @@ window.onload = function() {
             }
             let aimCmpTime = 30;
             if(category == 0){
-                aimCmpTime = 5;
+                aimCmpTime = 3;
+                fireLate = 45;
             }
 
 	        
@@ -4597,7 +4600,7 @@ window.onload = function() {
                                                     if(category != 0){
                                                         aimCmpTime = Math.floor(Math.random() * 50)+30;
                                                     }else{
-                                                        aimCmpTime = Math.floor(Math.random() * 11)+2;
+                                                        aimCmpTime = Math.floor(Math.random() * 3)+2;
                                                     }
 						                            
                                                     break;
