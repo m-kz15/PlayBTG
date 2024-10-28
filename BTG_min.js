@@ -142,7 +142,7 @@ var cateMaxBullets = [
 
 var cateFireLate = [
     45,    //brown
-    38,    //gray
+    45,    //gray
     25,  //green
     15,    //red
     18,  //lightgreen
@@ -401,6 +401,16 @@ var Pos_to_Vec = function(from,to){
     };
     return vector;
 };
+
+var Vec_Distance = function(from,to){
+    //Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2))
+    let vector = {
+        x: Math.pow(from.x - to.x, 2),
+        y: Math.pow(from.y - to.y, 2)
+    };
+    
+    return Math.sqrt(vector.x + vector.y);
+}
 
 //設定用
 const Config = {
@@ -1245,12 +1255,13 @@ window.onload = function() {
     });
     /* 撃破後の描画クラス */
     var Mark = Class.create(Sprite, {
-        initialize: function(ax,ay,target,scene) {
+        initialize: function(target,scene) {
             Sprite.call(this,base*(size/1.3),base*(size/1.3));
-            this.image = game.assets['./image/ObjectImage/mark.png']
-            this.moveTo(ax+9.25,ay+8.5)
+            this.image = game.assets['./image/ObjectImage/mark.png'];
+            this.moveTo(target.x+9.25, target.y+8.5);
             this.scaleY = 0.8;
-            scene.insertBefore(this,target);
+            scene.MarkGroup.addChild(this);
+            //scene.insertBefore(this,target);
         }
     });
     /* 照準クラス */
@@ -2597,7 +2608,7 @@ window.onload = function() {
                         }
                         //  死亡判定時の処理
                         if(deadFlgs[Num] == true){
-                            //markEntity[Num] = new Mark(this.x,this.y,this,scene)   //  撃破後の物体設置
+                            //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
                             new Explosion(this,scene);      //  車体の爆破エフェクト生成
                             this.moveTo(-100,-100)          //  戦車を移動
                             zanki--;                        //  残機を減らす
@@ -3189,14 +3200,14 @@ window.onload = function() {
                             }
                         }
                     //  死亡判定時の処理
-                    }else{
+                    }else if(deadFlgs[Num] == true){
+                        //markEntity[Num] = new Mark(this,scene);   //  撃破後の物体設置
                         tankColorCounts[category]--;
                         //alert(tankColorCwwsaounts)
-                        //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
                         new Explosion(this,scene);
                         this.moveTo(-100,-100);
                         destruction++
-                        life--;
+                        life = 0;
                     }
                 }
             }
@@ -3488,9 +3499,10 @@ window.onload = function() {
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
                             if(deadFlgs[Num] == true){
+                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
-                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
@@ -4108,9 +4120,10 @@ window.onload = function() {
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
                             if(deadFlgs[Num] == true){
+                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
-                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
@@ -4434,7 +4447,7 @@ window.onload = function() {
             }
             let aimCmpTime = 30;
             if(category == 0){
-                aimCmpTime = 15;
+                aimCmpTime = 5;
             }
 
 	        
@@ -4453,7 +4466,7 @@ window.onload = function() {
 
             bomOb[Num][0] = new Bom(this,Num,scene);
 
-            var EnemyAim = Class.create(AnotherAim,{
+            let EnemyAim = Class.create(AnotherAim,{
                 initialize: function(){
                     if(pauseFlg == false){
                         AnotherAim.call(this,anoPoint,cannon,ref,Num,scene);
@@ -4520,26 +4533,41 @@ window.onload = function() {
                             fireFlgs[Num] = false;
                             
                             if(deadFlgs[Num] == true){
+                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
-                                //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
                                 life--;
                             }
                             new EnemyAim();
-                            EnemyAim.intersect(target).forEach(function(){
+                            EnemyAim.intersectStrict(target).forEach(elem => {
+                                fireFlgs[Num] = true;
+                                if(aimingTime < aimCmpTime+10) aimingTime++;
+                                //scene.removeChild(elem);
+                            })
+                            /*EnemyAim.intersect(target).forEach(function(){
                                 fireFlgs[Num] = true;
                                 if(aimingTime < aimCmpTime+10)aimingTime++;
-                            })
+                            })*/
+                            if(fireFlgs[Num]){
+                                if(aimingTime % 5 == 0 && aimingTime > 0){
+                                    aimRot *= -1;
+                                }
+                            }else{
+                                if(aimingTime < aimCmpTime + 5){
+                                    cannon.rotation += aimRot;
+                                }
+                            }
                             
-                            if(aimingTime % 5 == 0 && aimingTime > 0 && fireFlgs[Num] == true){
+                            /*if(aimingTime % 5 == 0 && aimingTime > 0 && fireFlgs[Num] == true){
                                 aimRot *= -1;
                             }
                             if(fireFlgs[Num] == false && aimingTime < aimCmpTime + 5){
                                 cannon.rotation += aimRot;
-                            }
+                            }*/
                             
                             if(this.time % 5 == 0){
                                 if(this.time % 10 == 0 && aimingTime > 0) aimingTime--;
@@ -4569,7 +4597,7 @@ window.onload = function() {
                                                     if(category != 0){
                                                         aimCmpTime = Math.floor(Math.random() * 50)+30;
                                                     }else{
-                                                        aimCmpTime = Math.floor(Math.random() * 11)+5;
+                                                        aimCmpTime = Math.floor(Math.random() * 11)+2;
                                                     }
 						                            
                                                     break;
@@ -4977,8 +5005,9 @@ window.onload = function() {
                             new EnemyAim(alignment,12,Num,scene);
       
                             if(deadFlgs[Num] == true){
+                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
                                 tankColorCounts[category]--;
-                               //markEntity[Num] = new Mark(this.x,this.y,target,scene)   //  撃破後の物体設置
+                                
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
@@ -5735,6 +5764,7 @@ window.onload = function() {
                 scene.time = 0;
                 now_scene = scene;
 
+                //scene.MarkGroup = new Group();
                 scene.TankGroup = new Group();
                 scene.CannonGroup = new Group();
                 scene.BulGroup = new Group();
@@ -5788,6 +5818,7 @@ window.onload = function() {
                 fy++;
                 fx = 0;
             });
+            //scene.addChild(scene.MarkGroup);
             scene.addChild(scene.BomGroup);
             scene.addChild(scene.TankGroup);
             scene.addChild(scene.CannonGroup);
@@ -6485,6 +6516,7 @@ window.onload = function() {
                 scene.time = 0;
                 now_scene = scene;
             
+                //scene.MarkGroup = new Group();
                 scene.BomGroup = new Group();
                 scene.TankGroup = new Group();
                 scene.CannonGroup = new Group();
@@ -6545,10 +6577,12 @@ window.onload = function() {
                 fx = 0;
             });
 
+                //scene.addChild(scene.MarkGroup);
                 scene.addChild(scene.BomGroup);
                 scene.addChild(scene.TankGroup);
-                scene.addChild(scene.CannonGroup);
                 scene.addChild(scene.BulGroup);
+                scene.addChild(scene.CannonGroup);
+                
 
             let filterMap = new Map(pixelSize,pixelSize);
                 filterMap.image = backgroundMap.image;
