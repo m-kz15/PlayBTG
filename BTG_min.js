@@ -47,9 +47,19 @@ var entVal = 0;             //戦車の連番設定用変数
 var addBullet = 0;          //難易度ごとの弾追加数
 var addSpeed = 0;           //難易度ごとの移動速度
 var deleteFlg = false;
+var retireFlg = false;
 var enemyTarget = [];   //敵戦車が狙うターゲット
 
 var userName = "Player";
+var key = "BTG_PlayData";
+
+/*var PlayData = {
+    Name: userName,
+    StageNum: 0,
+    Zanki: 0,
+    Scores: [],
+    Level: 0
+};*/
 
 /* 各戦車の迎撃判定
     プレイヤー,自身,他戦車 */
@@ -797,7 +807,7 @@ class InputManager {
 
 window.onload = function() {
     /* ステージ幅：20ブロック　高さ：15ブロック */
-    game = new Game(pixelSize*stage_w,pixelSize*stage_h);
+    game = new Core(pixelSize*stage_w,pixelSize*stage_h);
     inputManager = new InputManager();
     game.fps = 60;      //画面の更新頻度
     game.preload(       //画像や音源を準備
@@ -1325,7 +1335,7 @@ window.onload = function() {
                 
                 RefTop.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
-                        target.moveTo(this.x-(dx/3),elem.y-(this.height/2));
+                        //target.moveTo(this.x-(dx/3),elem.y-(this.height/2));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = elem.y-(this.height/2);*/
                         tgt[0] = this.x-(dx/3);
@@ -1339,7 +1349,7 @@ window.onload = function() {
                 })
                 RefBottom.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
-                        target.moveTo(this.x-(dx/3),elem.y+elem.height+(this.height));
+                        //target.moveTo(this.x-(dx/3),elem.y+elem.height+(this.height));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = elem.y+elem.height+(this.height/2);*/
                         tgt[0] = this.x-(dx/3);
@@ -1353,7 +1363,7 @@ window.onload = function() {
                 })
                 RefLeft.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
-                        target.moveTo(elem.x-(this.width/2),this.y-(dy/3));
+                        //target.moveTo(elem.x-(this.width/2),this.y-(dy/3));
                         /*tgt[0] = elem.x-(this.width/2)
                         tgt[1] = this.y-(this.height);*/
                         tgt[0] = elem.x-(this.width/2);
@@ -1368,7 +1378,7 @@ window.onload = function() {
                 })
                 RefRight.intersectStrict(this).forEach(elem => {
                     if(refcnt == 0){
-                        target.moveTo(elem.x+elem.width+(this.width/2),this.y-(dy/3));
+                        //target.moveTo(elem.x+elem.width+(this.width/2),this.y-(dy/3));
                         /*tgt[0] = elem.x+elem.width;
                         tgt[1] = this.y-(this.height);*/
                         tgt[0] = elem.x+elem.width+(this.width/2);
@@ -1428,7 +1438,7 @@ window.onload = function() {
                 if(this.intersectStrict(walls[0])==true){
                     if(refcnt == 0){
                         
-                        target.moveTo(this.x-(dx/3),walls[0].y+walls[0].height+(this.height/2));
+                        //target.moveTo(this.x-(dx/3),walls[0].y+walls[0].height+(this.height/2));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = walls[0].y+walls[0].height+(this.height/2);*/
                         tgt[0] = this.x-(dx/3);
@@ -1442,7 +1452,7 @@ window.onload = function() {
                 }
                 if(this.intersectStrict(walls[1])==true){
                     if(refcnt == 0){
-                        target.moveTo(this.x-(dx/3),walls[1].y-(this.height/2));
+                        //target.moveTo(this.x-(dx/3),walls[1].y-(this.height/2));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = walls[1].y-(this.height/2);*/
                         tgt[0] = this.x-(dx/3);
@@ -1457,7 +1467,7 @@ window.onload = function() {
                 
                 if(this.intersectStrict(walls[2])==true){
                     if(refcnt == 0){
-                        target.moveTo(walls[2].x+walls[2].width+(this.width/2),this.y-(dy/3));
+                        //target.moveTo(walls[2].x+walls[2].width+(this.width/2),this.y-(dy/3));
                         /*tgt[0] = walls[2].x+walls[2].width+(this.width/2);
                         tgt[1] = this.y-(this.height);*/
                         tgt[0] = walls[2].x+walls[2].width+(this.width/2);
@@ -1471,7 +1481,7 @@ window.onload = function() {
                 }
                 if(this.intersectStrict(walls[3])==true){
                     if(refcnt == 0){
-                        target.moveTo(walls[3].x-(this.width/2),this.y-(dy/3));
+                        //target.moveTo(walls[3].x-(this.width/2),this.y-(dy/3));
                         tgt[0] = walls[3].x-(this.width/2);
                         tgt[1] = this.y-(dy/3);
                     }
@@ -1503,13 +1513,9 @@ window.onload = function() {
                 
             }
             scene.addChild(this);
-        },
-        Vec_to_Rot: function(vector){
-            let rad = Math.atan2(vector.y, vector.x);
-            let rot = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
-            return rot;
         }
     })
+    
     /* 照準クラス */
     var AnotherPoint = Class.create(Sprite,{
         initialize: function(target,num,scene){
@@ -1955,7 +1961,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 this.rotation = area.rotation
                 value -= 0.1;
@@ -1987,7 +1993,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 value -= 0.1;
                 this.opacity = value;
@@ -2016,7 +2022,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.time++
                 this.scaleX = 1 - (value/2);
                 this.scaleY = 1 - (value/2);
@@ -2038,7 +2044,7 @@ window.onload = function() {
             Sprite.call(this,420,420);
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-210+33.5,area.y-210+32);
             }
             scene.addChild(this);
@@ -2051,7 +2057,7 @@ window.onload = function() {
             this.rotation = (45)
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-140+33.5,area.y-140+33.5);
                 this.rotation += 45
             }
@@ -2064,7 +2070,7 @@ window.onload = function() {
             Sprite.call(this,192,192);
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-96+33.5,area.y-96+33.5);
                 this.rotation = area.rotation
             }
@@ -2078,7 +2084,7 @@ window.onload = function() {
             //this.backgroundColor = "#0ff2";
             this.rotation = 45
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-300+33.5,area.y-300+33.5);
             }
             scene.addChild(this);
@@ -2089,7 +2095,7 @@ window.onload = function() {
             Sprite.call(this,96,96);
             //this.backgroundColor = "#0ff2";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.moveTo(area.x-48+32,area.y-48+30);
             }
             scene.addChild(this);
@@ -2100,7 +2106,7 @@ window.onload = function() {
             Sprite.call(this, 240, 240);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width-32);
                 var dy = Math.sin(rad)*(cannon.width-32);
@@ -2115,7 +2121,7 @@ window.onload = function() {
             Sprite.call(this, 240, 240);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width-32);
                 var dy = Math.sin(rad)*(cannon.width-32);
@@ -2130,7 +2136,7 @@ window.onload = function() {
             Sprite.call(this, cannon.width, 8);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width/2);
                 var dy = Math.sin(rad)*(cannon.width/2);
@@ -2145,7 +2151,7 @@ window.onload = function() {
             Sprite.call(this, cannon.width*4, 8);
             //this.backgroundColor = "#0f04";
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 var rad = cannon.rotation * (Math.PI / 180.0);
                 var dx = Math.cos(rad)*(cannon.width*2);
                 var dy = Math.sin(rad)*(cannon.width*2);
@@ -2165,7 +2171,7 @@ window.onload = function() {
             this.opacity = value;
             this.moveTo(point.x-12,point.y-12)
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.removeChild(this);
                 this.time++;
                 this.rotation+= 45;
                 if(this.time % 2 == 0){
@@ -2219,9 +2225,9 @@ window.onload = function() {
             let prediction = [0,0]
             this.moveTo(0,0)
             this.onenterframe = function(){
-                if(deadFlgs[num] == true){
+                /*if(deadFlgs[num] == true){
                     scene.removeChild(this);
-                }
+                }*/
                 target = enemyTarget[num]
                 rad = (target.rotation) * (Math.PI / 180.0);
                 dx = Math.cos(rad) * (target.width/2);
@@ -2574,6 +2580,7 @@ window.onload = function() {
                     //  各パーツと本体の消去
                     scene.TankGroup.removeChild(tank)
                     scene.CannonGroup.removeChild(cannon)
+                    scene.removeChild(cur);
                     scene.removeChild(weak)
                     scene.removeChild(this)
                 }
@@ -2902,6 +2909,7 @@ window.onload = function() {
                     scene.removeChild(intercept3);
                     scene.removeChild(intercept4);
                     scene.removeChild(intercept8);
+                    scene.removeChild(alignment);
                     scene.TankGroup.removeChild(tank)
                     scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
@@ -2929,13 +2937,7 @@ window.onload = function() {
                             }*/
                         }
                     }
-                    //  死亡判定がfalseなら
-                    if(deadFlgs[Num]==false){
-                        
-                        
-                        
-                        
-                        fireFlgs[Num] = false;  //  発射状態をリセット
+                    fireFlgs[Num] = false;  //  発射状態をリセット
                         shotNGflg = false;
                         if(moveSpeed != 0 && tankStopFlg == false){
                             //  自身の位置とターゲットの位置をざっくり算出
@@ -2971,6 +2973,7 @@ window.onload = function() {
                                 }
                             }
                         }
+                        
                         if(tankStopFlg == true)tankStopFlg = false;
                         //  実行可能なら
                         if(worldFlg == true){
@@ -3071,7 +3074,16 @@ window.onload = function() {
                             alignment.intersect(EnemyAim).forEach(function(){
                                 fireFlgs[Num] = true;   //  発射可能状態にする
                             })
-                            
+                            //  死亡判定がtrueなら
+                            if(deadFlgs[Num]==true){
+                                //markEntity[Num] = new Mark(this,scene);   //  撃破後の物体設置
+                                tankColorCounts[category]--;
+                                //alert(tankColorCwwsaounts)
+                                new Explosion(this,scene);
+                                this.moveTo(-100,-100);
+                                destruction++
+                                life = 0;
+                            }
                             
                             /* 迎撃処理群
                                 優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
@@ -3201,16 +3213,7 @@ window.onload = function() {
                                 moveCnt = 0    
                             }
                         }
-                    //  死亡判定時の処理
-                    }else if(deadFlgs[Num] == true){
-                        //markEntity[Num] = new Mark(this,scene);   //  撃破後の物体設置
-                        tankColorCounts[category]--;
-                        //alert(tankColorCwwsaounts)
-                        new Explosion(this,scene);
-                        this.moveTo(-100,-100);
-                        destruction++
-                        life = 0;
-                    }
+                    
                 }
             }
             //scene.insertBefore(this,tank)
@@ -3400,7 +3403,9 @@ window.onload = function() {
             
             this.onenterframe = function(){
                 if(deleteFlg == true){
-                    this.moveTo(-100,-100)
+                    this.moveTo(-100,-100);
+                    scene.removeChild(alignment);
+                    scene.removeChild(intercept);
                     scene.removeChild(intercept7);
                     scene.TankGroup.removeChild(tank)
                     scene.CannonGroup.removeChild(cannon)
@@ -4011,13 +4016,15 @@ window.onload = function() {
             if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
-                if(deadFlgs[Num] == true){
+                if(deleteFlg == true){
                     this.moveTo(-100,-100)
+                    scene.removeChild(alignment);
+                    scene.removeChild(intercept);
                     scene.removeChild(intercept7);
                     scene.TankGroup.removeChild(tank)
                     scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
-                    scene.removeChild(this)                        
+                    scene.removeChild(this)
                 }
                 if(life > 0){
                     //  死亡判定処理
@@ -4310,7 +4317,7 @@ window.onload = function() {
                                                     if(game.time % 10 == 0 && rootFlg == true){
                                                         SelDirection(weak,target,1) 
                                                     }
-                                                   
+                                                
                                                 }
                                                 
                                                 
@@ -4404,8 +4411,6 @@ window.onload = function() {
                             }
                         }
                     }
-                    
-                    
                 }
             }
             //scene.insertBefore(this,tank)
@@ -4437,7 +4442,6 @@ window.onload = function() {
             cannon.rotation = 0;
             markEntity[Num] = null;
 
-            const intercept7 = new InterceptC(cannon,scene)
             const anoPoint = new AnotherPoint(target,Num,scene)
             var shotNGflg = false;
             let reloadTime = 0;
@@ -4498,7 +4502,6 @@ window.onload = function() {
             this.onenterframe = function(){
                 if(deleteFlg == true){
                     this.moveTo(-100,-100)
-                    scene.removeChild(intercept7);
                     scene.TankGroup.removeChild(tank)
                     scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
@@ -4879,6 +4882,7 @@ window.onload = function() {
                     scene.removeChild(intercept6);
                     scene.removeChild(intercept7);
                     scene.removeChild(intercept8);
+                    scene.removeChild(alignment);
                     scene.TankGroup.removeChild(tank)
                     scene.CannonGroup.removeChild(cannon)
                     scene.removeChild(weak)
@@ -6083,17 +6087,19 @@ window.onload = function() {
             new DispText(100,280,260*size,96,'Battle Tank Game','96px sans-serif','#ebe799','center',scene)
             
             // ゲーム開始用ラベル
-            var toPlay = new DispText(game.width/2-180,440,320,40,'➡　S t a r t !','40px sans-serif','#ebe799','left',scene)
+            var toPlay = new DispText(game.width/2-180,440,320,40,'➡　はじめから','40px sans-serif','#ebe799','left',scene)
+            // ゲーム開始用ラベル
+            var toContinue = new DispText(game.width/2-180,520,320,40,'➡　つづきから','40px sans-serif','#ebe799','left',scene)
             //  難易度選択用ラベル
-            var level = new DispText(game.width/2-180,520,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
+            var level = new DispText(game.width/2-180,600,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
             //  難易度「普通」ラベル
-            var nomal = new DispText(level.x+level.width-16,520,140,40,'Normal','40px sans-serif','#ebe799','left',scene)
+            var nomal = new DispText(level.x+level.width-16,600,140,40,'Normal','40px sans-serif','#ebe799','left',scene)
             //  難易度「難しい」ラベル
-            var hard = new DispText(level.x+level.width+nomal.width+16,520,120,40,'Hard','40px sans-serif','#888','left',scene)
+            var hard = new DispText(level.x+level.width+nomal.width+16,600,120,40,'Hard','40px sans-serif','#888','left',scene)
             //  戦車一覧画面用ラベル
-            var picture = new DispText(game.width/2-180,600,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)
+            var picture = new DispText(game.width/2-180,680,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)
             //  チュートリアル画面ラベル
-            var tutorial = new DispText(game.width/2-180,680,40*9,40,'➡　チュートリアル','40px sans-serif','#ebe799','left',scene)
+            var tutorial = new DispText(game.width/2-180,760,40*9,40,'➡　チュートリアル','40px sans-serif','#ebe799','left',scene)
 
 
             let lvFlg = false;
@@ -6166,12 +6172,56 @@ window.onload = function() {
                         returnFlg = false;
                     }
                 }*/
+                Repository.keyName = key;
+                Repository.restore();
+                if(Repository.data.StageNum > 0){
+                    if(confirm("\r\n保存されている進行状況が存在しています。\r\n進行状況をリセットして始めますか？")){
+                        Repository.remove();
+                        Repository.keyName = key;
+                        Repository.restore();
+                        flg = true;
+                        orflg = 1;
+                        BGM.stop();
+                        titleFlg = false;
+                        new FadeOut(scene);
+                    }
+                }else{
+                    flg = true;
+                    orflg = 1;
+                    BGM.stop();
+                    titleFlg = false;
+                    new FadeOut(scene)
+                };
+            });
 
-                flg = true
-                orflg = 1;
-                BGM.stop()
-                titleFlg = false;
-                new FadeOut(scene)
+            // 移動先をプレイ画面に設定
+            toContinue.addEventListener(Event.TOUCH_START, function() {
+                Repository.keyName = key;
+                Repository.restore();
+                if(Repository.data.StageNum == 0){
+                    alert("保存されているデータはありません。")
+                }else{
+                    stageNum = Repository.data.StageNum;
+                    zanki = Repository.data.Zanki;
+                    colors = Repository.data.Scores;
+                    addBullet = Repository.data.Level;
+                    if(addBullet > 0) addSpeed = 0.5;
+                    /*PlayData = {
+                        StageNum: stageNum,
+                        Zanki: zanki,
+                        Scores: colors,
+                        Level: addBullet
+                    };*/
+                    let script = document.createElement("script");
+                        script.src = stagePath[stageNum];
+                        script.id = 'stage_'+(stageNum);
+                        head[0].appendChild(script);
+                    flg = true
+                    orflg = 1;
+                    BGM.stop()
+                    titleFlg = false;
+                    new FadeOut(scene)
+                }
             });
 
             // 移動先を戦車一覧画面に設定
@@ -6199,6 +6249,7 @@ window.onload = function() {
                     scene.time++
                     if(scene.time == 30){
                         if(orflg == 1){
+                            Repository.data.Level = addBullet;
                             game.replaceScene(createStartScene());    // 現在表示しているシーンをゲームシーンに置き換える
                         }else if(orflg == 2){
                             game.replaceScene(createPictureScene());
@@ -6694,13 +6745,18 @@ window.onload = function() {
             let retire = new DispText(0,0,1,1,'','48px sans-serif','red','center',scene)
             retire.addEventListener(Event.TOUCH_START, function() {
                 if(pauseFlg == true){
-                    if(confirm("\r\n本当にリタイアしますか？")) {
+                    if(confirm("本当にリタイアしますか？\r\n※現在の進行状況は保存されます。\r\nタイトルのつづきからを選択すると現在のステージから再開できます。")) {
+                        Repository.data.StageNum = stageNum;
+                        Repository.data.Zanki = zanki;
+                        Repository.data.Scores = colors;
+                        Repository.save();
                         blackImg.backgroundColor = "#00000000"
                         worldFlg = true
                         pauseButtton.text ='';
                         zanki = 0;
                         deadFlgs[0] = true;
                         deleteFlg = true;
+                        retireFlg = true;
                     }
                 }
                 
@@ -6910,7 +6966,6 @@ window.onload = function() {
                                 let script = document.createElement("script");
                                     script.src = stagePath[stageNum+1];
                                     script.id = 'stage_'+(stageNum+1);
-                                let head = document.getElementsByTagName("head");
                                     head[0].appendChild(script);
                                 if(stageNum % 20 == 0){
                                     complete = true;
@@ -7042,6 +7097,7 @@ window.onload = function() {
                                 deleteFlg = true;
                                 scene.addChild(toTitle)
                                 if(stageNum != 100 && defeat == false){
+                                    if(retireFlg == false) Repository.remove();
                                     scene.addChild(toProceed)
                                 }
                             }
