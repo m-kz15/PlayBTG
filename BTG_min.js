@@ -1511,10 +1511,9 @@ window.onload = function() {
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
                 Player.intersectStrict(this).forEach(elem => {
-                    if(tankEntity[num].aimingTime < tankEntity[num].aimCmpTime+10) tankEntity[num].aimingTime++;
                     if(this.time % 2 == 0)target.moveTo(tgt[0],tgt[1]);
                     if(this.hitTime == 0)cannon.rotation = agl;
-                    fireFlgs[num] = true;
+                    //fireFlgs[num] = true;
                     this.hitTime++;
                 });
                 /*Tank.intersectStrict(this).forEach(elem => {
@@ -4481,9 +4480,9 @@ window.onload = function() {
             if(Math.floor(Math.random() * 2)){
                 aimRot *= -1;
             }
-            let aimCmpTime = 30;
+            this.aimCmpTime = 30;
             if(category == 0){
-                aimCmpTime = 3;
+                this.aimCmpTime = 3;
                 fireLate = 45;
             }
 
@@ -4582,7 +4581,7 @@ window.onload = function() {
                             new EnemyAim();
                             EnemyAim.intersectStrict(target).forEach(elem => {
                                 fireFlgs[Num] = true;
-                                if(this.aimingTime < aimCmpTime+10) this.aimingTime++;
+                                if(this.aimingTime < this.aimCmpTime+10) this.aimingTime++;
                                 //scene.removeChild(elem);
                             })
                             /*EnemyAim.intersect(target).forEach(function(){
@@ -4594,7 +4593,7 @@ window.onload = function() {
                                     aimRot *= -1;
                                 }
                             }else{
-                                if(this.aimingTime < aimCmpTime){
+                                if(this.aimingTime < this.aimCmpTime){
                                     cannon.rotation += aimRot;
                                 }
                             }
@@ -4622,7 +4621,7 @@ window.onload = function() {
                                     
                                 }
 
-                                if(game.time % fireLate == 0 && shotNGflg == false && this.aimingTime > aimCmpTime){
+                                if(game.time % fireLate == 0 && shotNGflg == false && this.aimingTime > this.aimCmpTime){
                                     if(Math.floor(Math.random() * emax*2)>bullets[Num]){
                                         for(let i = 0; i < emax; i++){
                                             if(bulStack[Num][i] == false){
@@ -4632,9 +4631,9 @@ window.onload = function() {
                                                     ShotBullet(i);
                                                     this.aimingTime = 0;
                                                     if(category != 0){
-                                                        aimCmpTime = Math.floor(Math.random() * 50)+30;
+                                                        this.aimCmpTime = Math.floor(Math.random() * 50)+30;
                                                     }else{
-                                                        aimCmpTime = Math.floor(Math.random() * 3)+2;
+                                                        this.aimCmpTime = Math.floor(Math.random() * 3)+2;
                                                     }
 						                            
                                                     break;
