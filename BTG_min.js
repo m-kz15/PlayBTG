@@ -4646,8 +4646,8 @@ window.onload = function() {
                             }*/
                             
                             if(this.time % 5 == 0){
-                                //if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
-                                if(this.aimingTime > 0) this.aimingTime--;
+                                if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
+                                //if(this.aimingTime > 0) this.aimingTime--;
                                 if(reloadFlg == false){
                                     if(bullets[Num] == emax) reloadFlg = true;
                                 }else{
