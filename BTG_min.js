@@ -175,7 +175,7 @@ var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
 var resultFlg = false;
 
-var stageNum = 30;           //ステージ番号
+var stageNum = 1;           //ステージ番号
 var BGMs = [                //bgm指定用配列
     './sound/FIRST.mp3',
     './sound/SECOND.mp3',
@@ -1312,7 +1312,7 @@ window.onload = function() {
     var AnotherAim = Class.create(Sprite,{
         initialize: function(target,cannon,ref,num,scene){
             Sprite.call(this,8,8);
-            this.backgroundColor = "#88f8";
+            //this.backgroundColor = "#88f8";
             //this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
             this.time = 0;
             this.hitTime = 0;
@@ -1585,7 +1585,7 @@ window.onload = function() {
     var AnotherPoint = Class.create(Sprite,{
         initialize: function(target,num,scene){
             Sprite.call(this,2,2);
-            this.backgroundColor = "blue";
+            //this.backgroundColor = "blue";
             //this.rotation = 45;
             this.moveTo(target.x+(target.width/2),target.y+(target.height/2))
             this.time = 0;
