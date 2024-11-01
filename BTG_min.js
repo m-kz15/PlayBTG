@@ -175,7 +175,7 @@ var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
 var resultFlg = false;
 
-var stageNum = 1;           //ステージ番号
+var stageNum = 30;           //ステージ番号
 var BGMs = [                //bgm指定用配列
     './sound/FIRST.mp3',
     './sound/SECOND.mp3',
@@ -1277,6 +1277,7 @@ window.onload = function() {
             //scene.insertBefore(this,target);
         }
     });
+    
     /* 照準クラス */
     var Aim = Class.create(Sprite,{
         initialize: function(target,cannon,shotSpeed,num,scene){
@@ -1311,8 +1312,8 @@ window.onload = function() {
     var AnotherAim = Class.create(Sprite,{
         initialize: function(target,cannon,ref,num,scene){
             Sprite.call(this,8,8);
-            //this.backgroundColor = "#88f8";
-            this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
+            this.backgroundColor = "#88f8";
+            //this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
             this.time = 0;
             this.hitTime = 0;
             this.originX = 4;
@@ -1320,13 +1321,15 @@ window.onload = function() {
             var rad = (cannon.rotation) * (Math.PI / 180.0);
             var dx = Math.cos(rad) * 20;
             var dy = Math.sin(rad) * 20;
-            this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
+            this.moveTo((cannon.x+(cannon.width/2))+(58*Math.cos(rad))-(this.width/2+1), (cannon.y+(cannon.height/2))+(58*Math.sin(rad))-(this.height/2+1));
             //this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
             let refcnt = 0;
             let agl = cannon.rotation;
             let tgt = [cannon.x+(cannon.width/2)+(dx*3),cannon.y+(cannon.height/2)+(dy*3)];
             //this.rotation = this.Vec_to_Rot({x: dx, y: dy});
             this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+            this.v;
+            this.f;
             this.onenterframe = function(){
                 this.time++;
 
@@ -1338,70 +1341,90 @@ window.onload = function() {
                 //this.rotation = this.Vec_to_Rot({x: dx, y: dy});
                 
                 RefTop.intersectStrict(this).forEach(elem => {
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         //target.moveTo(this.x-(dx/3),elem.y-(this.height/2));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = elem.y-(this.height/2);*/
-                        tgt[0] = this.x-(dx/3);
+                        //tgt[0] = this.x-(dx/3);
+                        tgt[0] = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                         tgt[1] = elem.y-(this.height/2);
                     }
-                    this.x = this.x-(dx/3)-(this.width/2);
+                    //this.x = this.x-(dx/3)-(this.width/2);
+                    this.x = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                     this.y = elem.y-(this.height);
                     //this.moveTo(this.x+(this.width/2),elem.y-8);
                     //this.moveTo(this.x-(dx/3)-(this.width/2),elem.y-(this.height));
                     dy = dy*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                    return;
                 })
                 RefBottom.intersectStrict(this).forEach(elem => {
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         //target.moveTo(this.x-(dx/3),elem.y+elem.height+(this.height));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = elem.y+elem.height+(this.height/2);*/
-                        tgt[0] = this.x-(dx/3);
+                        //tgt[0] = this.x-(dx/3);
+                        tgt[0] = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                         tgt[1] = elem.y+elem.height+(this.height);
                     }
-                    this.x = this.x-(dx/3)-(this.width/2);
+                    //this.x = this.x-(dx/3)-(this.width/2);
+                    this.x = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                     this.y = elem.y+elem.height+(this.height/2);
                     //this.moveTo(this.x-(this.width)+8,elem.y+elem.height+4)
                     //this.moveTo(this.x-(dx/3)-(this.width/2),elem.y+elem.height+(this.height/2))
                     dy = dy*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                    return;
                 })
                 RefLeft.intersectStrict(this).forEach(elem => {
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         //target.moveTo(elem.x-(this.width/2),this.y-(dy/3));
                         /*tgt[0] = elem.x-(this.width/2)
                         tgt[1] = this.y-(this.height);*/
                         tgt[0] = elem.x-(this.width/2);
-                        tgt[1] = this.y-(dy/3);
+                        //tgt[1] = this.y-(dy/3);
+                        tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                     };
                     this.x = elem.x;
-                    this.y = this.y-(dy/3)-(this.height/2);
+                    this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
+                    //this.y = this.y-(dy/3)-(this.height/2);
                     //this.moveTo(elem.x-12,this.y)
                     //this.moveTo(elem.x-(this.width),this.y-(dy/3)-(this.height/2))
                     //this.moveTo(elem.x,this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                    return;
                 })
                 RefRight.intersectStrict(this).forEach(elem => {
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         //target.moveTo(elem.x+elem.width+(this.width/2),this.y-(dy/3));
                         /*tgt[0] = elem.x+elem.width;
                         tgt[1] = this.y-(this.height);*/
                         tgt[0] = elem.x+elem.width+(this.width/2);
-                        tgt[1] = this.y-(dy/3);
+                        tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
+                        //tgt[1] = this.y-(dy/3);
                     };
                     this.x = elem.x+elem.width;
-                    this.y = this.y-(dy/3)-(this.height/2);
+                    this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
+                    //this.y = this.y-(dy/3)-(this.height/2);
                     //this.moveTo(elem.x+elem.width+4,this.y)
                     //this.moveTo(elem.x+elem.width+(this.width),this.y-(dy/3)-(this.height/2))
                     //this.moveTo(elem.x+elem.width,this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                    return;
                 })
                 
                 /*for(let i = 0; i < refdir.length; i++){
@@ -1448,15 +1471,19 @@ window.onload = function() {
                     }
                 }*/
                 if(this.intersectStrict(walls[0])==true){
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         
                         //target.moveTo(this.x-(dx/3),walls[0].y+walls[0].height+(this.height/2));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = walls[0].y+walls[0].height+(this.height/2);*/
-                        tgt[0] = this.x-(dx/3);
+                        //tgt[0] = this.x-(dx/3);
+                        tgt[0] = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                         tgt[1] = walls[0].y+walls[0].height+(this.height/2);
                     }
-                    this.x = this.x-(dx/3)-(this.width/2);
+                    //this.x = this.x-(dx/3)-(this.width/2);
+                    this.x = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                     this.y = walls[0].y+walls[0].height+(this.height/2);
                     //this.moveTo(this.x-(this.width),walls[0].y+walls[0].height+4)
                     //this.moveTo(this.x-(dx/3)-(this.width/2),walls[0].y+walls[0].height+(this.height/2))
@@ -1465,14 +1492,18 @@ window.onload = function() {
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
                 if(this.intersectStrict(walls[1])==true){
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         //target.moveTo(this.x-(dx/3),walls[1].y-(this.height/2));
                         /*tgt[0] = this.x-(this.width);
                         tgt[1] = walls[1].y-(this.height/2);*/
-                        tgt[0] = this.x-(dx/3);
+                        //tgt[0] = this.x-(dx/3);
+                        tgt[0] = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                         tgt[1] = walls[1].y-(this.height/2);
                     };
-                    this.x = this.x-(dx/3)-(this.width/2);
+                    //this.x = this.x-(dx/3)-(this.width/2);
+                    this.x = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                     this.y = walls[1].y-(this.height);
                     //this.moveTo(this.x-(this.width),walls[1].y-8)
                     //this.moveTo(this.x-(dx/3)-(this.width/2),walls[1].y-(this.height))
@@ -1482,29 +1513,38 @@ window.onload = function() {
                 }
                 
                 if(this.intersectStrict(walls[2])==true){
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         //target.moveTo(walls[2].x+walls[2].width+(this.width/2),this.y-(dy/3));
                         /*tgt[0] = walls[2].x+walls[2].width+(this.width/2);
                         tgt[1] = this.y-(this.height);*/
                         tgt[0] = walls[2].x+walls[2].width+(this.width/2);
-                        tgt[1] = this.y-(dy/3);
+                        //tgt[1] = this.y-(dy/3)+(Math.sin(f)*(this.height/2));
+                        tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                         
                     }
+                    
                     this.x = walls[2].x+walls[2].width+(this.width);
-                    this.y = this.y-(dy/3)-(this.height/2);
+                    this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
+                    //this.y = this.y-(dy/3)-(this.height/2)+(Math.sin(f)*(this.height/2));
                     //this.moveTo(walls[2].x+walls[2].width+(this.width),this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
                 if(this.intersectStrict(walls[3])==true){
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
                         //target.moveTo(walls[3].x-(this.width/2),this.y-(dy/3));
                         tgt[0] = walls[3].x-(this.width/2);
-                        tgt[1] = this.y-(dy/3);
+                        //tgt[1] = this.y-(dy/3);
+                        tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                     }
                     this.x = walls[3].x-(this.width);
-                    this.y = this.y-(dy/3)-(this.height/2);
+                    this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
+                    //this.y = this.y-(dy/3)-(this.height/2);
                     //this.moveTo(walls[3].x-(this.width),this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
@@ -1545,7 +1585,7 @@ window.onload = function() {
     var AnotherPoint = Class.create(Sprite,{
         initialize: function(target,num,scene){
             Sprite.call(this,2,2);
-            //this.backgroundColor = "blue";
+            this.backgroundColor = "blue";
             //this.rotation = 45;
             this.moveTo(target.x+(target.width/2),target.y+(target.height/2))
             this.time = 0;
@@ -2540,7 +2580,7 @@ window.onload = function() {
             this.weak = weak;
             this.cannon = cannon;
             this.tank = tank;
-            TankFrame(this,Num,scene)
+            TankFrame(this,Num,scene);
 
             markEntity[Num] = null;
 
@@ -4480,7 +4520,7 @@ window.onload = function() {
             if(Math.floor(Math.random() * 2)){
                 aimRot *= -1;
             }
-            this.aimCmpTime = 30;
+            this.aimCmpTime = 20;
             if(category == 0){
                 this.aimCmpTime = 3;
                 fireLate = 45;
@@ -4578,10 +4618,10 @@ window.onload = function() {
                                 destruction++
                                 life--;
                             }
-                            new EnemyAim();
+                            if(this.time % 2 == 0)new EnemyAim();
                             EnemyAim.intersectStrict(target).forEach(elem => {
                                 fireFlgs[Num] = true;
-                                if(this.aimingTime < this.aimCmpTime+10) this.aimingTime++;
+                                if(this.aimingTime < this.aimCmpTime+10) this.aimingTime+=2;
                                 //scene.removeChild(elem);
                             })
                             /*EnemyAim.intersect(target).forEach(function(){
@@ -4606,7 +4646,8 @@ window.onload = function() {
                             }*/
                             
                             if(this.time % 5 == 0){
-                                if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
+                                //if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
+                                if(this.aimingTime > 0) this.aimingTime--;
                                 if(reloadFlg == false){
                                     if(bullets[Num] == emax) reloadFlg = true;
                                 }else{
@@ -4631,7 +4672,7 @@ window.onload = function() {
                                                     ShotBullet(i);
                                                     this.aimingTime = 0;
                                                     if(category != 0){
-                                                        this.aimCmpTime = Math.floor(Math.random() * 50)+30;
+                                                        this.aimCmpTime = Math.floor(Math.random() * 40)+30;
                                                     }else{
                                                         this.aimCmpTime = Math.floor(Math.random() * 3)+2;
                                                     }
