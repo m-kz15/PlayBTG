@@ -151,8 +151,8 @@ var cateMaxBullets = [
 ]
 
 var cateFireLate = [
-    45,    //brown
-    45,    //gray
+    20,    //brown
+    40,    //gray
     25,  //green
     15,    //red
     18,  //lightgreen
@@ -161,7 +161,7 @@ var cateFireLate = [
     10,  //elitegreen
     60,  //sand
     10,    //pink
-    20,  //random
+    30,  //random
     0   //dazzle
 ]
 
