@@ -4566,7 +4566,7 @@ window.onload = function() {
                 shotStopFlg = true;
             }
 
-            if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
+            //if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
                 if(deleteFlg == true){
