@@ -157,11 +157,11 @@ var cateFireLate = [
     15,    //red
     18,  //lightgreen
     13,  //elitegray
-    20,  //snow
+    30,  //snow
     10,  //elitegreen
     60,  //sand
     10,    //pink
-    30,  //random
+    35,  //random
     10   //dazzle
 ]
 
