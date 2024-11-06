@@ -151,7 +151,7 @@ var cateMaxBullets = [
 ]
 
 var cateFireLate = [
-    20,    //brown
+    10,    //brown
     40,    //gray
     25,  //green
     15,    //red
@@ -162,7 +162,7 @@ var cateFireLate = [
     60,  //sand
     10,    //pink
     30,  //random
-    0   //dazzle
+    10   //dazzle
 ]
 
 var tankColorCounts = [0,0,0,0,0,0,0,0,0,0,0,0];    //配色ごとの敵戦車残数格納配列
