@@ -151,18 +151,18 @@ var cateMaxBullets = [
 ]
 
 var cateFireLate = [
-    10,    //brown
-    40,    //gray
+    45,    //brown
+    45,    //gray
     25,  //green
     15,    //red
     18,  //lightgreen
     13,  //elitegray
-    30,  //snow
+    20,  //snow
     10,  //elitegreen
     60,  //sand
     10,    //pink
-    35,  //random
-    10   //dazzle
+    20,  //random
+    0   //dazzle
 ]
 
 var tankColorCounts = [0,0,0,0,0,0,0,0,0,0,0,0];    //配色ごとの敵戦車残数格納配列
@@ -4566,7 +4566,7 @@ window.onload = function() {
                 shotStopFlg = true;
             }
 
-            //if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
+            if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
                 if(deleteFlg == true){
@@ -4646,8 +4646,8 @@ window.onload = function() {
                             }*/
                             
                             if(this.time % 5 == 0){
-                                if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
-                                //if(this.aimingTime > 0) this.aimingTime--;
+                                //if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
+                                if(this.aimingTime > 0) this.aimingTime--;
                                 if(reloadFlg == false){
                                     if(bullets[Num] == emax) reloadFlg = true;
                                 }else{
@@ -6760,23 +6760,23 @@ window.onload = function() {
                 bomOb.push([])
                 bulStack.push([])
                 if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
-                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.5,cateFireLate[stageData[i][10]],10,10,scene,filterMap))
+                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.5,45,10,10,scene,filterMap))
                     stageData[i][10] = 10;
                 }else if(stageData[i][10] == 7){
-                    tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,2,18,0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                    tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,2,18,0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
                 }else if(stageData[i][10]==5 || stageData[i][10] == 4){
                     tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
                 }else if(stageData[i][10] == 0){
-                    tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                    tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
                 }else if(stageData[i][9] >= 8){
                     if(stageData[i][10] == 11){
                         tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                     }else{
                         tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6]-2,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                     }
-                }/*else if(addBullet != 0 && (stageData[i][10] == 5)){
+                }else if(addBullet != 0 && (stageData[i][10] == 5)){
                     tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                }*/else if(stageData[i][9]>2){
+                }else if(stageData[i][9]>2){
                     
                     tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
                     
