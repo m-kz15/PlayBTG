@@ -6863,6 +6863,7 @@ window.onload = function() {
                         tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
                     }
                     deadTank[i-4] = false;
+                    tankColorCounts[stageData[i][10]]++;
                 }else{
                     if(deadTank[i-4] == false){
                         if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
@@ -6890,6 +6891,7 @@ window.onload = function() {
                             tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
                         }
                         //deadTank[i-4] = 0;
+                        tankColorCounts[stageData[i][10]]++;
                     }else{
                         tankEntity.push(new Sprite({width: 1, height: 1, x: -100, y: -100}));
                         deadFlgs.push(true);
@@ -6904,7 +6906,7 @@ window.onload = function() {
                         destruction++;
                     }
                 }
-                tankColorCounts[stageData[i][10]]++;
+                
             }
             
             new PlayerLabel(tankEntity[0],scene)
