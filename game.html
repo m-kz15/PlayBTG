@@ -13,6 +13,14 @@
 	<!--<script type="text/javascript" src="InputManager.js"></script>-->
     <script type="text/javascript" src="BTG_min.js"></script>
     <script>
+		if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+			if (Math.abs(window.orientation) == 90) {
+				
+			} else {
+				alert("このゲームは横向きで遊んで下さい");
+			}
+      	}
+		
 		window.addEventListener('load', function(){
             
 			// フルスクリーン表示

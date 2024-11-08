@@ -34,7 +34,7 @@ var refNum = 0;
 
 var tankEntity = [];    //敵味方の戦車情報を保持する配列
 var tankDir = []
-var markEntity = [];
+//var markEntity = [];
 var bulOb = [[]];       //戦車の弾情報を保持する配列
 var colOb = [[]];       //弾の物理判定を保持する配列
 var bomOb = [[]];       //爆弾の情報を保持する配列
@@ -151,18 +151,18 @@ var cateMaxBullets = [
 ]
 
 var cateFireLate = [
-    45,    //brown
-    45,    //gray
+    10,    //brown
+    40,    //gray
     25,  //green
     15,    //red
     18,  //lightgreen
     13,  //elitegray
-    20,  //snow
+    30,  //snow
     10,  //elitegreen
     60,  //sand
     10,    //pink
-    20,  //random
-    0   //dazzle
+    35,  //random
+    10   //dazzle
 ]
 
 var tankColorCounts = [0,0,0,0,0,0,0,0,0,0,0,0];    //配色ごとの敵戦車残数格納配列
@@ -174,6 +174,7 @@ var complete = false;   //攻略完了判定
 var pauseFlg = false;   //一時停止判定
 var titleFlg = false;
 var resultFlg = false;
+var retryFlg = false;
 
 var stageNum = 1;           //ステージ番号
 var BGMs = [                //bgm指定用配列
@@ -225,6 +226,7 @@ let fontColor = [                               //各戦車の表示色格納配
 var zanki = 5;              //プレイヤーの残機
 var score = 0;              //総撃破数
 var destruction = 0;        //ステージごとの撃破数
+var deadTank = [0];
 
 /* ステージ情報格納 */
 const stagePath = [
@@ -1269,9 +1271,11 @@ window.onload = function() {
     /* 撃破後の描画クラス */
     var Mark = Class.create(Sprite, {
         initialize: function(target,scene) {
-            Sprite.call(this,base*(size/1.3),base*(size/1.3));
+            //Sprite.call(this,base*(size/1.3),base*(size/1.3));
+            Sprite.call(this,48,48);
             this.image = game.assets['./image/ObjectImage/mark.png'];
-            this.moveTo(target.x+9.25, target.y+8.5);
+            this.x = target.x+9.25;
+            this.y = target.y+8.5;
             this.scaleY = 0.8;
             scene.MarkGroup.addChild(this);
             //scene.insertBefore(this,target);
@@ -1914,11 +1918,25 @@ window.onload = function() {
     var Bom = Class.create(Sprite,{
         initialize: function(area,num,scene){
             Sprite.call(this,base*2,base*2);
-            this.backgroundColor = "yellow";
+            //this.backgroundColor = "yellow";
             this.moveTo(area.x-base+33.5,area.y-base+32);
             this.time = 0;
             let bombFlg = false;
             let bomb = this;
+            var n_color = new Surface(base*2, base*2);
+                n_color.context.beginPath();
+                n_color.context.fillStyle = 'rgba(255, 255, 0, 1)';
+                n_color.context.arc(base, base, base, 0, Math.PI*2, true);
+                n_color.context.fill();
+
+            var a_color = new Surface(base*2, base*2);
+                a_color.context.beginPath();
+                a_color.context.fillStyle = 'rgba(255, 0, 0, 1)';
+                a_color.context.arc(base, base, base, 0, Math.PI*2, true);
+                a_color.context.fill();
+
+            this.image = n_color;
+            this.scaleY = 0.9
             
             this.onenterframe = function(){
                 if(deleteFlg == true) scene.removeChild(this);
@@ -1938,10 +1956,12 @@ window.onload = function() {
                         } 
                     }
                     if(bombFlg == true && victory == false && defeat == false){
-                        if(this.time % 2 == 0){
-                            this.backgroundColor = "red"
-                        }else{
-                            this.backgroundColor = "yellow"
+                        if(this.time % 4 == 0){
+                            this.image = a_color;
+                            //this.backgroundColor = "red"
+                        }else if(this.time % 2 == 0){
+                            this.image = n_color;
+                            //this.backgroundColor = "yellow"
                         }
                         if(this.time % 6 == 0){
                             game.assets['./sound/Sample_0010.wav'].clone().play();
@@ -2581,8 +2601,8 @@ window.onload = function() {
             this.cannon = cannon;
             this.tank = tank;
             TankFrame(this,Num,scene);
-
-            markEntity[Num] = null;
+            
+            //markEntity[Num] = null;
 
             var value = 0;          //角度制御変数
             var speed = moveSpeed;  //移動速度
@@ -2683,7 +2703,8 @@ window.onload = function() {
                         }
                         //  死亡判定時の処理
                         if(deadFlgs[Num] == true){
-                            //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
+                            
+                            new Mark({x: this.x, y: this.y},scene);
                             new Explosion(this,scene);      //  車体の爆破エフェクト生成
                             this.moveTo(-100,-100)          //  戦車を移動
                             zanki--;                        //  残機を減らす
@@ -2742,7 +2763,7 @@ window.onload = function() {
                             }
                             
                           
-                              if((inputManager.checkButton("A") == inputManager.keyStatus.DOWN || game.input.e) && late == 0 && worldFlg == true){
+                              if((inputManager.checkButton("A") == inputManager.keyStatus.DOWN) && late == 0 && worldFlg == true){
                                 if(bullets[Num] < pmax && deadFlgs[Num] == false){  //  発射最大数に到達していないか＆死んでいないか
                                     for(let i = 0; i < pmax; i++){
                                         if(bulStack[Num][i] == false){                                                          //  弾の状態がoffならば
@@ -2881,7 +2902,7 @@ window.onload = function() {
             this.tank = tank;
             TankFrame(this,Num,scene)
             
-            markEntity[Num] = null;
+            //markEntity[Num] = null;
 
             //  警戒範囲の生成
             const intercept = new Intercept96(this,scene);
@@ -3143,13 +3164,14 @@ window.onload = function() {
                             })
                             //  死亡判定がtrueなら
                             if(deadFlgs[Num]==true){
-                                //markEntity[Num] = new Mark(this,scene);   //  撃破後の物体設置
+                                new Mark({x: this.x, y: this.y},scene);
                                 tankColorCounts[category]--;
                                 //alert(tankColorCwwsaounts)
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100);
                                 destruction++
                                 life = 0;
+                                deadTank[Num-1] = true;
                             }
                             
                             /* 迎撃処理群
@@ -3344,7 +3366,7 @@ window.onload = function() {
             this.tank = tank;
             TankFrame(this,Num,scene)
 
-            markEntity[Num] = null;
+            //markEntity[Num] = null;
 
             tank.opacity = 1.0;
             cannon.opacity = 1.0;
@@ -3574,7 +3596,7 @@ window.onload = function() {
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
                             if(deadFlgs[Num] == true){
-                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
+                                new Mark({x: this.x, y: this.y},scene);
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
                                 
@@ -3582,6 +3604,7 @@ window.onload = function() {
                                 this.moveTo(-100,-100)
                                 destruction++
                                 life--;
+                                deadTank[Num-1] = true;
                             }
                             for(let elem of floors){
                                 if(intercept7.intersect(elem)==true){
@@ -3959,7 +3982,7 @@ window.onload = function() {
             this.tank = tank;
             TankFrame(this,Num,scene)
 
-            markEntity[Num] = null;
+            //markEntity[Num] = null;
 
             tank.opacity = 1.0;
             cannon.opacity = 1.0;
@@ -4198,7 +4221,7 @@ window.onload = function() {
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
                             if(deadFlgs[Num] == true){
-                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
+                                new Mark({x: this.x, y: this.y},scene);
                                 tankColorCounts[category]--;
                                 //alert(tankColorCounts)
                                 
@@ -4206,6 +4229,7 @@ window.onload = function() {
                                 this.moveTo(-100,-100)
                                 destruction++
                                 life--;
+                                deadTank[Num-1] = true;
                             }
 
                             for(let elem of floors){
@@ -4509,7 +4533,7 @@ window.onload = function() {
             TankFrame(this,Num,scene)
 
             cannon.rotation = 0;
-            markEntity[Num] = null;
+            //markEntity[Num] = null;
 
             const anoPoint = new AnotherPoint(target,Num,scene)
             var shotNGflg = false;
@@ -4566,7 +4590,7 @@ window.onload = function() {
                 shotStopFlg = true;
             }
 
-            if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
+            //if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
             
             this.onenterframe = function(){
                 if(deleteFlg == true){
@@ -4609,14 +4633,13 @@ window.onload = function() {
                             fireFlgs[Num] = false;
                             
                             if(deadFlgs[Num] == true){
-                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
+                                new Mark({x: this.x, y: this.y},scene);
                                 tankColorCounts[category]--;
-                                //alert(tankColorCounts)
-                                
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
                                 life--;
+                                deadTank[Num-1] = true;
                             }
                             if(this.time % 2 == 0)new EnemyAim();
                             EnemyAim.intersectStrict(target).forEach(elem => {
@@ -4646,8 +4669,8 @@ window.onload = function() {
                             }*/
                             
                             if(this.time % 5 == 0){
-                                //if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
-                                if(this.aimingTime > 0) this.aimingTime--;
+                                if(this.time % 10 == 0 && this.aimingTime > 0) this.aimingTime--;
+                                //if(this.aimingTime > 0) this.aimingTime--;
                                 if(reloadFlg == false){
                                     if(bullets[Num] == emax) reloadFlg = true;
                                 }else{
@@ -4759,7 +4782,7 @@ window.onload = function() {
             this.tank = tank;
             TankFrame(this,Num,scene)
 
-            markEntity[Num] = null;
+            //markEntity[Num] = null;
 
             tank.opacity = 1.0;
             cannon.opacity = 1.0;
@@ -5084,13 +5107,14 @@ window.onload = function() {
                             new EnemyAim(alignment,12,Num,scene);
       
                             if(deadFlgs[Num] == true){
-                                //markEntity[Num] = new Mark(this,scene)   //  撃破後の物体設置
+                                new Mark({x: this.x, y: this.y},scene);
                                 tankColorCounts[category]--;
                                 
                                 new Explosion(this,scene);
                                 this.moveTo(-100,-100)
                                 destruction++
                                 life--;
+                                deadTank[Num-1] = true;
                             }
                             
                             /*avoids.forEach(elem=>{
@@ -5780,6 +5804,27 @@ window.onload = function() {
         };
 
         var createTutorialScene = function() {
+            if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+                if(!isFullScreen()){
+                    // Chrome & Firefox v64以降
+                    if( document.body.requestFullscreen ) {
+                        document.body.requestFullscreen();
+                            
+                    // Firefox v63以前
+                    } else if( document.body.mozRequestFullScreen ) {
+                    document.body.mozRequestFullScreen();
+    
+                    // Safari & Edge & Chrome v68以前
+                    } else if( document.body.webkitRequestFullscreen ) {
+                    document.body.webkitRequestFullscreen();
+    
+                    // IE11
+                    } else if( document.body.msRequestFullscreen ) {
+                    document.body.msRequestFullscreen();
+                    }
+                }
+            }
+
             var world = new PhysicsWorld(0, 0);
             game.time = 0;
             worldFlg = false;
@@ -5843,7 +5888,7 @@ window.onload = function() {
                 scene.time = 0;
                 now_scene = scene;
 
-                //scene.MarkGroup = new Group();
+                scene.MarkGroup = new Group();
                 scene.TankGroup = new Group();
                 scene.CannonGroup = new Group();
                 scene.BulGroup = new Group();
@@ -5897,7 +5942,7 @@ window.onload = function() {
                 fy++;
                 fx = 0;
             });
-            //scene.addChild(scene.MarkGroup);
+            scene.addChild(scene.MarkGroup);
             scene.addChild(scene.BomGroup);
             scene.addChild(scene.TankGroup);
             scene.addChild(scene.CannonGroup);
@@ -5940,7 +5985,7 @@ window.onload = function() {
             colOb.push([])
             bomOb.push([])
             bulStack.push([])
-            tankEntity.push(new newAI(15,5,'./image/ObjectImage/brown.png','./image/ObjectImage/browncannon.png',tankEntity[0],0,1,8,0,60,0,0,scene,backgroundMap,grid,filterMap))
+            tankEntity.push(new newAI(15,5,'./image/ObjectImage/brown.png','./image/ObjectImage/browncannon.png',tankEntity[0],1,1,5,0,180,0,0,scene,backgroundMap,grid,filterMap))
             tankColorCounts[0]++;    
             
             new PlayerLabel(tankEntity[0],scene)
@@ -5957,7 +6002,7 @@ window.onload = function() {
                 startLabel.textAlign = 'left';
 
             let tutorialLabel = new Label();
-                tutorialLabel.width = 32*25;
+                tutorialLabel.width = 32*30;
                 tutorialLabel.height = 72;
                 tutorialLabel.x = pixelSize;
                 tutorialLabel.y = pixelSize*14;
@@ -5987,9 +6032,9 @@ window.onload = function() {
                 for(let i = 0; i < tankEntity.length; i++){
                     scene.removeChild(tankEntity[i])
                 }
-                for(let i = 0; i < markEntity.length; i++){
+                /*for(let i = 0; i < markEntity.length; i++){
                     scene.removeChild(markEntity[i])
-                }
+                }*/
                 bulOb.forEach(elem=>{
                     elem.forEach(elem2=>{
                         scene.BulGroup.removeChild(elem2)
@@ -6018,13 +6063,25 @@ window.onload = function() {
                 })
                 
             }
-            new DispLine(0,pixelSize*9,pixelSize*20,pixelSize*8,"#000000ee",scene)
-            new DispText(pixelSize,pixelSize*10,pixelSize*18,pixelSize/2,  '　移動　：左の十字パッド　（斜め移動可）　　　　　　砲撃で発射される弾は','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*10.5,pixelSize*18,pixelSize/2,'　　　　　　　　　　　　　　　　　　　　　　 　　　  壁に当たると跳ね返ります。','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*11,pixelSize*18,pixelSize/2,  '　照準　：画面タップか画面スライド　　','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*11.5,pixelSize*18,pixelSize/2,'　砲撃　：右側のAボタン　　　　　　　　　　　　　　跳ね返った弾にも判定があるので','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*12,pixelSize*18,pixelSize/2,  '爆弾設置：右側のBボタン　　　　　　　　　　　　　    自滅には注意してください。','24px sans-serif','white','left',scene)
-            new DispText(pixelSize,pixelSize*12.5,pixelSize*18,pixelSize/2,'一時停止：Startボタン　　　　　　　　　','24px sans-serif','white','left',scene)
+            if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+                new DispLine(0,pixelSize*9,pixelSize*20,pixelSize*8,"#000000ee",scene)
+                new DispText(pixelSize,pixelSize*10,pixelSize*18,pixelSize/2,  '　移動　：左の十字パッド　（斜め移動可）　　　　　　砲撃で発射される弾は','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*10.5,pixelSize*18,pixelSize/2,'　　　　　　　　　　　　　　　　　　　　　　 　　　  壁に当たると跳ね返ります。','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*11,pixelSize*18,pixelSize/2,  '　照準　：画面タップか画面スライド　　','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*11.5,pixelSize*18,pixelSize/2,'　砲撃　：右側のAボタン　　　　　　　　　　　　　　跳ね返った弾にも判定があるので','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*12,pixelSize*18,pixelSize/2,  '爆弾設置：右側のBボタン　　　　　　　　　　　　　    自滅には注意してください。','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*12.5,pixelSize*18,pixelSize/2,'一時停止：Startボタン　　　　　　　　　','24px sans-serif','white','left',scene)
+            }else{
+                tutorialLabel.text = '※チュートリアル中はEscキーを押すとタイトルに戻れます';
+                new DispLine(0,pixelSize*9,pixelSize*20,pixelSize*8,"#000000ee",scene)
+                new DispText(pixelSize,pixelSize*10,pixelSize*18,pixelSize/2,  '　移動　：WASDキー　（斜め移動可）　　　　　　砲撃で発射される弾は','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*10.5,pixelSize*18,pixelSize/2,'　　　　　　　　　　　　　　　　　　　　　　 　　　  壁に当たると跳ね返ります。','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*11,pixelSize*18,pixelSize/2,  '　照準　：マウス操作、または十字キー　　','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*11.5,pixelSize*18,pixelSize/2,'　砲撃　：左クリック　　　　　　　　　　　　　　跳ね返った弾にも判定があるので','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*12,pixelSize*18,pixelSize/2,  '爆弾設置：Qキー　　　　　　　　　　　　　　　    自滅には注意してください。','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*12.5,pixelSize*18,pixelSize/2,'一時停止：Escキー　　　　　　　　　','24px sans-serif','white','left',scene)
+            }
+            
                 
             scene.onenterframe = function() {
                 scene.time++;
@@ -6069,7 +6126,7 @@ window.onload = function() {
                         entVal = 0;         //戦車の連番設定用変数
                         tankEntity = [];    //戦車情報を保持する配列
                         tankDir = [];
-                        markEntity = [];
+                        //markEntity = [];
                         deadFlgs = [];      //戦車の生存確認 
                         fireFlgs = [];      //敵の砲撃制御
                         floors = [];        //１ブロック分の壁
@@ -6107,7 +6164,7 @@ window.onload = function() {
                             entVal = 0;         //戦車の連番設定用変数
                             tankEntity = [];    //戦車情報を保持する配列
                             tankDir = [];
-                            markEntity = [];
+                            //markEntity = [];
                             deadFlgs = [];      //戦車の生存確認 
                             fireFlgs = [];      //敵の砲撃制御
                             floors = [];        //１ブロック分の壁
@@ -6145,7 +6202,7 @@ window.onload = function() {
         };
         /* タイトルシーン */
         var createTitleScene = function(){
-
+            zanki = 5;
             var scene = new Scene();
             now_scene = scene;
             scene.time = 0;
@@ -6153,25 +6210,25 @@ window.onload = function() {
             var flg = false;
                 
             // スタート画像設定
-            new DispHead(100,200,360*3,240*2.8,"#a00d",scene)
+            new DispHead(100,150,360*3,240*2.8,"#a00d",scene)
             
             // タイトルラベル設定
-            new DispText(100,280,260*size,96,'Battle Tank Game','96px sans-serif','#ebe799','center',scene)
+            new DispText(100,230,260*size,96,'Battle Tank Game','96px sans-serif','#ebe799','center',scene)
             
             // ゲーム開始用ラベル
-            var toPlay = new DispText(game.width/2-180,440,320,40,'➡　はじめから','40px sans-serif','#ebe799','left',scene)
+            var toPlay = new DispText(game.width/2-180,370,320,40,'➡　はじめから','40px sans-serif','#ebe799','left',scene)
             // ゲーム開始用ラベル
-            var toContinue = new DispText(game.width/2-180,520,320,40,'➡　つづきから','40px sans-serif','#ebe799','left',scene)
+            var toContinue = new DispText(game.width/2-180,450,320,40,'➡　つづきから','40px sans-serif','#ebe799','left',scene)
             //  難易度選択用ラベル
-            var level = new DispText(game.width/2-180,600,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
+            var level = new DispText(game.width/2-180,530,40*9,40,'➡　難易度選択：','40px sans-serif','#ebe799','left',scene)
             //  難易度「普通」ラベル
-            var nomal = new DispText(level.x+level.width-16,600,140,40,'Normal','40px sans-serif','#ebe799','left',scene)
+            var nomal = new DispText(level.x+level.width-16,530,140,40,'Normal','40px sans-serif','#ebe799','left',scene)
             //  難易度「難しい」ラベル
-            var hard = new DispText(level.x+level.width+nomal.width+16,600,120,40,'Hard','40px sans-serif','#888','left',scene)
-            //  戦車一覧画面用ラベル
-            var picture = new DispText(game.width/2-180,680,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)
+            var hard = new DispText(level.x+level.width+nomal.width+16,530,120,40,'Hard','40px sans-serif','#888','left',scene)
             //  チュートリアル画面ラベル
-            var tutorial = new DispText(game.width/2-180,760,40*9,40,'➡　チュートリアル','40px sans-serif','#ebe799','left',scene)
+            var tutorial = new DispText(game.width/2-180,610,40*9,40,'➡　チュートリアル','40px sans-serif','#ebe799','left',scene)
+            //  戦車一覧画面用ラベル
+            var picture = new DispText(game.width/2-180,690,40*10,40,'➡　戦車一覧','40px sans-serif','#ebe799','left',scene)
 
 
             let lvFlg = false;
@@ -6497,6 +6554,27 @@ window.onload = function() {
         /* スタートシーン */
         var createStartScene = function() {
 
+            if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+                if(!isFullScreen()){
+                    // Chrome & Firefox v64以降
+                    if( document.body.requestFullscreen ) {
+                        document.body.requestFullscreen();
+                            
+                    // Firefox v63以前
+                    } else if( document.body.mozRequestFullScreen ) {
+                    document.body.mozRequestFullScreen();
+    
+                    // Safari & Edge & Chrome v68以前
+                    } else if( document.body.webkitRequestFullscreen ) {
+                    document.body.webkitRequestFullscreen();
+    
+                    // IE11
+                    } else if( document.body.msRequestFullscreen ) {
+                    document.body.msRequestFullscreen();
+                    }
+                }
+            }
+
             deleteFlg = false;
             
             obsdir = []
@@ -6513,7 +6591,7 @@ window.onload = function() {
             entVal = 0;         //戦車の連番設定用変数
             tankEntity = [];    //戦車情報を保持する配列
             tankDir = [];
-            markEntity = [];
+            //markEntity = [];
             deadFlgs = [];      //戦車の生存確認 
             fireFlgs = [];      //敵の砲撃制御
             floors = [];        //１ブロック分の壁
@@ -6645,7 +6723,7 @@ window.onload = function() {
                 scene.time = 0;
                 now_scene = scene;
             
-                //scene.MarkGroup = new Group();
+                scene.MarkGroup = new Group();
                 scene.BomGroup = new Group();
                 scene.TankGroup = new Group();
                 scene.CannonGroup = new Group();
@@ -6706,7 +6784,7 @@ window.onload = function() {
                 fx = 0;
             });
 
-                //scene.addChild(scene.MarkGroup);
+                scene.addChild(scene.MarkGroup);
                 scene.addChild(scene.BomGroup);
                 scene.addChild(scene.TankGroup);
                 scene.addChild(scene.BulGroup);
@@ -6759,29 +6837,72 @@ window.onload = function() {
                 colOb.push([])
                 bomOb.push([])
                 bulStack.push([])
-                if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
-                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.5,45,10,10,scene,filterMap))
-                    stageData[i][10] = 10;
-                }else if(stageData[i][10] == 7){
-                    tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,2,18,0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
-                }else if(stageData[i][10]==5 || stageData[i][10] == 4){
-                    tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
-                }else if(stageData[i][10] == 0){
-                    tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap));
-                }else if(stageData[i][9] >= 8){
-                    if(stageData[i][10] == 11){
-                        tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                if(retryFlg == false){
+                    if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
+                        tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.5,cateFireLate[stageData[i][10]],10,10,scene,filterMap))
+                        stageData[i][10] = 10;
+                    }else if(stageData[i][10] == 7){
+                        tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,2,18,0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                    }else if(stageData[i][10]==5 || stageData[i][10] == 4){
+                        tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
+                    }else if(stageData[i][10] == 0){
+                        tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                    }else if(stageData[i][9] >= 8){
+                        if(stageData[i][10] == 11){
+                            tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                        }else{
+                            tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6]-2,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                        }
+                    }/*else if(addBullet != 0 && (stageData[i][10] == 5)){
+                        tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                    }*/else if(stageData[i][9]>2){
+                        
+                        tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                        
                     }else{
-                        tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6]-2,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                        tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
                     }
-                }else if(addBullet != 0 && (stageData[i][10] == 5)){
-                    tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                }else if(stageData[i][9]>2){
-                    
-                    tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
-                    
+                    deadTank[i-4] = false;
                 }else{
-                    tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
+                    if(deadTank[i-4] == false){
+                        if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12){
+                            tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],1+addBullet,0,24,1.5,cateFireLate[stageData[i][10]],10,10,scene,filterMap))
+                            stageData[i][10] = 10;
+                        }else if(stageData[i][10] == 7){
+                            tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,2,18,0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                        }else if(stageData[i][10]==5 || stageData[i][10] == 4){
+                            tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
+                        }else if(stageData[i][10] == 0){
+                            tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                        }else if(stageData[i][9] >= 8){
+                            if(stageData[i][10] == 11){
+                                tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                            }else{
+                                tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6]-2,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                            }
+                        }/*else if(addBullet != 0 && (stageData[i][10] == 5)){
+                            tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                        }*/else if(stageData[i][9]>2){
+                            
+                            tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
+                            
+                        }else{
+                            tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
+                        }
+                        //deadTank[i-4] = 0;
+                    }else{
+                        tankEntity.push(new Sprite({width: 1, height: 1, x: -100, y: -100}));
+                        deadFlgs.push(true);
+                        bulOb[i-3][0] = new Sprite({width: 1, height: 1, x: -1, y: -1});
+                        colOb[i-3][0] = new PhyCircleSprite(2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true);
+                        bomOb[i-3][0] = new Sprite({width: 1, height: 1, x: 1280, y: -1});
+                        for(let j = 0; j < 4; j++){
+                            tankDir[i-3] = [];
+                            tankDir[i-3][j] = new Sprite({width: 1, height: 1, x: -1, y: -1});
+                        }
+                        entVal++;
+                        destruction++;
+                    }
                 }
                 tankColorCounts[stageData[i][10]]++;
             }
@@ -6859,9 +6980,12 @@ window.onload = function() {
                 for(let i = 0; i < tankEntity.length; i++){
                     scene.removeChild(tankEntity[i]);
                 };
-                for(let i = 0; i < markEntity.length; i++){
+                scene.MarkGroup.childNodes.forEach(elem => {
+                    scene.removeChild(elem);
+                })
+                /*for(let i = 0; i < markEntity.length; i++){
                     scene.removeChild(markEntity[i]);
-                };
+                };*/
                 bulOb.forEach(elem=>{
                     elem.forEach(elem2=>{
                         scene.BulGroup.removeChild(elem2)
@@ -7094,7 +7218,9 @@ window.onload = function() {
                                 deleteFlg = true;
                             }
                             if(game.time == 180){
+                                retryFlg = false;
                                 score += destruction
+                                deadTank = [false];
                                 stageNum++;
                                 AllDelete();
                                 
@@ -7115,6 +7241,7 @@ window.onload = function() {
                                 deleteFlg = true;
                             }
                             if(game.time == 180){
+                                retryFlg = true;
                                 AllDelete();
                                 
                                 game.replaceScene(createStartScene())
@@ -7154,6 +7281,8 @@ window.onload = function() {
                             
                         }
                         if(scene.time >= 345){
+                            retryFlg = false;
+                            deadTank = [false];
                             var toTitle = new Label('➡タイトル画面へ');
                                 toTitle.moveTo(640,640);
                                 toTitle.width = 320*1.5;
