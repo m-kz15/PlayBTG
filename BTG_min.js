@@ -170,7 +170,7 @@ var cateShotSpeeds = [
     16,  //green
     8,    //red
     12,  //lightgreen
-    12,  //elitegray
+    11,  //elitegray
     14,  //snow
     20,  //elitegreen
     14,  //sand
@@ -2394,7 +2394,7 @@ window.onload = function() {
                     this.rotation = ((Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
                 
-                this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                //this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 if(this.intersect(target)==false){
                     var vector = {
                         x: target.x - this.x,
