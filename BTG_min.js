@@ -167,7 +167,7 @@ var cateFireLate = [
 var cateShotSpeeds = [
     8,    //brown
     9,    //gray
-    15,  //green
+    16,  //green
     8,    //red
     12,  //lightgreen
     12,  //elitegray
