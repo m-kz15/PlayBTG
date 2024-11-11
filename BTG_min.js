@@ -167,14 +167,14 @@ var cateFireLate = [
 var cateShotSpeeds = [
     8,    //brown
     9,    //gray
-    16,  //green
-    8,    //red
-    12,  //lightgreen
+    14,  //green
+    9,    //red
+    10,  //lightgreen
     11,  //elitegray
     14,  //snow
-    20,  //elitegreen
+    18,  //elitegreen
     14,  //sand
-    10,    //pink
+    11,    //pink
     24,  //random
     12   //dazzle
 ]
@@ -4386,16 +4386,24 @@ window.onload = function() {
                                                 }
                                                 if(dist < 128){
                                                     if(this.time % 10 == 0){
-                                                        value = Escape_Rot(this,bulOb[0][i]);
-                                                        //SelDirection(weak,bulOb[0][i],0)
+							if(addBullet == 0){
+							    SelDirection(weak,bulOb[0][i],0)
+							}else{
+							    value = Escape_Rot(this,bulOb[0][i]);
+							}
+                                                        
+                                                        
                                                     }
                                                 }
                                             }
                                             PlayerBulAim.intersectStrict(intercept).forEach(elem => {
                                                 if(cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
                                                 if(this.time % 5 == 0){
-                                                    value = Escape_Rot(this,bulOb[0][i]);
-                                                    //SelDirection(weak,bulOb[0][i],0)
+                                                    if(addBullet == 0){
+							SelDirection(weak,bulOb[0][i],0)
+						    }else{
+							value = Escape_Rot(this,bulOb[0][i]);
+						    }
                                                 }
                                             })
                                             /*PlayerBulAim.intersectStrict(intercept).forEach(function(){
