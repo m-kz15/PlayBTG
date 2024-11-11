@@ -156,7 +156,7 @@ var cateFireLate = [
     25,  //green
     15,    //red
     18,  //lightgreen
-    13,  //elitegray
+    15,  //elitegray
     30,  //snow
     10,  //elitegreen
     60,  //sand
@@ -6949,7 +6949,7 @@ window.onload = function() {
             if(cheat == true){
                 tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,8,4,scene,filterMap))
             }else{
-                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,10,2.2,scene,filterMap))
+                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,16,2.2,scene,filterMap))
             }
             
             let abn = Math.floor(Math.random() * 10);
