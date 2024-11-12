@@ -145,7 +145,7 @@ var cateMaxBullets = [
     3,  //snow
     3,  //elitegreen
     2,  //sand
-    4,    //pink
+    8,    //pink
     1,  //random
     0   //dazzle
 ];
@@ -160,7 +160,7 @@ var cateFireLate = [
     30,  //snow
     10,  //elitegreen
     60,  //sand
-    10,    //pink
+    8,    //pink
     45,  //random
     10   //dazzle
 ];
@@ -174,7 +174,7 @@ var cateShotSpeeds = [
     14,  //snow
     18,  //elitegreen
     14,  //sand
-    10,    //pink
+    12,    //pink
     24,  //random
     12   //dazzle
 ];
@@ -187,7 +187,7 @@ var cateMaxRefs = [
     1,  //elitegray
     1,  //snow
     2,  //elitegreen
-    1,  //sand
+    2,  //sand
     0,    //pink
     0,  //random
     1   //dazzle
