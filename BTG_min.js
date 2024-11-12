@@ -160,7 +160,7 @@ var cateFireLate = [
     30,  //snow
     10,  //elitegreen
     60,  //sand
-    5,    //pink
+    8,    //pink
     45,  //random
     10   //dazzle
 ];
@@ -3747,7 +3747,7 @@ window.onload = function() {
                                 if(grade == 6 && boms[Num]>0 && bomFlg == true){
                                     let dist = Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2));
                                     if(dist < 300){
-                                        fireFlgs[Num] = false;
+                                        
                                         if(this.time % 5 == 0){
                                             SelDirection(weak,bomOb[Num][0],0)
                                         }
@@ -3884,7 +3884,7 @@ window.onload = function() {
                                                         break;
                                                     }
                                                 }else if(category == 8){
-                                                    if(bullets[Num] < emax && deadFlgs[Num] == false && boms[Num] > 0 && fireFlgs[Num]==true){
+                                                    if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
                                                         colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
                                                         bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
                                                         ShotBullet(i);
@@ -6996,18 +6996,11 @@ window.onload = function() {
                         tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
                     }else if(stageData[i][10] == 0){
                         tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
-                    }else if(stageData[i][9] >= 8){
-                        if(stageData[i][10] == 11){
-                            tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                        }else{
-                            tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6]-2,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                        }
-                    }/*else if(addBullet != 0 && (stageData[i][10] == 5)){
-                        tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                    }*/else if(stageData[i][9]>2){
-                        
+                    }//else if(stageData[i][9] >= 8){
+                    else if(stageData[i][10] == 11){
+                        tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                    }else if(stageData[i][9]>2){
                         tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
-                        
                     }else{
                         tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
                     }
@@ -7025,18 +7018,10 @@ window.onload = function() {
                             tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
                         }else if(stageData[i][10] == 0){
                             tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
-                        }else if(stageData[i][9] >= 8){
-                            if(stageData[i][10] == 11){
-                                tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                            }else{
-                                tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6]-2,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                            }
-                        }/*else if(addBullet != 0 && (stageData[i][10] == 5)){
-                            tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,stageData[i][5],stageData[i][6],stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
-                        }*/else if(stageData[i][9]>2){
-                            
+                        }else if(stageData[i][10] == 11){
+                            tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
+                        }else if(stageData[i][9]>2){
                             tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
-                            
                         }else{
                             tankEntity.push(new newAI(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,backgroundMap,grid,filterMap))
                         }
