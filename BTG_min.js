@@ -195,7 +195,7 @@ var cateMaxRefs = [
 var cateMoveSpeeds = [
     0.0,    //brown
     1.0,    //gray
-    1.2,  //green
+    1.0,  //green
     2.0,    //red
     1.2,  //lightgreen
     2.0,  //elitegray
@@ -3724,9 +3724,10 @@ window.onload = function() {
                                         tank.opacity = opaVal;
                                         cannon.opacity = opaVal;
                                     }
-                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400 && this.time % 4 == 0){
+                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400){
                                         opaFlg = true;
-                                    }else if(this.time % 600 == 0 && addBullet == 0){
+                                    }
+				    if(this.time % 600 == 0 && addBullet == 0){
                                         opaFlg = true;
                                     }
                                     if(opaFlg == false && opaVal > 0){
