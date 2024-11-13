@@ -7055,7 +7055,7 @@ window.onload = function() {
                 if(stageData[i][10] != 11 && stageData[i][7] > 0){
                     stageData[i][7] = cateMoveSpeeds[stageData[i][10]];
 		    if(stageData[i][9]>2){
-			stageData[i][7] += addSpeed;
+			stageData[i][7] = cateMoveSpeeds[stageData[i][10]] + addSpeed;
 		    }
                 };
                 bulOb.push([])
