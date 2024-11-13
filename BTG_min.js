@@ -7054,7 +7054,7 @@ window.onload = function() {
             for(let i = 4; i < Object.keys(stageData).length; i++){
                 if(stageData[i][10] != 11 && stageData[i][7] > 0){
                     stageData[i][7] = cateMoveSpeeds[stageData[i][10]];
-		    if(stageData[i][9]>2)){
+		    if(stageData[i][9]>2){
 			stageData[i][7] += addSpeed;
 		    }
                 };
