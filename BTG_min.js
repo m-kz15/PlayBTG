@@ -155,7 +155,7 @@ var cateFireLate = [
     40,    //gray
     25,  //green
     15,    //red
-    20,  //lightgreen
+    18,  //lightgreen
     18,  //elitegray
     30,  //snow
     10,  //elitegreen
@@ -197,7 +197,7 @@ var cateMoveSpeeds = [
     1.0,    //gray
     1.2,  //green
     2.0,    //red
-    1.5,  //lightgreen
+    1.2,  //lightgreen
     2.0,  //elitegray
     1.2,  //snow
     0.0,  //elitegreen
