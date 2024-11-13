@@ -195,13 +195,13 @@ var cateMaxRefs = [
 var cateMoveSpeeds = [
     0.0,    //brown
     1.0,    //gray
-    1.0,  //green
+    1.2,  //green
     2.0,    //red
     1.5,  //lightgreen
     2.0,  //elitegray
-    1.0,  //snow
+    1.2,  //snow
     0.0,  //elitegreen
-    2.4,  //sand
+    2.6,  //sand
     0.0,    //pink
     1.8,  //random
     2.0   //dazzle
@@ -7053,7 +7053,10 @@ window.onload = function() {
     
             for(let i = 4; i < Object.keys(stageData).length; i++){
                 if(stageData[i][10] != 11 && stageData[i][7] > 0){
-                    stageData[i][7] = cateMoveSpeeds[stageData[i][10]] + addSpeed;
+                    stageData[i][7] = cateMoveSpeeds[stageData[i][10]];
+		    if(stageData[i][9]>2)){
+			stageData[i][7] += addSpeed;
+		    }
                 };
                 bulOb.push([])
                 colOb.push([])
