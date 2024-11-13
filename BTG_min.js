@@ -170,11 +170,11 @@ var cateShotSpeeds = [
     15,  //green
     9,    //red
     11,  //lightgreen
-    12,  //elitegray
+    10,  //elitegray
     14,  //snow
     18,  //elitegreen
     12,  //sand
-    12,    //pink
+    11,    //pink
     23,  //random
     12   //dazzle
 ];
