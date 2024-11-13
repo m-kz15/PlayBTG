@@ -198,7 +198,7 @@ var cateMoveSpeeds = [
     1.0,  //green
     2.0,    //red
     1.2,  //lightgreen
-    2.0,  //elitegray
+    1.6,  //elitegray
     1.2,  //snow
     0.0,  //elitegreen
     2.6,  //sand
