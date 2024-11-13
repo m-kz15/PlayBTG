@@ -130,7 +130,7 @@ var cateReloadTimes = [
     180,  //elitegray
     600,  //snow
     90,  //elitegreen
-    360,  //sand
+    180,  //sand
     240,    //pink
     100,  //random
     30   //dazzle
@@ -155,11 +155,11 @@ var cateFireLate = [
     40,    //gray
     25,  //green
     15,    //red
-    18,  //lightgreen
-    15,  //elitegray
+    20,  //lightgreen
+    18,  //elitegray
     30,  //snow
     10,  //elitegreen
-    60,  //sand
+    40,  //sand
     8,    //pink
     45,  //random
     10   //dazzle
@@ -169,13 +169,13 @@ var cateShotSpeeds = [
     9,    //gray
     15,  //green
     9,    //red
-    12,  //lightgreen
+    11,  //lightgreen
     10,  //elitegray
     14,  //snow
     18,  //elitegreen
-    14,  //sand
+    12,  //sand
     12,    //pink
-    24,  //random
+    23,  //random
     12   //dazzle
 ];
 var cateMaxRefs = [
@@ -187,11 +187,25 @@ var cateMaxRefs = [
     1,  //elitegray
     1,  //snow
     2,  //elitegreen
-    2,  //sand
+    0,  //sand
     0,    //pink
     0,  //random
     1   //dazzle
-]
+];
+var cateMoveSpeeds = [
+    0.0,    //brown
+    1.0,    //gray
+    1.0,  //green
+    2.0,    //red
+    1.0,  //lightgreen
+    1.5,  //elitegray
+    0.5,  //snow
+    0.0,  //elitegreen
+    2.4,  //sand
+    0.0,    //pink
+    1.2,  //random
+    2.0   //dazzle
+];
 
 var tankColorCounts = [0,0,0,0,0,0,0,0,0,0,0,0];    //配色ごとの敵戦車残数格納配列
 
@@ -460,7 +474,7 @@ var Escape_Rot = function(from,to){
         point.moveTo(v.x,v.y);
         point.backgroundColor = '#f008';
     now_scene.addChild(point);*/
-    let p = Pos_to_Vec(from,v);
+    let p = Pos_to_Vec({x: from.x + (from.width / 2), y: from.y + (from.height / 2)},v);
     let r = Vec_to_Rot(p);
     let value = Math.floor(Math.random() * 4);
     if(r > 338 || r <= 23){
@@ -499,6 +513,26 @@ var Escape_Rot = function(from,to){
             while(value == 0) value = Math.floor(Math.random() * 4);
         }
         
+    };
+    
+    return value;
+};
+
+var Hit_Rot = function(from,to){
+    let v = Rot_to_Vec(to.rotation,270);
+        v.x = v.x + (to.x + to.width/2);
+        v.y = v.y + (to.y + to.height/2);
+    let p = Pos_to_Vec({x: from.x + (from.width / 2), y: from.y + (from.height / 2)},v);
+    let r = Vec_to_Rot(p);
+    let value = 0;
+    if(r > 315 || r <= 45){
+        value = 2;
+    }else if(r > 45 && r <= 135){
+        value = 1;
+    }else if(r > 135 && r <= 225){
+        value = 3;
+    }else if(r > 225 && r <= 315){
+        value = 0;
     };
     
     return value;
@@ -719,9 +753,10 @@ class InputManager {
         height: `${height * 0.5}px`,
         right: `${height * 0.5}px`,
         top: `${height * 0.4}px`,
-        borderRadius: "50%"
+        borderRadius: "50%",
+        borderColor: '#88f'
       }
-      new ActBtn(this.pad, this.input, "A", "A", style);
+      new ActBtn(this.pad, this.input, "A", "B", style);
   
       //Bボタン作成
       style = {
@@ -729,9 +764,10 @@ class InputManager {
         height: `${height * 0.5}px`,
         right: `${height * 0.05}px`,
         top: `${height * 0.1}px`,
-        borderRadius: "50%"
+        borderRadius: "50%",
+        borderColor: '#f44'
       }
-      new ActBtn(this.pad, this.input, "B", "B", style);
+      new ActBtn(this.pad, this.input, "B", "A", style);
   
       //STARTボタン作成
       style = {
@@ -739,9 +775,10 @@ class InputManager {
         height: `${height * 0.15}px`,
         right: `${height * 0.65}px`,
         top: `${height * 0.05}px`,
-        borderRadius: `${height * 0.15 * 0.5}px`
+        borderRadius: `${height * 0.15 * 0.5}px`,
+        borderColor: 'gray'
       }
-      new ActBtn(this.pad, this.input, "Start", "START", style);
+      new ActBtn(this.pad, this.input, "Start", "PAUSE", style);
     }
   }
   
@@ -868,6 +905,7 @@ class InputManager {
       div.style.right = style.right;
       div.style.top = style.top;
       div.style.borderRadius = style.borderRadius;
+      div.style.borderColor = style.borderColor;
   
       //ボタン名を表示
       const p = document.createElement('p');
@@ -1355,7 +1393,7 @@ window.onload = function() {
             Sprite.call(this,48,48);
             this.image = game.assets['./image/ObjectImage/mark.png'];
             this.x = target.x+9.25;
-            this.y = target.y+8.5;
+            this.y = target.y+12.5;
             this.scaleY = 0.8;
             scene.MarkGroup.addChild(this);
             //scene.insertBefore(this,target);
@@ -1401,7 +1439,7 @@ window.onload = function() {
     var AnotherAim = Class.create(Sprite,{
         initialize: function(target,cannon,ref,num,scene){
             Sprite.call(this,8,8);
-            //this.backgroundColor = "#88f8";
+            //this.backgroundColor = "#88f";
             //this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
             this.time = 0;
             this.hitTime = 0;
@@ -1410,7 +1448,7 @@ window.onload = function() {
             var rad = (cannon.rotation) * (Math.PI / 180.0);
             var dx = Math.cos(rad) * 20;
             var dy = Math.sin(rad) * 20;
-            this.moveTo((cannon.x+(cannon.width/2))+(58*Math.cos(rad))-(this.width/2+1), (cannon.y+(cannon.height/2))+(58*Math.sin(rad))-(this.height/2+1));
+            this.moveTo((cannon.x+(cannon.width/2))+(56*Math.cos(rad))-(this.width/2+1), (cannon.y+(cannon.height/2))+(56*Math.sin(rad))-(this.height/2+1));
             //this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
             let refcnt = 0;
             let agl = cannon.rotation;
@@ -1428,23 +1466,64 @@ window.onload = function() {
                 this.y += dy
 
                 //this.rotation = this.Vec_to_Rot({x: dx, y: dy});
+                /*Floor.intersectStrict(this).forEach(elem => {
+                    this.v = Rot_to_Vec(this.rotation,315);
+                    this.f = Math.atan2(this.v.x, this.v.y);
+                    
+                    let hit = Hit_Rot(this,elem);
+                    let r = [[0,0],[0,0]];
+                    switch(hit){
+                        case 0:
+                            r = [
+                                [elem.x+elem.width+(this.width/2),(this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2))],
+                                [elem.x+elem.width+(this.width),(this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2))]
+                            ];
+                            dx = dx*-1;
+                            break;
+                        case 1:
+                            r = [
+                                [elem.x-(this.width/2),(this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2))],
+                                [elem.x-(this.width),(this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2))]
+                            ];
+                            dx = dx*-1;
+                            break;
+                        case 2:
+                            r = [
+                                [(this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2)),elem.y-(this.height)],
+                                [(this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2)),elem.y-(this.height/2)]
+                            ];
+                            dy = dy*-1;
+                            break;
+                        case 3:
+                            r = [
+                                [(this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2)),elem.y+elem.height+(this.height/2)],
+                                [(this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2)),elem.y+elem.height+(this.height/2)]
+                                
+                            ];
+                            dy = dy*-1;
+                            break;
+                    }
+                    if(refcnt == 0){
+                        tgt[0] = r[0][0];
+                        tgt[1] = r[0][1];
+                    }
+                    this.x = r[1][0];
+                    this.y = r[1][1];
+                    
+                    refcnt++;
+                    this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+                    return;
+                })*/
                 
                 RefTop.intersectStrict(this).forEach(elem => {
                     this.v = Rot_to_Vec(this.rotation,315);
                     this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
-                        //target.moveTo(this.x-(dx/3),elem.y-(this.height/2));
-                        /*tgt[0] = this.x-(this.width);
-                        tgt[1] = elem.y-(this.height/2);*/
-                        //tgt[0] = this.x-(dx/3);
                         tgt[0] = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                         tgt[1] = elem.y-(this.height/2);
                     }
-                    //this.x = this.x-(dx/3)-(this.width/2);
                     this.x = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                     this.y = elem.y-(this.height);
-                    //this.moveTo(this.x+(this.width/2),elem.y-8);
-                    //this.moveTo(this.x-(dx/3)-(this.width/2),elem.y-(this.height));
                     dy = dy*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
@@ -1454,18 +1533,11 @@ window.onload = function() {
                     this.v = Rot_to_Vec(this.rotation,315);
                     this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
-                        //target.moveTo(this.x-(dx/3),elem.y+elem.height+(this.height));
-                        /*tgt[0] = this.x-(this.width);
-                        tgt[1] = elem.y+elem.height+(this.height/2);*/
-                        //tgt[0] = this.x-(dx/3);
                         tgt[0] = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                         tgt[1] = elem.y+elem.height+(this.height);
                     }
-                    //this.x = this.x-(dx/3)-(this.width/2);
                     this.x = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
                     this.y = elem.y+elem.height+(this.height/2);
-                    //this.moveTo(this.x-(this.width)+8,elem.y+elem.height+4)
-                    //this.moveTo(this.x-(dx/3)-(this.width/2),elem.y+elem.height+(this.height/2))
                     dy = dy*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
@@ -1475,19 +1547,11 @@ window.onload = function() {
                     this.v = Rot_to_Vec(this.rotation,315);
                     this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
-                        //target.moveTo(elem.x-(this.width/2),this.y-(dy/3));
-                        /*tgt[0] = elem.x-(this.width/2)
-                        tgt[1] = this.y-(this.height);*/
                         tgt[0] = elem.x-(this.width/2);
-                        //tgt[1] = this.y-(dy/3);
                         tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                     };
                     this.x = elem.x;
                     this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
-                    //this.y = this.y-(dy/3)-(this.height/2);
-                    //this.moveTo(elem.x-12,this.y)
-                    //this.moveTo(elem.x-(this.width),this.y-(dy/3)-(this.height/2))
-                    //this.moveTo(elem.x,this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
@@ -1497,19 +1561,11 @@ window.onload = function() {
                     this.v = Rot_to_Vec(this.rotation,315);
                     this.f = Math.atan2(this.v.x, this.v.y);
                     if(refcnt == 0){
-                        //target.moveTo(elem.x+elem.width+(this.width/2),this.y-(dy/3));
-                        /*tgt[0] = elem.x+elem.width;
-                        tgt[1] = this.y-(this.height);*/
                         tgt[0] = elem.x+elem.width+(this.width/2);
                         tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
-                        //tgt[1] = this.y-(dy/3);
                     };
                     this.x = elem.x+elem.width;
                     this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
-                    //this.y = this.y-(dy/3)-(this.height/2);
-                    //this.moveTo(elem.x+elem.width+4,this.y)
-                    //this.moveTo(elem.x+elem.width+(this.width),this.y-(dy/3)-(this.height/2))
-                    //this.moveTo(elem.x+elem.width,this.y-(dy/3)-(this.height/2))
                     dx = dx*-1;
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
@@ -1727,7 +1783,7 @@ window.onload = function() {
     var BulletCol = Class.create(PhyCircleSprite,{
         initialize: function(target,cannon,shotSpeed,grade,num,scene,value){
             PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true)
-            //this.backgroundColor = "blue"
+            //this.backgroundColor = "white"
             this.time = 0;
             this.shotSpeed = shotSpeed;
             this.cannon = cannon;
@@ -2308,14 +2364,20 @@ window.onload = function() {
     });
     var InterceptC = Class.create(Sprite, {
         initialize: function(cannon,scene) {
-            Sprite.call(this, cannon.width, 8);
+            Sprite.call(this, cannon.width/2, 8);
             //this.backgroundColor = "#0f04";
+            this.originX = 0;
+            let vec;
+            let rad;
             this.onenterframe = function(){
+                vec = Rot_to_Vec(cannon.rotation,0);
+                rad = Math.atan2(vec.y, vec.x);
+                this.moveTo((cannon.x+(cannon.width/2)-3)+Math.cos(rad)*(32),(cannon.y+(cannon.height/2)-3)+Math.sin(rad)*(32));
                 //if(deleteFlg == true) scene.removeChild(this);
-                var rad = cannon.rotation * (Math.PI / 180.0);
-                var dx = Math.cos(rad)*(cannon.width/2);
-                var dy = Math.sin(rad)*(cannon.width/2);
-                this.moveTo(cannon.x-(cannon.width/4)+dx+cannon.width/4, cannon.y-(this.height/2)+dy+cannon.width/4);
+                //var rad = cannon.rotation * (Math.PI / 180.0);
+                //var dx = Math.cos(rad)*(cannon.width/2);
+                //var dy = Math.sin(rad)*(cannon.width/2);
+                //this.moveTo(cannon.x-(cannon.width/4)+dx+cannon.width/4, cannon.y-(this.height/2)+dy+cannon.width/4);
                 this.rotation = cannon.rotation;
             }
             scene.addChild(this);
@@ -3493,9 +3555,8 @@ window.onload = function() {
             let life = 1;
         
             if(moveSpeed != 0){
-                speed = moveSpeed + addSpeed;
                 if(stageNum >= 20){
-                    speed = speed + (0.2*(stageNum / 20));
+                    speed = speed + (0.1*(stageNum / 20));
                 }
             }
 
@@ -3657,13 +3718,15 @@ window.onload = function() {
                                 escapeFlg = false;
                                 shotNGflg = false;
                                 fireFlgs[Num] = false;
-                                if(tank.opacity != opaVal){
-                                    tank.opacity = opaVal;
-                                    cannon.opacity = opaVal;
-                                }
-                                if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400) opaFlg = true;
+                                
                                 if(category == 6){
-                                    if(this.time % 600 == 0 && addBullet == 0){
+                                    if(tank.opacity != opaVal){
+                                        tank.opacity = opaVal;
+                                        cannon.opacity = opaVal;
+                                    }
+                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400 && this.time % 4 == 0){
+                                        opaFlg = true;
+                                    }else if(this.time % 600 == 0 && addBullet == 0){
                                         opaFlg = true;
                                     }
                                     if(opaFlg == false && opaVal > 0){
@@ -3730,11 +3793,8 @@ window.onload = function() {
                             alignment.intersect(EnemyAim).forEach(function(){
                                 fireFlgs[Num] = true;
                             })
-                            for(let i = 1; i < tankEntity.length; i++){
-                                if(tank.within(tankEntity[i],64) && i != Num && deadFlgs[i]==false){
-                                    fireFlgs[Num] = false;
-                                }
-                            }
+
+                            
                             
                             /*avoids.forEach(elem=>{
                                 if(tank.within(elem,60)==true){
@@ -3742,17 +3802,23 @@ window.onload = function() {
                                 }
                             })*/
                             if(this.time % 5 == 0){
-                                    if(enemyTarget[Num] != target)enemyTarget[Num] = target;
-                                }
-                                if(grade == 6 && boms[Num]>0 && bomFlg == true){
-                                    let dist = Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2));
-                                    if(dist < 300){
-                                        
-                                        if(this.time % 5 == 0){
-                                            SelDirection(weak,bomOb[Num][0],0)
+                                if(enemyTarget[Num] != target)enemyTarget[Num] = target;
+                                for(let i = 1; i < tankEntity.length; i++){
+                                    if(i != Num && deadFlgs[i]==false){
+                                        if(tank.intersectStrict(tankEntity[i])){
+                                            value = Escape_Rot(this,tankEntity[i]);
+                                            break;
                                         }
                                     }
                                 }
+                                /*if(category = 8 && boms[Num]>0 && bomFlg == true){
+                                    let dist = Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2));
+                                    if(dist < 300){
+                                        value = Escape_Rot(this,bomOb[Num][0]);
+                                    }
+                                }*/
+                            }
+                                
 
                                 /* 迎撃処理群
                                     優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
@@ -3890,9 +3956,16 @@ window.onload = function() {
                                                         ShotBullet(i);
                                                         break;
                                                     }
-                                                }else if(category == 5 || category == 2){
+                                                }else if(category == 5){
                                                     if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
                                                         colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        ShotBullet(i);
+                                                        break;
+                                                    }
+                                                }else if(category == 2){
+                                                    if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,0,Num,scene,i);
                                                         bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
                                                         ShotBullet(i);
                                                         break;
@@ -3929,34 +4002,32 @@ window.onload = function() {
                                 }
                                
                                 if(escapeFlg == false){
-                                    
-                                    if(category == 8){
-                                        if(boms[Num] > 0){
-                                            if(Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2)) < 250){
-                                                if(this.time % 10 == 0){
-                                                    SelDirection(weak,bomOb[Num][0],0)
+                                    if(this.time % 10 == 0){
+                                        if(category == 8){
+                                            if(boms[Num] > 0){
+                                                if(Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2)) < 250){
+                                                    //SelDirection(weak,bomOb[Num][0],0)
+                                                    value = Escape_Rot(this,bomOb[Num][0]);
                                                 }
                                             }
-                                        }
-                                    }else if(grade > 3 && boms[0] > 0){
-                                        for(let elem of bomOb){
-                                            if(this.time % 10 == 0){
+                                        }else if(grade > 3 && boms[0] > 0){
+                                            for(let elem of bomOb){
                                                 if(Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2)) < 250){
                                                     SelDirection(weak,elem,0);
                                                 }  
-                                            }
-                                            
-                                        };
-                                        /*if(boms[0] > 0){
-                                            bomOb[0].forEach(elem=>{
-                                                if(Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2)) < 250){
-                                                    if(this.time % 10 == 0){
-                                                        SelDirection(weak,elem,0)
+                                            };
+                                            /*if(boms[0] > 0){
+                                                bomOb[0].forEach(elem=>{
+                                                    if(Math.sqrt(Math.pow(weak.x - bomOb[Num][0].x, 2) + Math.pow(weak.y - bomOb[Num][0].y, 2)) < 250){
+                                                        if(this.time % 10 == 0){
+                                                            SelDirection(weak,elem,0)
+                                                        }
                                                     }
-                                                }
-                                            })
-                                        }*/
+                                                })
+                                            }*/
+                                        }         
                                     }
+                                    
                                 }
                                 if(game.time % 5 == 0){
                                     for(var i = 0; i < tankEntity.length; i++){
@@ -4115,9 +4186,8 @@ window.onload = function() {
             let life = 1;
         
             if(moveSpeed != 0){
-                speed = moveSpeed + addSpeed;
                 if(stageNum >= 20){
-                    speed = speed + (0.2*(stageNum / 20));
+                    speed = speed + (0.1*(stageNum / 20));
                 }
             }
 
@@ -4366,6 +4436,7 @@ window.onload = function() {
                                             //fireFlgs[Num] = false;
                                             //tankStopFlg = true;
                                             value = Escape_Rot(this,tankEntity[i]);
+                                            break;
                                         }
                                     } 
                                 }
@@ -4955,9 +5026,8 @@ window.onload = function() {
             let shotStopTime = 0;
 
             if(moveSpeed != 0){
-                speed = moveSpeed + addSpeed;
-                if(stageNum >= 20 && grade < 10){
-                    speed = speed + (0.2*(stageNum / 20));
+                if(stageNum >= 20){
+                    speed = speed + (0.1*(stageNum / 20));
                 }
             }
             
@@ -5497,7 +5567,7 @@ window.onload = function() {
                                 if(grade >= 10){
                                     if(grade == 13){
                                         if(dflg == true || escapeFlg == true){
-                                            if((bullets[Num] < emax+defenseMax && deadFlgs[Num] == false) && (this.time % 13 == 0 || this.time % 25 == 0)){
+                                            if((bullets[Num] < emax+defenseMax && deadFlgs[Num] == false) && (this.time % 15 == 0 || this.time % 23 == 0)){
                                                 for(let i = 0; i < emax+defenseMax; i++){
                                                     if(bulStack[Num][i] == false){
                                                         colOb[Num][i] = new BulletCol(alignment,cannon,15,10,Num,scene,i);
@@ -5536,7 +5606,7 @@ window.onload = function() {
                                                     }
                                                 }
                                             }else{
-                                                if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 10 == 0){
+                                                if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 13 == 0){
                                                     for(let i = 0; i < emax+defenseMax; i++){
                                                         if(bulStack[Num][i] == false){
                                                             colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
@@ -5550,7 +5620,7 @@ window.onload = function() {
                                             }
                                         }
                                     }else if(grade == 10 && dflg == true){
-                                        if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 10 == 0){
+                                        if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 13 == 0){
                                             for(let i = 0; i < emax+defenseMax; i++){
                                                 if(bulStack[Num][i] == false){
                                                     colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
@@ -6149,7 +6219,7 @@ window.onload = function() {
                 tutorialLabel.height = 72;
                 tutorialLabel.x = pixelSize;
                 tutorialLabel.y = pixelSize*14;
-                tutorialLabel.text = '※チュートリアル中はStartボタンでタイトルに戻れます';
+                tutorialLabel.text = '※チュートリアル中はPAUSEボタンでタイトルに戻れます';
                 tutorialLabel.font = '32px "Arial"';
                 tutorialLabel.color = 'yellow';
                 tutorialLabel.textAlign = 'left';
@@ -6211,8 +6281,8 @@ window.onload = function() {
                 new DispText(pixelSize,pixelSize*10,pixelSize*18,pixelSize/2,  '　移動　：左の十字パッド　（斜め移動可）　　　　　　砲撃で発射される弾は','24px sans-serif','white','left',scene)
                 new DispText(pixelSize,pixelSize*10.5,pixelSize*18,pixelSize/2,'　　　　　　　　　　　　　　　　　　　　　　 　　　  壁に当たると跳ね返ります。','24px sans-serif','white','left',scene)
                 new DispText(pixelSize,pixelSize*11,pixelSize*18,pixelSize/2,  '　照準　：画面タップか画面スライド　　','24px sans-serif','white','left',scene)
-                new DispText(pixelSize,pixelSize*11.5,pixelSize*18,pixelSize/2,'　砲撃　：右側のAボタン　　　　　　　　　　　　　　跳ね返った弾にも判定があるので','24px sans-serif','white','left',scene)
-                new DispText(pixelSize,pixelSize*12,pixelSize*18,pixelSize/2,  '爆弾設置：右側のBボタン　　　　　　　　　　　　　    自滅には注意してください。','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*11.5,pixelSize*18,pixelSize/2,'　砲撃　：右側のBボタン　　　　　　　　　　　　　　跳ね返った弾にも判定があるので','24px sans-serif','white','left',scene)
+                new DispText(pixelSize,pixelSize*12,pixelSize*18,pixelSize/2,  '爆弾設置：右側のAボタン　　　　　　　　　　　　　    自滅には注意してください。','24px sans-serif','white','left',scene)
                 new DispText(pixelSize,pixelSize*12.5,pixelSize*18,pixelSize/2,'一時停止：Startボタン　　　　　　　　　','24px sans-serif','white','left',scene)
             }else{
                 tutorialLabel.text = '※チュートリアル中はEscキーを押すとタイトルに戻れます';
@@ -6588,17 +6658,17 @@ window.onload = function() {
             //  戦車ごとのテキストを格納する配列
             let performance = [
                 ["Player","　弾数　：5","　弾速　：普通","跳弾回数：1","移動速度：普通","・プレイヤーが操作する戦車<br>　強いか弱いかはあなた次第。"],
-                [colorsName[0],'　弾数　：'+(cateMaxBullets[0]+addBullet),"　弾速　：普通","跳弾回数：1","移動速度：動かない","・一番最初に戦う雑魚敵。<br>　弱いが油断はできない。"],
-                [colorsName[1],'　弾数　：'+(cateMaxBullets[1]+addBullet),"　弾速　：普通","跳弾回数：1","移動速度：遅い","・動けるようになったがまだ弱い。<br>　配置によっては化ける。"],
-                [colorsName[2],'　弾数　：'+(cateMaxBullets[2]+addBullet),"　弾速　：とても速い","跳弾回数："+addBullet,"移動速度：動かない～遅い","・とにかく弾が速い。<br>　スナイプされないよう注意！"],
-                [colorsName[3],'　弾数　：'+(cateMaxBullets[3]+addBullet),"　弾速　：普通","跳弾回数：0","移動速度：普通","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
-                [colorsName[4],'　弾数　：'+(cateMaxBullets[4]+addBullet),"　弾速　：速い","跳弾回数：2","移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
-                [colorsName[5],'　弾数　：'+(cateMaxBullets[5]+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：普通","・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
-                [colorsName[6],'　弾数　：'+(cateMaxBullets[6]+addBullet),"　弾速　：速い","跳弾回数：1","移動速度：遅い","・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
-                [colorsName[7],'　弾数　：'+(cateMaxBullets[7]+addBullet),"　弾速　：とても速い","跳弾回数：2","移動速度：動かない","・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
-                [colorsName[8],'　弾数　：'+(cateMaxBullets[8]+addBullet),"　弾速　：とても速い","跳弾回数：2","移動速度：とても速い","・簡潔にいうと爆弾魔。<br>　爆弾を設置しないと攻撃してこない。"],
-                [colorsName[9],'　弾数　：'+(cateMaxBullets[9]+addBullet),"　弾速　：速い","跳弾回数：0","移動速度：動かない","・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
-                [colorsName[10],"　弾数　："+(1+addBullet),"　弾速　：最速","跳弾回数：0","移動速度：普通","・いつ現れるか分からない戦車。<br>　出現したら要注意。"],
+                [colorsName[0],'　弾数　：'+(cateMaxBullets[0]+addBullet),"　弾速　：普通","跳弾回数："+cateMaxRefs[0],"移動速度：動かない","・一番最初に戦う雑魚敵。<br>　弱いが油断はできない。"],
+                [colorsName[1],'　弾数　：'+(cateMaxBullets[1]+addBullet),"　弾速　：普通","跳弾回数："+cateMaxRefs[1],"移動速度：遅い","・動けるようになったがまだ弱い。<br>　配置によっては化ける。"],
+                [colorsName[2],'　弾数　：'+(cateMaxBullets[2]+addBullet),"　弾速　：とても速い","跳弾回数："+(cateMaxRefs[2]+addBullet),"移動速度：動かない～遅い","・とにかく弾が速い。<br>　スナイプされないよう注意！"],
+                [colorsName[3],'　弾数　：'+(cateMaxBullets[3]+addBullet),"　弾速　：普通","跳弾回数："+cateMaxRefs[3],"移動速度：普通","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
+                [colorsName[4],'　弾数　：'+(cateMaxBullets[4]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[4],"移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
+                [colorsName[5],'　弾数　：'+(cateMaxBullets[5]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[5],"移動速度：普通","・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
+                [colorsName[6],'　弾数　：'+(cateMaxBullets[6]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[6],"移動速度：遅い","・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
+                [colorsName[7],'　弾数　：'+(cateMaxBullets[7]+addBullet),"　弾速　：とても速い","跳弾回数："+cateMaxRefs[7],"移動速度：動かない","・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
+                [colorsName[8],'　弾数　：'+(cateMaxBullets[8]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[8],"移動速度：とても速い","・簡潔にいうと爆弾魔。<br>　爆弾を設置しないと攻撃してこない。"],
+                [colorsName[9],'　弾数　：'+(cateMaxBullets[9]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[9],"移動速度：動かない","・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
+                [colorsName[10],"　弾数　："+(cateMaxBullets[10]+addBullet),"　弾速　：最速","跳弾回数："+cateMaxRefs[10],"移動速度：普通","・いつ現れるか分からない戦車。<br>　圧倒的な弾速に要注意。"],
                 [colorsName[11],"　弾数　：?","　弾速　：普通~速い","跳弾回数：0~1","移動速度：普通~速い","・攻防ともに優れたボス格。<br>　ステージごとに強さが異なる。"],
                 ["Abyssal","　弾数　：?","　弾速　：速い~とても速い","跳弾回数：0~1","移動速度：普通~速い","・ステルスも使えるボス格。<br>　\"最後\"は真っ向勝負となる。"]
             ]
@@ -6953,6 +7023,7 @@ window.onload = function() {
             }
                 filterMap.loadData(fmap,filImg);
                 //filterMap.collisionData = fcol;
+                //filterMap.opacity = 0;
                 scene.addChild(filterMap);
 
             /* カーソルの設置＆位置取得処理 */
@@ -6981,6 +7052,9 @@ window.onload = function() {
             let abn = Math.floor(Math.random() * 10);
     
             for(let i = 4; i < Object.keys(stageData).length; i++){
+                if(stageData[i][10] != 11 && stageData[i][7] > 0){
+                    stageData[i][7] = cateMoveSpeeds[stageData[i][10]] + addSpeed;
+                };
                 bulOb.push([])
                 colOb.push([])
                 bomOb.push([])
@@ -6990,14 +7064,11 @@ window.onload = function() {
                         tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],cateMaxBullets[10]+addBullet,cateMaxRefs[10],cateShotSpeeds[10],1.0,cateFireLate[10],10,10,scene,filterMap,backgroundMap,grid))
                         //tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],cateMaxBullets[10]+addBullet,0,cateShotSpeeds[10],1.5,cateFireLate[10],10,10,scene,filterMap))
                         stageData[i][10] = 10;
-                    }else if(stageData[i][10] == 7){
+                    }else if(stageData[i][10] == 7 || stageData[i][10] == 0){
                         tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
                     }else if(stageData[i][10]==5 || stageData[i][10] == 4){
                         tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
-                    }else if(stageData[i][10] == 0){
-                        tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
-                    }//else if(stageData[i][9] >= 8){
-                    else if(stageData[i][10] == 11){
+                    }else if(stageData[i][10] == 11){
                         tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                     }else if(stageData[i][9]>2){
                         tankEntity.push(new Elite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
@@ -7012,12 +7083,10 @@ window.onload = function() {
                             tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],cateMaxBullets[10]+addBullet,cateMaxRefs[10],cateShotSpeeds[10],1.0,cateFireLate[10],10,10,scene,filterMap,backgroundMap,grid))
                             //tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],cateMaxBullets[10]+addBullet,0,cateShotSpeeds[10],1.5,cateFireLate[10],10,10,scene,filterMap))
                             stageData[i][10] = 10;
-                        }else if(stageData[i][10] == 7){
+                        }else if(stageData[i][10] == 7 || stageData[i][10] == 0){
                             tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
                         }else if(stageData[i][10]==5 || stageData[i][10] == 4){
                             tankEntity.push(new AIElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],stageData[i][7],cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap,backgroundMap,grid))
-                        }else if(stageData[i][10] == 0){
-                            tankEntity.push(new AnotherElite(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],cateMaxBullets[stageData[i][10]]+addBullet,cateMaxRefs[stageData[i][10]],cateShotSpeeds[stageData[i][10]],0,cateFireLate[stageData[i][10]],stageData[i][9],stageData[i][10],scene,filterMap));
                         }else if(stageData[i][10] == 11){
                             tankEntity.push(new Boss(stageData[i][0],stageData[i][1],stageData[i][2],stageData[i][3],tankEntity[0],stageData[i][4]+addBullet,stageData[i][5],stageData[i][6]-1,stageData[i][7],stageData[i][8],stageData[i][9],stageData[i][10],scene,filterMap))
                         }else if(stageData[i][9]>2){
