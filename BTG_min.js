@@ -1343,7 +1343,7 @@ window.onload = function() {
     });
     /* 戦車の砲塔クラス */
     var Cannon = Class.create(Sprite, {
-        initialize: function(area,path,num,scene,filterMap) {
+        initialize: function(area,path,num,scene) {
             Sprite.call(this, (base*(size+0.5)*2), base*(size+0.5));
             this.image = game.assets[path]
             this.x = area.x-37;
@@ -1808,7 +1808,7 @@ window.onload = function() {
             let rad = Math.atan2(vec.y, vec.x);
             this.vec = vec;
             this.rad = rad;
-            this.moveTo((cannon.x+(cannon.width/2))+Math.cos(rad)*(58)-2.25, (cannon.y+(cannon.height/2))+Math.sin(rad)*(58)-3);
+            this.moveTo((cannon.x+(cannon.width/2))+Math.cos(rad)*(60)-2.25, (cannon.y+(cannon.height/2))+Math.sin(rad)*(60)-3);
             /*this.moveTo(cannon.x+(cannon.width/2)-2.25,cannon.y+(cannon.height/2)-3)
             var rad = (cannon.rotation+(random0+random1)) * (Math.PI / 180.0);
             this.moveTo(this.x+(base*3.8)*Math.cos(rad), this.y+(base*3.8)*Math.sin(rad));*/
@@ -2454,12 +2454,12 @@ window.onload = function() {
     /* 敵が狙う対象を追いかけるクラス */
     var Target = Class.create(Sprite,{
         initialize: function(num,scene){
-            Sprite.call(this,20,20);
+            Sprite.call(this,30,30);
             //this.backgroundColor = "#0f0a"
             let speed = 32;
             this.rotation = 90;
-            this.originX = 10;
-            this.originY = 10;
+            this.originX = 15;
+            this.originY = 15;
             let target,rad,dx,dy;
             let prediction = [0,0]
             this.moveTo(0,0)
@@ -2759,7 +2759,7 @@ window.onload = function() {
             
             //  戦車の各パーツ呼び出し
             const weak = new Weak(this,Num,scene)                       //  弱点
-            const cannon = new Cannon(this,path2,Num,scene,filterMap)   //  砲塔
+            const cannon = new Cannon(this,path2,Num,scene)   //  砲塔
             const tank = new Tank(this,path1,Num,scene,cannon)          //  車体
             this.weak = weak;
             this.cannon = cannon;
@@ -3059,7 +3059,7 @@ window.onload = function() {
             
             //  戦車の各パーツ生成
             const weak = new Weak(this,Num,scene)                           //  弱点生成
-            const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)  //  砲塔生成
+            const cannon = new Cannon(this,cannonPath,Num,scene)  //  砲塔生成
             const tank = new Tank(this,tankPath,Num,scene,cannon)           //  車体生成
             this.weak = weak;
             this.cannon = cannon;
@@ -3522,7 +3522,7 @@ window.onload = function() {
             boms[Num] = 0;
             deadFlgs.push(false)
             
-            const cannon = new Cannon(this,path2,Num,scene,filterMap)
+            const cannon = new Cannon(this,path2,Num,scene)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
             this.weak = weak;
@@ -3718,16 +3718,39 @@ window.onload = function() {
                                 escapeFlg = false;
                                 shotNGflg = false;
                                 fireFlgs[Num] = false;
+                                tank.opacity = opaVal;
+                                cannon.opacity = opaVal;
                                 
                                 if(category == 6){
-                                    if(tank.opacity != opaVal){
-                                        tank.opacity = opaVal;
-                                        cannon.opacity = opaVal;
+                                    if(this.within(target,400)){
+                                        opaFlg = true;
+                                    }else{
+                                        opaFlg = false;
                                     }
-                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400){
+                                    if(opaFlg){
+                                        if(opaVal < 1){
+                                            opaVal += 0.1;
+                                            if(opaVal >= 1.0){
+                                                opaVal = 1.0;
+                                                opaFlg = false;
+                                            }
+                                        }
+                                    }else{
+                                        if(this.time % 600 && addBullet == 0){
+                                            opaFlg = true;
+                                        }
+                                        if(opaVal > 0){
+                                            opaVal-=0.05
+                                            if(opaVal <= 0){
+                                                opaVal = 0
+                                            }
+                                        }
+                                    }
+                                    
+                                    /*if(this.within(target,400)){
                                         opaFlg = true;
                                     }
-				    if(this.time % 600 == 0 && addBullet == 0){
+				                    if(this.time % 600 == 0 && addBullet == 0){
                                         opaFlg = true;
                                     }
                                     if(opaFlg == false && opaVal > 0){
@@ -3741,7 +3764,7 @@ window.onload = function() {
                                             opaVal = 1.0;
                                             opaFlg = false;
                                         }
-                                    }
+                                    }*/
                                 }else if(category == 8){
                                     if(tank.within(target,300)==true && bomFlg == false && boms[Num] == 0){
                                         game.assets['./sound/Sample_0009.wav'].clone().play();
@@ -4148,7 +4171,7 @@ window.onload = function() {
             boms[Num] = 0;
             deadFlgs.push(false)
             
-            const cannon = new Cannon(this,path2,Num,scene,filterMap)
+            const cannon = new Cannon(this,path2,Num,scene)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
             this.weak = weak;
@@ -4319,64 +4342,66 @@ window.onload = function() {
                             shotStopTime = 0;
                         }
                     }
-                    if(escapeFlg == false)rootFlg = false;
-                    if(enemyTarget[Num] != target) rootFlg = true;
-                    if(moveSpeed != 0 && escapeFlg == false && tankStopFlg == false){
-                        //  自身の位置とターゲットの位置をざっくり算出
-                        myPath = [parseInt((this.y+(this.height/2)-1)/pixelSize),parseInt((this.x+(this.width/2)-1)/pixelSize)]
-                        targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
-                        //  マップの障害物情報に自身とターゲットの位置設定
-                        for(var i = 0; i < grid.length; i++){
-                            for(var j = 0; j < grid[i].length; j++){
-                                if(i == myPath[0] && j == myPath[1]){
-                                    grid[i][j] = 'Start';
-                                }else if(i == targetPath[0] && j == targetPath[1]){
-                                    grid[i][j] = 'Goal';
-                                }else{
-                                    //  StartやGoalの位置が更新されている場合の処理
-                                    if(map.collisionData[i][j] == 0){
-                                        grid[i][j] = 'Empty';
-                                    }else{
-                                        grid[i][j] = 'Obstacle';
-                                    }
-                                }
-                            }
-                        }
-                        if((rootFlg == false && this.time % 20 == 0) || this.time == 0){
-                            root = findShortestPath([myPath[0],myPath[1]], grid,scene);
-                            if(root[0] == "East"){
-                                value = 1;
-                            }else if(root[0] == "West"){
-                                value = 0;
-                            }else if(root[0] == "North"){
-                                value = 2;
-                            }else if(root[0] == "South"){
-                                value = 3;
-                            }else{
-                                rootFlg = true;
-                            }
-                        }
-                        
-                    }
-                    if(tankStopFlg) tankStopFlg = false;
+                    
+                    
+                    
+                    
                     
                     if(worldFlg == true && defeat == false && victory == false && complete == false){
                         this.time++;
                         if(deadFlgs[0] == false){
                             
-                            
+                            if(this.time % 2 == 0){
+                                if(escapeFlg == false)rootFlg = false;
+                                if(enemyTarget[Num] != target) rootFlg = true;
+                                if(tankStopFlg) tankStopFlg = false;
+                                escapeFlg = false;
+                                shotNGflg = false;
+                                fireFlgs[Num] = false;
+                                if(moveSpeed != 0 && escapeFlg == false && tankStopFlg == false){
+                                    //  自身の位置とターゲットの位置をざっくり算出
+                                    myPath = [parseInt((this.y+(this.height/2)-1)/pixelSize),parseInt((this.x+(this.width/2)-1)/pixelSize)]
+                                    targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+                                    //  マップの障害物情報に自身とターゲットの位置設定
+                                    for(var i = 0; i < grid.length; i++){
+                                        for(var j = 0; j < grid[i].length; j++){
+                                            if(i == myPath[0] && j == myPath[1]){
+                                                grid[i][j] = 'Start';
+                                            }else if(i == targetPath[0] && j == targetPath[1]){
+                                                grid[i][j] = 'Goal';
+                                            }else{
+                                                //  StartやGoalの位置が更新されている場合の処理
+                                                if(map.collisionData[i][j] == 0){
+                                                    grid[i][j] = 'Empty';
+                                                }else{
+                                                    grid[i][j] = 'Obstacle';
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if((rootFlg == false && this.time % 20 == 0) || this.time == 0){
+                                        root = findShortestPath([myPath[0],myPath[1]], grid,scene);
+                                        if(root[0] == "East"){
+                                            value = 1;
+                                        }else if(root[0] == "West"){
+                                            value = 0;
+                                        }else if(root[0] == "North"){
+                                            value = 2;
+                                        }else if(root[0] == "South"){
+                                            value = 3;
+                                        }else{
+                                            rootFlg = true;
+                                        }
+                                    }
+                                    
+                                }
+                            }
                                 
                             if(hittingTime>=30){
                                 while(value == now) value = Math.floor(Math.random() * 4);
                                 hittingTime = 0;
                             }
 
-                            if(this.time % 2 == 0){
-                                escapeFlg = false;
-                                shotNGflg = false;
-                                fireFlgs[Num] = false;
-                            }
-                            
                             /*for(var j = 0; j < bulOb.length; j++){
                                 for(var k = 0; k < bulOb[j].length; k++){
                                     if(tank.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true){
@@ -4739,7 +4764,7 @@ window.onload = function() {
             boms[Num] = 0;
             deadFlgs.push(false)
             
-            const cannon = new Cannon(this,path2,Num,scene,filterMap)
+            const cannon = new Cannon(this,path2,Num,scene)
             const tank = new Tank(this,path1,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
             this.weak = weak;
@@ -4989,7 +5014,7 @@ window.onload = function() {
             boms[Num] = 0;
             deadFlgs.push(false)
             
-            const cannon = new Cannon(this,cannonPath,Num,scene,filterMap)
+            const cannon = new Cannon(this,cannonPath,Num,scene)
             const tank = new Tank(this,tankPath,Num,scene,cannon)
             const weak = new Weak(this,Num,scene)
             this.weak = weak;
@@ -5273,18 +5298,37 @@ window.onload = function() {
                                 dflg = false;
                                 stopFlg = false;
                                 escapeFlg = false;
-                                if(tank.opacity != opaVal){
-                                    tank.opacity = opaVal;
-                                    cannon.opacity = opaVal;
-                                }
                                 fireFlgs[Num] = false;
                                 enemyTarget[Num] = target;
                                 if(category == 6){
-                                    if(this.time % 600 == 0 && addBullet == 0){
+                                    tank.opacity = opaVal;
+                                    cannon.opacity = opaVal;
+                                    if(this.within(target,400)){
                                         opaFlg = true;
+                                    }else{
+                                        opaFlg = false;
                                     }
-                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400) opaFlg = true;
-                                    if(opaFlg == false && opaVal > 0){
+                                    if(opaFlg){
+                                        if(opaVal < 1){
+                                            opaVal += 0.1;
+                                            if(opaVal >= 1.0){
+                                                opaVal = 1.0;
+                                                opaFlg = false;
+                                            }
+                                        }
+                                    }else{
+                                        if(this.time % 600 && addBullet == 0){
+                                            opaFlg = true;
+                                        }
+                                        if(opaVal > 0){
+                                            opaVal-=0.05
+                                            if(opaVal <= 0){
+                                                opaVal = 0
+                                            }
+                                        }
+                                    }
+                                    
+                                    /*if(opaFlg == false && opaVal > 0){
                                         opaVal-=0.05
                                         if(opaVal <= 0){
                                             opaVal = 0
@@ -5295,25 +5339,35 @@ window.onload = function() {
                                             opaVal = 1.0;
                                             opaFlg = false;
                                         }
-                                    }
+                                    }*/
                                 }else if(grade == 11){
-                                    if(Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < 400){
+                                    tank.opacity = opaVal;
+                                    cannon.opacity = opaVal;
+                                    if(this.within(target,400)){
                                         opaFlg = true;
+                                    }else{
+                                        opaFlg = false;
                                     }
-                                    if(opaFlg == false && opaVal > 0){
-                                        opaVal-=0.05
-                                        
-                                        if(opaVal <= 0){
-                                            opaVal = 0
+                                    if(opaFlg){
+                                        if(opaVal < 1){
+                                            opaVal += 0.25;
+                                            if(opaVal >= 1.0){
+                                                opaVal = 1.0;
+                                                opaFlg = false;
+                                            }
                                         }
-                                    }else if(opaFlg == true && opaVal <= 1.0){
-                                        opaVal += 0.25;
-
-                                        if(opaVal >= 1.0){
-                                            opaVal = 1.0;
-                                            opaFlg = false;
+                                    }else{
+                                        if(this.time % 600 && addBullet == 0){
+                                            opaFlg = true;
+                                        }
+                                        if(opaVal > 0){
+                                            opaVal-=0.05
+                                            if(opaVal <= 0){
+                                                opaVal = 0
+                                            }
                                         }
                                     }
+                                    
                                 }
                             }
                             
@@ -5602,6 +5656,7 @@ window.onload = function() {
                                                             bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,emax,shotSpeed,scene,i)
                                                             ShotBullet(i);
                                                             opaFlg = true;
+                                                            opaVal = 0.5;
                                                             break;
                                                         }
                                                     }
@@ -5614,6 +5669,7 @@ window.onload = function() {
                                                             bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,emax+defenseMax,shotSpeed,scene,i)
                                                             ShotBullet(i);
                                                             opaFlg = true;
+                                                            opaVal = 0.5;
                                                             break;
                                                         }
                                                     }
@@ -5759,6 +5815,66 @@ window.onload = function() {
             scene.addChild(this);
         }
     });
+
+    /*var TestEntity = Class.create(Sprite,{
+        initialize: function(x,y,tankPath,cannonPath,target,grade,category,scene){
+            Sprite.call(this, pixelSize-4, pixelSize-4)
+            this.x = x*pixelSize;
+            this.y = y*pixelSize-16;
+            this.time = 0;
+            
+            const Num = entVal;
+            entVal++;
+            bullets[Num] = 0;
+            boms[Num] = 0;
+            deadFlgs.push(false);
+            
+            const cannon = new Cannon(this,cannonPath,Num,scene)
+            const tank = new Tank(this,tankPath,Num,scene,cannon)
+            const weak = new Weak(this,Num,scene)
+            this.weak = weak;
+            this.cannon = cannon;
+            this.tank = tank;
+            TankFrame(this,Num,scene)
+
+            var value = 0;
+            var rot = 0;
+            var emax = cateMaxBullets[category];
+            var speed = cateMoveSpeeds[category];
+            var stopFlg = false;
+            var escapeFlg = false;
+            let life = 1;
+            let reloadFlg = false;
+            let reloadTime = 0;
+            let shotNGflg = false;
+            let shotStopFlg = false;
+            let shotStopTime = 0;
+
+            enemyTarget[Num] = target;
+            var alignment = new Target(Num,scene)
+
+            for(var i = 0; i < emax; i++){
+                colOb[Num][i] = new BulletCol(alignment,cannon,cateShotSpeeds[category],grade,Num,scene,i);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,cateMaxRefs[category],Num,emax,cateShotSpeeds[category],scene,i);
+                bulStack[Num][i] = false;
+                colOb[Num][i].moveTo(-250,-250)
+                bulOb[Num][i].moveTo(-100,-100)
+            }
+
+            bomOb[Num][0] = new Bom(this,Num,scene);
+
+            var EnemyAim = Class.create(Aim,{
+                initialize: function(){
+                    Aim.call(this,alignment,cannon,15,Num,scene);
+                }
+            })
+
+            this.onenterframe = function(){
+
+            }
+        }
+    })*/
+
     /* アイコン用戦車クラス */
     var PictureTank = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,scene){
