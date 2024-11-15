@@ -754,7 +754,8 @@ class InputManager {
         right: `${height * 0.5}px`,
         top: `${height * 0.4}px`,
         borderRadius: "50%",
-        borderColor: '#88f'
+        borderColor: '#88f',
+        color: '#fff'
       }
       new ActBtn(this.pad, this.input, "A", "B", style);
   
@@ -765,7 +766,8 @@ class InputManager {
         right: `${height * 0.05}px`,
         top: `${height * 0.1}px`,
         borderRadius: "50%",
-        borderColor: '#f44'
+        borderColor: '#f44',
+        color: '#fff'
       }
       new ActBtn(this.pad, this.input, "B", "A", style);
   
@@ -776,7 +778,8 @@ class InputManager {
         right: `${height * 0.65}px`,
         top: `${height * 0.05}px`,
         borderRadius: `${height * 0.15 * 0.5}px`,
-        borderColor: 'gray'
+        borderColor: '#aaa',
+        color: '#fff'
       }
       new ActBtn(this.pad, this.input, "Start", "PAUSE", style);
     }
@@ -910,6 +913,7 @@ class InputManager {
       //ボタン名を表示
       const p = document.createElement('p');
       p.innerHTML = name;
+      p.style.color = style.color;
       div.appendChild(p);
   
       //タッチスタート
