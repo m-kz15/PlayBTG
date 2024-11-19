@@ -11,6 +11,8 @@ const stage_h = 15;
 var game;
 var now_scene;
 
+let debugFlg = false;
+
 let scl = 1;
 
 var ScreenMargin = 120;
@@ -375,7 +377,6 @@ const stagePath = [
     './stage/stage99.js'
 ];
 
-var terminal = false;
 
 /* ステージファイル呼び出し処理用 */
 var script = document.createElement("script");
@@ -909,6 +910,7 @@ class InputManager {
       div.style.top = style.top;
       div.style.borderRadius = style.borderRadius;
       div.style.borderColor = style.borderColor;
+      
   
       //ボタン名を表示
       const p = document.createElement('p');
@@ -1166,31 +1168,34 @@ window.onload = function() {
     /* 照準反射クラス群 */
     var RefTop = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,target.width-6,8);
-            //this.backgroundColor = "white";
-            this.x = target.x+(this.height/2);
+            Sprite.call(this,target.width-4,8);
+            if(debugFlg)this.backgroundColor = "white";
+            this.x = target.x+(2);
             this.y = target.y-1;
             refChk[num][0] = true
             this.onenterframe = function(){
-                for(let i = 0; i < refdir.length; i++){
-                    if(i != num){
-                        if(this.intersect(refdir[i][1])==true){
-                            refChk[num][0]=false;
-                            refChk[i][1]=false;
-                            scene.removeChild(this);
-                            scene.removeChild(refdir[i][1])
+                if(scene.time == 10){
+                    for(let i = 0; i < refdir.length; i++){
+                        if(i != num){
+                            if(this.intersect(refdir[i][1])==true){
+                                refChk[num][0]=false;
+                                refChk[i][1]=false;
+                                scene.removeChild(this);
+                                scene.removeChild(refdir[i][1])
+                            }
                         }
                     }
                 }
+                
             }
             scene.addChild(this);
         }
     });
     var RefBottom = Class.create(Sprite, {
         initialize: function(target,num,scene) {
-            Sprite.call(this,target.width-6,8);
-            //this.backgroundColor = "blue";
-            this.x = target.x+(this.height/2);
+            Sprite.call(this,target.width-4,8);
+            if(debugFlg)this.backgroundColor = "blue";
+            this.x = target.x+(2);
             this.y = target.y+target.height-(this.height-1);
             refChk[num][1] = true
             scene.addChild(this);
@@ -1199,21 +1204,24 @@ window.onload = function() {
     var RefLeft = Class.create(Sprite, {
         initialize: function(target,num,scene) {
             Sprite.call(this,8,target.height);
-            //this.backgroundColor = "green";
+            if(debugFlg)this.backgroundColor = "green";
             this.x = target.x-1;
             this.y = target.y;
             refChk[num][2] = true
             this.onenterframe = function(){
-                for(let i = 0; i < refdir.length; i++){
-                    if(i != num){
-                        if(this.intersect(refdir[i][3])==true){
-                            refChk[num][2]=false;
-                            refChk[i][3]=false;
-                            scene.removeChild(this);
-                            scene.removeChild(refdir[i][3])
+                if(scene.time == 10){
+                    for(let i = 0; i < refdir.length; i++){
+                        if(i != num){
+                            if(this.intersect(refdir[i][3])==true){
+                                refChk[num][2]=false;
+                                refChk[i][3]=false;
+                                scene.removeChild(this);
+                                scene.removeChild(refdir[i][3])
+                            }
                         }
                     }
                 }
+                
             }
             scene.addChild(this);
         }
@@ -1221,7 +1229,7 @@ window.onload = function() {
     var RefRight = Class.create(Sprite, {
         initialize: function(target,num,scene) {
             Sprite.call(this,8,target.height);
-            //this.backgroundColor = "red";
+            if(debugFlg)this.backgroundColor = "red";
             this.x = target.x+target.width-(this.width-1);
             this.y = target.y;
             refChk[num][3] = true
@@ -1317,17 +1325,48 @@ window.onload = function() {
         initialize: function(scene){
             Sprite.call(this,base,base);
             this.backgroundColor = "#6af8"
-            this.moveTo(0,0)
-            this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
-            }
+            this.moveTo(0,0);
+
+            /*this.onenterframe = function(){
+                for(let i = 1; i < tankEntity.length; i++){
+                    if(deadFlgs[i] == false){
+                        if(this.within(tankEntity[i], 64)){
+                            let vector = {
+                                x: (tankEntity[i].x + tankEntity[i].width/2) - (this.x + this.width/2),
+                                y: (tankEntity[i].y + tankEntity[i].height/2) - (this.y + this.height/2)
+                            };
+                            let rad = Math.atan2(vector.y, vector.x);
+                            this.moveTo(this.x + Math.cos(rad)*10,this.y + Math.sin(rad)*10)
+                        }
+                        for(let j = 0; j < bulOb[i].length; j++){
+                            if(bulStack[i][j] == true){
+                                if(this.within(bulOb[i][j], 128)){
+                                    let vector = {
+                                        x: (bulOb[i][j].x + bulOb[i][j].width/2) - (this.x + this.width/2),
+                                        y: (bulOb[i][j].y + bulOb[i][j].height/2) - (this.y + this.height/2)
+                                    };
+                                    let rad = Math.atan2(vector.y, vector.x);
+                                    let vector2 = Pos_to_Vec({x: (tankEntity[0].x+tankEntity[0].width/2), y: (tankEntity[0].y+tankEntity[0].height/2)},
+                                    {x: (bulOb[i][j].x+bulOb[i][j].width/2), y: (bulOb[i][j].y+bulOb[i][j].height/2)});
+                                    let rad2 = Math.atan2(vector2.y, vector2.x);
+                                    
+                                    this.moveTo(this.x + Math.cos(rad)*10 + Math.cos(colOb[i][j].rad) * (colOb[i][j].shotSpeed),this.y + Math.sin(rad)*10 + Math.sin(colOb[i][j].rad) * (colOb[i][j].shotSpeed))
+                                }
+                            }
+                            
+                        }
+                    }
+
+                };
+                
+            }*/
             scene.addChild(this);
         }
     })
     /* 戦車の車体クラス */
     var Tank = Class.create(Sprite, {
         initialize: function(area,path,num,scene,filterMap) {
-            Sprite.call(this, base*(size+0.3), base*(size-0.55));
+            Sprite.call(this, 70, 56);
             //this.backgroundColor = "#fff";
             this.image = game.assets[path]
             this.x = area.x+0.5;
@@ -1348,7 +1387,7 @@ window.onload = function() {
     /* 戦車の砲塔クラス */
     var Cannon = Class.create(Sprite, {
         initialize: function(area,path,num,scene) {
-            Sprite.call(this, (base*(size+0.5)*2), base*(size+0.5));
+            Sprite.call(this, 144, 72);
             this.image = game.assets[path]
             this.x = area.x-37;
             this.y = area.y-8;
@@ -1410,9 +1449,9 @@ window.onload = function() {
             Sprite.call(this,base/2,base/2);
             if(num == 0){
                 this.backgroundColor = "#aff4"
-            }/*else{
+            }else if(debugFlg){
                 this.backgroundColor = "#f008"
-            }*/
+            }
             
             
             let vec = Pos_to_Vec(
@@ -1442,17 +1481,18 @@ window.onload = function() {
     })
     var AnotherAim = Class.create(Sprite,{
         initialize: function(target,cannon,ref,num,scene){
-            Sprite.call(this,8,8);
-            //this.backgroundColor = "#88f";
+            Sprite.call(this,10,8);
+            if(debugFlg)this.backgroundColor = "#88f";
             //this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
             this.time = 0;
             this.hitTime = 0;
             this.originX = 4;
             this.originY = 4;
             var rad = (cannon.rotation) * (Math.PI / 180.0);
-            var dx = Math.cos(rad) * 20;
-            var dy = Math.sin(rad) * 20;
-            this.moveTo((cannon.x+(cannon.width/2))+(56*Math.cos(rad))-(this.width/2+1), (cannon.y+(cannon.height/2))+(56*Math.sin(rad))-(this.height/2+1));
+            var dx = Math.cos(rad) * 24;
+            var dy = Math.sin(rad) * 24;
+            this.moveTo((cannon.x+(cannon.width/2))+(48*Math.cos(rad))-(this.width/2), (cannon.y+(cannon.height/2))+(48*Math.sin(rad))-(this.height/2));
+            //this.moveTo((cannon.x+(cannon.width/2))+(56*Math.cos(rad))-(this.width/2+1), (cannon.y+(cannon.height/2))+(56*Math.sin(rad))-(this.height/2+1));
             //this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
             let refcnt = 0;
             let agl = cannon.rotation;
@@ -1519,6 +1559,7 @@ window.onload = function() {
                     return;
                 })*/
                 
+                
                 RefTop.intersectStrict(this).forEach(elem => {
                     this.v = Rot_to_Vec(this.rotation,315);
                     this.f = Math.atan2(this.v.x, this.v.y);
@@ -1554,7 +1595,7 @@ window.onload = function() {
                         tgt[0] = elem.x-(this.width/2);
                         tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                     };
-                    this.x = elem.x;
+                    this.x = elem.x-(this.width);
                     this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                     dx = dx*-1;
                     refcnt++;
@@ -1568,7 +1609,7 @@ window.onload = function() {
                         tgt[0] = elem.x+elem.width+(this.width/2);
                         tgt[1] = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                     };
-                    this.x = elem.x+elem.width;
+                    this.x = elem.x+elem.width+(this.width/2);
                     this.y = (this.y+(this.height/2))-(Math.sin(this.f)*(this.height/2));
                     dx = dx*-1;
                     refcnt++;
@@ -1633,7 +1674,7 @@ window.onload = function() {
                     }
                     //this.x = this.x-(dx/3)-(this.width/2);
                     this.x = (this.x+(this.width/2))-(Math.cos(this.f)*(this.width/2));
-                    this.y = walls[0].y+walls[0].height+(this.height/2);
+                    this.y = walls[0].y+walls[0].height+(this.height);
                     //this.moveTo(this.x-(this.width),walls[0].y+walls[0].height+4)
                     //this.moveTo(this.x-(dx/3)-(this.width/2),walls[0].y+walls[0].height+(this.height/2))
                     dy = dy*-1;
@@ -1699,12 +1740,20 @@ window.onload = function() {
                     refcnt++;
                     this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
                 }
-                Player.intersectStrict(this).forEach(elem => {
-                    if(this.time % 2 == 0)target.moveTo(tgt[0],tgt[1]);
+                if(tankEntity[0].intersectStrict(this)){
+                    if(this.time % 2 == 0){
+                        if(target.x == tgt[0] && target.y == tgt[1]){
+
+                        }else{
+                            target.moveTo(tgt[0],tgt[1]);
+                        }
+                        
+                    }
                     if(this.hitTime == 0)cannon.rotation = agl;
                     //fireFlgs[num] = true;
                     this.hitTime++;
-                });
+                }
+                
                 /*Tank.intersectStrict(this).forEach(elem => {
                     this.hitTime++;
                     if(this.hitTime >= 3){
@@ -1712,7 +1761,7 @@ window.onload = function() {
                     }
                 })*/
                 
-                if(this.intersectStrict(tankEntity[num])==true){
+                if(tankEntity[num].intersectStrict(this)){
                     scene.removeChild(this);
                 };
                 /*this.intersectStrict(Player).forEach(function(){
@@ -1850,6 +1899,7 @@ window.onload = function() {
             this.cannon = cannon;
             this.target = target;
             this.scene = scene;
+            this.shotSpeed = shotSpeed;
 
             var rcnt = 0;       //反射回数計測
             var rcnt2 = 0;      //反射時の効果音制御変数
@@ -2178,28 +2228,44 @@ window.onload = function() {
         initialize: function(area,scene){
             Sprite.call(this,12,12);
             this.opacity = 0;
+            this.originX = 6;
+            this.originY = 6;
             this.backgroundColor = "#f20";
             this.time = 0;
-            this.moveTo(area.x-3,area.y-3);
 
+            let value = 0.8;
+            if(area.shotSpeed > 19){
+                this.backgroundColor = "#6af";
+                value = 1.0;
+            }
+            this.opacity = value;
+            
+            let vector = Rot_to_Vec(area.rotation,90);
+            let rad = Math.atan2(vector.y, vector.x);
+            
+            let dx = Math.cos(rad) * (6);
+            let dy = Math.sin(rad) * (6);
+            //this.rotation = ((Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+            this.rotation = area.rotation;
+            this.moveTo((area.x + area.width/2 - this.width/2) + dx, (area.y + area.height/2 - this.height/2) + dy);
+            //this.moveTo(target.centerX-(this.width/2)-(this.force.x),target.centerY-(target.height/2 + this.height/3)-(this.force.y))
+            /*this.moveTo(area.x-3,area.y-3);
             const vector = {
                 x: area.x - this.x,
                 y: area.y - this.y
             };
 
             this.rad = Math.atan2(vector.y, vector.x);
-            this.moveTo(this.x+6*Math.cos(this.rad), this.y+9*Math.sin(this.rad));
-            let value = 0.8;
-            this.opacity = value;
+            this.moveTo(this.x+6*Math.cos(this.rad), this.y+9*Math.sin(this.rad));*/
+            
             
             this.onenterframe = function(){
                 //if(deleteFlg == true) scene.removeChild(this);
                 this.time++
-                this.rotation = area.rotation
+                this.rotation = area.rotation;
                 value -= 0.1;
                 this.opacity = value;
-                this.rotation = area.rotation
-                if(value < 0) scene.removeChild(this);
+                if(value < 0.1) scene.removeChild(this);
             }
             scene.addChild(this);
             //scene.insertBefore(this,area);
@@ -2210,9 +2276,22 @@ window.onload = function() {
         initialize: function(area,scene){
             Sprite.call(this,24,24);
             this.opacity = 0;
+            this.originX = 12;
+            this.originY = 12;
             this.backgroundColor = "#f30";
+            if(area.shotSpeed > 19) this.backgroundColor = "#44f";
             this.time = 0;
-            this.moveTo(area.x,area.y);
+
+            let vector = Rot_to_Vec(area.rotation, 270);
+            let rad = Math.atan2(vector.y, vector.x);
+            
+            let dx = Math.cos(rad) * (6);
+            let dy = Math.sin(rad) * (6);
+            //this.rotation = ((Math.atan2(dx, dy) * 180) / Math.PI)*-1;
+            this.rotation = area.rotation;
+            //this.moveTo((area.x + area.width/2) + dx + this.width/2, (area.y + area.height/2) + dy + this.height/2);
+            this.moveTo((area.x + area.width/2 - this.width/2) + dx, (area.y + area.height/2 - this.height/2) + dy);
+            /*this.moveTo(area.x,area.y);
 
             const vector = {
                 x: area.x-6 - this.x,
@@ -2220,7 +2299,7 @@ window.onload = function() {
             };
 
             this.rad = Math.atan2(vector.y, vector.x);
-            this.moveTo(this.x+6*Math.cos(this.rad), this.y+9*Math.sin(this.rad));
+            this.moveTo(this.x+6*Math.cos(this.rad), this.y+9*Math.sin(this.rad));*/
             let value = 0.8;
             this.opacity = value;
             
@@ -3722,10 +3801,10 @@ window.onload = function() {
                                 escapeFlg = false;
                                 shotNGflg = false;
                                 fireFlgs[Num] = false;
-                                tank.opacity = opaVal;
-                                cannon.opacity = opaVal;
-                                
+
                                 if(category == 6){
+                                    tank.opacity = opaVal;
+                                    cannon.opacity = opaVal;
                                     if(this.within(target,400)){
                                         opaFlg = true;
                                     }else{
@@ -3943,41 +4022,7 @@ window.onload = function() {
                                     if(Math.floor(Math.random() * emax*2)>bullets[Num]){
                                         for(let i = 0; i < emax; i++){
                                             if(bulStack[Num][i] == false){
-                                                if(category == 7){
-                                                    if(bullets[Num] < emax-2 && deadFlgs[Num] == false && fireFlgs[Num]==false && game.time % 120 == 0){
-                                                        if(Math.floor(Math.random() * 2) == 0){
-                                                            let r1 = 0;
-                                                            let r2 = 0;
-                                                            if(Math.floor(Math.random() * 2) == 1){
-                                                                r1 = -1;
-                                                            }else{
-                                                                r1 = 1;
-                                                            }
-                                                            if(Math.floor(Math.random() * 2) == 1){
-                                                                r2 = -1;
-                                                            }else{
-                                                                r2 = 1;
-                                                            }
-                                                            const vector = {
-                                                                x: alignment.x - cannon.x-64,
-                                                                y: alignment.y - cannon.y-32
-                                                            };
-                                                            let rad = Math.atan2(vector.y, vector.x);
-                                                            alignment.moveTo((cannon.x+(200)*Math.cos(rad)+(100*r1)), (cannon.y+(200)*Math.sin(rad)+(100*r2)));
-                                                            new EnemyAim(alignment,cannon,32,Num,scene);
-                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                            ShotBullet(i);
-                                                            break;
-                                                        }
-                                                        
-                                                    }else if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
-                                                        ShotBullet(i);
-                                                        break;
-                                                    }
-                                                }else if(category == 8){
+                                                if(category == 8){
                                                     if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
                                                         colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
                                                         bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
@@ -5820,7 +5865,7 @@ window.onload = function() {
         }
     });
 
-    /*var TestEntity = Class.create(Sprite,{
+    var TestEntity = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,target,grade,category,scene){
             Sprite.call(this, pixelSize-4, pixelSize-4)
             this.x = x*pixelSize;
@@ -5845,8 +5890,6 @@ window.onload = function() {
             var rot = 0;
             var emax = cateMaxBullets[category];
             var speed = cateMoveSpeeds[category];
-            var stopFlg = false;
-            var escapeFlg = false;
             let life = 1;
             let reloadFlg = false;
             let reloadTime = 0;
@@ -5874,10 +5917,12 @@ window.onload = function() {
             })
 
             this.onenterframe = function(){
-
+                floors.intersectStrict(this).forEach(elem => {
+                    
+                })
             }
         }
-    })*/
+    })
 
     /* アイコン用戦車クラス */
     var PictureTank = Class.create(Sprite,{
@@ -7144,7 +7189,7 @@ window.onload = function() {
             }
                 filterMap.loadData(fmap,filImg);
                 //filterMap.collisionData = fcol;
-                //filterMap.opacity = 0;
+                if(debugFlg)filterMap.opacity = 0;
                 scene.addChild(filterMap);
 
             /* カーソルの設置＆位置取得処理 */
@@ -7164,8 +7209,8 @@ window.onload = function() {
             colOb.push([])
             bomOb.push([])
             bulStack.push([])
-            if(cheat == true){
-                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/elitegreen.png','./image/ObjectImage/elitegreencannon.png',3,2,18,0.5,scene,filterMap))
+            if(debugFlg){
+                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,22,2.4,scene,filterMap))
             }else{
                 tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,10,2.4,scene,filterMap))
             }
@@ -7291,7 +7336,7 @@ window.onload = function() {
             let CngBgmNum = BNum;
 
             function AllDelete(){
-
+                
                 for(let i = 0; i < obsdir.length; i++){
                     for(let j = 0; j < obsdir[i].length; j++){
                         scene.removeChild(obsdir[i][j])
