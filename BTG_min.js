@@ -6590,7 +6590,6 @@ window.onload = function() {
                     lvFlg = false;
                     addBullet = 0;
                     addSpeed = 0;
-                    sl = false;
                 }
             })
             //  難易度難しい選択時処理
@@ -6601,7 +6600,6 @@ window.onload = function() {
                     lvFlg = true;
                     addBullet = 1;
                     addSpeed = 0.5;
-                    sl = true;
                 }
             })
             //  難易度変更処理
@@ -6612,14 +6610,12 @@ window.onload = function() {
                     lvFlg = false;
                     addBullet = 0;
                     addSpeed = 0;
-                    sl = false;
                 }else{
                     nomal.color = '#888';
                     hard.color = 'red';
                     lvFlg = true;
                     addBullet = 1;
                     addSpeed = 0.5;
-                    sl = true;
                 }
             })
 
@@ -7353,7 +7349,10 @@ window.onload = function() {
             scene.onenterframe = function() {
                 
                 scene.time++;
-                if(defeat == false && victory == false && complete == false) remaining.text = '敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki
+                if(scene.time % 6 == 0){
+                    remaining.text = '敵残数：'+(tankEntity.length-1-destruction)+'　　　残機：'+zanki;
+                }
+                //if(defeat == false && victory == false && complete == false) 
                 Floor.intersectStrict(Aim).forEach(function(pair){
                     scene.removeChild(pair[1])
                 })
@@ -7387,7 +7386,7 @@ window.onload = function() {
                 else if(tankColorCounts[1]>0)   BNum = 1
                 else                            BNum = 0
                 
-                if(screen.width < 844){
+                if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
                     if(inputManager.checkButton("Start") == inputManager.keyStatus.DOWN && scene.time > 250 && defeat == false && victory == false && complete == false){
                         if (worldFlg == false){
                             blackImg.backgroundColor = "#00000000"
