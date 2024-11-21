@@ -270,7 +270,7 @@ let fontColor = [                               //各戦車の表示色格納配
 var zanki = 5;              //プレイヤーの残機
 var score = 0;              //総撃破数
 var destruction = 0;        //ステージごとの撃破数
-var deadTank = [0];
+var deadTank = [false];
 
 /* ステージ情報格納 */
 const stagePath = [
@@ -1435,8 +1435,10 @@ window.onload = function() {
             //Sprite.call(this,base*(size/1.3),base*(size/1.3));
             Sprite.call(this,48,48);
             this.image = game.assets['./image/ObjectImage/mark.png'];
-            this.x = target.x+9.25;
-            this.y = target.y+12.5;
+            //this.x = target.x+9.25;
+            //this.y = target.y+12.5;
+            this.x = (target.x + target.width/2)-this.width/2;
+            this.y = ((target.y + target.height/2)-this.height/2)+6;
             this.scaleY = 0.8;
             scene.MarkGroup.addChild(this);
             //scene.insertBefore(this,target);
@@ -1835,7 +1837,7 @@ window.onload = function() {
     })
     /* 弾丸の物理判定クラス */
     var BulletCol = Class.create(PhyCircleSprite,{
-        initialize: function(target,cannon,shotSpeed,grade,num,scene,value){
+        initialize: function(target,cannon,shotSpeed,grade,scene){
             PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true)
             //this.backgroundColor = "white"
             this.time = 0;
@@ -1890,7 +1892,7 @@ window.onload = function() {
     })
     /* 弾丸クラス */
     var Bullet = Class.create(Sprite,{
-        initialize: function(target,cannon,ref,num,max,shotSpeed,scene,value){
+        initialize: function(target,cannon,ref,num,shotSpeed,scene,value){
             Sprite.call(this,12,18);
             this.image = game.assets['./image/ObjectImage/R2.png'];
             
@@ -1921,13 +1923,16 @@ window.onload = function() {
             this.rotation = ((Math.atan2(Math.cos(target.rad), Math.sin(target.rad)) * 180) / Math.PI) * -1 + 90;
             this.moveTo(target.centerX-(this.width/2)-(this.force.x),target.centerY-(target.height/2 + this.height/3)-(this.force.y))
             this.onenterframe = function(){
-                if(this.time % 2) cnt = 0;
+                if(this.time % 2){
+                    cnt = 0;
+                    if(num != 0){
+                        new BulAim(this,24,num,value,scene)
+                    }else{
+                        new PlayerBulAim(this,24,num,value,scene)
+                    }
+                } 
                 if(deleteFlg == true) scene.removeChild(this);
-                if(num != 0){
-                    new BulAim(this,32,num,value,scene)
-                }else{
-                    new PlayerBulAim(this,32,num,value,scene)
-                }
+                
                 this.time++;
                 if(shotSpeed>=14){
                     if(this.time % 2 == 0) new Fire(this,scene);
@@ -2491,7 +2496,8 @@ window.onload = function() {
             this.time = 0;
             var value = 1.0;
             this.opacity = value;
-            this.moveTo(point.x-12,point.y-12)
+            this.moveTo((point.x+point.width/2)-this.width/2,(point.y + point.height/2)-this.height/2);
+            //this.moveTo(point.x-12,point.y-12)
             this.onenterframe = function(){
                 //if(deleteFlg == true) scene.removeChild(this);
                 this.time++;
@@ -2500,7 +2506,7 @@ window.onload = function() {
                     value -= 0.05;
                     this.opacity = value;
                 }
-                if(value < 0) scene.removeChild(this);
+                if(value < 0.1) scene.removeChild(this);
             }
             scene.addChild(this);
         }
@@ -2581,57 +2587,6 @@ window.onload = function() {
                 }
             }
             scene.addChild(this);
-            /*Sprite.call(this,20,20);
-            //this.backgroundColor = "#0f0a"
-            let speed = 24;
-            this.rotation = (45)
-            let target;
-            this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
-                if(deadFlgs[num] == true){
-                    scene.removeChild(this);
-                }
-                target = enemyTarget[num]
-                if(this.intersectStrict(cannon)==false){
-                    if(this.intersectStrict(Weak)==false){
-                        var vector = {
-                            x: target.x - this.x,
-                            y: target.y - this.y
-                        };
-                        if(this.intersectStrict(target)==true){
-                            this.moveTo(target.x-4,target.y-4)
-                        }else{
-                            this.rad = Math.atan2(vector.y, vector.x);
-                            this.moveTo(this.x + Math.cos(this.rad)*speed,this.y + Math.sin(this.rad)*speed)
-                        }
-                    }else{
-                        
-                        var vector = {
-                            x: target.x - this.x+20,
-                            y: target.y - this.y+20
-                        };
-                        if(this.intersectStrict(target)==true){
-                            this.moveTo(target.x+20,target.y+20)
-                        }else{
-                            this.rad = Math.atan2(vector.y, vector.x);
-                            this.moveTo(this.x + Math.cos(this.rad)*speed,this.y + Math.sin(this.rad)*speed)
-                        }
-                    }
-                }else{
-                    enemyTarget[num] = player
-                    var vector = {
-                        x: enemyTarget[num].x - this.x+30,
-                        y: enemyTarget[num].y - this.y+20
-                    };
-                    if(this.intersectStrict(enemyTarget[num])==true){
-                        this.moveTo(enemyTarget[num].x+30,enemyTarget[num].y+20)
-                    }else{
-                        this.rad = Math.atan2(vector.y, vector.x);
-                        this.moveTo(this.x + Math.cos(this.rad)*speed,this.y + Math.sin(this.rad)*speed)
-                    }
-                }
-            }
-            scene.addChild(this);*/
         }
     })
     /* 経路探索アルゴリズム */
@@ -2830,7 +2785,7 @@ window.onload = function() {
     var Player = Class.create(Sprite,{
         initialize: function(x,y,path1,path2,max,ref,shotSpeed,moveSpeed,scene,filterMap){
             Sprite.call(this,pixelSize-4, pixelSize-4)
-            //this.backgroundColor = "red"
+            //this.backgroundColor = "#f008"
             //  プレイヤーの初期位置設定
             this.x = x*pixelSize;
             this.y = y*pixelSize-16;
@@ -2864,8 +2819,8 @@ window.onload = function() {
             
             //  弾の初期状態を設定
             for(var i = 0; i < pmax; i++){
-                colOb[Num][i] = new BulletCol(cur,floors[0],shotSpeed,0,Num,scene,i);
-                bulOb[Num][i] = new Bullet(colOb[Num][i],floors[0],ref,Num,pmax,shotSpeed,scene,i);
+                colOb[Num][i] = new BulletCol(cur,floors[0],shotSpeed,0,scene);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],floors[0],ref,Num,shotSpeed,scene,i);
                 bulStack[Num][i] = false;   //  弾の状態をoff
                 colOb[Num][i].moveTo(-210,-210)
                 bulOb[Num][i].moveTo(-100,-100)
@@ -2876,11 +2831,19 @@ window.onload = function() {
             }
 
             if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
-                scene.addEventListener('touchstart', function(){
+                scene.addEventListener('touchstart', function(e){
+                    cur.x = (e.x);
+                    cur.y = (e.y);
+                })
+                scene.addEventListener('touchmove',function(e){
                     cur.x = (e.x);
                     cur.y = (e.y);
                 })
             }else{
+                document.addEventListener('mousemove', function(e) {
+                    cur.x = (e.x-36)*2.7-(ScreenMargin*2);
+                    cur.y = (e.y)*2.65;
+                })
                 //  画面クリック時の砲撃処理
                 scene.addEventListener('touchstart', function(){
                     if(worldFlg == true && scene.time > 210){   //  処理しても良い状態か
@@ -2888,8 +2851,8 @@ window.onload = function() {
                             for(let i = 0; i < pmax; i++){
                                 if(bulStack[Num][i] == false){                                                          //  弾の状態がoffならば
                                     game.assets['./sound/s_car_door_O2.wav'].clone().play();                            //  発射音再生
-                                    colOb[Num][i] = new BulletCol(cur,cannon,shotSpeed,0,Num,scene,i);                  //  弾の物理制御をセット
-                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,pmax,shotSpeed,scene,i)     //  弾の制御をセット
+                                    colOb[Num][i] = new BulletCol(cur,cannon,shotSpeed,0,scene);                  //  弾の物理制御をセット
+                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)     //  弾の制御をセット
                                     //scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
                                     //scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
                                     scene.BulGroup.addChild(colOb[Num][i]);
@@ -2952,7 +2915,7 @@ window.onload = function() {
                         //  死亡判定時の処理
                         if(deadFlgs[Num] == true){
                             
-                            new Mark({x: this.x, y: this.y},scene);
+                            new Mark(this,scene);
                             new Explosion(this,scene);      //  車体の爆破エフェクト生成
                             this.moveTo(-100,-100)          //  戦車を移動
                             zanki--;                        //  残機を減らす
@@ -3011,13 +2974,13 @@ window.onload = function() {
                             }
                             
                           
-                              if((inputManager.checkButton("A") == inputManager.keyStatus.DOWN) && late == 0 && worldFlg == true){
+                              if((inputManager.checkButton("A") == inputManager.keyStatus.DOWN) && late == 0){
                                 if(bullets[Num] < pmax && deadFlgs[Num] == false){  //  発射最大数に到達していないか＆死んでいないか
                                     for(let i = 0; i < pmax; i++){
                                         if(bulStack[Num][i] == false){                                                          //  弾の状態がoffならば
                                             game.assets['./sound/s_car_door_O2.wav'].clone().play();                            //  発射音再生
-                                            colOb[Num][i] = new BulletCol(cur,cannon,shotSpeed,0,Num,scene,i);                  //  弾の物理制御をセット
-                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,pmax,shotSpeed,scene,i)     //  弾の制御をセット
+                                            colOb[Num][i] = new BulletCol(cur,cannon,shotSpeed,0,scene);                  //  弾の物理制御をセット
+                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)     //  弾の制御をセット
                                             //scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
                                             //scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
                                             scene.BulGroup.addChild(colOb[Num][i]);
@@ -3042,9 +3005,6 @@ window.onload = function() {
                                     bflg = true;
                                     boms[Num]++;
                               }
-                              /*if(inputManager.checkButton("Start") == inputManager.keyStatus.DOWN){
-                                    core.pushScene(new PauseScene());
-                              }*/
                             
                             //  制限が掛かったら
                             if(late >= 1){
@@ -3191,8 +3151,8 @@ window.onload = function() {
 
             //  弾の初期設定
             for(var i = 0; i < max; i++){
-                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,max,shotSpeed,scene,i);
+                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i);
                 bulStack[Num][i] = false;
                 colOb[Num][i].moveTo(-220,-220)
                 bulOb[Num][i].moveTo(-100,-100)
@@ -3263,7 +3223,7 @@ window.onload = function() {
                     })
                     //  死亡判定がtrueなら
                     if(deadFlgs[Num]==true){
-                        new Mark({x: this.x, y: this.y},scene);
+                        new Mark(this,scene);
                         tankColorCounts[category]--;
                         //alert(tankColorCwwsaounts)
                         new Explosion(this,scene);
@@ -3284,39 +3244,43 @@ window.onload = function() {
                     }*/
                     fireFlgs[Num] = false;  //  発射状態をリセット
                         shotNGflg = false;
+                        
                         if(moveSpeed != 0 && tankStopFlg == false){
-                            //  自身の位置とターゲットの位置をざっくり算出
-                            myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
-                            targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
-                            //  マップの障害物情報に自身とターゲットの位置設定
-                            for(var i = 0; i < grid.length; i++){
-                                for(var j = 0; j < grid[i].length; j++){
-                                    if(i == myPath[0] && j == myPath[1]){
-                                        grid[i][j] = 'Start';
-                                    }else if(i == targetPath[0] && j == targetPath[1]){
-                                        grid[i][j] = 'Goal';
-                                    }else{
-                                        //  StartやGoalの位置が更新されている場合の処理
-                                        if(map.collisionData[i][j] == 0){
-                                            grid[i][j] = 'Empty';
+                            if(this.time % 2 == 0){
+                                //  自身の位置とターゲットの位置をざっくり算出
+                                myPath = [parseInt((this.y+41)/pixelSize),parseInt((this.x+34.5)/pixelSize)]
+                                targetPath = [parseInt((target.y+41)/pixelSize),parseInt((target.x+34.5)/pixelSize)]
+                                //  マップの障害物情報に自身とターゲットの位置設定
+                                for(var i = 0; i < grid.length; i++){
+                                    for(var j = 0; j < grid[i].length; j++){
+                                        if(i == myPath[0] && j == myPath[1]){
+                                            grid[i][j] = 'Start';
+                                        }else if(i == targetPath[0] && j == targetPath[1]){
+                                            grid[i][j] = 'Goal';
                                         }else{
-                                            grid[i][j] = 'Obstacle';
+                                            //  StartやGoalの位置が更新されている場合の処理
+                                            if(map.collisionData[i][j] == 0){
+                                                grid[i][j] = 'Empty';
+                                            }else{
+                                                grid[i][j] = 'Obstacle';
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            if(this.time == 0){
-                                root = findShortestPath([myPath[0],myPath[1]], grid,scene);
-                                if(root[0] == "East"){
-                                    this.rotation = 0
-                                }else if(root[0] == "West"){
-                                    this.rotation = 180;
-                                }else if(root[0] == "North"){
-                                    this.rotation = 270;
-                                }else if(root[0] == "South"){
-                                    this.rotation = 90;
+                                if(this.time == 0){
+                                    root = findShortestPath([myPath[0],myPath[1]], grid,scene);
+                                    if(root[0] == "East"){
+                                        this.rotation = 0
+                                    }else if(root[0] == "West"){
+                                        this.rotation = 180;
+                                    }else if(root[0] == "North"){
+                                        this.rotation = 270;
+                                    }else if(root[0] == "South"){
+                                        this.rotation = 90;
+                                    }
                                 }
                             }
+                            
                         }
                         
                         if(tankStopFlg == true)tankStopFlg = false;
@@ -3488,8 +3452,8 @@ window.onload = function() {
                                         if(bullets[Num] < max && deadFlgs[Num] == false){
                                             for(let i = 0; i < max; i++){
                                                 if(bulStack[Num][i] == false){
-                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,max,shotSpeed,scene,i)
+                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                     ShotBullet(i)
                                                     break;
                                                 }
@@ -3532,7 +3496,7 @@ window.onload = function() {
                                     moveCnt = 0    
                                 }        
                                 
-                                weak.rotation = this.rotation;
+                                //weak.rotation = this.rotation;
                             }
                             if(root == false && moveSpeed != 0){
                                 root = findShortestPath([myPath[0],myPath[1]], grid,scene)
@@ -3651,8 +3615,8 @@ window.onload = function() {
             //alignment.backgroundColor = 'blue'
 
             for(var i = 0; i < emax; i++){
-                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i);
+                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i);
                 bulStack[Num][i] = false;
                 colOb[Num][i].moveTo(-230,-230)
                 bulOb[Num][i].moveTo(-100,-100)
@@ -3759,7 +3723,7 @@ window.onload = function() {
                         }
                     })
                     if(deadFlgs[Num] == true){
-                        new Mark({x: this.x, y: this.y},scene);
+                        new Mark(this,scene);
                         tankColorCounts[category]--;
                         //alert(tankColorCounts)
                         
@@ -4020,22 +3984,22 @@ window.onload = function() {
                                             if(bulStack[Num][i] == false){
                                                 if(category == 8){
                                                     if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                         ShotBullet(i);
                                                         break;
                                                     }
                                                 }else if(category == 5){
                                                     if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,scene);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                         ShotBullet(i);
                                                         break;
                                                     }
                                                 }else if(category == 2){
                                                     if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,0,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,0,scene);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                         ShotBullet(i);
                                                         break;
                                                     }
@@ -4056,8 +4020,8 @@ window.onload = function() {
                                                             }
                                                             alignment.moveTo(alignment.x+(30*r1),alignment.y+(30*r2));
                                                         }
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                         ShotBullet(i);
                                                         if(category == 6 && opaVal == 0){
                                                             opaVal = 0.5;
@@ -4265,8 +4229,8 @@ window.onload = function() {
             //alignment.backgroundColor = 'blue'
 
             for(var i = 0; i < emax; i++){
-                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i);
+                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i);
                 bulStack[Num][i] = false;
                 colOb[Num][i].moveTo(-240,-240)
                 bulOb[Num][i].moveTo(-100,-100)
@@ -4369,7 +4333,7 @@ window.onload = function() {
                         }
                     })
                     if(deadFlgs[Num] == true){
-                        new Mark({x: this.x, y: this.y},scene);
+                        new Mark(this,scene);
                         tankColorCounts[category]--;
                         //alert(tankColorCounts)
                         
@@ -4648,8 +4612,8 @@ window.onload = function() {
                                         if(bulStack[Num][i] == false){
                                             if(category == 5 || category == 10){
                                                 if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,0,Num,scene,i);
-                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,0,scene);
+                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                     ShotBullet(i);
                                                     break;
                                                 }
@@ -4670,8 +4634,8 @@ window.onload = function() {
                                                         }
                                                         alignment.moveTo(alignment.x+(30*r1),alignment.y+(30*r2));
                                                     }
-                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                     ShotBullet(i);
                                                     break;
                                                 }
@@ -4841,8 +4805,8 @@ window.onload = function() {
             enemyTarget[Num] = target;
 
             for(var i = 0; i < emax; i++){
-                colOb[Num][i] = new BulletCol(anoPoint,cannon,shotSpeed,grade,Num,scene,i);
-                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i);
+                colOb[Num][i] = new BulletCol(anoPoint,cannon,shotSpeed,grade,scene);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i);
                 bulStack[Num][i] = false;
                 colOb[Num][i].moveTo(-230,-230)
                 bulOb[Num][i].moveTo(-100,-100)
@@ -4895,7 +4859,7 @@ window.onload = function() {
                         }
                     })
                     if(deadFlgs[Num] == true){
-                        new Mark({x: this.x, y: this.y},scene);
+                        new Mark(this,scene);
                         tankColorCounts[category]--;
                         new Explosion(this,scene);
                         this.moveTo(-100,-100)
@@ -4973,8 +4937,8 @@ window.onload = function() {
                                         for(let i = 0; i < emax; i++){
                                             if(bulStack[Num][i] == false){
                                                 if(bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num]==true){
-                                                    colOb[Num][i] = new BulletCol(anoPoint,cannon,shotSpeed,0,Num,scene,i);
-                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                    colOb[Num][i] = new BulletCol(anoPoint,cannon,shotSpeed,0,scene);
+                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                     ShotBullet(i);
                                                     this.aimingTime = 0;
                                                     if(category != 0){
@@ -5108,8 +5072,8 @@ window.onload = function() {
             var alignment = new Target(Num,scene)
 
             for(var i = 0; i < max+defenseMax; i++){
-                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,max,shotSpeed,scene,i);
+                colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i);
                 bulStack[Num][i] = false;
                 colOb[Num][i].moveTo(-250,-250)
                 bulOb[Num][i].moveTo(-100,-100)
@@ -5275,7 +5239,7 @@ window.onload = function() {
                         }
                     })
                     if(deadFlgs[Num] == true){
-                        new Mark({x: this.x, y: this.y},scene);
+                        new Mark(this,scene);
                         tankColorCounts[category]--;
                         
                         new Explosion(this,scene);
@@ -5667,8 +5631,8 @@ window.onload = function() {
                                             if((bullets[Num] < emax+defenseMax && deadFlgs[Num] == false) && (this.time % 15 == 0 || this.time % 23 == 0)){
                                                 for(let i = 0; i < emax+defenseMax; i++){
                                                     if(bulStack[Num][i] == false){
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,15,10,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,emax+defenseMax,15,scene,i)
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,15,10,scene);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,15,scene,i)
                                                         ShotBullet(i);
                                                         break;
                                                     }
@@ -5679,8 +5643,8 @@ window.onload = function() {
                                                 if(bullets[Num] < emax && deadFlgs[Num] == false){
                                                     for(let i = 0; i < emax; i++){
                                                         if(bulStack[Num][i] == false){
-                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,11,Num,scene,i);
-                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,1,Num,emax,shotSpeed,scene,i)
+                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,11,scene);
+                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,1,Num,shotSpeed,scene,i)
                                                             ShotBullet(i);
                                                             break;
                                                         }
@@ -5694,8 +5658,8 @@ window.onload = function() {
                                                 if(bullets[Num] < emax && deadFlgs[Num] == false){
                                                     for(let i = 0; i < emax; i++){
                                                         if(bulStack[Num][i] == false){
-                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,Num,scene,i);
-                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,emax,shotSpeed,scene,i)
+                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade,scene);
+                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,shotSpeed,scene,i)
                                                             ShotBullet(i);
                                                             opaFlg = true;
                                                             opaVal = 0.5;
@@ -5707,8 +5671,8 @@ window.onload = function() {
                                                 if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 13 == 0){
                                                     for(let i = 0; i < emax+defenseMax; i++){
                                                         if(bulStack[Num][i] == false){
-                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
-                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,emax+defenseMax,shotSpeed,scene,i)
+                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,scene);
+                                                            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,shotSpeed,scene,i)
                                                             ShotBullet(i);
                                                             opaFlg = true;
                                                             opaVal = 0.5;
@@ -5722,8 +5686,8 @@ window.onload = function() {
                                         if(bullets[Num] < emax+defenseMax && deadFlgs[Num] == false && game.time % 13 == 0){
                                             for(let i = 0; i < emax+defenseMax; i++){
                                                 if(bulStack[Num][i] == false){
-                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
-                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,emax+defenseMax,shotSpeed,scene,i)
+                                                    colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,scene);
+                                                    bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,0,Num,shotSpeed,scene,i)
                                                     ShotBullet(i);
                                                     break;
                                                 }
@@ -5734,8 +5698,8 @@ window.onload = function() {
                                             if(bullets[Num] < emax && deadFlgs[Num] == false){
                                                 for(let i = 0; i < emax; i++){
                                                     if(bulStack[Num][i] == false){
-                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade-1,Num,scene,i);
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,emax,shotSpeed,scene,i)
+                                                        colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade-1,scene);
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,Math.floor(Math.random() * (ref)),Num,shotSpeed,scene,i)
                                                         ShotBullet(i);
                                                         break;
                                                     }
@@ -5774,11 +5738,11 @@ window.onload = function() {
                                                             }
                                                         }
                                                         if(dflg == true){
-                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,Num,scene,i);
+                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,10,scene);
                                                         }else{
-                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade-4,Num,scene,i);
+                                                            colOb[Num][i] = new BulletCol(alignment,cannon,shotSpeed,grade-4,scene);
                                                         }
-                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,emax,shotSpeed,scene,i)
+                                                        bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,ref,Num,shotSpeed,scene,i)
                                                         ShotBullet(i);
                                                         if(category == 6 && opaVal == 0){
                                                             opaVal = 0.5;
@@ -5858,7 +5822,7 @@ window.onload = function() {
         }
     });
 
-    var TestEntity = Class.create(Sprite,{
+    /*var TestEntity = Class.create(Sprite,{
         initialize: function(x,y,tankPath,cannonPath,target,grade,category,scene){
             Sprite.call(this, pixelSize-4, pixelSize-4)
             this.x = x*pixelSize;
@@ -5894,8 +5858,8 @@ window.onload = function() {
             var alignment = new Target(Num,scene)
 
             for(var i = 0; i < emax; i++){
-                colOb[Num][i] = new BulletCol(alignment,cannon,cateShotSpeeds[category],grade,Num,scene,i);
-                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,cateMaxRefs[category],Num,emax,cateShotSpeeds[category],scene,i);
+                colOb[Num][i] = new BulletCol(alignment,cannon,cateShotSpeeds[category],grade,scene);
+                bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,cateMaxRefs[category],Num,cateShotSpeeds[category],scene,i);
                 bulStack[Num][i] = false;
                 colOb[Num][i].moveTo(-250,-250)
                 bulOb[Num][i].moveTo(-100,-100)
@@ -5915,7 +5879,7 @@ window.onload = function() {
                 })
             }
         }
-    })
+    })*/
 
     /* アイコン用戦車クラス */
     var PictureTank = Class.create(Sprite,{
@@ -6757,6 +6721,7 @@ window.onload = function() {
                     scene.time++
                     if(scene.time == 30){
                         if(orflg == 1){
+                            deadTank = [false];
                             Repository.data.Level = addBullet;
                             game.replaceScene(createStartScene());    // 現在表示しているシーンをゲームシーンに置き換える
                         }else if(orflg == 2){
@@ -6820,11 +6785,11 @@ window.onload = function() {
             let dispTanks = [];
             //  戦車ごとのテキストを格納する配列
             let performance = [
-                ["Player","　弾数　：5","　弾速　：普通","跳弾回数：1","移動速度：普通","・プレイヤーが操作する戦車<br>　強いか弱いかはあなた次第。"],
+                ["Player","　弾数　：5","　弾速　：普通","跳弾回数：1","移動速度：速い","・プレイヤーが操作する戦車<br>　強いか弱いかはあなた次第。"],
                 [colorsName[0],'　弾数　：'+(cateMaxBullets[0]+addBullet),"　弾速　：普通","跳弾回数："+cateMaxRefs[0],"移動速度：動かない","・一番最初に戦う雑魚敵。<br>　弱いが油断はできない。"],
                 [colorsName[1],'　弾数　：'+(cateMaxBullets[1]+addBullet),"　弾速　：普通","跳弾回数："+cateMaxRefs[1],"移動速度：遅い","・動けるようになったがまだ弱い。<br>　配置によっては化ける。"],
                 [colorsName[2],'　弾数　：'+(cateMaxBullets[2]+addBullet),"　弾速　：とても速い","跳弾回数："+(cateMaxRefs[2]+addBullet),"移動速度：動かない～遅い","・とにかく弾が速い。<br>　スナイプされないよう注意！"],
-                [colorsName[3],'　弾数　：'+(cateMaxBullets[3]+addBullet),"　弾速　：普通","跳弾回数："+cateMaxRefs[3],"移動速度：普通","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
+                [colorsName[3],'　弾数　：'+(cateMaxBullets[3]+addBullet),"　弾速　：普通","跳弾回数："+cateMaxRefs[3],"移動速度：速い","・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
                 [colorsName[4],'　弾数　：'+(cateMaxBullets[4]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[4],"移動速度：遅い","・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
                 [colorsName[5],'　弾数　：'+(cateMaxBullets[5]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[5],"移動速度：普通","・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
                 [colorsName[6],'　弾数　：'+(cateMaxBullets[6]+addBullet),"　弾速　：速い","跳弾回数："+cateMaxRefs[6],"移動速度：遅い","・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
@@ -7195,15 +7160,6 @@ window.onload = function() {
 
             /* カーソルの設置＆位置取得処理 */
             cur = new Cursor(scene);
-            
-            document.addEventListener('mousemove', function(e) {
-                cur.x = (e.x-36)*2.7-(ScreenMargin*2);
-                cur.y = (e.y)*2.65;
-            })
-            scene.addEventListener('touchmove',function(e){
-                cur.x = (e.x);
-                cur.y = (e.y);
-            })
             
             /* 戦車の追加処理 */
             bulOb.push([])
