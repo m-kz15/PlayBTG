@@ -1492,6 +1492,7 @@ window.onload = function() {
             var dx = Math.cos(rad) * 24;
             var dy = Math.sin(rad) * 24;
             this.moveTo((cannon.x+(cannon.width/2))+(48*Math.cos(rad))-(this.width/2), (cannon.y+(cannon.height/2))+(48*Math.sin(rad))-(this.height/2));
+    
             //this.moveTo((cannon.x+(cannon.width/2))+(56*Math.cos(rad))-(this.width/2+1), (cannon.y+(cannon.height/2))+(56*Math.sin(rad))-(this.height/2+1));
             //this.moveTo(this.x+(base*3)*Math.cos(rad), this.y+(base*3)*Math.sin(rad));
             let refcnt = 0;
@@ -1900,6 +1901,8 @@ window.onload = function() {
             this.target = target;
             this.scene = scene;
             this.shotSpeed = shotSpeed;
+            this.num = num;
+            this.value = value;
 
             var rcnt = 0;       //反射回数計測
             var rcnt2 = 0;      //反射時の効果音制御変数
@@ -1908,6 +1911,9 @@ window.onload = function() {
             this.force = {x: 0, y: 0};
             if(shotSpeed>=14){
                 this.force = {x: target.vx/(target.shotSpeed*((target.shotSpeed/3)*2)), y: target.vy/(target.shotSpeed*((target.shotSpeed/3)*2))};
+                /*if(shotSpeed > 24){
+                    this.scaleY = 1.5;
+                }*/
             }
             
             //alert(this.force.x + "  " + this.force.y)
@@ -1926,6 +1932,7 @@ window.onload = function() {
                 if(shotSpeed>=14){
                     if(this.time % 2 == 0) new Fire(this,scene);
                     this.force = {x: target.vx/(target.shotSpeed*((target.shotSpeed/3)*2)), y: target.vy/(target.shotSpeed*((target.shotSpeed/3)*2))};
+                    
                 }
                 /*var vector = {
                     x: target.centerX-(this.width/2) - this.x,
@@ -2029,22 +2036,15 @@ window.onload = function() {
                     //scene.removeChild(this);*/
                     Get_NewBullet(num,value);
                 }
-                for(var i = 0;  i < max;  i++){
+                /*for(var i = 0;  i < max;  i++){
                     for(var j = 0; j < max; j++){
                         if (bulOb[num][i].intersectStrict(bulOb[num][j])==true&&i != j) {
                             if(bulStack[num][i] == true && bulStack[num][j]==true){
                                 game.assets['./sound/Sample_0000.wav'].clone().play();
-                               // game.assets['./sound/Sample_0004.wav'].clone().play();
                                 new TouchFire(bulOb[num][i],scene);
                                 new TouchFire(bulOb[num][j],scene);
                                 Get_NewBullet(num,i);
                                 Get_NewBullet(num,j);
-                                /*scene.BulGroup.removeChild(bulOb[num][i]);
-                                scene.BulGroup.removeChild(bulOb[num][j]);
-                                bulOb[num][i]=new Bullet(target,cannon,1,num,max,scene,i);
-                                bulStack[num][i] = false;
-                                bulOb[num][j]=new Bullet(target,cannon,1,num,max,scene,j);
-                                bulStack[num][j] = false;*/
                             }
                             
                         }
@@ -2055,17 +2055,10 @@ window.onload = function() {
                                 if (bulOb[num][i].intersectStrict(bulOb[j][k])==true) {
                                     if(bulStack[num][i] == true && bulStack[j][k]==true){
                                         game.assets['./sound/Sample_0000.wav'].clone().play();
-                                        //game.assets['./sound/Sample_0004.wav'].clone().play();
                                         new TouchFire(bulOb[num][i],scene);
                                         new TouchFire(bulOb[j][k],scene);
                                         Get_NewBullet(num,i);
                                         Get_NewBullet(j,k);
-                                        /*scene.BulGroup.removeChild(bulOb[num][i]);
-                                        scene.BulGroup.removeChild(bulOb[j][k]);
-                                        bulOb[num][i]=new Bullet(target,cannon,1,num,max,scene,i);
-                                        bulStack[num][i] = false;
-                                        bulOb[j][k]=new Bullet(target,cannon,1,j,max,scene,k);
-                                        bulStack[j][k] = false;*/
                                     }
                                     
                                 }
@@ -2073,7 +2066,22 @@ window.onload = function() {
                             
                         }
                     }
-                }
+                }*/
+                Bullet.intersectStrict(this).forEach(elem => {
+                    if(this.num == elem.num && this.value == elem.value){
+
+                    }else{
+                        if(bulStack[this.num][this.value] == true && bulStack[elem.num][elem.value] == true){
+                            game.assets['./sound/Sample_0000.wav'].clone().play();
+                            new TouchFire(bulOb[this.num][this.value],scene);
+                            new TouchFire(bulOb[elem.num][elem.value],scene);
+                            Get_NewBullet(this.num,this.value);
+                            Get_NewBullet(elem.num,elem.value);
+                        }
+                    }
+                        
+                })
+                
                 if(rcnt != rcnt2 && rcnt <= ref){
                     game.assets['./sound/s_car_trunk_O.wav'].clone().play();
                     rcnt2 = rcnt;
@@ -2171,32 +2179,22 @@ window.onload = function() {
                     }
                     
                 })
-                for(let i = 0; i < bulOb.length; i++){
+                Bullet.intersectStrict(this).forEach(elem => {
+                    if(bulStack[elem.num][elem.value] == true && victory == false && defeat == false){
+                        Get_NewBullet(elem.num,elem.value);
+                        new BombExplosion(this,num,scene)
+                        scene.BomGroup.removeChild(this);
+                    }  
+                })
+                /*for(let i = 0; i < bulOb.length; i++){
                     for(let j = 0; j < bulOb[i].length; j++){
                         if(this.intersectStrict(bulOb[i][j])==true && victory == false && defeat == false){
                             Get_NewBullet(i,j);
-                            /*bullets[i] -= 1;
-                            scene.BulGroup.removeChild(bulOb[i][j])
-                            colOb[i][j].destroy()
-                            scene.BulGroup.removeChild(colOb[i][j])
-                            colOb[i][j] = new BulletCol(cur,floors[0],0,0,i,scene,j);
-                            bulOb[i][j] = new Bullet(colOb[i][j],floors[0],0,i,0,0,scene,j);
-                            bulStack[i][j] = false;*/
                             new BombExplosion(this,num,scene)
                             scene.BomGroup.removeChild(this);
                         }
                     }
-                }
-                /*bulOb.forEach(elem=>{
-                    elem.forEach(elem2=>{
-                        if(this.intersectStrict(elem2)==true && victory == false && defeat == false){
-                            scene.removeChild(elem2)
-                            new BombExplosion(this,num,scene)
-                            scene.removeChild(this);
-                        }
-                    })
-                })
-                */
+                }*/
             }
         }
     })
@@ -2211,16 +2209,18 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
-                if(deleteFlg == true) scene.removeChild(this);
+                if(deleteFlg == true) scene.SmokeGroup.removeChild(this);
                 this.time++
                 if(this.time % 4 == 0){
                     value -= 0.05;
                     this.opacity = value;
                     this.rotation = area.rotation
-                    if(value < 0) scene.removeChild(this);
+                    if(value < 0) scene.SmokeGroup.removeChild(this);
+                    //if(value < 0) scene.removeChild(this);
                 }
             }
-            scene.insertBefore(this,area);
+            scene.SmokeGroup.addChild(this);
+            //scene.insertBefore(this,area);
         }
     })
     /* ミサイルの炎描画クラス */
@@ -2235,7 +2235,7 @@ window.onload = function() {
 
             let value = 0.8;
             if(area.shotSpeed > 19){
-                this.backgroundColor = "#6af";
+                this.backgroundColor = "#8cf";
                 value = 1.0;
             }
             this.opacity = value;
@@ -2260,14 +2260,14 @@ window.onload = function() {
             
             
             this.onenterframe = function(){
-                //if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.FireGroup.removeChild(this);
                 this.time++
                 this.rotation = area.rotation;
                 value -= 0.1;
                 this.opacity = value;
-                if(value < 0.1) scene.removeChild(this);
+                if(value < 0.1) scene.FireGroup.removeChild(this);
             }
-            scene.addChild(this);
+            scene.FireGroup.addChild(this);
             //scene.insertBefore(this,area);
         }
     })
@@ -2304,14 +2304,15 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
-                //if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.FireGroup.removeChild(this);
                 this.time++
                 value -= 0.1;
                 this.opacity = value;
                 this.rotation = area.rotation+this.time
-                if(value < 0) scene.removeChild(this);
+                if(value < 0) scene.FireGroup.removeChild(this);
             }
-            scene.insertBefore(this,area);
+            scene.FireGroup.addChild(this);
+            //scene.insertBefore(this,area);
         }
     })
     /* 発砲描画クラス */
@@ -2333,7 +2334,7 @@ window.onload = function() {
             this.opacity = value;
             
             this.onenterframe = function(){
-                //if(deleteFlg == true) scene.removeChild(this);
+                //if(deleteFlg == true) scene.FireGroup.removeChild(this);
                 this.time++
                 this.scaleX = 1 - (value/2);
                 this.scaleY = 1 - (value/2);
@@ -2342,9 +2343,10 @@ window.onload = function() {
                 this.y += Math.sin(this.rad) * -3;
                 this.opacity = value;
                 this.rotation = (180+(Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI)*-1;
-                if(value < 0) scene.removeChild(this);
+                if(value < 0) scene.FireGroup.removeChild(this);
             }
-            scene.insertBefore(this,filterMap);
+            scene.FireGroup.addChild(this);
+            //scene.insertBefore(this,filterMap);
         }
     })
     /* 敵判断範囲クラス一覧 */
@@ -2873,7 +2875,12 @@ window.onload = function() {
                 bomOb[Num][i] = new Bom(this,Num,scene);
             }
 
-            if (screen.width > 844) {
+            if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+                scene.addEventListener('touchstart', function(){
+                    cur.x = (e.x);
+                    cur.y = (e.y);
+                })
+            }else{
                 //  画面クリック時の砲撃処理
                 scene.addEventListener('touchstart', function(){
                     if(worldFlg == true && scene.time > 210){   //  処理しても良い状態か
@@ -2899,11 +2906,6 @@ window.onload = function() {
                         }
                     }
                 })
-            }else{
-                scene.addEventListener('touchstart', function(){
-                    cur.x = (e.x);
-                    cur.y = (e.y);
-                })
             }
             //  常に稼働する処理
             this.onenterframe = function(){
@@ -2927,27 +2929,26 @@ window.onload = function() {
                                 shotStopTime = 0;
                             }
                         }
-                        //  チートを使ってなければ死亡判定処理をする
-                        if(cheat == false){
-                            for(var j = 0; j < bulOb.length; j++){
-                                for(var k = 0; k < bulOb[j].length; k++){
-                                    //if((tank.within(bulOb[j][k],25)==true || weak.intersectStrict(bulOb[j][k])==true) &&
-                                    if(weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true &&
-                                        defeat == false && victory == false && complete == false){
-    
-                                        game.assets['./sound/mini_bomb2.mp3'].clone().play();
-                                        deadFlgs[Num] = true
-                                        Get_NewBullet(j,k);
-                                        /*bulStack[j][k] = false;
-                                        scene.BulGroup.removeChild(colOb[j][k]);
-                                        colOb[j][k].destroy()
-                                        colOb[j][k].moveTo(-200,-200)
-                                        bulOb[j][k].moveTo(-200,-200)*/
-                                        moveSpeed = 0;
-                                    }
+                        Bullet.intersectStrict(weak).forEach(elem => {
+                            if(bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false){
+                                game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                deadFlgs[Num] = true
+                                Get_NewBullet(elem.num,elem.value);
+                                moveSpeed = 0;
+                            }
+                        })
+                        /*for(var j = 0; j < bulOb.length; j++){
+                            for(var k = 0; k < bulOb[j].length; k++){
+                                if(weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true &&
+                                    defeat == false && victory == false && complete == false){
+
+                                    game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                                    deadFlgs[Num] = true
+                                    Get_NewBullet(j,k);
+                                    moveSpeed = 0;
                                 }
                             }
-                        }
+                        }*/
                         //  死亡判定時の処理
                         if(deadFlgs[Num] == true){
                             
@@ -3252,26 +3253,35 @@ window.onload = function() {
                 //  死んでいなければ処理
                 if(life > 0){
                     //  死亡判定処理
-                    for(var j = 0; j < bulOb.length; j++){
+                    Bullet.intersectStrict(weak).forEach(elem => {
+                        if(bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false){
+                            game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                            deadFlgs[Num] = true
+                            Get_NewBullet(elem.num,elem.value);
+                            moveSpeed = 0;
+                        }
+                    })
+                    //  死亡判定がtrueなら
+                    if(deadFlgs[Num]==true){
+                        new Mark({x: this.x, y: this.y},scene);
+                        tankColorCounts[category]--;
+                        //alert(tankColorCwwsaounts)
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100);
+                        destruction++
+                        life = 0;
+                        deadTank[Num-1] = true;
+                    }
+                    /*for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
-                            //let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            //if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                             if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 Get_NewBullet(j,k);
-                                /*bulStack[j][k] = false;
-                                scene.BulGroup.removeChild(colOb[j][k]);
-                                colOb[j][k].destroy()
-                                colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
-                                
-                            }*/
                         }
-                    }
+                    }*/
                     fireFlgs[Num] = false;  //  発射状態をリセット
                         shotNGflg = false;
                         if(moveSpeed != 0 && tankStopFlg == false){
@@ -3409,17 +3419,6 @@ window.onload = function() {
                             alignment.intersect(EnemyAim).forEach(function(){
                                 fireFlgs[Num] = true;   //  発射可能状態にする
                             })
-                            //  死亡判定がtrueなら
-                            if(deadFlgs[Num]==true){
-                                new Mark({x: this.x, y: this.y},scene);
-                                tankColorCounts[category]--;
-                                //alert(tankColorCwwsaounts)
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100);
-                                destruction++
-                                life = 0;
-                                deadTank[Num-1] = true;
-                            }
                             
                             /* 迎撃処理群
                                 優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
@@ -3751,27 +3750,35 @@ window.onload = function() {
                     
                     
                     //  死亡判定処理
-                    for(var j = 0; j < bulOb.length; j++){
+                    Bullet.intersectStrict(weak).forEach(elem => {
+                        if(bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false){
+                            game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                            deadFlgs[Num] = true
+                            Get_NewBullet(elem.num,elem.value);
+                            moveSpeed = 0;
+                        }
+                    })
+                    if(deadFlgs[Num] == true){
+                        new Mark({x: this.x, y: this.y},scene);
+                        tankColorCounts[category]--;
+                        //alert(tankColorCounts)
+                        
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100)
+                        destruction++
+                        life--;
+                        deadTank[Num-1] = true;
+                    }
+                    /*for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
-                            //let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            //if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                             if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 Get_NewBullet(j,k);
-                                /*
-                                bulStack[j][k] = false;
-                                scene.BulGroup.removeChild(colOb[j][k]);
-                                colOb[j][k].destroy()
-                                colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
-                                
-                            }*/
                         }
-                    }
+                    }*/
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -3867,17 +3874,6 @@ window.onload = function() {
                             
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
-                            if(deadFlgs[Num] == true){
-                                new Mark({x: this.x, y: this.y},scene);
-                                tankColorCounts[category]--;
-                                //alert(tankColorCounts)
-                                
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                destruction++
-                                life--;
-                                deadTank[Num-1] = true;
-                            }
                             for(let elem of floors){
                                 if(intercept7.intersect(elem)==true){
                                     shotNGflg = true;
@@ -4364,26 +4360,35 @@ window.onload = function() {
                 }
                 if(life > 0){
                     //  死亡判定処理
-                    for(var j = 0; j < bulOb.length; j++){
+                    Bullet.intersectStrict(weak).forEach(elem => {
+                        if(bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false){
+                            game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                            deadFlgs[Num] = true
+                            Get_NewBullet(elem.num,elem.value);
+                            moveSpeed = 0;
+                        }
+                    })
+                    if(deadFlgs[Num] == true){
+                        new Mark({x: this.x, y: this.y},scene);
+                        tankColorCounts[category]--;
+                        //alert(tankColorCounts)
+                        
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100)
+                        destruction++
+                        life--;
+                        deadTank[Num-1] = true;
+                    }
+                    /*for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
-                            //let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            //if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                             if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 Get_NewBullet(j,k);
-                                /*bulStack[j][k] = false;
-                                scene.BulGroup.removeChild(colOb[j][k]);
-                                colOb[j][k].destroy()
-                                colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
-                                
-                            }*/
                         }
-                    }
+                    }*/
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -4467,17 +4472,7 @@ window.onload = function() {
                             
                             new EnemyAim(alignment,cannon,12,Num,scene);
                             
-                            if(deadFlgs[Num] == true){
-                                new Mark({x: this.x, y: this.y},scene);
-                                tankColorCounts[category]--;
-                                //alert(tankColorCounts)
-                                
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                destruction++
-                                life--;
-                                deadTank[Num-1] = true;
-                            }
+                            
 
                             for(let elem of floors){
                                 if(intercept7.intersect(elem)){
@@ -4891,26 +4886,33 @@ window.onload = function() {
                 }
                 if(life > 0){
                     //  死亡判定処理
-                    for(var j = 0; j < bulOb.length; j++){
+                    Bullet.intersectStrict(weak).forEach(elem => {
+                        if(bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false){
+                            game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                            deadFlgs[Num] = true
+                            Get_NewBullet(elem.num,elem.value);
+                            moveSpeed = 0;
+                        }
+                    })
+                    if(deadFlgs[Num] == true){
+                        new Mark({x: this.x, y: this.y},scene);
+                        tankColorCounts[category]--;
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100)
+                        destruction++
+                        life--;
+                        deadTank[Num-1] = true;
+                    }
+                    /*for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
-                            //let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            //if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                             if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 Get_NewBullet(j,k);
-                                /*bulStack[j][k] = false;
-                                scene.BulGroup.removeChild(colOb[j][k]);
-                                colOb[j][k].destroy()
-                                colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
-                                
-                            }*/
                         }
-                    }
+                    }*/
                     
   
                     if(worldFlg == true){
@@ -4921,15 +4923,7 @@ window.onload = function() {
                             shotNGflg = false;
                             fireFlgs[Num] = false;
                             
-                            if(deadFlgs[Num] == true){
-                                new Mark({x: this.x, y: this.y},scene);
-                                tankColorCounts[category]--;
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                destruction++
-                                life--;
-                                deadTank[Num-1] = true;
-                            }
+                            
                             if(this.time % 2 == 0)new EnemyAim();
                             EnemyAim.intersectStrict(target).forEach(elem => {
                                 fireFlgs[Num] = true;
@@ -5272,26 +5266,34 @@ window.onload = function() {
                 }    
                 if(life > 0){
                     //  死亡判定処理
-                    for(var j = 0; j < bulOb.length; j++){
+                    Bullet.intersectStrict(weak).forEach(elem => {
+                        if(bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false){
+                            game.assets['./sound/mini_bomb2.mp3'].clone().play();
+                            deadFlgs[Num] = true
+                            Get_NewBullet(elem.num,elem.value);
+                            moveSpeed = 0;
+                        }
+                    })
+                    if(deadFlgs[Num] == true){
+                        new Mark({x: this.x, y: this.y},scene);
+                        tankColorCounts[category]--;
+                        
+                        new Explosion(this,scene);
+                        this.moveTo(-100,-100)
+                        destruction++
+                        life--;
+                        deadTank[Num-1] = true;
+                    }
+                    /*for(var j = 0; j < bulOb.length; j++){
                         for(var k = 0; k < bulOb[j].length; k++){
-                            //let dist = Math.sqrt(Math.pow(weak.x - bulOb[j][k].x, 2) + Math.pow(weak.y - bulOb[j][k].y, 2));
-                            //if(defeat == false && (dist < 30 || this.intersectStrict(bulOb[j][k])==true) && bulStack[j][k] == true){
                             if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
                                 game.assets['./sound/mini_bomb2.mp3'].clone().play();
                                 deadFlgs[Num] = true
                                 Get_NewBullet(j,k);
-                                /*bulStack[j][k] = false;
-                                scene.BulGroup.removeChild(colOb[j][k]);
-                                colOb[j][k].destroy()
-                                colOb[j][k].moveTo(-200,-200)
-                                bulOb[j][k].moveTo(-200,-200)*/
                                 moveSpeed = 0;
                             }
-                            /*if((this.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true) && defeat == false){
-                                
-                            }*/
                         }
-                    }
+                    }*/
                     if(shotStopFlg == true){
                         shotStopTime++;
                         if(shotStopTime > 10){
@@ -5423,16 +5425,7 @@ window.onload = function() {
 
                             new EnemyAim(alignment,12,Num,scene);
       
-                            if(deadFlgs[Num] == true){
-                                new Mark({x: this.x, y: this.y},scene);
-                                tankColorCounts[category]--;
-                                
-                                new Explosion(this,scene);
-                                this.moveTo(-100,-100)
-                                destruction++
-                                life--;
-                                deadTank[Num-1] = true;
-                            }
+                            
                             
                             /*avoids.forEach(elem=>{
                                 if(tank.within(elem,64)==true){
@@ -6270,6 +6263,8 @@ window.onload = function() {
                 scene.MarkGroup = new Group();
                 scene.TankGroup = new Group();
                 scene.CannonGroup = new Group();
+                scene.SmokeGroup = new Group();
+                scene.FireGroup = new Group();
                 scene.BulGroup = new Group();
                 scene.BomGroup = new Group();
 
@@ -6325,6 +6320,8 @@ window.onload = function() {
             scene.addChild(scene.BomGroup);
             scene.addChild(scene.TankGroup);
             scene.addChild(scene.CannonGroup);
+            scene.addChild(scene.SmokeGroup);
+            scene.addChild(scene.FireGroup);
             scene.addChild(scene.BulGroup);
 
             let filterMap = new Map(pixelSize,pixelSize);
@@ -7111,6 +7108,8 @@ window.onload = function() {
                 scene.BomGroup = new Group();
                 scene.TankGroup = new Group();
                 scene.CannonGroup = new Group();
+                scene.SmokeGroup = new Group();
+                scene.FireGroup = new Group();
                 scene.BulGroup = new Group();
             
 
@@ -7128,7 +7127,7 @@ window.onload = function() {
                 //Obstracle(walls[2],scene)
                 walls[3] = new Wall(1,13,19,1,scene)
                 //Obstracle(walls[3],scene)
-                walls[4] = new Wall(24,1,0,15,scene)
+                //walls[4] = new Wall(24,1,0,15,scene)
                 //Obstracle(walls[4],scene)
             var fy = 0;
             var fx = 0;
@@ -7171,6 +7170,8 @@ window.onload = function() {
                 scene.addChild(scene.MarkGroup);
                 scene.addChild(scene.BomGroup);
                 scene.addChild(scene.TankGroup);
+                scene.addChild(scene.SmokeGroup);
+                scene.addChild(scene.FireGroup);
                 scene.addChild(scene.BulGroup);
                 scene.addChild(scene.CannonGroup);
                 
@@ -7210,7 +7211,7 @@ window.onload = function() {
             bomOb.push([])
             bulStack.push([])
             if(debugFlg){
-                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,22,2.4,scene,filterMap))
+                tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,24,2.4,scene,filterMap))
             }else{
                 tankEntity.push(new Player(stageData[3][0],stageData[3][1],'./image/ObjectImage/tank2.png','./image/ObjectImage/cannon.png',5,1,10,2.4,scene,filterMap))
             }
