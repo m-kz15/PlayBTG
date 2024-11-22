@@ -4931,7 +4931,7 @@ window.onload = function() {
 							}
 
 							if (this.time % 5 == 0) {
-								if (this.aimingTime > 0) this.aimingTime -= 2;
+								if (this.aimingTime > 0 && fireFlgs[Num] == false) this.aimingTime -= 2;
 								//if(this.aimingTime > 0) this.aimingTime--;
 								if (reloadFlg == false) {
 									if (bullets[Num] == emax) reloadFlg = true;
