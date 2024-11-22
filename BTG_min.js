@@ -3772,8 +3772,59 @@ window.onload = function() {
 								escapeFlg = false;
 								shotNGflg = false;
 								fireFlgs[Num] = false;
+                                
+                                switch(category){
+                                    case 6:
+                                        tank.opacity = opaVal;
+									    cannon.opacity = opaVal;
+                                        if (this.within(target, 400)) {
+                                            if (!opaFlg) opaFlg = true;
+                                        } else {
+                                            opaFlg = false;
+                                        }
+                                        switch(opaFlg){
+                                            case true:
+                                                if (opaVal < 1) {
+                                                    opaVal += 0.1;
+                                                    if (opaVal >= 1.0) {
+                                                        opaVal = 1.0;
+                                                        opaFlg = false;
+                                                    }
+                                                }
+                                                break;
+                                            case false:
+                                                if (this.time % 600 && addBullet == 0) {
+                                                    opaFlg = true;
+                                                }
+                                                if (opaVal > 0) {
+                                                    opaVal -= 0.05
+                                                    if (opaVal <= 0) {
+                                                        opaVal = 0
+                                                    }
+                                                }
+                                                break;
+                                        }
+                                        break;
+                                    case 8:
+                                        if (tank.within(target, 300) == true && bomFlg == false && boms[Num] == 0) {
+                                            game.assets['./sound/Sample_0009.wav'].clone().play();
+                                            bomOb[Num][0] = new Bom(this, Num, scene);
+                                            scene.BomGroup.addChild(bomOb[Num][0]);
+                                            this.time = 0;
+                                            bomFlg = true;
+                                            boms[Num]++;
+                                        } else if (bomFlg == true && boms[Num] <= 0) {
+                                            bomFlg = false;
+                                            bomOb[Num][0] = new Bom(this, Num, scene);
+                                            boms[Num] = 0
+                                        }
+                                        break;
+                                    default:
+                                        break;
 
-								if (category == 6) {
+                                }
+
+								/*if (category == 6) {
 									tank.opacity = opaVal;
 									cannon.opacity = opaVal;
 
@@ -3801,25 +3852,6 @@ window.onload = function() {
 											}
 										}
 									}
-
-									/*if(this.within(target,400)){
-									    opaFlg = true;
-									}
-									if(this.time % 600 == 0 && addBullet == 0){
-									    opaFlg = true;
-									}
-									if(opaFlg == false && opaVal > 0){
-									    opaVal -= 0.05;
-									    if(opaVal <= 0){
-									        opaVal = 0;
-									    }
-									}else if(opaFlg == true && opaVal <= 1.0){
-									    opaVal += 0.1;
-									    if(opaVal >= 1.0){
-									        opaVal = 1.0;
-									        opaFlg = false;
-									    }
-									}*/
 								} else if (category == 8) {
 									if (tank.within(target, 300) == true && bomFlg == false && boms[Num] == 0) {
 										game.assets['./sound/Sample_0009.wav'].clone().play();
@@ -3834,7 +3866,7 @@ window.onload = function() {
 										bomOb[Num][0] = new Bom(this, Num, scene);
 										boms[Num] = 0
 									}
-								}
+								}*/
 							}
 
 							new EnemyAim(alignment, cannon, 12, Num, scene);
@@ -3990,14 +4022,7 @@ window.onload = function() {
 													ShotBullet(i);
 													break;
 												}
-											} else if (category == 5) {
-												if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 10, scene);
-													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-													ShotBullet(i);
-													break;
-												}
-											} else if (category == 2) {
+											}else if (category == 2) {
 												if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
 													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
 													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
@@ -4063,7 +4088,7 @@ window.onload = function() {
 								}
 
 							}
-							if (game.time % 5 == 0) {
+							if (this.time % 5 == 0) {
 								for (var i = 0; i < tankEntity.length; i++) {
 									if (i != Num && deadFlgs[i] == false && moveSpeed > 0) {
 										if (this.intersect(tankEntity[i]) == true) {
@@ -4917,8 +4942,8 @@ window.onload = function() {
 								}
 								if (elem.hitTime == 0 && cannon.rotation != elem.agl) cannon.rotation = elem.agl;
 								if (elem.hitTime < 2) fireFlgs[Num] = true;
-								if (this.aimingTime < this.aimCmpTime + 10) this.aimingTime += 3;
-								elem.hitTime++;
+								if (this.aimingTime < (this.aimCmpTime + 12)) this.aimingTime += 3;
+                                elem.hitTime++;
 							})
 							if (this.aimingTime > 0) {
 								if (fireFlgs[Num] && this.aimingTime % 10 == 0) {
