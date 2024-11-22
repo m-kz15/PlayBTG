@@ -4918,7 +4918,7 @@ window.onload = function() {
 								if (elem.hitTime == 0 && cannon.rotation != elem.agl) cannon.rotation = elem.agl;
 								elem.hitTime++;
 								if (!fireFlgs[Num]) fireFlgs[Num] = true;
-								if (this.aimingTime < this.aimCmpTime + 10) this.aimingTime += 2;
+								if (this.aimingTime < this.aimCmpTime + 10) this.aimingTime += 3;
 							})
 							if (this.aimingTime > 0) {
 								if (fireFlgs[Num] && this.aimingTime % 10 == 0) {
