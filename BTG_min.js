@@ -545,6 +545,32 @@ var Hit_Rot = function(from, to) {
 	return value;
 }
 
+
+/*function collision(L, R, T, B, x, y, radius){ 
+	if(L - radius > x || R + radius < x || T - radius > y || B + radius < y){
+		//矩形に円の半径分を足した範囲 
+		return false; 
+	} 
+	if(L > x && T > y && !((L - x) * (L - x) + (T - y) * (T - y) < radius * radius)){
+		//左上の当たり判定 
+		return false; 
+	} 
+	if(R < x && T > y && !((R - x) * (R - x) + (T - y) * (T - y) < radius * radius)){
+		//右上の当たり判定 
+		return false; 
+	} 
+	if(L > x && B < y && !((L - x) * (L - x) + (B - y) * (B - y) < radius * radius)){
+		//左下の当たり判定 
+		return false; 
+	} 
+	if(R < x && B < y && !((R - x) * (R - x) + (B - y) * (B - y) < radius * radius)){
+		//右下の当たり判定 
+		return false; 
+	} 
+	return true;//すべての条件が外れたときに当たっている 
+}*/
+
+
 //設定用
 const Config = {
 	//画面の解像度
@@ -2885,7 +2911,7 @@ window.onload = function() {
 					if (worldFlg == true) {
 						if (shotStopFlg == true) {
 							shotStopTime++;
-							if (shotStopTime > 10) {
+							if (shotStopTime > 5) {
 								shotStopFlg = false;
 								shotStopTime = 0;
 							}
@@ -4190,6 +4216,548 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	});
+	var Stealth = Class.create(Sprite, {
+		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap) {
+			Sprite.call(this, pixelSize - 4, pixelSize - 4)
+			this.x = x * pixelSize;
+			this.y = y * pixelSize - 16;
+			this.time = 0;
+
+			var emax = max;
+			const Num = entVal;
+			entVal++;
+			bullets[Num] = 0;
+			boms[Num] = 0;
+			deadFlgs.push(false)
+
+			const cannon = new Cannon(this, path2, Num, scene)
+			const tank = new Tank(this, path1, Num, scene, cannon)
+			const weak = new Weak(this, Num, scene)
+			this.weak = weak;
+			this.cannon = cannon;
+			this.tank = tank;
+			TankFrame(this, Num, scene)
+
+			//markEntity[Num] = null;
+
+			tank.opacity = 1.0;
+			cannon.opacity = 1.0;
+
+			const intercept = new Intercept96(this, scene)
+			const intercept7 = new InterceptC(cannon, scene)
+			var value = Math.floor(Math.random() * 4);;
+			var speed = moveSpeed;
+			var bomFlg = false;
+			var rot = 0;
+			var escapeFlg = false;
+			var escapeTarget;
+			var opaFlg = false;
+			var opaVal = 1.0;
+			var shotNGflg = false;
+			let hittingTime = 0;
+			let reloadTime = 0;
+			let reloadFlg = false;
+			let shotStopFlg = false;
+			let shotStopTime = 0;
+
+			let life = 1;
+
+			if (moveSpeed != 0) {
+				if (stageNum >= 20) {
+					speed = speed + (0.1 * (stageNum / 20));
+				}
+			}
+
+			if (category == 2 && addBullet != 0) {
+				ref = ref + addBullet;
+			}
+
+			enemyTarget[Num] = target;
+			var alignment = new Target(Num, scene)
+			//alignment.backgroundColor = 'blue'
+
+			for (var i = 0; i < emax; i++) {
+				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
+				bulStack[Num][i] = false;
+				colOb[Num][i].moveTo(-230, -230)
+				bulOb[Num][i].moveTo(-100, -100)
+			}
+
+			bomOb[Num][0] = new Bom(this, Num, scene);
+
+			var EnemyAim = Class.create(Aim, {
+				initialize: function(alignment, cannon, ssp, Num) {
+					if (pauseFlg == false) {
+						Aim.call(this, alignment, cannon, 20, Num, scene);
+					}
+
+				}
+			})
+
+			//  移動方向決め処理
+			function SelDirection(target1, target2, or) {
+				if (or == 0) {
+					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+						} else {
+							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+						}
+					} else {
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+						} else {
+							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+						}
+					}
+
+				} else if (or == 1) {
+					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+						} else {
+							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+						}
+
+					} else {
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+						} else {
+							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+						}
+					}
+
+				}
+			}
+
+			function ShotBullet(i) {
+				game.assets['./sound/s_car_door_O2.wav'].clone().play();
+				if (shotSpeed >= 14) {
+					game.assets['./sound/Sample_0003.wav'].clone().play();
+				}
+				//scene.insertBefore(colOb[Num][i],filterMap);
+				//scene.insertBefore(bulOb[Num][i],filterMap);
+				scene.BulGroup.addChild(colOb[Num][i]);
+				scene.BulGroup.addChild(bulOb[Num][i]);
+				new OpenFire(cannon, alignment, scene, filterMap)
+				bullets[Num]++;
+				bulStack[Num][i] = true;
+				shotStopFlg = true;
+				if(opaVal < 0.5) opaVal = 0.5;
+			}
+
+			function Instrumentation(target1, target2) {
+				let dist1 = Math.sqrt(Math.pow(weak.x - target1.x, 2) + Math.pow(weak.y - target1.y, 2));
+				let dist2 = Math.sqrt(Math.pow(weak.x - target2.x, 2) + Math.pow(weak.y - target2.y, 2));
+				if (dist1 > dist2) {
+					return dist2;
+				} else {
+					return null;
+				}
+
+			}
+
+			if (addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate / 5) * 2);
+
+			this.onenterframe = function() {
+				if (deleteFlg == true) {
+					this.moveTo(-100, -100);
+					scene.removeChild(alignment);
+					scene.removeChild(intercept);
+					scene.removeChild(intercept7);
+					scene.TankGroup.removeChild(tank)
+					scene.CannonGroup.removeChild(cannon)
+					scene.removeChild(weak)
+					scene.removeChild(this)
+				}
+				if (life > 0) {
+                    if (deadFlgs[Num] == true) {
+                        new Mark(this, scene);
+                        tankColorCounts[category]--;
+                        //alert(tankColorCounts)
+
+                        new Explosion(this, scene);
+                        this.moveTo(-100, -100)
+                        destruction++
+                        life--;
+                        deadTank[Num - 1] = true;
+                    }
+					if (deadFlgs[0] == false) {
+						//  死亡判定処理
+						Bullet.intersectStrict(weak).forEach(elem => {
+							if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
+								game.assets['./sound/mini_bomb2.mp3'].clone().play();
+								deadFlgs[Num] = true
+								Get_NewBullet(elem.num, elem.value);
+								moveSpeed = 0;
+							}
+						})
+						
+						/*for(var j = 0; j < bulOb.length; j++){
+						    for(var k = 0; k < bulOb[j].length; k++){
+						        if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
+						            game.assets['./sound/mini_bomb2.mp3'].clone().play();
+						            deadFlgs[Num] = true
+						            Get_NewBullet(j,k);
+						            moveSpeed = 0;
+						        }
+						    }
+						}*/
+						if (shotStopFlg) {
+							shotStopTime++;
+							if (shotStopTime > 10) {
+								shotStopFlg = false;
+								shotStopTime = 0;
+							}
+						}
+
+						if (game.time == 1800) {
+							if (fireLate < 15) {
+								fireLate = 20;
+							}
+						}
+
+						if (hittingTime > 30) {
+							let val = value;
+							while (value == val) value = Math.floor(Math.random() * 4);
+							hittingTime = 0;
+						}
+
+						if (worldFlg == true) {
+							this.time++;
+							if (this.time % 2 == 0) {
+								if(opaFlg) opaFlg = false;
+								stopFlg = false;
+								escapeFlg = false;
+								shotNGflg = false;
+								fireFlgs[Num] = false;
+                                tank.opacity = opaVal;
+								cannon.opacity = opaVal;
+                                if (this.within(target, 400)) {
+									if (!opaFlg) opaFlg = true;
+								}
+                                switch(opaFlg){
+									case true:
+										if (opaVal < 1) {
+											opaVal += 0.1;
+											if (opaVal >= 1.0) {
+												opaVal = 1.0;
+												opaFlg = false;
+											}
+										}
+										break;
+									case false:
+										if (this.time % 600 == 0) {
+											if(addBullet == 0){
+												opaFlg = true;
+											}
+										}
+										if (opaVal > 0) {
+											opaVal -= 0.05
+											if (opaVal <= 0) {
+												opaVal = 0
+											}
+										}
+										break;
+								}        	    
+
+								/*if (category == 6) {
+									tank.opacity = opaVal;
+									cannon.opacity = opaVal;
+
+									if (this.within(target, 400)) {
+										if (!opaFlg) opaFlg = true;
+									} else {
+										opaFlg = false;
+									}
+									if (opaFlg) {
+										if (opaVal < 1) {
+											opaVal += 0.1;
+											if (opaVal >= 1.0) {
+												opaVal = 1.0;
+												opaFlg = false;
+											}
+										}
+									} else {
+										if (this.time % 600 && addBullet == 0) {
+											opaFlg = true;
+										}
+										if (opaVal > 0) {
+											opaVal -= 0.05
+											if (opaVal <= 0) {
+												opaVal = 0
+											}
+										}
+									}
+								} else if (category == 8) {
+									if (tank.within(target, 300) == true && bomFlg == false && boms[Num] == 0) {
+										game.assets['./sound/Sample_0009.wav'].clone().play();
+										bomOb[Num][0] = new Bom(this, Num, scene);
+										//scene.insertBefore(bomOb[Num][0],target);
+										scene.BomGroup.addChild(bomOb[Num][0]);
+										this.time = 0;
+										bomFlg = true;
+										boms[Num]++;
+									} else if (bomFlg == true && boms[Num] <= 0) {
+										bomFlg = false;
+										bomOb[Num][0] = new Bom(this, Num, scene);
+										boms[Num] = 0
+									}
+								}*/
+							}
+
+							new EnemyAim(alignment, cannon, 12, Num, scene);
+
+							for (let elem of floors) {
+								if (intercept7.intersect(elem) == true) {
+									shotNGflg = true;
+									break;
+								}
+							};
+							for (let elem of walls) {
+								if (intercept7.intersect(elem) == true) {
+									shotNGflg = true;
+									break;
+								}
+							};
+							
+
+							EnemyAim.intersect(alignment).forEach(elem => {
+								fireFlgs[Num] = true;
+							})
+
+							if (this.time % 5 == 0) {
+								if (enemyTarget[Num] != target) enemyTarget[Num] = target;
+								for (let i = 1; i < tankEntity.length; i++) {
+									if (i != Num && deadFlgs[i] == false) {
+										if (tank.intersectStrict(tankEntity[i])) {
+											value = Escape_Rot(this, tankEntity[i]);
+											break;
+										}
+									}
+								}
+							}
+
+
+							/* 迎撃処理群
+							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+							*/
+							//  他戦車の弾迎撃処理
+							if (cateFlgs[category][2] == true && bulOb.length > 2) {
+								for (let i = 1; i < bulOb.length; i++) {
+									if (i != Num) {
+										for (let j = 0; j < bulOb[i].length; j++) {
+											if (bulStack[i][j] == true) {
+												let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
+												if (dist != null && dist < cateRanges[category][2]) {
+													if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+														if (dist < cateEscapes[category][3]) {
+															if (dist < 120) enemyTarget[Num] = bulOb[i][j];
+															escapeTarget = bulOb[i][j];
+															escapeFlg = true;
+														}
+													}
+													intercept.intersect(BulAim).forEach(function() {
+														if (cateEscapes[category][3] != 0) enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
+														if (this.time % 5 == 0) {
+															SelDirection(weak, bulOb[i][j], 0)
+														}
+													})
+												}
+											}
+										}
+									}
+								}
+							}
+							//  プレイヤーの弾迎撃処理
+							if (cateFlgs[category][0] == true) {
+								for (let i = 0; i < bulOb[0].length; i++) {
+									if (bulStack[0][i] == true) {
+										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
+										if (dist != null && dist < cateRanges[category][0]) {
+											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+												if (dist < cateEscapes[category][1]) {
+													escapeTarget = bulOb[0][i];
+													escapeFlg = true;
+												}
+											}
+											intercept.intersect(PlayerBulAim).forEach(function() {
+												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
+												if (this.time % 5 == 0) {
+													SelDirection(weak, bulOb[0][i], 0)
+												}
+											})
+										}
+									}
+								}
+							}
+							//  自身の弾迎撃処理
+							if (cateFlgs[category][1] == true) {
+								for (let i = 0; i < bulOb[Num].length; i++) {
+									if (bulStack[Num][i] == true) {
+										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
+										if (dist != null && dist < cateRanges[category][1]) {
+											this.intersect(BulAim).forEach(function() {
+												if (cateEscapes[category][2] != 0) {
+													enemyTarget[Num] = bulOb[Num][i];
+													escapeTarget = bulOb[Num][i];
+													if (cateEscapes[category][0] == true) {
+														if (dist < cateEscapes[category][2] && dist > 100) {
+															escapeFlg = true
+														}
+													}
+												}
+												if (this.time % 5 == 0) {
+													SelDirection(weak, bulOb[0][i], 0)
+												}
+											})
+										}
+									}
+								}
+							}
+
+							if (reloadFlg == false) {
+								if (bullets[Num] == emax) reloadFlg = true;
+							} else {
+								if (reloadTime < cateReloadTimes[category]) {
+									reloadTime++;
+									if (shotNGflg == false) shotNGflg = true;
+								} else {
+									shotNGflg = false;
+									reloadFlg = false;
+									reloadTime = 0;
+								}
+
+							}
+
+							if (game.time % fireLate == 0 && shotNGflg == false) {
+								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
+									for (let i = 0; i < emax; i++) {
+										if (bulStack[Num][i] == false) {
+											if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
+												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i);
+												break;
+											}
+										}
+									}
+								}
+							}
+
+							if (this.time % 5 == 0) {
+								if (this.time % 10 == 0) {
+									if(boms[0] > 0){
+										for (let elem of bomOb) {
+											if (Math.sqrt(Math.pow(weak.x - elem.x, 2) + Math.pow(weak.y - elem.y, 2)) < 250) {
+												SelDirection(weak, elem, 0);
+												break;
+											}
+										};
+									}
+								}
+								for (var i = 0; i < tankEntity.length; i++) {
+									if (i != Num && deadFlgs[i] == false && moveSpeed > 0) {
+										if (this.intersect(tankEntity[i]) == true) {
+											SelDirection(weak, tankEntity[i], 0)
+										} else {
+											if (escapeFlg == false) {
+												if (Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < cateDistances[category]) {
+													SelDirection(weak, target, 0)
+												} else {
+													if (game.time % 10 == 0) {
+														SelDirection(weak, target, 1)
+													}
+												}
+											} else {
+												SelDirection(weak, escapeTarget, 0);
+											}
+										}
+									}
+								}
+							}
+							if (shotStopFlg == false) {
+								if (value == 0) {
+									rot = 0;
+									this.x -= speed;
+								} else if (value == 1) {
+									rot = 180;
+									this.x += speed;
+								} else if (value == 2) {
+									rot = 90;
+									this.y -= speed;
+								} else if (value == 3) {
+									rot = 270;
+									this.y += speed;
+								}
+							}
+
+
+							/* 戦車本体の角度 */
+							if (moveSpeed > 0) {
+								this.rotation = rot;
+								tank.rotation = rot;
+								weak.rotation = rot;
+							}
+							for (let i = 0; i < tankDir.length; i++) {
+								if (deadFlgs[i] == false && i != Num) {
+									if (this.intersect(tankDir[i][0]) == true) {
+										this.moveTo(this.x, tankDir[i][0].y - 60)
+									}
+									if (this.intersect(tankDir[i][1]) == true) {
+										this.moveTo(this.x, tankDir[i][1].y + (tankDir[i][1].height))
+									}
+									if (this.intersect(tankDir[i][2]) == true) {
+										this.moveTo(tankDir[i][2].x - 60, this.y)
+									}
+									if (this.intersect(tankDir[i][3]) == true) {
+										this.moveTo(tankDir[i][3].x + (tankDir[i][3].width), this.y)
+									}
+								}
+							}
+							for (let i = 0; i < obsdir.length; i++) {
+								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
+									this.moveTo(this.x, obsdir[i][0].y - 60)
+									hittingTime++;
+								}
+								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
+									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
+									hittingTime++;
+								}
+								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
+									this.moveTo(obsdir[i][2].x - 60, this.y)
+									hittingTime++;
+								}
+								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
+									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
+									hittingTime++;
+								}
+							}
+							if (this.intersect(walls[0]) == true) {
+								this.moveTo(this.x, walls[0].y + walls[0].height)
+								hittingTime++;
+							}
+							if (this.intersect(walls[1]) == true) {
+								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
+								hittingTime++;
+							}
+							if (this.intersect(walls[2]) == true) {
+								this.moveTo(walls[2].x + walls[2].width, this.y)
+								hittingTime++;
+							}
+							if (this.intersect(walls[3]) == true) {
+								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
+								hittingTime++;
+							}
+						}
+					}
+				}
+			}
+			//scene.insertBefore(this,tank)
+			scene.addChild(this);
+		}
+	});
 	var AIElite = Class.create(Sprite, {
 		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap, map, g) {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4)
@@ -4331,7 +4899,8 @@ window.onload = function() {
 
 			}
 
-			if (addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate / 5) * 2);
+			if (addBullet != 0 && category == 5) fireLate = 15;
+			if(addBullet != 0 && category == 10) fireLate = 25;
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
@@ -7250,6 +7819,8 @@ window.onload = function() {
 						tankEntity.push(new AIElite(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap, backgroundMap, grid))
 					} else if (stageData[i][10] == 11) {
 						tankEntity.push(new Boss(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], stageData[i][4] + addBullet, stageData[i][5], stageData[i][6] - 1, stageData[i][7], stageData[i][8], stageData[i][9], stageData[i][10], scene, filterMap))
+					} else if (stageData[i][10] == 6) {
+						tankEntity.push(new Stealth(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 					} else if (stageData[i][9] > 2) {
 						tankEntity.push(new Elite(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 					} else {
