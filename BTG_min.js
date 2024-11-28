@@ -4946,7 +4946,7 @@ window.onload = function() {
 							if (this.time % 5 == 0) {
 								if (enemyTarget[Num] != target) enemyTarget[Num] = target;
 
-								if (tank.within(target, 300) == true && bomFlg == false && boms[Num] == 0) {
+								if (tank.within(target, 200) == true && bomFlg == false && boms[Num] == 0) {
 									game.assets['./sound/Sample_0009.wav'].clone().play();
 									bomOb[Num][0] = new Bom(this, Num, scene);
 									scene.BomGroup.addChild(bomOb[Num][0]);
