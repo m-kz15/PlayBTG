@@ -80,7 +80,7 @@ var cateFlgs = [
 	[true, true, true], //elitegray
 	[true, true, true], //snow
 	[false, false, false], //elitegreen
-	[true, true, false], //sand
+	[true, false, false], //sand
 	[true, false, false], //pink
 	[true, false, false], //random
 	[true, true, true] //dazzle
@@ -96,7 +96,7 @@ var cateRanges = [
 	[300, 250, 200], //elitegray
 	[400, 300, 200], //snow
 	[400, 300, 250], //elitegreen
-	[300, 250, 0], //sand
+	[300, 0, 0], //sand
 	[500, 0, 0], //pink
 	[300, 0, 0], //random
 	[300, 300, 300] //dazzle
@@ -110,7 +110,7 @@ var cateEscapes = [
 	[true, 280, 230, 180], //elitegray
 	[true, 200, 0, 180], //snow
 	[true, 200, 0, 200], //elitegreen
-	[true, 150, 0, 0], //sand
+	[true, 180, 0, 0], //sand
 	[false, 0, 0, 0], //pink
 	[true, 200, 0, 0], //random
 	[true, 190, 0, 200] //dazzle
@@ -167,7 +167,7 @@ var cateFireLate = [
 	18, //elitegray
 	30, //snow
 	10, //elitegreen
-	30, //sand
+	25, //sand
 	10, //pink
 	45, //random
 	10 //dazzle
@@ -7839,7 +7839,7 @@ window.onload = function() {
 				[colorsName[5], '　弾数　：' + (cateMaxBullets[5] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[5], "移動速度：普通", "・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
 				[colorsName[6], '　弾数　：' + (cateMaxBullets[6] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[6], "移動速度：遅い", "・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
 				[colorsName[7], '　弾数　：' + (cateMaxBullets[7] + addBullet), "　弾速　：とても速い", "跳弾回数：" + cateMaxRefs[7], "移動速度：動かない", "・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
-				[colorsName[8], '　弾数　：' + (cateMaxBullets[8] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[8], "移動速度：とても速い", "・簡潔にいうと爆弾魔。<br>　爆弾を設置しないと攻撃してこない。"],
+				[colorsName[8], '　弾数　：' + (cateMaxBullets[8] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[8], "移動速度：とても速い", "・簡潔にいうと爆弾魔。<br>　また移動や弾速も速いので注意。"],
 				[colorsName[9], '　弾数　：' + (cateMaxBullets[9] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[9], "移動速度：動かない", "・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
 				[colorsName[10], "　弾数　：" + (cateMaxBullets[10] + addBullet), "　弾速　：最速", "跳弾回数：" + cateMaxRefs[10], "移動速度：普通", "・いつ現れるか分からない戦車。<br>　圧倒的な弾速に要注意。"],
 				[colorsName[11], "　弾数　：?", "　弾速　：普通~速い", "跳弾回数：0~1", "移動速度：普通~速い", "・攻防ともに優れたボス格。<br>　ステージごとに強さが異なる。"],
@@ -8226,7 +8226,7 @@ window.onload = function() {
 			let abn = Math.floor(Math.random() * 10);
 
 			for (let i = 4; i < Object.keys(stageData).length; i++) {
-				if (stageData[i][10] != 11 && stageData[i][7] > 0) {
+				if ((stageData[i][10] != 11 && stageData[i][7] > 0) || stageData[i][10] == 8) {
 					stageData[i][7] = cateMoveSpeeds[stageData[i][10]];
 					if (stageData[i][9] > 2) {
 						stageData[i][7] = cateMoveSpeeds[stageData[i][10]] + addSpeed;
