@@ -164,12 +164,12 @@ var cateFireLate = [
 	25, //green
 	15, //red
 	18, //lightgreen
-	18, //elitegray
+	20, //elitegray
 	30, //snow
 	10, //elitegreen
 	30, //sand
 	10, //pink
-	45, //random
+	30, //random
 	10 //dazzle
 ];
 var cateShotSpeeds = [
