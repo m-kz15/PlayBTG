@@ -110,9 +110,9 @@ var cateEscapes = [
 	[true, 280, 230, 180], //elitegray
 	[true, 200, 0, 180], //snow
 	[true, 200, 0, 200], //elitegreen
-	[true, 180, 0, 0], //sand
+	[true, 240, 0, 0], //sand
 	[false, 0, 0, 0], //pink
-	[true, 200, 0, 0], //random
+	[true, 250, 0, 0], //random
 	[true, 190, 0, 200] //dazzle
 ];
 var cateDistances = [
@@ -167,7 +167,7 @@ var cateFireLate = [
 	18, //elitegray
 	30, //snow
 	10, //elitegreen
-	25, //sand
+	30, //sand
 	10, //pink
 	45, //random
 	10 //dazzle
@@ -1482,7 +1482,13 @@ window.onload = function() {
 		initialize: function(target, cannon, shotSpeed, num, scene) {
 			Sprite.call(this, base / 2, base / 2);
 			if (num == 0) {
-				this.backgroundColor = "#aff4"
+				let n_color = new Surface(base / 2, base / 2);
+					n_color.context.beginPath();
+					n_color.context.fillStyle = 'rgba(170, 255, 255, 0.3)';
+					n_color.context.arc(size, size, size, 0, Math.PI * 2, true);
+					n_color.context.fill();
+				//this.backgroundColor = "#aff4"
+				this.image = n_color;
 			}
 			/*else if(debugFlg){
 			                this.backgroundColor = "#f008"
@@ -1504,6 +1510,7 @@ window.onload = function() {
 			cannon.rotation = (270 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
 			this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 			this.onenterframe = function() {
+				if (deleteFlg == true) scene.removeChild(this);
 				this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 				this.x += dx
 				this.y += dy
@@ -2182,9 +2189,9 @@ window.onload = function() {
 			this.scaleY = 0.9
 
 			this.onenterframe = function() {
-				if (deleteFlg == true) scene.removeChild(this);
-				this.time++
-				this.intersect(BombExplosion).forEach(function() {
+				if (deleteFlg == true) scene.BomGroup.removeChild(this);
+				if(worldFlg)this.time++
+				this.intersectStrict(BombExplosion).forEach(function() {
 					if (victory == false && defeat == false) {
 						new BombExplosion(bomb, num, scene)
 						bomb.moveTo(-900, -900)
@@ -3849,7 +3856,7 @@ window.onload = function() {
 
 							new EnemyAim(alignment, cannon, 12, Num, scene);
 
-							for (let elem of floors) {
+							/*for (let elem of floors) {
 								if (this.intersect(elem) == true) {
 									shotNGflg = true;
 									break;
@@ -3860,13 +3867,15 @@ window.onload = function() {
 									shotNGflg = true;
 									break;
 								}
-							};
-							/*intercept7.intersectStrict(Floor).forEach(function(){
+							};*/
+							Floor.intersectStrict(intercept7).forEach(function(){
 							    shotNGflg = true;
+								return;
 							})
-							intercept7.intersectStrict(Wall).forEach(function(){
+							Wall.intersectStrict(intercept7).forEach(function(){
 							    shotNGflg = true;
-							})*/
+								return;
+							})
 
 							EnemyAim.intersect(alignment).forEach(elem => {
 								fireFlgs[Num] = true;
@@ -3983,11 +3992,21 @@ window.onload = function() {
 
 							}
 
-							if (game.time % fireLate == 0 && shotNGflg == false) {
+							if (this.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
 									for (let i = 0; i < emax; i++) {
 										if (bulStack[Num][i] == false) {
-											if (category == 2) {
+											if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
+												if (category == 2) {
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
+												}else{
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												}
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i);
+												break;
+											}
+											/*if (category == 2) {
 												if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
 													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
 													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
@@ -4001,31 +4020,8 @@ window.onload = function() {
 													ShotBullet(i);
 													break;
 												}
-												/*if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
-													if (Math.floor(Math.random() * 3) == 0 && ref > 0) {
-														let r1 = 0;
-														let r2 = 0;
-														if (Math.floor(Math.random() * 2) == 1) {
-															r1 = -1;
-														} else {
-															r1 = 1;
-														}
-														if (Math.floor(Math.random() * 2) == 1) {
-															r2 = -1;
-														} else {
-															r2 = 1;
-														}
-														alignment.moveTo(alignment.x + (30 * r1), alignment.y + (30 * r2));
-													}
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
-													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-													ShotBullet(i);
-													if (category == 6 && opaVal == 0) {
-														opaVal = 0.5;
-													}
-													break;
-												}*/
-											}
+												
+											}*/
 										}
 									}
 								}
@@ -5391,47 +5387,54 @@ window.onload = function() {
 								escapeFlg = false;
 								shotNGflg = false;
 								fireFlgs[Num] = false;
-								if (moveSpeed != 0 && escapeFlg == false && tankStopFlg == false) {
-									//  自身の位置とターゲットの位置をざっくり算出
-									myPath = [parseInt((this.y + (this.height / 2) - 1) / pixelSize), parseInt((this.x + (this.width / 2) - 1) / pixelSize)]
-									targetPath = [parseInt((target.y + 41) / pixelSize), parseInt((target.x + 34.5) / pixelSize)]
-									//  マップの障害物情報に自身とターゲットの位置設定
-									for (var i = 0; i < grid.length; i++) {
-										for (var j = 0; j < grid[i].length; j++) {
-											if (i == myPath[0] && j == myPath[1]) {
-												grid[i][j] = 'Start';
-											} else if (i == targetPath[0] && j == targetPath[1]) {
-												grid[i][j] = 'Goal';
-											} else {
-												//  StartやGoalの位置が更新されている場合の処理
-												if (map.collisionData[i][j] == 0) {
-													grid[i][j] = 'Empty';
+								if(moveSpeed != 0 && rootFlg == false){
+									if (escapeFlg == false && tankStopFlg == false) {
+										//  自身の位置とターゲットの位置をざっくり算出
+										myPath = [parseInt((this.y + (this.height / 2) - 1) / pixelSize), parseInt((this.x + (this.width / 2) - 1) / pixelSize)]
+										targetPath = [parseInt((target.y + 41) / pixelSize), parseInt((target.x + 34.5) / pixelSize)]
+										//  マップの障害物情報に自身とターゲットの位置設定
+										for (var i = 0; i < grid.length; i++) {
+											for (var j = 0; j < grid[i].length; j++) {
+												if (i == myPath[0] && j == myPath[1]) {
+													grid[i][j] = 'Start';
+												} else if (i == targetPath[0] && j == targetPath[1]) {
+													grid[i][j] = 'Goal';
 												} else {
-													grid[i][j] = 'Obstacle';
+													//  StartやGoalの位置が更新されている場合の処理
+													if (map.collisionData[i][j] == 0) {
+														grid[i][j] = 'Empty';
+													} else {
+														grid[i][j] = 'Obstacle';
+													}
 												}
 											}
 										}
-									}
-									if ((rootFlg == false && this.time % 20 == 0) || this.time == 0) {
-										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-										if (root[0] == "East") {
-											value = 1;
-										} else if (root[0] == "West") {
-											value = 0;
-										} else if (root[0] == "North") {
-											value = 2;
-										} else if (root[0] == "South") {
-											value = 3;
-										} else {
-											rootFlg = true;
+										if (this.time % 20 == 0 || this.time == 1) {
+											root = findShortestPath([myPath[0], myPath[1]], grid, scene);
+											if (root[0] == "East") {
+												value = 1;
+											} else if (root[0] == "West") {
+												value = 0;
+											} else if (root[0] == "North") {
+												value = 2;
+											} else if (root[0] == "South") {
+												value = 3;
+											} else {
+												rootFlg = true;
+											}
 										}
+	
 									}
-
 								}
+								
 							}
 
-							if (hittingTime >= 30) {
-								while (value == now) value = Math.floor(Math.random() * 4);
+							if (hittingTime >= 20) {
+								if(value < 2){
+									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
+								}else{
+									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+								}
 								hittingTime = 0;
 							}
 
@@ -5453,7 +5456,7 @@ window.onload = function() {
 
 
 
-							for (let elem of floors) {
+							/*for (let elem of floors) {
 								if (intercept7.intersect(elem)) {
 									shotNGflg = true;
 									break;
@@ -5464,32 +5467,24 @@ window.onload = function() {
 									shotNGflg = true;
 									break;
 								}
-							};
-							/*intercept7.intersect(Floor).forEach(function(){
+							};*/
+							intercept7.intersect(Floor).forEach(function(){
 							    shotNGflg = true;
+								return;
 							})
 							intercept7.intersect(Wall).forEach(function(){
 							    shotNGflg = true;
-							})*/
+								return;
+							})
 
 							alignment.intersect(EnemyAim).forEach(elem => {
-								fireFlgs[Num] = true;
-								rootFlg = true;
+								if(fireFlgs[Num] == false)fireFlgs[Num] = true;
+								if(rootFlg == false)rootFlg = true;
 							});
 
 							if (this.time % 5 == 0) {
-								if (enemyTarget[Num] != target) enemyTarget[Num] = target;
-								if (this.time % 10 == 0) {
-									for (let i = 1; i < tankEntity.length; i++) {
-										if (tankEntity[i].intersectStrict(intercept) && i != Num && deadFlgs[i] == false) {
-											//fireFlgs[Num] = false;
-											//tankStopFlg = true;
-											value = Escape_Rot(this, tankEntity[i]);
-											break;
-										}
-									}
-								}
-
+								
+								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
 							}
 
 							/* 迎撃処理群
@@ -5621,11 +5616,21 @@ window.onload = function() {
 
 							}
 
-							if (game.time % fireLate == 0 && shotNGflg == false) {
+							if (this.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * (emax * 2)) > bullets[Num]) {
 									for (let i = 0; i < emax; i++) {
 										if (bulStack[Num][i] == false) {
-											if (category == 5 || category == 10) {
+											if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
+												if (category == 5 || category == 10) {
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
+												}else{
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												}
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i);
+												break;
+											}
+											/*if (category == 5 || category == 10) {
 												if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
 													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
 													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
@@ -5634,78 +5639,62 @@ window.onload = function() {
 												}
 											} else {
 												if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
-													if (Math.floor(Math.random() * 3) == 0 && ref > 0) {
-														let r1 = 0;
-														let r2 = 0;
-														if (Math.floor(Math.random() * 2) == 1) {
-															r1 = -1;
-														} else {
-															r1 = 1;
-														}
-														if (Math.floor(Math.random() * 2) == 1) {
-															r2 = -1;
-														} else {
-															r2 = 1;
-														}
-														alignment.moveTo(alignment.x + (30 * r1), alignment.y + (30 * r2));
-													}
 													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
 													ShotBullet(i);
 													break;
 												}
-											}
+											}*/
 										}
 									}
 								}
 							}
 
-							if (game.time % 5 == 0) {
-								for (var i = 0; i < tankEntity.length; i++) {
-									if (i != Num && deadFlgs[i] == false && moveSpeed > 0) {
-										if (this.intersect(tankEntity[i]) == true) {
-											SelDirection(weak, tankEntity[i], 0)
-										} else {
-											if (escapeFlg == false) {
-												if (Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < cateDistances[category]) {
-													SelDirection(weak, target, 0)
-												} else {
-													if (game.time % 10 == 0 && rootFlg == true) {
-														SelDirection(weak, target, 1)
-													}
-
-												}
-
-
-											} else {
-												SelDirection(weak, escapeTarget, 0);
-											}
-										}
-									}
-								}
-							}
-							if (shotStopFlg == false) {
-								if (value == 0) {
-									rot = 0;
-									this.x -= speed;
-								} else if (value == 1) {
-									rot = 180;
-									this.x += speed;
-								} else if (value == 2) {
-									rot = 90;
-									this.y -= speed;
-								} else if (value == 3) {
-									rot = 270;
-									this.y += speed;
-								}
-							}
-
-
-							/* 戦車本体の角度 */
+							
 							if (moveSpeed > 0) {
+								if (this.time % 5 == 0) {
+									
+									if (escapeFlg == false) {
+										
+										for (let i = 1; i < tankEntity.length; i++) {
+											if (tankEntity[i].intersectStrict(intercept) && i != Num && deadFlgs[i] == false) {
+												//fireFlgs[Num] = false;
+												//tankStopFlg = true;
+												value = Escape_Rot(this, tankEntity[i]);
+												break;
+											}
+										}
+										if (Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < cateDistances[category]) {
+											SelDirection(weak, target, 0)
+										} else {
+											if (this.time % 10 == 0 && rootFlg == true) {
+												SelDirection(weak, target, 1)
+											}
+										}
+										
+									} else {
+										SelDirection(weak, escapeTarget, 0);
+									}
+								}
+								/* 戦車本体の角度 */
+								if (shotStopFlg == false) {
+									if (value == 0) {
+										rot = 0;
+										this.x -= speed;
+									} else if (value == 1) {
+										rot = 180;
+										this.x += speed;
+									} else if (value == 2) {
+										rot = 90;
+										this.y -= speed;
+									} else if (value == 3) {
+										rot = 270;
+										this.y += speed;
+									}
+								}
+
 								this.rotation = rot;
 								tank.rotation = rot;
-								weak.rotation = rot;
 							}
 							for (let i = 0; i < tankDir.length; i++) {
 								if (deadFlgs[i] == false && i != Num) {
@@ -5725,45 +5714,45 @@ window.onload = function() {
 							}
 							for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.moveTo(this.x, obsdir[i][0].y - 60)
+									this.y = obsdir[i][0].y - 60;
+									//this.moveTo(this.x, obsdir[i][0].y - 60)
 									hittingTime++;
-									now = value;
 								}
 								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
+									this.y = obsdir[i][1].y + (obsdir[i][1].height);
+									//this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
 									hittingTime++;
-									now = value;
 								}
 								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.moveTo(obsdir[i][2].x - 60, this.y)
+									this.x = obsdir[i][2].x - 60;
+									//this.moveTo(obsdir[i][2].x - 60, this.y)
 									hittingTime++;
-									now = value;
 								}
 								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
+									this.x = obsdir[i][3].x + (obsdir[i][3].width);
+									//this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
 									hittingTime++;
-									now = value;
 								}
 							}
 							if (this.intersect(walls[0]) == true) {
-								this.moveTo(this.x, (64 * 2) - 16)
+								this.y = (64 * 2) - 16;
+								//this.moveTo(this.x, (64 * 2) - 16)
 								hittingTime++;
-								now = value;
 							}
 							if (this.intersect(walls[1]) == true) {
-								this.moveTo(this.x, (64 * 13) - 12)
+								this.y = (64 * 13) - 12;
+								//this.moveTo(this.x, (64 * 13) - 12)
 								hittingTime++;
-								now = value;
 							}
 							if (this.intersect(walls[2]) == true) {
-								this.moveTo((64 * 1), this.y)
+								this.x = (64 * 1);
+								//this.moveTo((64 * 1), this.y)
 								hittingTime++;
-								now = value;
 							}
 							if (this.intersect(walls[3]) == true) {
-								this.moveTo((64 * 18) + 3, this.y)
+								this.x = (64 * 18) + 3;
+								//this.moveTo((64 * 18) + 3, this.y)
 								hittingTime++;
-								now = value;
 							}
 						}
 					}
@@ -7839,7 +7828,7 @@ window.onload = function() {
 				[colorsName[5], '　弾数　：' + (cateMaxBullets[5] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[5], "移動速度：普通", "・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
 				[colorsName[6], '　弾数　：' + (cateMaxBullets[6] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[6], "移動速度：遅い", "・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
 				[colorsName[7], '　弾数　：' + (cateMaxBullets[7] + addBullet), "　弾速　：とても速い", "跳弾回数：" + cateMaxRefs[7], "移動速度：動かない", "・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
-				[colorsName[8], '　弾数　：' + (cateMaxBullets[8] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[8], "移動速度：とても速い", "・簡潔にいうと爆弾魔。<br>　また移動や弾速も速いので注意。"],
+				[colorsName[8], '　弾数　：' + (cateMaxBullets[8] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[8], "移動速度：とても速い", "・簡潔にいうと爆弾魔。<br>　また移動も弾速も速いので注意。"],
 				[colorsName[9], '　弾数　：' + (cateMaxBullets[9] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[9], "移動速度：動かない", "・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
 				[colorsName[10], "　弾数　：" + (cateMaxBullets[10] + addBullet), "　弾速　：最速", "跳弾回数：" + cateMaxRefs[10], "移動速度：普通", "・いつ現れるか分からない戦車。<br>　圧倒的な弾速に要注意。"],
 				[colorsName[11], "　弾数　：?", "　弾速　：普通~速い", "跳弾回数：0~1", "移動速度：普通~速い", "・攻防ともに優れたボス格。<br>　ステージごとに強さが異なる。"],
