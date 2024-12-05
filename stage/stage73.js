@@ -57,7 +57,7 @@ function LoadStage(){
     setting[5] = [2,3,'./image/ObjectImage/gray.png','./image/ObjectImage/graycannon.png',2,1,8,1.0,20,3,1]
     setting[6] = [17,3,'./image/ObjectImage/gray.png','./image/ObjectImage/graycannon.png',2,1,8,1.0,20,3,1]
     setting[7] = [2,11,'./image/ObjectImage/elitegreen.png','./image/ObjectImage/elitegreencannon.png',3,3,15.5,1.75,10,5,7]
-    setting[8] = [17,11,'./image/ObjectImage/meisai.png','./image/ObjectImage/meisaicannon.png',2,3,13,2.2,12,10,11];
+    setting[8] = [17,11,'./image/ObjectImage/meisai.png','./image/ObjectImage/meisaicannon.png',2,3,13,2.2,12,1,11];
 
     return setting;
 }
