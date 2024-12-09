@@ -4164,7 +4164,7 @@ window.onload = function() {
 
 			var shadow = new Surface(this.width, this.height);
 				shadow.context.beginPath();
-				shadow.context.fillStyle = 'rgba(0, 0, 0, 0.1)';
+				shadow.context.fillStyle = 'rgba(0, 0, 0, 0.05)';
 				shadow.context.arc(30, 30, 24, 0, Math.PI * 2, true);
 				shadow.context.fill();
 
