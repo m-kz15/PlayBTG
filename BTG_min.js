@@ -1412,8 +1412,6 @@ window.onload = function() {
 			}
 			if (deadFlgs[num]) scene.TankGroup.removeChild(this);
 			scene.TankGroup.addChild(this);
-			//scene.insertBefore(this,filterMap);
-			//scene.addChild(this);
 		}
 	});
 	/* 戦車の砲塔クラス */
@@ -1431,9 +1429,6 @@ window.onload = function() {
 
 			}
 			if (deadFlgs[num]) scene.CannonGroup.removeChild(this);
-			//this.opacity = 0.5
-			//scene.addChild(this);
-			//scene.insertBefore(this,filterMap);
 			scene.CannonGroup.addChild(this);
 		}
 	});
@@ -1456,7 +1451,6 @@ window.onload = function() {
 				});
 			}
 			scene.addChild(this);
-			//scene.insertBefore(this,filterMap);
 		},
 
 	});
@@ -1472,7 +1466,6 @@ window.onload = function() {
 			this.y = ((target.y + target.height / 2) - this.height / 2) + 6;
 			this.scaleY = 0.8;
 			scene.MarkGroup.addChild(this);
-			//scene.insertBefore(this,target);
 		}
 	});
 
@@ -2264,7 +2257,6 @@ window.onload = function() {
 				}
 			}
 			scene.SmokeGroup.addChild(this);
-			//scene.insertBefore(this,area);
 		}
 	})
 	/* ミサイルの炎描画クラス */
@@ -2312,7 +2304,6 @@ window.onload = function() {
 				if (value < 0.1) scene.FireGroup.removeChild(this);
 			}
 			scene.FireGroup.addChild(this);
-			//scene.insertBefore(this,area);
 		}
 	})
 	/* 着弾描画クラス */
@@ -2356,7 +2347,6 @@ window.onload = function() {
 				if (value < 0) scene.FireGroup.removeChild(this);
 			}
 			scene.FireGroup.addChild(this);
-			//scene.insertBefore(this,area);
 		}
 	})
 	/* 発砲描画クラス */
@@ -2390,7 +2380,6 @@ window.onload = function() {
 				if (value < 0) scene.FireGroup.removeChild(this);
 			}
 			scene.FireGroup.addChild(this);
-			//scene.insertBefore(this,filterMap);
 		}
 	})
 
@@ -2847,8 +2836,8 @@ window.onload = function() {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4)
 			//this.backgroundColor = "#f008"
 			//  プレイヤーの初期位置設定
-			this.x = x * pixelSize;
-			this.y = y * pixelSize - 16;
+			this.x = x * pixelSize + 2;
+			this.y = y * pixelSize - 14;
 
 			var pmax = max; //  最大弾数
 			const Num = entVal; //  戦車の番号を取得(tankEntityで使う)
@@ -2868,7 +2857,6 @@ window.onload = function() {
 
 			//markEntity[Num] = null;
 
-			var value = 0; //角度制御変数
 			var speed = moveSpeed; //移動速度
 			var rot = 0; //車体の角度
 			var bflg = false; //爆弾設置フラグ
@@ -2912,16 +2900,13 @@ window.onload = function() {
 								if (bulStack[Num][i] == false) { //  弾の状態がoffならば
 									game.assets['./sound/s_car_door_O2.wav'].clone().play(); //  発射音再生
 									colOb[Num][i] = new BulletCol(cur, cannon, shotSpeed, 0, scene); //  弾の物理制御をセット
-									bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i) //  弾の制御をセット
-									//scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
-									//scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
+									bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i) //  弾の制御をセット                                      //  フィールドに弾を生成
 									scene.BulGroup.addChild(colOb[Num][i]);
 									scene.BulGroup.addChild(bulOb[Num][i]);
 									bullets[Num]++; //  弾の発射済み個数を増やす
 									bulStack[Num][i] = true; //  弾の状態をonにする
 									new OpenFire(cannon, cur, scene) //  発砲エフェクト生成
 									shotStopFlg = true;
-									//scene.insertBefore(new AnotherBullet(cur,cannon,1,Num,pmax,16,scene,i),filterMap); 
 									break;
 								}
 							}
@@ -2985,45 +2970,37 @@ window.onload = function() {
 							if (shotStopFlg == false) {
 								switch (inputManager.checkDirection()) {
 									case inputManager.keyDirections.UP:
-										value = 2;
 										rot = 270;
 										this.y -= speed;
 										break;
 									case inputManager.keyDirections.UP_RIGHT:
-										value = 5;
 										rot = 315
 										this.x += speed / 1.5;
 										this.y -= speed / 1.5;
 										break;
 									case inputManager.keyDirections.RIGHT:
-										value = 1;
 										rot = 0;
 										this.x += speed;
 										break;
 									case inputManager.keyDirections.DOWN_RIGHT:
-										value = 7;
 										rot = 45
 										this.x += speed / 1.5;
 										this.y += speed / 1.5;
 										break;
 									case inputManager.keyDirections.DOWN:
-										value = 3;
 										rot = 90;
 										this.y += speed;
 										break;
 									case inputManager.keyDirections.DOWN_LEFT:
-										value = 6;
 										rot = 135
 										this.x -= speed / 1.5;
 										this.y += speed / 1.5;
 										break;
 									case inputManager.keyDirections.LEFT:
-										value = 0;
 										rot = 180;
 										this.x -= speed;
 										break;
 									case inputManager.keyDirections.UP_LEFT:
-										value = 4;
 										rot = 225
 										this.x -= speed / 1.5;
 										this.y -= speed / 1.5;
@@ -3041,15 +3018,12 @@ window.onload = function() {
 											game.assets['./sound/s_car_door_O2.wav'].clone().play(); //  発射音再生
 											colOb[Num][i] = new BulletCol(cur, cannon, shotSpeed, 0, scene); //  弾の物理制御をセット
 											bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i) //  弾の制御をセット
-											//scene.insertBefore(colOb[Num][i],filterMap);                                        //  フィールドに弾物理を生成
-											//scene.insertBefore(bulOb[Num][i],filterMap);                                        //  フィールドに弾を生成
 											scene.BulGroup.addChild(colOb[Num][i]);
 											scene.BulGroup.addChild(bulOb[Num][i]);
 											bullets[Num]++; //  弾の発射済み個数を増やす
 											bulStack[Num][i] = true; //  弾の状態をonにする
 											new OpenFire(cannon, cur, scene) //  発砲エフェクト生成
 											shotStopFlg = true;
-											//scene.insertBefore(new AnotherBullet(cur,cannon,1,Num,pmax,16,scene,i),filterMap); 
 											break;
 										}
 									}
@@ -3059,7 +3033,6 @@ window.onload = function() {
 							if ((inputManager.checkButton("B") == inputManager.keyStatus.DOWN || game.input.q) && bflg == false && boms[Num] < 2) {
 								game.assets['./sound/Sample_0009.wav'].clone().play();
 								bomOb[Num][boms[Num]] = new Bom(this, Num, scene)
-								//scene.insertBefore(bomOb[Num][boms[Num]],tank);
 								scene.BomGroup.addChild(bomOb[Num][boms[Num]]);
 								this.time = 0;
 								bflg = true;
@@ -3141,7 +3114,6 @@ window.onload = function() {
 				}
 
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});
@@ -3174,10 +3146,6 @@ window.onload = function() {
 
 			//  警戒範囲の生成
 			const intercept = new Intercept96(this, scene);
-			const intercept1 = new Intercept420(this, scene) //  直径420の警戒範囲生成
-			const intercept3 = new Intercept192(this, scene) //  直径192の警戒範囲生成
-			const intercept4 = new Intercept600(this, scene) //  直径600の警戒範囲生成
-			const intercept8 = new InterceptF(cannon, scene) //  砲身の警戒範囲生成
 
 			var moveCnt = 0 //  移動距離
 			var grid = g; //  マップの障害物配置情報
@@ -3233,8 +3201,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				bullets[Num]++;
@@ -3257,17 +3223,14 @@ window.onload = function() {
 			}
 
 			//  難易度設定によるステータス強化処理
-			if (addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate / 5) * 2);
+			if (addBullet != 0 && fireLate > 19) fireLate = fireLate - 5;
+			if (addBullet != 0 && category == 2) fireLate = 25;
 
 			//  常に処理する
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
 					this.moveTo(-100, -100);
 					scene.removeChild(intercept)
-					scene.removeChild(intercept1);
-					scene.removeChild(intercept3);
-					scene.removeChild(intercept4);
-					scene.removeChild(intercept8);
 					scene.removeChild(alignment);
 					scene.TankGroup.removeChild(tank);
 					scene.CannonGroup.removeChild(cannon);
@@ -3422,6 +3385,7 @@ window.onload = function() {
 							//  照準がターゲット追跡オブジェと重なったら
 							alignment.intersect(EnemyAim).forEach(function() {
 								if(!fireFlgs[Num])fireFlgs[Num] = true; //  発射可能状態にする
+								return;
 							})
 
 							/* 迎撃処理群
@@ -3437,6 +3401,7 @@ window.onload = function() {
 												intercept.intersect(BulAim).forEach(function() {
 													if (dist != null && dist < cateRanges[category][2]) {
 														enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
+														return;
 													}
 												})
 
@@ -3453,6 +3418,7 @@ window.onload = function() {
 										if (dist != null && dist < cateRanges[category][0]) {
 											this.intersect(PlayerBulAim).forEach(function() {
 												enemyTarget[Num] = bulOb[0][i]; //  迎撃のためにターゲット変更
+												return;
 											})
 										}
 
@@ -3466,6 +3432,7 @@ window.onload = function() {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
 										if (dist != null && dist < cateRanges[category][1]) {
 											enemyTarget[Num] = bulOb[Num][i]; //  迎撃のためにターゲット変更
+											break;
 										}
 									}
 								}
@@ -3618,7 +3585,6 @@ window.onload = function() {
 
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		},
 		MoveAction() {
@@ -3660,8 +3626,8 @@ window.onload = function() {
 	var Elite = Class.create(Sprite, {
 		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap) {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4)
-			this.x = x * pixelSize;
-			this.y = y * pixelSize - 16;
+			this.x = x * pixelSize + 2;
+			this.y = y * pixelSize - 14;
 			this.time = 0;
 
 			var emax = max;
@@ -3707,8 +3673,11 @@ window.onload = function() {
 				}
 			}
 
+			if (addBullet != 0 && fireLate > 19) fireLate = fireLate - 5;
+
 			if (category == 2 && addBullet != 0) {
 				ref = ref + addBullet;
+				fireLate = 25;
 			}
 
 			enemyTarget[Num] = target;
@@ -3775,8 +3744,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, alignment, scene)
@@ -3795,8 +3762,6 @@ window.onload = function() {
 				}
 
 			}
-
-			if (addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate / 5) * 2);
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
@@ -3901,6 +3866,7 @@ window.onload = function() {
 
 							EnemyAim.intersect(alignment).forEach(elem => {
 								if(!fireFlgs[Num])fireFlgs[Num] = true;
+								return;
 							})
 
 
@@ -3935,6 +3901,7 @@ window.onload = function() {
 													}
 													intercept.intersect(BulAim).forEach(function() {
 														if (cateEscapes[category][3] != 0) enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
+														return;
 													})
 												}
 											}
@@ -3952,10 +3919,12 @@ window.onload = function() {
 												if (dist < cateEscapes[category][1]) {
 													escapeTarget = bulOb[0][i];
 													escapeFlg = true;
+													break;
 												}
 											}
 											intercept.intersect(PlayerBulAim).forEach(function() {
 												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
+												return;
 											})
 										}
 									}
@@ -3967,7 +3936,7 @@ window.onload = function() {
 									if (bulStack[Num][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
 										if (dist != null && dist < cateRanges[category][1]) {
-											this.intersect(BulAim).forEach(function() {
+											BulAim.intersect(this).forEach(function() {
 												if (cateEscapes[category][2] != 0) {
 													enemyTarget[Num] = bulOb[Num][i];
 													escapeTarget = bulOb[Num][i];
@@ -4141,15 +4110,14 @@ window.onload = function() {
 					}
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});
 	var Stealth = Class.create(Sprite, {
 		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap) {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4)
-			this.x = x * pixelSize;
-			this.y = y * pixelSize - 16;
+			this.x = x * pixelSize + 2;
+			this.y = y * pixelSize - 14;
 			this.time = 0;
 
 			var emax = max;
@@ -4208,8 +4176,8 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-230, -230)
-				bulOb[Num][i].moveTo(-100, -100)
+				colOb[Num][i].moveTo(-230, -230);
+				bulOb[Num][i].moveTo(-100, -100);
 			}
 
 			bomOb[Num][0] = new Bom(this, Num, scene);
@@ -4264,8 +4232,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, alignment, scene)
@@ -4587,7 +4553,6 @@ window.onload = function() {
 					}
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});
@@ -4706,8 +4671,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, alignment, scene)
@@ -5037,7 +5000,6 @@ window.onload = function() {
 					}
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});*/
@@ -5045,8 +5007,8 @@ window.onload = function() {
 	var Bomber = Class.create(Sprite, {
 		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap) {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4)
-			this.x = x * pixelSize;
-			this.y = y * pixelSize - 16;
+			this.x = x * pixelSize + 2;
+			this.y = y * pixelSize - 14;
 			this.time = 0;
 
 			var emax = max;
@@ -5157,9 +5119,6 @@ window.onload = function() {
 
 			function ShotBullet(i) {
 				game.assets['./sound/s_car_door_O2.wav'].clone().play();
-				
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, alignment, scene)
@@ -5543,15 +5502,14 @@ window.onload = function() {
 					}
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});
 	var AIElite = Class.create(Sprite, {
 		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap, map, g) {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4)
-			this.x = x * pixelSize;
-			this.y = y * pixelSize - 16;
+			this.x = x * pixelSize + 2;
+			this.y = y * pixelSize - 14;
 			this.time = 0;
 
 			var emax = max;
@@ -5668,8 +5626,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, alignment, scene)
@@ -6131,7 +6087,6 @@ window.onload = function() {
 
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});
@@ -6139,7 +6094,7 @@ window.onload = function() {
 		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap) {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4)
 			this.x = x * pixelSize + 2;
-			this.y = y * pixelSize - 48;
+			this.y = y * pixelSize - 46;
 			this.time = 0;
 
 			var emax = max;
@@ -6205,8 +6160,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, anoPoint, scene);
@@ -6429,7 +6382,6 @@ window.onload = function() {
 
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});
@@ -6583,8 +6535,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, alignment, scene)
@@ -7176,7 +7126,6 @@ window.onload = function() {
 
 				}
 			}
-			//scene.insertBefore(this,tank)
 			scene.addChild(this);
 		}
 	});*/
@@ -7185,7 +7134,7 @@ window.onload = function() {
 		initialize: function(x,y,tankPath,cannonPath,target,category,grade,scene){
 			Sprite.call(this, 60, 60);
 			this.x = x * pixelSize + 2;
-			this.y = y * pixelSize - 16;
+			this.y = y * pixelSize - 14;
 			this.time = 0;
 
 			const Num = entVal;
@@ -7289,8 +7238,6 @@ window.onload = function() {
 				if (shotSpeed >= 14) {
 					game.assets['./sound/Sample_0003.wav'].clone().play();
 				}
-				//scene.insertBefore(colOb[Num][i],filterMap);
-				//scene.insertBefore(bulOb[Num][i],filterMap);
 				scene.BulGroup.addChild(colOb[Num][i]);
 				scene.BulGroup.addChild(bulOb[Num][i]);
 				new OpenFire(cannon, alignment, scene);
