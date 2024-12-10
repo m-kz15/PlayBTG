@@ -212,7 +212,7 @@ var cateMoveSpeeds = [
 	0.0, //elitegreen
 	2.6, //sand
 	0.0, //pink
-	1.3, //random
+	1.0, //random
 	2.0 //dazzle
 ];
 
@@ -3150,8 +3150,8 @@ window.onload = function() {
 		initialize: function(x, y, tankPath, cannonPath, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, map, g, filterMap) {
 			Sprite.call(this, pixelSize - 4, pixelSize - 4);
 			//  敵の初期位置設定
-			this.x = x * pixelSize;
-			this.y = y * pixelSize - 16;
+			this.x = x * pixelSize + 2;
+			this.y = y * pixelSize - 14;
 
 			this.time = 0;
 
@@ -3486,22 +3486,26 @@ window.onload = function() {
 							}
 
 							//  砲撃処理
-							if (this.time % fireLate == 0 && shotNGflg == false) {
-								if (Math.floor(Math.random() * (max * 2)) > bullets[Num]) {
-									if (bullets[Num] < max && deadFlgs[Num] == false && fireFlgs[Num] == true) {
+							if (shotNGflg == false) {
+								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
+									if (Math.floor(Math.random() * max * 2) > bullets[Num] && bullets[Num] < max) {
 										for (let i = 0; i < max; i++) {
 											if (bulStack[Num][i] == false) {
-												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												if(category == 2){
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
+												}else{
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												}
 												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-												ShotBullet(i);
+												ShotBullet(i)
 												break;
-												
 											}
-										}	
+
+										}
 									}
-									
 								}
 							}
+							
 							
 							/*if (shotNGflg == false) {
 								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
@@ -3993,7 +3997,27 @@ window.onload = function() {
 
 							}
 
-							if (this.time % fireLate == 0 && shotNGflg == false) {
+							if (shotNGflg == false) {
+								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
+									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
+										for (let i = 0; i < emax; i++) {
+											if (bulStack[Num][i] == false) {
+												if(category == 2){
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
+												}else{
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												}
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i)
+												break;
+											}
+
+										}
+									}
+								}
+							}
+
+							/*if (this.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
 									for (let i = 0; i < emax; i++) {
 										if (bulStack[Num][i] == false) {
@@ -4010,7 +4034,7 @@ window.onload = function() {
 										}
 									}
 								}
-							}
+							}*/
 							
 							if (moveSpeed > 0) {
 								if (this.time % 5 == 0) {
@@ -4324,12 +4348,20 @@ window.onload = function() {
 								stopFlg = false;
 								escapeFlg = false;
 								shotNGflg = false;
-								fireFlgs[Num] = false;
+								if(fireFlgs[Num])fireFlgs[Num] = false;
 							}
 
 							new EnemyAim();
 
-							for (let elem of floors) {
+							Floor.intersect(this).forEach(function(){
+								shotNGflg = true;
+								return;
+							})
+							Wall.intersect(this).forEach(function(){
+								shotNGflg = true;
+								return;
+							})
+							/*for (let elem of floors) {
 								if (intercept7.intersect(elem) == true) {
 									shotNGflg = true;
 									break;
@@ -4340,7 +4372,7 @@ window.onload = function() {
 									shotNGflg = true;
 									break;
 								}
-							};
+							};*/
 
 							if(this.time % 5 == 0){
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
@@ -4348,6 +4380,7 @@ window.onload = function() {
 
 							EnemyAim.intersect(alignment).forEach(elem => {
 								if(!fireFlgs[Num])fireFlgs[Num] = true;
+								return;
 							})
 
 							if (reloadFlg == false) {
@@ -4430,8 +4463,22 @@ window.onload = function() {
 									}
 								}
 							}
+							if (shotNGflg == false) {
+								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
+									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
+										for (let i = 0; i < emax; i++) {
+											if (bulStack[Num][i] == false) {
+												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i)
+												break;
+											}
 
-							if (game.time % fireLate == 0 && shotNGflg == false) {
+										}
+									}
+								}
+							}
+							/*if (game.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
 									for (let i = 0; i < emax; i++) {
 										if (bulStack[Num][i] == false) {
@@ -4444,7 +4491,7 @@ window.onload = function() {
 										}
 									}
 								}
-							}
+							}*/
 
 							//	戦車本体の角度
 							if (moveSpeed > 0) {
@@ -5334,7 +5381,22 @@ window.onload = function() {
 
 							}
 
-							if (game.time % fireLate == 0 && shotNGflg == false) {
+							if (shotNGflg == false) {
+								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
+									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
+										for (let i = 0; i < emax; i++) {
+											if (bulStack[Num][i] == false) {
+												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i)
+												break;
+											}
+
+										}
+									}
+								}
+							}
+							/*if (game.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
 									for (let i = 0; i < emax; i++) {
 										if (bulStack[Num][i] == false) {
@@ -5347,7 +5409,7 @@ window.onload = function() {
 										}
 									}
 								}
-							}
+							}*/
 							
 							if (this.time % 5 == 0) {
 
@@ -5628,7 +5690,7 @@ window.onload = function() {
 			}
 
 			if (addBullet != 0 && category == 5) fireLate = 18;
-			if(addBullet != 0 && category == 10) fireLate = 25;
+			if(addBullet != 0 && category == 10) fireLate = 35;
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
@@ -5781,7 +5843,7 @@ window.onload = function() {
 								return;
 							})
 
-							alignment.intersect(EnemyAim).forEach(elem => {
+							alignment.intersectStrict(EnemyAim).forEach(elem => {
 								if(fireFlgs[Num] == false)fireFlgs[Num] = true;
 								if(rootFlg == false)rootFlg = true;
 							});
@@ -5920,7 +5982,28 @@ window.onload = function() {
 
 							}
 
-							if (this.time % fireLate == 0 && shotNGflg == false) {
+							if (shotNGflg == false) {
+								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
+									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
+										for (let i = 0; i < emax; i++) {
+											if (bulStack[Num][i] == false) {
+												if (category == 5 || category == 10) {
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
+												}else{
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												}
+												//colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i)
+												break;
+											}
+
+										}
+									}
+								}
+							}
+
+							/*if (this.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * (emax * 2)) > bullets[Num]) {
 									for (let i = 0; i < emax; i++) {
 										if (bulStack[Num][i] == false) {
@@ -5934,25 +6017,10 @@ window.onload = function() {
 												ShotBullet(i);
 												break;
 											}
-											/*if (category == 5 || category == 10) {
-												if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
-													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-													ShotBullet(i);
-													break;
-												}
-											} else {
-												if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
-													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-													ShotBullet(i);
-													break;
-												}
-											}*/
 										}
 									}
 								}
-							}
+							}*/
 
 							
 							if (moveSpeed > 0) {
@@ -6263,7 +6331,28 @@ window.onload = function() {
 
 								}
 
-								if(game.time % fireLate == 0){
+								if (shotNGflg == false) {
+									if (this.time % fireLate == 0 && fireFlgs[Num] == true && this.aimingTime > this.aimCmpTime) {
+										if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
+											for (let i = 0; i < emax; i++) {
+												if (bulStack[Num][i] == false) {
+													colOb[Num][i] = new BulletCol(anoPoint, cannon, shotSpeed, 0, scene);
+													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+													ShotBullet(i)
+													this.aimingTime = 0;
+													if (category != 0) {
+														this.aimCmpTime = Math.floor(Math.random() * 40) + 30;
+													} else {
+														this.aimCmpTime = Math.floor(Math.random() * 3) + 2;
+													}
+													break;
+												}
+	
+											}
+										}
+									}
+								}
+								/*if(game.time % fireLate == 0){
 									if(shotNGflg == false && this.aimingTime > this.aimCmpTime){
 										if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
 											for (let i = 0; i < emax; i++) {
@@ -6285,7 +6374,7 @@ window.onload = function() {
 											}
 										}
 									}
-								}
+								}*/
 
 
 								for (let i = 0; i < tankDir.length; i++) {
@@ -7258,7 +7347,7 @@ window.onload = function() {
 					case 1:
 						if(speed > 1)speed = speed - 0.2;
 						fireLate = fireLate - 7;
-						shotSpeed = shotSpeed + 3;
+						shotSpeed = shotSpeed + 4;
 						disRange = 150;
 						ref = 0;
 						break;
@@ -7278,15 +7367,6 @@ window.onload = function() {
 					scene.removeChild(this)
 				}
 				if(!deadFlgs[Num]){
-					if(life <= 0){
-						new Mark(this, scene);
-						tankColorCounts[category]--;
-						new Explosion(this, scene);
-						this.moveTo(-100, -100);
-						destruction++;
-						deadFlgs[Num] = true;
-						deadTank[Num - 1] = true;
-					}
 					if (!deadFlgs[0]) {
 						//  死亡判定処理
 						Bullet.intersectStrict(weak).forEach(elem => {
@@ -7442,7 +7522,23 @@ window.onload = function() {
 								}
 							}
 
-							if (this.time % fireLate == 0 && shotNGflg == false) {
+							if (shotNGflg == false) {
+								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
+									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
+										for (let i = 0; i < emax; i++) {
+											if (bulStack[Num][i] == false) {
+												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i)
+												break;
+											}
+
+										}
+									}
+								}
+							}
+
+							/*if (this.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * (emax * 2)) > bullets[Num]) {
 									if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
 										for (let i = 0; i < emax; i++) {
@@ -7457,7 +7553,7 @@ window.onload = function() {
 									}
 									
 								}
-							}
+							}*/
 
 							/*if (this.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * (emax * 2)) > bullets[Num]) {
@@ -7579,6 +7675,15 @@ window.onload = function() {
 							}
 							this.time++;
 						}
+					}
+					if(life <= 0){
+						new Mark(this, scene);
+						tankColorCounts[category]--;
+						new Explosion(this, scene);
+						this.moveTo(-100, -100);
+						destruction++;
+						deadFlgs[Num] = true;
+						deadTank[Num - 1] = true;
 					}
 				}
 	        }
@@ -8572,7 +8677,7 @@ window.onload = function() {
 				[colorsName[3], '　弾数　：' + (cateMaxBullets[3] + addBullet), "　弾速　：普通", "跳弾回数：" + cateMaxRefs[3], "移動速度：速い", "・万歳突撃をかますヤバイ奴。<br>　跳弾や角狙いで対処しよう。"],
 				[colorsName[4], '　弾数　：' + (cateMaxBullets[4] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[4], "移動速度：遅い", "・弾がよく跳ね返るため厄介。<br>　結構ビビり。"],
 				[colorsName[5], '　弾数　：' + (cateMaxBullets[5] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[5], "移動速度：普通", "・Grayの強化個体。<br>　冷静に対処すれば倒せる。"],
-				[colorsName[6], '　弾数　：' + (cateMaxBullets[6] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[6], "移動速度：遅い", "・ステルスで姿を眩ます厄介者。<br>　距離を詰めれば見えるようになる。"],
+				[colorsName[6], '　弾数　：' + (cateMaxBullets[6] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[6], "移動速度：遅い", "・ステルスで姿を眩ます厄介者。<br>　死角からの砲撃に要注意！"],
 				[colorsName[7], '　弾数　：' + (cateMaxBullets[7] + addBullet), "　弾速　：とても速い", "跳弾回数：" + cateMaxRefs[7], "移動速度：動かない", "・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
 				[colorsName[8], '　弾数　：' + (cateMaxBullets[8] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[8], "移動速度：とても速い", "・簡潔にいうと爆弾魔。<br>　また移動も弾速も速いので注意。"],
 				[colorsName[9], '　弾数　：' + (cateMaxBullets[9] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[9], "移動速度：動かない", "・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
