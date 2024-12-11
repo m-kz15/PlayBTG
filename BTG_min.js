@@ -966,8 +966,8 @@ class ActBtn {
 window.onload = function() {
 	/* ステージ幅：20ブロック　高さ：15ブロック */
 	game = new Core(pixelSize * stage_w, pixelSize * stage_h);
-	inputManager = new InputManager();
 	game.fps = 60; //画面の更新頻度
+	game.time = 0;
 	game.preload( //画像や音源を準備
 		'./image/ObjectImage/tank2.png',
 		'./image/ObjectImage/cannon.png',
@@ -1036,36 +1036,40 @@ window.onload = function() {
 		'./sound/ELEVENTH.mp3'
 	);
 	/* 入力キー一覧 */
-	game.keybind(65, "a");
+	/*game.keybind(65, "a");
 	game.keybind(87, "w");
 	game.keybind(83, "s");
 	game.keybind(68, "d");
 	game.keybind(32, "e");
 	game.keybind(81, "q");
-	game.keybind(27, "Pause");
-	game.time = 0;
+	game.keybind(27, "Pause");*/
+	inputManager = new InputManager();
 
-	/*let viewGame = document.getElementById('enchant-stage');
-	alert(game.width / viewGame.clientWidth)
-	scl = game.width / viewGame.clientWidth*/
-	/*let viewGame = document.getElementById('enchant-stage');
+	let viewGame = document.getElementById('enchant-stage');
 	viewGame.style.display = "block";
-	scl = window.innerWidth / viewGame.clientWidth;
-	if(window.innerWidth > viewGame.clientWidth){
-	    scl = window.innerWidth / viewGame.clientWidth;
-	    //alert(scl)
-	    ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
-	    viewGame.style.position = "absolute";
-	    viewGame.style.left = ScreenMargin + "px";
-	    game._pageX = ScreenMargin;
-	    //viewGame.style.margin = "0px " + ScreenMargin + "px";
+	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+		scl = window.innerWidth / viewGame.clientWidth;
+		if(window.innerWidth > viewGame.clientWidth){
+			scl = window.innerWidth / viewGame.clientWidth;
+			//alert(scl)
+			ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
+			viewGame.style.position = "absolute";
+			viewGame.style.left = ScreenMargin + "px";
+			game._pageX = ScreenMargin;
+			//viewGame.style.margin = "0px " + ScreenMargin + "px";
+		}else{
+			ScreenMargin = 120;
+			viewGame.style.position = "absolute";
+			viewGame.style.left = (ScreenMargin*2) + "px";
+			game._pageX = (ScreenMargin*2);
+		}
 	}else{
-	    ScreenMargin = 240;
-	    viewGame.style.position = "absolute";
-	    viewGame.style.left = ScreenMargin + "px";
-	    game._pageX = ScreenMargin;
-	    ScreenMargin = 120;
-	}*/
+		ScreenMargin = 120;
+		viewGame.style.position = "absolute";
+		viewGame.style.left = ScreenMargin + "px";
+		game._pageX = ScreenMargin;
+	}
+	
 
 	/* ステージ端の壁クラス */
 	var Wall = Class.create(PhyBoxSprite, {
@@ -3586,40 +3590,6 @@ window.onload = function() {
 				}
 			}
 			scene.addChild(this);
-		},
-		MoveAction() {
-			//  自身の位置とターゲットの位置をざっくり算出
-			myPath = [parseInt((this.y + 41) / pixelSize), parseInt((this.x + 34.5) / pixelSize)]
-			targetPath = [parseInt((target.y + 41) / pixelSize), parseInt((target.x + 34.5) / pixelSize)]
-			//  マップの障害物情報に自身とターゲットの位置設定
-			for (var i = 0; i < grid.length; i++) {
-				for (var j = 0; j < grid[i].length; j++) {
-					if (i == myPath[0] && j == myPath[1]) {
-						grid[i][j] = 'Start';
-					} else if (i == targetPath[0] && j == targetPath[1]) {
-						grid[i][j] = 'Goal';
-					} else {
-						//  StartやGoalの位置が更新されている場合の処理
-						if (map.collisionData[i][j] == 0) {
-							grid[i][j] = 'Empty';
-						} else {
-							grid[i][j] = 'Obstacle';
-						}
-					}
-				}
-			}
-			if (this.time == 0) {
-				root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-				if (root[0] == "East") {
-					this.rotation = 0
-				} else if (root[0] == "West") {
-					this.rotation = 180;
-				} else if (root[0] == "North") {
-					this.rotation = 270;
-				} else if (root[0] == "South") {
-					this.rotation = 90;
-				}
-			}
 		}
 	});
 	/* 敵(強)クラス */
@@ -3812,12 +3782,6 @@ window.onload = function() {
 							if (shotStopTime > 10) {
 								shotStopFlg = false;
 								shotStopTime = 0;
-							}
-						}
-
-						if (game.time == 1800 && this.time % 60 == 0) {
-							if (fireLate < 15) {
-								fireLate = 20;
 							}
 						}
 
@@ -9702,23 +9666,29 @@ window.onload = function() {
 		game.start(); // ゲームをスタートさせます
 	}
 }
-/*window.onresize = function(){
+window.onresize = function(){
     let viewGame = document.getElementById('enchant-stage');
     viewGame.style.display = "block";
-    if(window.innerWidth > viewGame.clientWidth){
-        scl = window.innerWidth / viewGame.clientWidth;
-        //alert(scl)
-        ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
-        viewGame.style.position = "absolute";
-        viewGame.style.left = ScreenMargin + "px";
-        game._pageX = ScreenMargin;
-        //viewGame.style.margin = "0px " + ScreenMargin + "px";
-    }else{
-        scl = window.innerWidth / viewGame.clientWidth;
-        ScreenMargin = 240;
-        viewGame.style.position = "absolute";
-        viewGame.style.left = ScreenMargin + "px";
-        game._pageX = ScreenMargin;
-        ScreenMargin = 120;
-    }
-};*/
+	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+		scl = window.innerWidth / viewGame.clientWidth;
+		if(window.innerWidth > viewGame.clientWidth){
+			scl = window.innerWidth / viewGame.clientWidth;
+			//alert(scl)
+			ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
+			viewGame.style.position = "absolute";
+			viewGame.style.left = ScreenMargin + "px";
+			game._pageX = ScreenMargin;
+			//viewGame.style.margin = "0px " + ScreenMargin + "px";
+		}else{
+			ScreenMargin = 120;
+			viewGame.style.position = "absolute";
+			viewGame.style.left = (ScreenMargin*2) + "px";
+			game._pageX = (ScreenMargin*2);
+		}
+	}else{
+		ScreenMargin = 120;
+		viewGame.style.position = "absolute";
+		viewGame.style.left = ScreenMargin + "px";
+		game._pageX = ScreenMargin;
+	}
+};
