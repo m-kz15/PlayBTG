@@ -6201,28 +6201,29 @@ window.onload = function() {
 									}
 
 								}
-							}
-							if (shotNGflg == false) {
-								if (this.time % fireLate == 0 && fireFlgs[Num] == true && this.aimingTime > this.aimCmpTime) {
-									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
-										for (let i = 0; i < emax; i++) {
-											if (bulStack[Num][i] == false) {
-												colOb[Num][i] = new BulletCol(anoPoint, cannon, shotSpeed, 0, scene);
-												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-												ShotBullet(i)
-												this.aimingTime = 0;
-												if (category != 0) {
-													this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
-												} else {
-													this.aimCmpTime = Math.floor(Math.random() * 3) + 2;
+								if (shotNGflg == false) {
+									if (this.time % fireLate == 0 && fireFlgs[Num] == true && this.aimingTime > this.aimCmpTime) {
+										if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
+											for (let i = 0; i < emax; i++) {
+												if (bulStack[Num][i] == false) {
+													colOb[Num][i] = new BulletCol(anoPoint, cannon, shotSpeed, 0, scene);
+													bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+													ShotBullet(i)
+													this.aimingTime = 0;
+													if (category != 0) {
+														this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
+													} else {
+														this.aimCmpTime = Math.floor(Math.random() * 3) + 2;
+													}
+													break;
 												}
-												break;
+	
 											}
-
 										}
 									}
 								}
 							}
+							
 							for (let i = 0; i < tankDir.length; i++) {
 								if (deadFlgs[i] == false && i != Num) {
 									if (this.intersect(tankDir[i][0]) == true) {
