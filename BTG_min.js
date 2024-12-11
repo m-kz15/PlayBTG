@@ -160,7 +160,7 @@ var cateMaxBullets = [
 ];
 
 var cateFireLate = [
-	20, //brown
+	30, //brown
 	40, //gray
 	25, //green
 	20, //red
@@ -6042,7 +6042,6 @@ window.onload = function() {
 			let aimRot = 1.2;
 			if (category == 0) {
 				this.aimCmpTime = 3;
-				fireLate = 45;
 				aimRot = 1.5;
 			}
 			if (Math.floor(Math.random() * 2)) {
@@ -9556,15 +9555,13 @@ window.onload = function() {
 	}
 
 	/* 画面外をクリックしても操作できるようにする処理 */
-	/*game.onenterframe = function() {
+	game.onenterframe = function() {
 
-		if (game.time % 5 == 0 && game.time > 0) {
+		if (game.time % 10 == 0 && worldFlg) {
 			window.focus();
-			
-
 		}
 
-	}*/
+	}
 	if(debugFlg){
 		game.debug();	//	ゲームをデバッグモードで実行させる。
 	}else{
