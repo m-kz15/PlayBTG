@@ -1410,7 +1410,7 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	})
-	var CursorArea = Class.create(Sprite,{
+	/*var CursorArea = Class.create(Sprite,{
 		initialize: function(){
 			Sprite.call(this,128,128);
 			var area = new Surface(128, 128);
@@ -1428,7 +1428,7 @@ window.onload = function() {
 			}
 			now_scene.CursorGroup.addChild(this);
 		}
-	})
+	})*/
 	/* 戦車の車体クラス */
 	var Tank = Class.create(Sprite, {
 		initialize: function(area, path, num, scene, filterMap) {
@@ -2844,7 +2844,7 @@ window.onload = function() {
 			
 
 			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
-				new CursorArea();
+				//new CursorArea();
 				scene.addEventListener('touchstart', function(e) {
 					cur.x = (e.x);
 					cur.y = (e.y);
@@ -7967,7 +7967,7 @@ window.onload = function() {
 			scene.time = 0;
 			now_scene = scene;
 
-			scene.CursorGroup = new Group();
+			//scene.CursorGroup = new Group();
 			scene.MarkGroup = new Group();
 			scene.TankGroup = new Group();
 			scene.CannonGroup = new Group();
@@ -8032,7 +8032,7 @@ window.onload = function() {
 			scene.addChild(scene.SmokeGroup);
 			scene.addChild(scene.FireGroup);
 			scene.addChild(scene.BulGroup);
-			scene.addChild(scene.CursorGroup);
+			//scene.addChild(scene.CursorGroup);
 
 			let filterMap = new Map(pixelSize, pixelSize);
 			filterMap.image = backgroundMap.image;
@@ -8839,7 +8839,7 @@ window.onload = function() {
 			scene.time = 0;
 			now_scene = scene;
 
-			scene.CursorGroup = new Group();
+			//scene.CursorGroup = new Group();
 			scene.MarkGroup = new Group();
 			scene.BomGroup = new Group();
 			scene.TankGroup = new Group();
@@ -8910,7 +8910,7 @@ window.onload = function() {
 			scene.addChild(scene.FireGroup);
 			scene.addChild(scene.BulGroup);
 			scene.addChild(scene.CannonGroup);
-			scene.addChild(scene.CursorGroup);
+			//scene.addChild(scene.CursorGroup);
 
 
 			let filterMap = new Map(pixelSize, pixelSize);
