@@ -1412,16 +1412,17 @@ window.onload = function() {
 	})
 	var CursorArea = Class.create(Sprite,{
 		initialize: function(){
-			Sprite.call(this,96,96);
-			var area = new Surface(96, 96);
+			Sprite.call(this,128,128);
+			var area = new Surface(128, 128);
 				area.context.beginPath();
 				area.context.fillStyle = 'rgba(102, 170, 255, 0.2)';
-				area.context.arc(48, 48, 48, 0, Math.PI * 2, true);
+				area.context.arc(64, 64, 64, 0, Math.PI * 2, true);
 				area.context.fill();
 			this.image = area;
 			this.onenterframe = function(){
+				
 				if(worldFlg){
-					this.moveTo((cur.x + cur.width/2) - (this.width/2),(cur.y + cur.height/2) - (this.height/2));
+					this.moveTo((cur.x + cur.width/2) - 64,(cur.y + cur.height/2) - 64);
 				}
 				if(deleteFlg) now_scene.CursorGroup.removeChild(this);
 			}
@@ -1766,7 +1767,7 @@ window.onload = function() {
 		initialize: function(target, shotSpeed, num, value, scene) {
 			Sprite.call(this, base / 2, base / 2);
 			//this.backgroundColor = "#aff8"
-			this.debugColor = "white"
+			//this.debugColor = "white"
 			this.moveTo((target.x + target.width/2) - (this.width/2), (target.y + target.height/2) - this.height/2);
 			this.time = 0;
 			var rad = (target.rotation - 90) * (Math.PI / 180.0);
@@ -3157,12 +3158,7 @@ window.onload = function() {
 			//  独自の敵の照準処理
 			var EnemyAim = Class.create(Aim, { //  Aimクラスを継承
 				initialize: function() {
-					if(ref == 0){
-						Aim.call(this, alignment, cannon, 28, Num, scene);
-						this.scale(2,2);
-					}else{
-						Aim.call(this, alignment, cannon, 20, Num, scene);
-					}
+					Aim.call(this, alignment, cannon, 20, Num, scene);
 				}
 			})
 
@@ -3634,15 +3630,10 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					if (pauseFlg == false) {
-						if(ref == 0){
-							Aim.call(this, alignment, cannon, 28, Num, scene);
-							this.scale(2,2);
-						}else{
-							Aim.call(this, alignment, cannon, 24, Num, scene);
-						}
+					Aim.call(this, alignment, cannon, 24, Num, scene);
+					if(ref == 0){
+						this.scale(2,2);
 					}
-
 				}
 			})
 
@@ -4132,10 +4123,7 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					if (pauseFlg == false) {
-						Aim.call(this, alignment, cannon, 24, Num, scene);
-					}
-
+					Aim.call(this, alignment, cannon, 24, Num, scene);
 				}
 			})
 
@@ -5035,11 +5023,8 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					if (pauseFlg == false) {
-						Aim.call(this, alignment, cannon, 20, Num, scene);
-						if(ref == 0)this.scale(2,2);
-					}
-
+					Aim.call(this, alignment, cannon, 20, Num, scene);
+					this.scale(2,2);
 				}
 			})
 
@@ -5545,11 +5530,8 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					if (pauseFlg == false) {
-						Aim.call(this, alignment, cannon, 24, Num, scene);
-						if(ref == 0)this.scale(2,2);
-					}
-
+					Aim.call(this, alignment, cannon, 24, Num, scene);
+					if(ref == 0)this.scale(2,2);
 				}
 			})
 
@@ -6117,10 +6099,7 @@ window.onload = function() {
 
 			let EnemyAim = Class.create(AnotherAim, {
 				initialize: function() {
-					if (pauseFlg == false) {
-						AnotherAim.call(this, anoPoint, cannon, ref, Num, scene);
-					}
-
+					AnotherAim.call(this, anoPoint, cannon, ref, Num, scene);
 				}
 			})
 
@@ -7155,13 +7134,11 @@ window.onload = function() {
 
 	        var EnemyAim = Class.create(Aim,{
 	            initialize: function(){
-					if (pauseFlg == false) {
-						if(ref == 0){
-							Aim.call(this, alignment, cannon, 28, Num, scene);
-							this.scale(2,2);
-						}else{
-							Aim.call(this, alignment, cannon, 20, Num, scene);
-						}
+					if(ref == 0){
+						Aim.call(this, alignment, cannon, 28, Num, scene);
+						this.scale(2,2);
+					}else{
+						Aim.call(this, alignment, cannon, 20, Num, scene);
 					}
 	            }
 	        });
