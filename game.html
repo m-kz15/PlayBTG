@@ -20,12 +20,16 @@
 				alert("このゲームは横向きで遊んで下さい");
 			}
       	}
-		
+		function noscroll(e){
+			e.preventDefault();
+		}
+ 
 		window.addEventListener('load', function(){
             
 			// フルスクリーン表示
 			document.getElementById('button1').addEventListener('click', function(){
-
+				document.addEventListener('touchmove', noscroll, {passive: false});
+				document.addEventListener('wheel', noscroll, {passive: false});
 				// Chrome & Firefox v64以降
 				if( document.body.requestFullscreen ) {
          				document.body.requestFullscreen();
@@ -46,7 +50,8 @@
 
 			// フルスクリーン解除
 			document.getElementById('button2').addEventListener('click', function(){
-        
+				document.removeEventListener('touchmove', noscroll);
+				document.removeEventListener('wheel', noscroll);
 				// Chrome & Firefox v64以降
 				if( document.exitFullscreen ) {
 					document.exitFullscreen();

@@ -1410,6 +1410,24 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	})
+	var CursorArea = Class.create(Sprite,{
+		initialize: function(){
+			Sprite.call(this,96,96);
+			var area = new Surface(96, 96);
+				area.context.beginPath();
+				area.context.fillStyle = 'rgba(102, 170, 255, 0.2)';
+				area.context.arc(48, 48, 48, 0, Math.PI * 2, true);
+				area.context.fill();
+			this.image = area;
+			this.onenterframe = function(){
+				if(worldFlg){
+					this.moveTo((cur.x + cur.width/2) - (this.width/2),(cur.y + cur.height/2) - (this.height/2));
+				}
+				if(deleteFlg) now_scene.CursorGroup.removeChild(this);
+			}
+			now_scene.CursorGroup.addChild(this);
+		}
+	})
 	/* 戦車の車体クラス */
 	var Tank = Class.create(Sprite, {
 		initialize: function(area, path, num, scene, filterMap) {
@@ -1748,7 +1766,8 @@ window.onload = function() {
 		initialize: function(target, shotSpeed, num, value, scene) {
 			Sprite.call(this, base / 2, base / 2);
 			//this.backgroundColor = "#aff8"
-			this.moveTo(target.x, target.y);
+			this.debugColor = "white"
+			this.moveTo((target.x + target.width/2) - (this.width/2), (target.y + target.height/2) - this.height/2);
 			this.time = 0;
 			var rad = (target.rotation - 90) * (Math.PI / 180.0);
 			var dx = Math.cos(rad) * (shotSpeed * 1.5);
@@ -2821,7 +2840,10 @@ window.onload = function() {
 				bomOb[Num][i] = new Bom(this, Num, scene);
 			}
 
+			
+
 			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+				new CursorArea();
 				scene.addEventListener('touchstart', function(e) {
 					cur.x = (e.x);
 					cur.y = (e.y);
@@ -3135,7 +3157,12 @@ window.onload = function() {
 			//  独自の敵の照準処理
 			var EnemyAim = Class.create(Aim, { //  Aimクラスを継承
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 20, Num, scene);
+					if(ref == 0){
+						Aim.call(this, alignment, cannon, 28, Num, scene);
+						this.scale(2,2);
+					}else{
+						Aim.call(this, alignment, cannon, 20, Num, scene);
+					}
 				}
 			})
 
@@ -3608,7 +3635,12 @@ window.onload = function() {
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
 					if (pauseFlg == false) {
-						Aim.call(this, alignment, cannon, 24, Num, scene);
+						if(ref == 0){
+							Aim.call(this, alignment, cannon, 28, Num, scene);
+							this.scale(2,2);
+						}else{
+							Aim.call(this, alignment, cannon, 24, Num, scene);
+						}
 					}
 
 				}
@@ -3782,7 +3814,7 @@ window.onload = function() {
 							        stopFlg = true;
 							    }
 							})*/
-							if (this.time % 5 == 0) {
+							if (this.time % 10 == 0) {
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
 							}
 
@@ -3798,17 +3830,22 @@ window.onload = function() {
 											if (bulStack[i][j] == true) {
 												let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 												if (dist != null && dist < cateRanges[category][2]) {
+													
+													intercept.intersect(BulAim).forEach(function() {
+														if (cateEscapes[category][3] != 0){
+															enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
+															return;
+														}
+														
+													})
 													if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 														if (dist < cateEscapes[category][3]) {
 															if (dist < 120) enemyTarget[Num] = bulOb[i][j];
 															escapeTarget = bulOb[i][j];
 															escapeFlg = true;
+															break;
 														}
 													}
-													intercept.intersect(BulAim).forEach(function() {
-														if (cateEscapes[category][3] != 0) enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
-														return;
-													})
 												}
 											}
 										}
@@ -3821,6 +3858,14 @@ window.onload = function() {
 									if (bulStack[0][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 										if (dist != null && dist < cateRanges[category][0]) {
+											
+											PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+												if (cateEscapes[category][1] != 0){
+													enemyTarget[Num] = bulOb[0][i];
+													return;
+												} 
+												
+											})
 											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 												if (dist < cateEscapes[category][1]) {
 													escapeTarget = bulOb[0][i];
@@ -3828,10 +3873,6 @@ window.onload = function() {
 													break;
 												}
 											}
-											intercept.intersect(PlayerBulAim).forEach(function() {
-												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
-												return;
-											})
 										}
 									}
 								}
@@ -3842,7 +3883,7 @@ window.onload = function() {
 									if (bulStack[Num][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
 										if (dist != null && dist < cateRanges[category][1]) {
-											BulAim.intersect(this).forEach(function() {
+											BulAim.intersect(this).forEach(elem => {
 												if (cateEscapes[category][2] != 0) {
 													enemyTarget[Num] = bulOb[Num][i];
 													escapeTarget = bulOb[Num][i];
@@ -3851,6 +3892,7 @@ window.onload = function() {
 															escapeFlg = true;
 														}
 													}
+													return;
 												}
 											})
 										}
@@ -4280,6 +4322,13 @@ window.onload = function() {
 											if (bulStack[i][j] == true) {
 												let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 												if (dist != null && dist < cateRanges[category][2]) {
+													
+													intercept.intersect(BulAim).forEach(function() {
+														if (cateEscapes[category][3] != 0){
+															enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
+															return;
+														} 
+													})
 													if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 														if (dist < cateEscapes[category][3]) {
 															if (dist < 120) enemyTarget[Num] = bulOb[i][j];
@@ -4288,9 +4337,6 @@ window.onload = function() {
 															break;
 														}
 													}
-													intercept.intersect(BulAim).forEach(function() {
-														if (cateEscapes[category][3] != 0) enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
-													})
 												}
 											}
 										}
@@ -4303,6 +4349,13 @@ window.onload = function() {
 									if (bulStack[0][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 										if (dist != null && dist < cateRanges[category][0]) {
+											
+											intercept.intersect(PlayerBulAim).forEach(function() {
+												if (cateEscapes[category][1] != 0){
+													enemyTarget[Num] = bulOb[0][i];
+													return;
+												} 
+											})
 											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 												if (dist < cateEscapes[category][1]) {
 													escapeTarget = bulOb[0][i];
@@ -4310,9 +4363,6 @@ window.onload = function() {
 													break;
 												}
 											}
-											intercept.intersect(PlayerBulAim).forEach(function() {
-												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
-											})
 										}
 									}
 								}
@@ -4333,6 +4383,7 @@ window.onload = function() {
 															
 														}
 													}
+													return;
 												}
 											})
 										}
@@ -4986,6 +5037,7 @@ window.onload = function() {
 				initialize: function() {
 					if (pauseFlg == false) {
 						Aim.call(this, alignment, cannon, 20, Num, scene);
+						if(ref == 0)this.scale(2,2);
 					}
 
 				}
@@ -5172,19 +5224,21 @@ window.onload = function() {
 											if (bulStack[i][j] == true) {
 												let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 												if (dist != null && dist < cateRanges[category][2]) {
+													
+													intercept.intersect(BulAim).forEach(function() {
+														if (cateEscapes[category][3] != 0){
+															enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
+															return
+														} 
+													})
 													if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 														if (dist < cateEscapes[category][3]) {
 															if (dist < 120) enemyTarget[Num] = bulOb[i][j];
 															escapeTarget = bulOb[i][j];
 															escapeFlg = true;
+															break;
 														}
 													}
-													intercept.intersect(BulAim).forEach(function() {
-														if (cateEscapes[category][3] != 0) enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
-														if (this.time % 5 == 0) {
-															SelDirection(weak, bulOb[i][j], 0)
-														}
-													})
 												}
 											}
 										}
@@ -5197,18 +5251,20 @@ window.onload = function() {
 									if (bulStack[0][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 										if (dist != null && dist < cateRanges[category][0]) {
+											
+											intercept.intersect(PlayerBulAim).forEach(function() {
+												if (cateEscapes[category][1] != 0){
+													enemyTarget[Num] = bulOb[0][i];
+													return;
+												} 
+											})
 											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 												if (dist < cateEscapes[category][1]) {
 													escapeTarget = bulOb[0][i];
 													escapeFlg = true;
+													break;
 												}
 											}
-											intercept.intersect(PlayerBulAim).forEach(function() {
-												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
-												if (this.time % 5 == 0) {
-													SelDirection(weak, bulOb[0][i], 0)
-												}
-											})
 										}
 									}
 								}
@@ -5228,9 +5284,7 @@ window.onload = function() {
 															escapeFlg = true
 														}
 													}
-												}
-												if (this.time % 5 == 0) {
-													SelDirection(weak, bulOb[0][i], 0)
+													return;
 												}
 											})
 										}
@@ -6041,7 +6095,6 @@ window.onload = function() {
 			this.aimCmpTime = 20;
 			let aimRot = 1.2;
 			if (category == 0) {
-				this.aimCmpTime = 3;
 				aimRot = 1.5;
 			}
 			if (Math.floor(Math.random() * 2)) {
@@ -7102,7 +7155,14 @@ window.onload = function() {
 
 	        var EnemyAim = Class.create(Aim,{
 	            initialize: function(){
-	                Aim.call(this,alignment,cannon,20,Num,scene);
+					if (pauseFlg == false) {
+						if(ref == 0){
+							Aim.call(this, alignment, cannon, 28, Num, scene);
+							this.scale(2,2);
+						}else{
+							Aim.call(this, alignment, cannon, 20, Num, scene);
+						}
+					}
 	            }
 	        });
 
@@ -7930,6 +7990,7 @@ window.onload = function() {
 			scene.time = 0;
 			now_scene = scene;
 
+			scene.CursorGroup = new Group();
 			scene.MarkGroup = new Group();
 			scene.TankGroup = new Group();
 			scene.CannonGroup = new Group();
@@ -7986,6 +8047,7 @@ window.onload = function() {
 				fy++;
 				fx = 0;
 			});
+			
 			scene.addChild(scene.MarkGroup);
 			scene.addChild(scene.BomGroup);
 			scene.addChild(scene.TankGroup);
@@ -7993,6 +8055,7 @@ window.onload = function() {
 			scene.addChild(scene.SmokeGroup);
 			scene.addChild(scene.FireGroup);
 			scene.addChild(scene.BulGroup);
+			scene.addChild(scene.CursorGroup);
 
 			let filterMap = new Map(pixelSize, pixelSize);
 			filterMap.image = backgroundMap.image;
@@ -8267,6 +8330,30 @@ window.onload = function() {
 		};
 		/* タイトルシーン */
 		var createTitleScene = function() {
+			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+				if (!isFullScreen()) {
+					alert("左上の\"フルスクリーン表示\"ボタンを押してください。");
+					/*
+					// Chrome & Firefox v64以降
+					if (document.body.requestFullscreen) {
+						document.body.requestFullscreen();
+
+						// Firefox v63以前
+					} else if (document.body.mozRequestFullScreen) {
+						document.body.mozRequestFullScreen();
+
+						// Safari & Edge & Chrome v68以前
+					} else if (document.body.webkitRequestFullscreen) {
+						document.body.webkitRequestFullscreen();
+
+						// IE11
+					} else if (document.body.msRequestFullscreen) {
+						document.body.msRequestFullscreen();
+					}*/
+				}
+			}
+
+
 			zanki = 5;
 			var scene = new Scene();
 			now_scene = scene;
@@ -8616,27 +8703,6 @@ window.onload = function() {
 		/* スタートシーン */
 		var createStartScene = function() {
 
-			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
-				if (!isFullScreen()) {
-					// Chrome & Firefox v64以降
-					if (document.body.requestFullscreen) {
-						document.body.requestFullscreen();
-
-						// Firefox v63以前
-					} else if (document.body.mozRequestFullScreen) {
-						document.body.mozRequestFullScreen();
-
-						// Safari & Edge & Chrome v68以前
-					} else if (document.body.webkitRequestFullscreen) {
-						document.body.webkitRequestFullscreen();
-
-						// IE11
-					} else if (document.body.msRequestFullscreen) {
-						document.body.msRequestFullscreen();
-					}
-				}
-			}
-
 			deleteFlg = false;
 
 			obsdir = []
@@ -8796,6 +8862,7 @@ window.onload = function() {
 			scene.time = 0;
 			now_scene = scene;
 
+			scene.CursorGroup = new Group();
 			scene.MarkGroup = new Group();
 			scene.BomGroup = new Group();
 			scene.TankGroup = new Group();
@@ -8866,6 +8933,7 @@ window.onload = function() {
 			scene.addChild(scene.FireGroup);
 			scene.addChild(scene.BulGroup);
 			scene.addChild(scene.CannonGroup);
+			scene.addChild(scene.CursorGroup);
 
 
 			let filterMap = new Map(pixelSize, pixelSize);
