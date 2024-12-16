@@ -2909,6 +2909,7 @@ window.onload = function() {
 								deadFlgs[Num] = true
 								Get_NewBullet(elem.num, elem.value);
 								moveSpeed = 0;
+								return;
 							}
 						})
 						/*for(var j = 0; j < bulOb.length; j++){
@@ -3027,9 +3028,11 @@ window.onload = function() {
 
 
 							/* 戦車本体の角度設定 */
-							this.rotation = rot;
-							tank.rotation = rot;
-							weak.rotation = rot;
+							if(this.rot != rot){
+								this.rotation = rot;
+								tank.rotation = rot;
+								weak.rotation = rot;
+							}
 
 							for (let i = 1; i < tankDir.length; i++) {
 								if (deadFlgs[i] == false) {
@@ -3240,6 +3243,7 @@ window.onload = function() {
 									deadFlgs[Num] = true
 									Get_NewBullet(elem.num, elem.value);
 									moveSpeed = 0;
+									return;
 								}
 							})
 							if(this.time % 2 == 0){
@@ -3733,6 +3737,7 @@ window.onload = function() {
 									deadFlgs[Num] = true
 									Get_NewBullet(elem.num, elem.value);
 									moveSpeed = 0;
+									return;
 								}
 							})
 							
@@ -4220,6 +4225,7 @@ window.onload = function() {
 									deadFlgs[Num] = true
 									Get_NewBullet(elem.num, elem.value);
 									moveSpeed = 0;
+									return;
 								}
 							})
 							
@@ -5126,6 +5132,7 @@ window.onload = function() {
 									deadFlgs[Num] = true
 									Get_NewBullet(elem.num, elem.value);
 									moveSpeed = 0;
+									return;
 								}
 							})
 							if (shotStopFlg == true) {
@@ -5738,7 +5745,7 @@ window.onload = function() {
 								return;
 							})
 
-							alignment.intersectStrict(EnemyAim).forEach(elem => {
+							EnemyAim.intersectStrict(alignment).forEach(elem => {
 								if(fireFlgs[Num] == false)fireFlgs[Num] = true;
 								if(rootFlg == false)rootFlg = true;
 							});
@@ -5801,7 +5808,7 @@ window.onload = function() {
 											}
 											PlayerBulAim.intersectStrict(intercept).forEach(elem => {
 												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
-												if (this.time % 5 == 0) {
+												if (this.time % 10 == 0) {
 													value = Escape_Rot(this, bulOb[0][i]);
 													//SelDirection(weak,bulOb[0][i],0)
 												}
@@ -6152,6 +6159,7 @@ window.onload = function() {
 									deadFlgs[Num] = true;
 									Get_NewBullet(elem.num, elem.value);
 									moveSpeed = 0;
+									return;
 								}
 							})
 							this.time++;
@@ -7249,6 +7257,7 @@ window.onload = function() {
 									}
 									ResetStatus();
 									Get_NewBullet(elem.num, elem.value);
+									return;
 								}
 							})
 							if(damFlg){
