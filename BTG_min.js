@@ -170,7 +170,7 @@ var cateFireLate = [
 	10, //elitegreen
 	25, //sand
 	12, //pink
-	30, //random
+	10, //random
 	24 //dazzle
 ];
 var cateShotSpeeds = [
@@ -1579,11 +1579,13 @@ window.onload = function() {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
-							this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
+							//this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
+							this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * (this.y - elem.y));
 							this.tgt[1] = elem.y - 2.5;
 						}
-						this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
-						this.y = elem.y - (this.height);
+						//this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - elem.y));
+						this.y = elem.y - (this.height+1);
 						dy = dy * -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
@@ -1593,11 +1595,15 @@ window.onload = function() {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
-							this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
+							//this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
+							//this.tgt[1] = elem.y + elem.height + 2.5;
+							this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
 							this.tgt[1] = elem.y + elem.height + 2.5;
 						}
-						this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
-						this.y = elem.y + elem.height + (this.height / 2);
+						//this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
+						//this.y = elem.y + elem.height + (this.height / 2);
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+						this.y = elem.y + elem.height;
 						dy = dy * -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
@@ -1607,11 +1613,14 @@ window.onload = function() {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
+							//this.tgt[0] = elem.x - 2.5;
+							//this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
 							this.tgt[0] = elem.x - 2.5;
-							this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
+							this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * (this.x - (elem.x)));
 						};
-						this.x = elem.x - (this.width);
-						this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
+						this.x = elem.x - (this.width+1);
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x)));
+						//this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
 						dx = dx * -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
@@ -1622,10 +1631,12 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
 							this.tgt[0] = elem.x + elem.width + 2.5;
-							this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
+							//this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
+							this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
 						};
 						this.x = elem.x + elem.width + 1;
-						this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
+						//this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
 						dx = dx * -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
@@ -1641,12 +1652,15 @@ window.onload = function() {
 							/*tgt[0] = this.x-(this.width);
 							tgt[1] = walls[0].y+walls[0].height+(this.height/2);*/
 							//tgt[0] = this.x-(dx/3);
-							this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
-							this.tgt[1] = walls[0].y + walls[0].height + 2.5;
+							//this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
+							this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * (this.y - (walls[0].y + walls[0].height)));
+							this.tgt[1] = walls[0].y + walls[0].height;
 						}
 						//this.x = this.x-(dx/3)-(this.width/2);
-						this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
-						this.y = walls[0].y + walls[0].height + this.height;
+						//this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - (walls[0].y + walls[0].height)));
+						this.y = walls[0].y + walls[0].height;
+						//this.y = walls[0].y + walls[0].height + this.height;
 						//this.moveTo(this.x-(this.width),walls[0].y+walls[0].height+4)
 						//this.moveTo(this.x-(dx/3)-(this.width/2),walls[0].y+walls[0].height+(this.height/2))
 						dy = dy * -1;
@@ -1661,12 +1675,15 @@ window.onload = function() {
 							/*tgt[0] = this.x-(this.width);
 							tgt[1] = walls[1].y-(this.height/2);*/
 							//tgt[0] = this.x-(dx/3);
-							this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
-							this.tgt[1] = walls[1].y - 2.5;
+							//this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
+							//this.tgt[1] = walls[1].y - 2.5;
+							this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * (this.y - (walls[1].y)));
+							this.tgt[1] = walls[1].y;
 						};
 						//this.x = this.x-(dx/3)-(this.width/2);
-						this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
-						this.y = walls[1].y - (this.height);
+						//this.x = (this.x + (this.width / 2)) - (Math.cos(this.f) * (this.width / 2));
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - (walls[1].y)));
+						this.y = walls[1].y - (this.height+1);
 						//this.moveTo(this.x-(this.width),walls[1].y-8)
 						//this.moveTo(this.x-(dx/3)-(this.width/2),walls[1].y-(this.height))
 						dy = dy * -1;
@@ -1681,14 +1698,16 @@ window.onload = function() {
 							//target.moveTo(walls[2].x+walls[2].width+(this.width/2),this.y-(dy/3));
 							/*tgt[0] = walls[2].x+walls[2].width+(this.width/2);
 							tgt[1] = this.y-(this.height);*/
-							this.tgt[0] = walls[2].x + walls[2].width + 2.5;
+							//this.tgt[0] = walls[2].x + walls[2].width + 2.5;
+							this.tgt[0] = walls[2].x + walls[2].width;
 							//tgt[1] = this.y-(dy/3)+(Math.sin(f)*(this.height/2));
-							this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
-
+							//this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
+							this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * (this.x - (walls[2].x + walls[2].width)));
 						}
 
 						this.x = walls[2].x + walls[2].width + 1;
-						this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - (walls[2].x + walls[2].width)));
+						//this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
 						//this.y = this.y-(dy/3)-(this.height/2)+(Math.sin(f)*(this.height/2));
 						//this.moveTo(walls[2].x+walls[2].width+(this.width),this.y-(dy/3)-(this.height/2))
 						dx = dx * -1;
@@ -1700,12 +1719,15 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
 							//target.moveTo(walls[3].x-(this.width/2),this.y-(dy/3));
-							this.tgt[0] = walls[3].x - 2.5;
+							//this.tgt[0] = walls[3].x - 2.5;
+							this.tgt[0] = walls[3].x;
 							//tgt[1] = this.y-(dy/3);
-							this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
+							//this.tgt[1] = (this.y + (this.height)) - (Math.sin(this.f) * (this.height / 2));
+							this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * (this.x - walls[3].x));
 						}
 						this.x = walls[3].x - (this.width);
-						this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
+						//this.y = (this.y + (this.height / 2)) - (Math.sin(this.f) * (this.height / 2));
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - walls[3].x));
 						//this.y = this.y-(dy/3)-(this.height/2);
 						//this.moveTo(walls[3].x-(this.width),this.y-(dy/3)-(this.height/2))
 						dx = dx * -1;
@@ -2828,6 +2850,13 @@ window.onload = function() {
 			var shotStopFlg = false;
 			var life = 1;
 
+			/*const anoPoint = new AnotherPoint(cur, Num, scene)
+			let EnemyAim = Class.create(AnotherAim, {
+				initialize: function() {
+					AnotherAim.call(this, anoPoint, cannon, ref, Num, scene);
+				}
+			})*/
+
 			//  弾の初期状態を設定
 			for (var i = 0; i < pmax; i++) {
 				colOb[Num][i] = new BulletCol(cur, floors[0], shotSpeed, 0, scene);
@@ -3025,7 +3054,7 @@ window.onload = function() {
 
 							//  死んでいなければ弾道予測の描画をする
 							if (deadFlgs[Num] == false) new Aim(cur, cannon, 48, Num, scene)
-
+								//new EnemyAim();
 
 							/* 戦車本体の角度設定 */
 							if(this.rot != rot){
@@ -4259,11 +4288,11 @@ window.onload = function() {
 
 							new EnemyAim();
 
-							Floor.intersect(this).forEach(function(){
+							Floor.intersect(this).forEach(elem => {
 								shotNGflg = true;
 								return;
 							})
-							Wall.intersect(this).forEach(function(){
+							Wall.intersect(this).forEach(elem => {
 								shotNGflg = true;
 								return;
 							})
@@ -5493,7 +5522,7 @@ window.onload = function() {
 			let reloadFlg = false;
 			let shotStopFlg = false;
 			let shotStopTime = 0;
-			let now = 0;
+			let reload = cateReloadTimes[category];
 			var tankStopFlg = false;
 
 			var grid = g; //  マップの障害物配置情報
@@ -5577,6 +5606,9 @@ window.onload = function() {
 				bullets[Num]++;
 				bulStack[Num][i] = true;
 				shotStopFlg = true;
+				if(addBullet == 1 && category == 10){
+					fireLate = Math.floor(Math.random() * 90) + 30;
+				}
 			}
 
 			function Instrumentation(target1, target2) {
@@ -5590,8 +5622,15 @@ window.onload = function() {
 
 			}
 
-			if (addBullet != 0 && category == 5) fireLate = 18;
-			if(addBullet != 0 && category == 10) fireLate = 35;
+			if (addBullet != 0 && category == 5){
+				fireLate = 20;
+				moveSpeed -= 0.2;
+			} 
+			if(addBullet != 0 && category == 10){
+				reload = 120;
+				moveSpeed -= 0.3;
+				fireLate = Math.floor(Math.random() * 30) + 30;
+			} 
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
@@ -5876,7 +5915,7 @@ window.onload = function() {
 							if (reloadFlg == false) {
 								if (bullets[Num] == emax) reloadFlg = true;
 							} else {
-								if (reloadTime < cateReloadTimes[category]) {
+								if (reloadTime < reload) {
 									reloadTime++;
 									if (shotNGflg == false) shotNGflg = true;
 								} else {
@@ -6116,7 +6155,7 @@ window.onload = function() {
 				shotStopFlg = true;
 			}
 
-			//if(addBullet != 0 && fireLate > 19) fireLate = fireLate - ((fireLate/5)*2); 
+			//if(addBullet != 0 && category != 0) ref += 1; 
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
@@ -6202,8 +6241,8 @@ window.onload = function() {
 									anoPoint.y = elem.tgt[1];
 								}
 								if (elem.hitTime == 0 && cannon.rotation != elem.agl) cannon.rotation = elem.agl;
-								if (elem.hitTime < 3) fireFlgs[Num] = true;
-								if (this.aimingTime < (this.aimCmpTime + 12)) this.aimingTime += 3;
+								if (elem.hitTime < 4 && !fireFlgs[Num]) fireFlgs[Num] = true;
+								if (this.aimingTime < (this.aimCmpTime + 15)) this.aimingTime += 3;
                                 elem.hitTime++;
 								return;
 							})
@@ -6244,9 +6283,9 @@ window.onload = function() {
 													ShotBullet(i)
 													this.aimingTime = 0;
 													if (category != 0) {
-														this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
+														this.aimCmpTime = Math.floor(Math.random() * 40) + 20;
 													} else {
-														this.aimCmpTime = Math.floor(Math.random() * 3) + 2;
+														this.aimCmpTime = Math.floor(Math.random() * 30) + 10;
 													}
 													break;
 												}
@@ -8941,7 +8980,7 @@ window.onload = function() {
 			bomOb.push([])
 			bulStack.push([])
 			if (debugFlg) {
-				tankEntity.push(new Player(stageData[3][0], stageData[3][1], './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 1, 12, 2.4, scene, filterMap))
+				tankEntity.push(new Player(stageData[3][0], stageData[3][1], './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 2, 18, 2.4, scene, filterMap))
 			} else {
 				tankEntity.push(new Player(stageData[3][0], stageData[3][1], './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 1, 10, 2.4, scene, filterMap))
 			}
