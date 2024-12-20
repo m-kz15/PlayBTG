@@ -1590,6 +1590,7 @@ window.onload = function() {
 			this.v;
 			this.f;
 			this.onenterframe = function() {
+				if(deleteFlg) scene.removeChild(this);
 				if(worldFlg){
 					this.time++;
 					this.x += dx
@@ -1758,6 +1759,135 @@ window.onload = function() {
 					if (tankEntity[num].intersectStrict(this)) {
 						scene.removeChild(this);
 					};
+					if (this.time > 150) scene.removeChild(this);
+					if (refcnt > ref) scene.removeChild(this)
+				}
+				
+
+			}
+			scene.addChild(this);
+		}
+	})
+
+	var AnotherPAim = Class.create(Sprite, {
+		initialize: function(target, cannon, ref, num, scene) {
+			Sprite.call(this, 8, 8);
+			//if(debugFlg)this.backgroundColor = "#88f";
+			//this.moveTo(cannon.x+(cannon.width/2)-5.2,cannon.y+(cannon.height/2)-5.2)
+
+			let n_color = new Surface(8, 8);
+				n_color.context.beginPath();
+				n_color.context.fillStyle = 'rgba(170, 255, 255, 0.5)';
+				n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
+				n_color.context.fill();
+			this.image = n_color;
+
+			this.time = 0;
+			this.hitTime = 0;
+			this.originX = 4;
+			this.originY = 4;
+
+			let vec = Pos_to_Vec({ x: (target.x + target.width / 2), y: (target.y + target.height / 2) }, { x: (cannon.x + cannon.width / 2), y: (cannon.y + cannon.height / 2) });
+			let rad = Math.atan2(vec.y, vec.x);
+			var dx = Math.cos(rad) * 20;
+			var dy = Math.sin(rad) * 20;
+			this.moveTo((cannon.x + (cannon.width / 2)) + (36 * Math.cos(rad)) - (this.width / 2), (cannon.y + (cannon.height / 2)) + (36 * Math.sin(rad)) - (this.height / 2));
+
+			/*var rad = (cannon.rotation) * (Math.PI / 180.0);
+			var dx = Math.cos(rad) * 20;
+			var dy = Math.sin(rad) * 20;
+			this.moveTo((cannon.x + (cannon.width / 2)) + (36 * Math.cos(rad)) - (this.width / 2), (cannon.y + (cannon.height / 2)) + (36 * Math.sin(rad)) - (this.height / 2));*/
+
+			let refcnt = 0;
+			this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+			cannon.rotation = (270 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+			this.v;
+			this.f;
+			this.onenterframe = function() {
+				if(deleteFlg) scene.removeChild(this);
+				if(worldFlg){
+					this.time++;
+					this.x += dx
+					this.y += dy
+
+					RefTop.intersectStrict(this).forEach(elem => {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - elem.y));
+						this.y = elem.y - (this.height+1);
+						dy = dy * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						return;
+					})
+					RefBottom.intersectStrict(this).forEach(elem => {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+						this.y = elem.y + elem.height;
+						dy = dy * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						return;
+					})
+					RefLeft.intersectStrict(this).forEach(elem => {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = elem.x - (this.width+1);
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x)));
+						dx = dx * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						return;
+					})
+					RefRight.intersectStrict(this).forEach(elem => {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = elem.x + elem.width + 1;
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
+						dx = dx * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						return;
+					})
+
+					if (this.intersectStrict(walls[0]) == true) {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - (walls[0].y + walls[0].height)));
+						this.y = walls[0].y + walls[0].height;
+						dy = dy * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+					}
+					if (this.intersectStrict(walls[1]) == true) {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = (this.x) - (Math.cos(this.f) * (this.y - (walls[1].y)));
+						this.y = walls[1].y - (this.height+1);
+						dy = dy * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+					}
+
+					if (this.intersectStrict(walls[2]) == true) {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = walls[2].x + walls[2].width + 1;
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - (walls[2].x + walls[2].width)));
+						dx = dx * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+					}
+					if (this.intersectStrict(walls[3]) == true) {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						this.x = walls[3].x - (this.width);
+						this.y = (this.y) - (Math.sin(this.f) * (this.x - walls[3].x));
+						dx = dx * -1;
+						refcnt++;
+						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+					}
 					if (this.time > 150) scene.removeChild(this);
 					if (refcnt > ref) scene.removeChild(this)
 				}
@@ -2891,6 +3021,12 @@ window.onload = function() {
 			}
 
 			
+			let EnemyAim = Class.create(AnotherPAim, {
+				initialize: function() {
+					AnotherPAim.call(this, cur, cannon, ref, Num, scene);
+				}
+			})
+			
 
 			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
 				//new CursorArea();
@@ -3073,7 +3209,13 @@ window.onload = function() {
 							}
 
 							//  死んでいなければ弾道予測の描画をする
-							if (deadFlgs[Num] == false) new Aim(cur, cannon, 48, Num, scene)
+							if (deadFlgs[Num] == false){
+								if(playerType == 8){
+									if(game.time % 2 == 0) new EnemyAim();
+								}else{
+									new Aim(cur, cannon, 48, Num, scene);
+								}
+							}
 								//new EnemyAim();
 
 							/* 戦車本体の角度設定 */
@@ -8706,6 +8848,7 @@ window.onload = function() {
 				if(playerType != selectTankNum && selectTankNum < 12){
 					if (confirm("\r\n現在選択中の戦車に変更してもよろしいですか？")) {
 						playerType = selectTankNum;
+						//alert(playerType)
 						if(selectTankNum == 0){
 							playerStatus = [
 								5,
