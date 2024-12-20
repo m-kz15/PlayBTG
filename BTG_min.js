@@ -13,6 +13,7 @@ var now_scene;
 
 let debugFlg = false;
 var stageNum = 1; //ステージ番号
+var playerType = 0;
 
 let scl = 1;
 
@@ -69,6 +70,25 @@ var key = "BTG_PlayData";
     Scores: [],
     Level: 0
 };*/
+
+var playerStatus = [5, 1, 10, 2.4];
+
+const cateImages = [
+    {tank: './image/ObjectImage/tank2.png', cannon: './image/ObjectImage/cannon.png'},                  //player
+    {tank: './image/ObjectImage/brown.png', cannon: './image/ObjectImage/browncannon.png'},             //brown
+    {tank: './image/ObjectImage/gray.png', cannon: './image/ObjectImage/graycannon.png'},               //gray
+    {tank: './image/ObjectImage/green.png', cannon: './image/ObjectImage/greencannon.png'},             //green
+    {tank: './image/ObjectImage/red.png', cannon: './image/ObjectImage/redcannon.png'},                 //red
+    {tank: './image/ObjectImage/lightgreen.png', cannon: './image/ObjectImage/lightgreencannon.png'},   //lightgreen
+    {tank: './image/ObjectImage/elite.png', cannon: './image/ObjectImage/elitecannon.png'},             //elitegray
+    {tank: './image/ObjectImage/snow.png', cannon: './image/ObjectImage/snowcannon.png'},               //snow
+    {tank: './image/ObjectImage/elitegreen.png', cannon: './image/ObjectImage/elitegreencannon.png'},   //elitegreen
+    {tank: './image/ObjectImage/sand.png', cannon: './image/ObjectImage/sandcannon.png'},               //sand
+    {tank: './image/ObjectImage/pink.png', cannon: './image/ObjectImage/pinkcannon.png'},               //pink
+    {tank: './image/ObjectImage/abnormal.png', cannon: './image/ObjectImage/abnormalcannon.png'},       //black
+    {tank: './image/ObjectImage/meisai.png', cannon: './image/ObjectImage/meisaicannon.png'},           //dazzle
+    {tank: './image/ObjectImage/Abyssal.png', cannon: './image/ObjectImage/AbyssalCannon.png'}          //abysal
+];
 
 /* 各戦車の迎撃判定
     プレイヤー,自身,他戦車 */
@@ -2963,7 +2983,7 @@ window.onload = function() {
 							life--;
 						}
 						if (scene.time > 210) {
-							if (shotStopFlg == false) {
+							if (shotStopFlg == false && speed > 0) {
 								switch (inputManager.checkDirection()) {
 									case inputManager.keyDirections.UP:
 										rot = 270;
@@ -8106,7 +8126,8 @@ window.onload = function() {
 			colOb.push([])
 			bomOb.push([])
 			bulStack.push([])
-			tankEntity.push(new Player(4, 5, './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 1, 10, 2.2, scene, filterMap))
+			//tankEntity.push(new Player(4, 5, './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 1, 10, 2.2, scene, filterMap))
+			tankEntity.push(new Player(4, 5, cateImages[playerType].tank, cateImages[playerType].cannon, playerStatus[0], playerStatus[1], playerStatus[2], playerStatus[3], scene, filterMap))
 
 			bulOb.push([])
 			colOb.push([])
@@ -8632,8 +8653,8 @@ window.onload = function() {
 
 			let flg = false; //  画面遷移フラグ
 
-			new DispHead(100, 80, 360 * 3, 240 * 3.2, "#a00d", scene) //  赤い背景追加
-			new DispBody(100, 240, 360 * 3, 240 * 2, scene) //  黄色の背景追加
+			new DispHead(100, 80, 360 * 3, 240 * 3.6, "#a00d", scene) //  赤い背景追加
+			new DispBody(100, 240, 360 * 3, 240 * 2.5, scene) //  黄色の背景追加
 
 			scene.addChild(scene.TankGroup);
 			scene.addChild(scene.CannonGroup);
@@ -8653,17 +8674,23 @@ window.onload = function() {
 			}
 
 			//  戦車の情報表示テキスト群
-			let tankName = new DispText(240, 260, 260 * 4, 48, "戦車名", '48px sans-serif', 'black', 'center', scene) //  戦車名
-			let tankBulCnt = new DispText(600, 340, 260 * 4, 36, "　弾数　：", '36px sans-serif', 'black', 'left', scene) //  弾数
-			let tankBulSpd = new DispText(600, 400, 260 * 4, 36, "　弾速　：", '36px sans-serif', 'black', 'left', scene) //  弾速
-			let tankBulRef = new DispText(600, 460, 260 * 4, 36, "跳弾回数：", '36px sans-serif', 'black', 'left', scene) //  跳弾回数
-			let tankSpd = new DispText(600, 520, 260 * 4, 36, "移動速度：", '36px sans-serif', 'black', 'left', scene) //  移動速度
-			let tankDsc = new DispText(600, 580, 260 * 4, 72, "・戦車の特徴", '36px sans-serif', 'black', 'left', scene) //  戦車の特徴
+			let tankName = new DispText(600, 260, 260 * 1, 48, "戦車名", '48px sans-serif', 'black', 'center', scene) //  戦車名
+			let tankBulCnt = new DispText(600, 340, 260 * 1.5, 36, "　弾数　：", '36px sans-serif', 'black', 'left', scene) //  弾数
+			let tankBulSpd = new DispText(600, 400, 260 * 2, 36, "　弾速　：", '36px sans-serif', 'black', 'left', scene) //  弾速
+			let tankBulRef = new DispText(600, 460, 260 * 1.5, 36, "跳弾回数：", '36px sans-serif', 'black', 'left', scene) //  跳弾回数
+			let tankSpd = new DispText(600, 520, 260 * 2, 36, "移動速度：", '36px sans-serif', 'black', 'left', scene) //  移動速度
+			let tankDsc = new DispText(600, 580, 260 * 2.2, 72, "・戦車の特徴", '36px sans-serif', 'black', 'left', scene) //  戦車の特徴
+
+			let playerTypeEdit = new DispText(150, 710, 260 * 3, 36, "▶ 操作する戦車の変更", '36px sans-serif', 'black', 'left', scene) //  戦車名
+			new DispText(150, 750, 260 * 3, 24, "※プレイヤーが使う戦車を選択中の戦車に変更できます。", '24px sans-serif', 'black', 'left', scene) //  戦車名
+			new DispText(150, 780, 260 * 3, 24, "※移動しない戦車を選択しても、最低限移動できる速度で操作できます。", '24px sans-serif', 'black', 'left', scene) //  戦車名
+			new DispText(150, 810, 260 * 3, 24, "※DazzleとAbyssalには変更出来ません。", '24px sans-serif', 'black', 'left', scene) //  戦車名
+			let selectTankNum = 0;
 
 			//  見出し
 			new DispText(120, 150, 260 * 4, 64, '戦車一覧', '64px sans-serif', '#ebe799', 'center', scene)
 			//  タイトル画面へ移動するためのテキスト
-			var toTitle = new DispText(480, 740, 320, 32, '➡タイトル画面へ', '32px sans-serif', '#ebe799', 'center', scene)
+			var toTitle = new DispText(480, 860, 320, 32, '➡タイトル画面へ', '32px sans-serif', '#ebe799', 'center', scene)
 
 			//  選択されている戦車を青くする処理
 			//dispTanks[pcnt].backgroundColor = "#0000ff66"
@@ -8672,6 +8699,34 @@ window.onload = function() {
 			toTitle.addEventListener(Event.TOUCH_START, function(e) {
 				flg = true
 				new FadeOut(scene)
+			});
+
+			// プレイヤーが操作する戦車を変更する処理
+			playerTypeEdit.addEventListener(Event.TOUCH_START, function(e) {
+				if(playerType != selectTankNum && selectTankNum < 12){
+					if (confirm("\r\n現在選択中の戦車に変更してもよろしいですか？")) {
+						playerType = selectTankNum;
+						if(selectTankNum == 0){
+							playerStatus = [
+								5,
+								1,
+								10,
+								2.4
+							];
+						}else{
+							playerStatus = [
+								cateMaxBullets[playerType-1],
+								cateMaxRefs[playerType-1],
+								cateShotSpeeds[playerType-1],
+								cateMoveSpeeds[playerType-1]
+							];
+							if(cateMoveSpeeds[playerType-1] == 0){
+								playerStatus[3] = 1.0;
+							}
+						}
+						
+					}
+				}
 			});
 
 			scene.onenterframe = function() {
@@ -8705,6 +8760,7 @@ window.onload = function() {
 						tankSpd.text = performance[pcnt][4];
 						tankDsc.text = performance[pcnt][5];
 						dispTanks[pcnt].backgroundColor = "#00000033";
+						selectTankNum = pcnt;
 					});
 				}
 				if (flg == true) {
@@ -8979,11 +9035,17 @@ window.onload = function() {
 			colOb.push([])
 			bomOb.push([])
 			bulStack.push([])
-			if (debugFlg) {
+			/*if (debugFlg) {
 				tankEntity.push(new Player(stageData[3][0], stageData[3][1], './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 2, 18, 2.4, scene, filterMap))
 			} else {
 				tankEntity.push(new Player(stageData[3][0], stageData[3][1], './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 1, 10, 2.4, scene, filterMap))
+			}*/
+			if(playerType == 0){
+				tankEntity.push(new Player(stageData[3][0], stageData[3][1], './image/ObjectImage/tank2.png', './image/ObjectImage/cannon.png', 5, 1, 10, 2.4, scene, filterMap))
+			}else{
+				tankEntity.push(new Player(stageData[3][0], stageData[3][1], cateImages[playerType].tank, cateImages[playerType].cannon, playerStatus[0]+addBullet, playerStatus[1], playerStatus[2]+addBullet, playerStatus[3]+addSpeed, scene, filterMap))
 			}
+			
 
 			let abn = Math.floor(Math.random() * 10);
 
