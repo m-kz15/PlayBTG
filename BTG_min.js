@@ -160,7 +160,7 @@ var cateReloadTimes = [
 	600, //snow
 	90, //elitegreen
 	90, //sand
-	240, //pink
+	360, //pink
 	90, //random
 	180 //dazzle
 ];
@@ -189,7 +189,7 @@ var cateFireLate = [
 	30, //snow
 	10, //elitegreen
 	25, //sand
-	12, //pink
+	10, //pink
 	10, //random
 	24 //dazzle
 ];
@@ -794,6 +794,7 @@ class Vpad {
 			pad.style.backgroundColor = "transparent"; //透明
 			pad.style.bottom = "0px"; //下に固定
 		}
+			
 		const height = Number(pixelSize * stage_h / 2.65) * 0.5; //ゲーム画面の半分の高さをゲームパッドの高さに
 		pad.style.height = `${height}px`;
 
@@ -828,8 +829,8 @@ class Vpad {
 		style = {
 			width: `${height * 0.3}px`,
 			height: `${height * 0.15}px`,
-			right: `${height * 0.65}px`,
-			top: `${height * 0.05}px`,
+			right: `${height * 0.45}px`,
+			top: `${height * -0.05}px`,
 			borderRadius: `${height * 0.15 * 0.5}px`,
 			borderColor: '#aaa',
 			color: '#fff'
@@ -1517,6 +1518,9 @@ window.onload = function() {
 			this.x = (target.x + target.width / 2) - this.width / 2;
 			this.y = ((target.y + target.height / 2) - this.height / 2) + 6;
 			this.scaleY = 0.8;
+			this.onenterframe = function(){
+				if (deleteFlg == true) scene.removeChild(this);
+			}
 			scene.MarkGroup.addChild(this);
 		}
 	});
@@ -1575,6 +1579,7 @@ window.onload = function() {
 			this.hitTime = 0;
 			this.originX = 4;
 			this.originY = 4;
+
 			var rad = (cannon.rotation) * (Math.PI / 180.0);
 			var dx = Math.cos(rad) * 20;
 			var dy = Math.sin(rad) * 20;
@@ -1593,8 +1598,9 @@ window.onload = function() {
 				if(deleteFlg) scene.removeChild(this);
 				if(worldFlg){
 					this.time++;
-					this.x += dx
-					this.y += dy
+
+					this.x += dx;
+					this.y += dy;
 
 					RefTop.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
@@ -1787,6 +1793,8 @@ window.onload = function() {
 			this.originX = 4;
 			this.originY = 4;
 
+			var df = [1, 1];
+
 			let vec = Pos_to_Vec({ x: (target.x + target.width / 2), y: (target.y + target.height / 2) }, { x: (cannon.x + cannon.width / 2), y: (cannon.y + cannon.height / 2) });
 			let rad = Math.atan2(vec.y, vec.x);
 			var dx = Math.cos(rad) * 20;
@@ -1807,15 +1815,21 @@ window.onload = function() {
 				if(deleteFlg) scene.removeChild(this);
 				if(worldFlg){
 					this.time++;
-					this.x += dx
-					this.y += dy
+					
+					rad = cannon.rotation * (Math.PI / 180.0);
+					dx = Math.cos(rad) * 20;
+					dy = Math.sin(rad) * 20;
+
+					this.x += (dx * df[0])
+					this.y += (dy * df[1])
 
 					RefTop.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = (this.x) - (Math.cos(this.f) * (this.y - elem.y));
 						this.y = elem.y - (this.height+1);
-						dy = dy * -1;
+						//dy = dy * -1;
+						df[1] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						return;
@@ -1825,7 +1839,8 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
 						this.y = elem.y + elem.height;
-						dy = dy * -1;
+						//dy = dy * -1;
+						df[1] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						return;
@@ -1835,7 +1850,8 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = elem.x - (this.width+1);
 						this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x)));
-						dx = dx * -1;
+						//dx = dx * -1;
+						df[0] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						return;
@@ -1845,7 +1861,8 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = elem.x + elem.width + 1;
 						this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
-						dx = dx * -1;
+						//dx = dx * -1;
+						df[0] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						return;
@@ -1856,7 +1873,8 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = (this.x) - (Math.cos(this.f) * (this.y - (walls[0].y + walls[0].height)));
 						this.y = walls[0].y + walls[0].height;
-						dy = dy * -1;
+						//dy = dy * -1;
+						df[1] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 					}
@@ -1865,7 +1883,8 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = (this.x) - (Math.cos(this.f) * (this.y - (walls[1].y)));
 						this.y = walls[1].y - (this.height+1);
-						dy = dy * -1;
+						//dy = dy * -1;
+						df[1] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 					}
@@ -1875,7 +1894,8 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = walls[2].x + walls[2].width + 1;
 						this.y = (this.y) - (Math.sin(this.f) * (this.x - (walls[2].x + walls[2].width)));
-						dx = dx * -1;
+						//dx = dx * -1;
+						df[0] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 					}
@@ -1884,10 +1904,14 @@ window.onload = function() {
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = walls[3].x - (this.width);
 						this.y = (this.y) - (Math.sin(this.f) * (this.x - walls[3].x));
-						dx = dx * -1;
+						//dx = dx * -1;
+						df[0] *= -1;
 						refcnt++;
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 					}
+
+
+
 					if (this.time > 150) scene.removeChild(this);
 					if (refcnt > ref) scene.removeChild(this)
 				}
@@ -6507,6 +6531,255 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	});
+	/* 敵(強)クラス */
+	var FullFire = Class.create(Sprite, {
+		initialize: function(x, y, path1, path2, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap) {
+			Sprite.call(this, pixelSize - 4, pixelSize - 4)
+			this.x = x * pixelSize + 2;
+			this.y = y * pixelSize - 14;
+			this.time = 0;
+
+			var emax = max;
+			const Num = entVal;
+			entVal++;
+			bullets[Num] = 0;
+			boms[Num] = 0;
+			deadFlgs.push(false)
+
+			const cannon = new Cannon(this, path2, Num, scene);
+			const tank = new Tank(this, path1, Num, scene, cannon);
+			const weak = new Weak(this, Num, scene);
+			this.weak = weak;
+			this.cannon = cannon;
+			this.tank = tank;
+			TankFrame(this, Num, scene)
+
+			var shotNGflg = false;
+			let reloadTime = 0;
+			let reloadFlg = false;
+			let shotStopFlg = false;
+			let fullFireFlg = false;
+			let firecnt = 0;
+
+			let life = 1;
+
+			if (addBullet != 0) fireLate = 6;
+
+			enemyTarget[Num] = target;
+			var alignment = new Target(Num, scene)
+			//alignment.backgroundColor = 'blue'
+
+			for (var i = 0; i < emax; i++) {
+				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
+				bulStack[Num][i] = false;
+				colOb[Num][i].moveTo(-230, -230)
+				bulOb[Num][i].moveTo(-100, -100)
+			}
+
+			bomOb[Num][0] = new Bom(this, Num, scene);
+
+			var EnemyAim = Class.create(Aim, {
+				initialize: function() {
+					Aim.call(this, alignment, cannon, 24, Num, scene);
+					if(ref == 0){
+						this.scale(2,2);
+					}
+				}
+			})
+
+			function ShotBullet(i) {
+				game.assets['./sound/s_car_door_O2.wav'].clone().play();
+				if (shotSpeed >= 14) {
+					game.assets['./sound/Sample_0003.wav'].clone().play();
+				}
+				scene.BulGroup.addChild(colOb[Num][i]);
+				scene.BulGroup.addChild(bulOb[Num][i]);
+				new OpenFire(cannon, alignment, scene)
+				bullets[Num]++;
+				bulStack[Num][i] = true;
+				shotStopFlg = true;
+			}
+
+			this.onenterframe = function() {
+				if (deleteFlg == true) {
+					this.moveTo(-100, -100);
+					scene.removeChild(alignment);
+					scene.TankGroup.removeChild(tank)
+					scene.CannonGroup.removeChild(cannon)
+					scene.removeChild(weak)
+					scene.removeChild(this)
+				}
+				if (life > 0) {
+                    if (deadFlgs[Num] == true) {
+                        new Mark(this, scene);
+                        tankColorCounts[category]--;
+                        //alert(tankColorCounts)
+
+                        new Explosion(this, scene);
+                        this.moveTo(-100, -100)
+                        destruction++
+                        life--;
+                        deadTank[Num - 1] = true;
+                    }
+					if (deadFlgs[0] == false) {
+						
+
+						if (worldFlg == true) {
+							//  死亡判定処理
+							Bullet.intersectStrict(weak).forEach(elem => {
+								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
+									game.assets['./sound/mini_bomb2.mp3'].clone().play();
+									deadFlgs[Num] = true
+									Get_NewBullet(elem.num, elem.value);
+									moveSpeed = 0;
+									return;
+								}
+							})
+
+							this.time++;
+							if (this.time % 2 == 0) {
+								shotNGflg = false;
+								if(!fullFireFlg && bullets[Num] == emax) fireFlgs[Num] = false;
+                                
+							}
+
+							new EnemyAim();
+
+							/*for (let elem of floors) {
+								if (this.intersect(elem) == true) {
+									shotNGflg = true;
+									break;
+								}
+							};
+							for (let elem of walls) {
+								if (this.intersect(elem) == true) {
+									shotNGflg = true;
+									break;
+								}
+							};*/
+
+							EnemyAim.intersect(alignment).forEach(elem => {
+								if(!fireFlgs[Num])fireFlgs[Num] = true;
+								return;
+							})
+
+
+
+							/*avoids.forEach(elem=>{
+							    if(tank.within(elem,60)==true){
+							        stopFlg = true;
+							    }
+							})*/
+							if (this.time % 10 == 0) {
+								enemyTarget[Num] = target;
+							}
+
+							if (reloadFlg == false) {
+								if (bullets[Num] == emax || firecnt == emax){
+									reloadFlg = true;
+									fullFireFlg = false;
+									firecnt = 0;
+									fireFlgs[Num] = false;
+								}
+							} else {
+								if (reloadTime < cateReloadTimes[category]) {
+									reloadTime++;
+									if (shotNGflg == false) shotNGflg = true;
+								} else {
+									shotNGflg = false;
+									reloadFlg = false;
+									reloadTime = 0;
+								}
+
+							}
+
+							if (shotNGflg == false) {
+								if (this.time % fireLate == 0 && (fireFlgs[Num] == true || fullFireFlg)) {
+									if ((Math.floor(Math.random() * emax * 2) > bullets[Num] || fullFireFlg) && bullets[Num] < emax) {
+										for (let i = 0; i < emax; i++) {
+											if (bulStack[Num][i] == false) {
+												fullFireFlg = true;
+												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i)
+												firecnt++;
+												break;
+											}
+
+										}
+									}
+								}
+							}
+
+							/*if (this.time % fireLate == 0 && shotNGflg == false) {
+								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
+									for (let i = 0; i < emax; i++) {
+										if (bulStack[Num][i] == false) {
+											if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
+												if (category == 2) {
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
+												}else{
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
+												}
+												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
+												ShotBullet(i);
+												break;
+											}
+										}
+									}
+								}
+							}*/
+							
+							for (let i = 0; i < tankDir.length; i++) {
+								if (deadFlgs[i] == false && i != Num) {
+									if (this.intersect(tankDir[i][0]) == true) {
+										this.moveTo(this.x, tankDir[i][0].y - 60)
+									}
+									if (this.intersect(tankDir[i][1]) == true) {
+										this.moveTo(this.x, tankDir[i][1].y + (tankDir[i][1].height))
+									}
+									if (this.intersect(tankDir[i][2]) == true) {
+										this.moveTo(tankDir[i][2].x - 60, this.y)
+									}
+									if (this.intersect(tankDir[i][3]) == true) {
+										this.moveTo(tankDir[i][3].x + (tankDir[i][3].width), this.y)
+									}
+								}
+							}
+							for (let i = 0; i < obsdir.length; i++) {
+								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
+									this.moveTo(this.x, obsdir[i][0].y - 60)
+								}
+								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
+									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
+								}
+								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
+									this.moveTo(obsdir[i][2].x - 60, this.y)
+								}
+								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
+									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
+								}
+							}
+							if (this.intersect(walls[0]) == true) {
+								this.moveTo(this.x, walls[0].y + walls[0].height)
+							}
+							if (this.intersect(walls[1]) == true) {
+								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
+							}
+							if (this.intersect(walls[2]) == true) {
+								this.moveTo(walls[2].x + walls[2].width, this.y)
+							}
+							if (this.intersect(walls[3]) == true) {
+								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
+							}
+						}
+					}
+				}
+			}
+			scene.addChild(this);
+		}
+	});
 	/* 強敵クラス */
 	/*var Boss = Class.create(Sprite, {
 		initialize: function(x, y, tankPath, cannonPath, target, max, ref, shotSpeed, moveSpeed, fireLate, grade, category, scene, filterMap) {
@@ -8863,8 +9136,8 @@ window.onload = function() {
 								cateShotSpeeds[playerType-1],
 								cateMoveSpeeds[playerType-1]
 							];
-							if(cateMoveSpeeds[playerType-1] == 0){
-								playerStatus[3] = 1.0;
+							if(cateMoveSpeeds[playerType-1] < 1.5){
+								playerStatus[3] = 1.5;
 							}
 						}
 						
@@ -9219,6 +9492,8 @@ window.onload = function() {
 						tankEntity.push(new Stealth(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 					} else if (stageData[i][10] == 8) {
 						tankEntity.push(new Bomber(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
+					} else if (stageData[i][10] == 9) {
+						tankEntity.push(new FullFire(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 					} else if (stageData[i][9] > 2) {
 						tankEntity.push(new Elite(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 					} else {
@@ -9242,6 +9517,8 @@ window.onload = function() {
 							tankEntity.push(new Stealth(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 						} else if (stageData[i][10] == 8) {
 							tankEntity.push(new Bomber(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
+						} else if (stageData[i][10] == 9) {
+							tankEntity.push(new FullFire(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 						} else if (stageData[i][9] > 2) {
 							tankEntity.push(new Elite(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
 						} else {
