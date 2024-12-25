@@ -1316,6 +1316,14 @@ window.onload = function() {
 					}
 					this.x = target.x + 4;
 					this.y = target.y - 1;
+					/*if(tankEntity[num].tank.rotation == 270){
+						this.x = target.x + 4;
+						this.y = target.y - 1;
+					}else{
+						this.x = target.x + 4;
+						this.y = target.y;
+					}*/
+					
 				}
 				
 			}
@@ -1335,6 +1343,13 @@ window.onload = function() {
 					}
 					this.x = target.x + 4;
 					this.y = target.y + 60 - 2;
+					/*if(tankEntity[num].tank.rotation == 90){
+						this.x = target.x + 4;
+						this.y = target.y + 60 - 1;
+					}else{
+						this.x = target.x + 4;
+						this.y = target.y + 60 - 2;
+					}*/
 				}
 				
 			}
@@ -1354,6 +1369,13 @@ window.onload = function() {
 					}
 					this.x = target.x;
 					this.y = target.y + 4;
+					/*if(tankEntity[num].tank.rotation == 180){
+						this.x = target.x-2;
+						this.y = target.y + 4;
+					}else{
+						this.x = target.x-1;
+						this.y = target.y + 4;
+					}*/
 				}
 				
 			}
@@ -1373,6 +1395,14 @@ window.onload = function() {
 					}
 					this.x = target.x + 60 - 1;
 					this.y = target.y + 4;
+					/*if(tankEntity[num].tank.rotation == 0){
+						this.x = target.x + 60;
+						this.y = target.y + 4;
+					}else{
+						this.x = target.x + 60 - 1;
+						this.y = target.y + 4;
+					}*/
+					
 				}
 				
 			}
@@ -3008,6 +3038,7 @@ window.onload = function() {
 
 			//  戦車の各パーツ呼び出し
 			const weak = new Weak(this, Num, scene); //  弱点
+				weak.scale(0.8, 0.8);
 			const cannon = new Cannon(this, path2, Num, scene); //  砲塔
 			const tank = new Tank(this, path1, Num, scene, cannon); //  車体
 			this.weak = weak;
@@ -7558,7 +7589,8 @@ window.onload = function() {
 	        this.tank = tank;
 	        TankFrame(this,Num,scene);
 
-			const intercept = new Intercept96(this, scene)
+			const intercept = new Intercept96(this, scene);
+			const intercept7 = new InterceptC(cannon, scene);
 
 			var value = 0;
 			var rot = 0;
@@ -7607,7 +7639,7 @@ window.onload = function() {
 			let damCng = false;
 
 			enemyTarget[Num] = target;
-	        var alignment = new Target(Num,scene)
+	        var alignment = new Target(Num,scene);
 
 	        for(var i = 0; i < emax; i++){
 	            colOb[Num][i] = new BulletCol(alignment,cannon,cateShotSpeeds[category],grade,scene);
@@ -7622,7 +7654,7 @@ window.onload = function() {
 	        var EnemyAim = Class.create(Aim,{
 	            initialize: function(){
 					if(ref == 0){
-						Aim.call(this, alignment, cannon, 28, Num, scene);
+						Aim.call(this, alignment, cannon, 24, Num, scene);
 						this.scale(2,2);
 					}else{
 						Aim.call(this, alignment, cannon, 20, Num, scene);
@@ -7715,6 +7747,7 @@ window.onload = function() {
 	            if (deleteFlg == true) {
 					this.moveTo(-100, -100)
 					scene.removeChild(intercept);
+					scene.removeChild(intercept7);
 					scene.removeChild(alignment);
 					scene.TankGroup.removeChild(tank)
 					scene.CannonGroup.removeChild(cannon)
@@ -7782,9 +7815,21 @@ window.onload = function() {
 									shotStopTime = 0;
 								}
 							}
+
+							if(ref > 0 && shotNGflg == false){
+								intercept7.intersect(Floor).forEach(function(){
+									shotNGflg = true;
+									return;
+								})
+							}
+
 							if(this.time % 2 == 0){
 								if (reloadFlg == false) {
-									if (bullets[Num] == emax) reloadFlg = true;
+									shotNGflg = false;
+									if (bullets[Num] == emax){
+										reloadFlg = true;
+										if (shotNGflg == false) shotNGflg = true;
+									} 
 								} else {
 									if (reloadTime < cateReloadTimes[category]) {
 										reloadTime++;
@@ -7796,7 +7841,6 @@ window.onload = function() {
 									}
 								}
 								escapeFlg = false;
-								shotNGflg = false;
 								fireFlgs[Num] = false;
 							}
 
@@ -7869,7 +7913,7 @@ window.onload = function() {
 													escapeTarget = bulOb[Num][i];
 													if (cateEscapes[category][0] == true) {
 														if (dist < cateEscapes[category][2] && dist > 100) {
-															escapeFlg = true
+															escapeFlg = true;
 														}
 													}
 												}
@@ -7887,7 +7931,7 @@ window.onload = function() {
 											if (bulStack[Num][i] == false) {
 												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-												ShotBullet(i)
+												ShotBullet(i);
 												break;
 											}
 
@@ -9104,7 +9148,7 @@ window.onload = function() {
 			let tankBulSpd = new DispText(600, 400, 260 * 2, 36, "　弾速　：", '36px sans-serif', 'black', 'left', scene) //  弾速
 			let tankBulRef = new DispText(600, 460, 260 * 1.5, 36, "跳弾回数：", '36px sans-serif', 'black', 'left', scene) //  跳弾回数
 			let tankSpd = new DispText(600, 520, 260 * 2, 36, "移動速度：", '36px sans-serif', 'black', 'left', scene) //  移動速度
-			let tankDsc = new DispText(600, 580, 260 * 2.2, 72, "・戦車の特徴", '36px sans-serif', 'black', 'left', scene) //  戦車の特徴
+			let tankDsc = new DispText(600, 580, 260 * 2.4, 72, "・戦車の特徴", '36px sans-serif', 'black', 'left', scene) //  戦車の特徴
 
 			let playerTypeEdit = new DispText(150, 710, 260 * 3, 36, "▶ 操作する戦車の変更", '36px sans-serif', 'black', 'left', scene) //  戦車名
 			new DispText(150, 750, 260 * 3, 24, "※プレイヤーが使う戦車を選択中の戦車に変更できます。", '24px sans-serif', 'black', 'left', scene) //  戦車名
