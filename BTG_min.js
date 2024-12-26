@@ -129,7 +129,7 @@ var cateEscapes = [
 	[false, 0, 0, 0], //red
 	[true, 200, 0, 0], //lightgreen
 	[true, 280, 230, 180], //elitegray
-	[true, 200, 0, 180], //snow
+	[true, 200, 200, 180], //snow
 	[false, 0, 0, 0], //elitegreen
 	[true, 240, 0, 0], //sand
 	[false, 0, 0, 0], //pink
@@ -164,6 +164,20 @@ var cateReloadTimes = [
 	90, //random
 	180 //dazzle
 ];
+/*var cateMaxBullets = [
+	0, //brown
+	0, //gray
+	0, //green
+	0, //red
+	0, //lightgreen
+	0, //elitegray
+	0, //snow
+	0, //elitegreen
+	0, //sand
+	0, //pink
+	0, //random
+	0 //dazzle
+];*/
 var cateMaxBullets = [
 	1, //brown
 	2, //gray
@@ -495,8 +509,8 @@ var Vec_Distance = function(from, to) {
 
 var Escape_Rot = function(from, to) {
 	let v = Rot_to_Vec(to.rotation, 270);
-	v.x = v.x * 64 + to.x;
-	v.y = v.y * 64 + to.y;
+	v.x = v.x * 96 + to.x;
+	v.y = v.y * 96 + to.y;
 	/*let point = new Sprite(10,10);
 	    point.moveTo(v.x,v.y);
 	    point.backgroundColor = '#f008';
@@ -1314,15 +1328,19 @@ window.onload = function() {
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
 					}
-					this.x = target.x + 4;
-					this.y = target.y - 1;
-					/*if(tankEntity[num].tank.rotation == 270){
+					//this.x = target.x + 4;
+					//this.y = target.y - 1;
+					if(tankEntity[num].tank.rotation == 270){
 						this.x = target.x + 4;
 						this.y = target.y - 1;
+						if(this.scaleY != 2) this.scaleY = 2;
+						//if(this.backgroundColor != "yellow") this.backgroundColor = "yellow";
 					}else{
 						this.x = target.x + 4;
 						this.y = target.y;
-					}*/
+						if(this.scaleY != 1) this.scaleY = 1;
+						//if(this.backgroundColor != "white") this.backgroundColor = "white";
+					}
 					
 				}
 				
@@ -1341,15 +1359,19 @@ window.onload = function() {
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
 					}
-					this.x = target.x + 4;
-					this.y = target.y + 60 - 2;
-					/*if(tankEntity[num].tank.rotation == 90){
+					//this.x = target.x + 4;
+					//this.y = target.y + 60 - 2;
+					if(tankEntity[num].tank.rotation == 90){
 						this.x = target.x + 4;
 						this.y = target.y + 60 - 1;
+						if(this.scaleY != 2) this.scaleY = 2;
+						//if(this.backgroundColor != "yellow") this.backgroundColor = "yellow";
 					}else{
 						this.x = target.x + 4;
 						this.y = target.y + 60 - 2;
-					}*/
+						if(this.scaleY != 1) this.scaleY = 1;
+						//if(this.backgroundColor != "blue") this.backgroundColor = "blue";
+					}
 				}
 				
 			}
@@ -1367,15 +1389,19 @@ window.onload = function() {
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
 					}
-					this.x = target.x;
-					this.y = target.y + 4;
-					/*if(tankEntity[num].tank.rotation == 180){
+					//this.x = target.x;
+					//this.y = target.y + 4;
+					if(tankEntity[num].tank.rotation == 180){
 						this.x = target.x-2;
 						this.y = target.y + 4;
+						if(this.scaleX != 2) this.scaleX = 2;
+						//if(this.backgroundColor != "yellow") this.backgroundColor = "yellow";
 					}else{
 						this.x = target.x-1;
 						this.y = target.y + 4;
-					}*/
+						if(this.scaleX != 1) this.scaleX = 1;
+						//if(this.backgroundColor != "green") this.backgroundColor = "green";
+					}
 				}
 				
 			}
@@ -1393,15 +1419,19 @@ window.onload = function() {
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
 					}
-					this.x = target.x + 60 - 1;
-					this.y = target.y + 4;
-					/*if(tankEntity[num].tank.rotation == 0){
+					//this.x = target.x + 60 - 1;
+					//this.y = target.y + 4;
+					if(tankEntity[num].tank.rotation == 0){
 						this.x = target.x + 60;
 						this.y = target.y + 4;
+						if(this.scaleX != 2) this.scaleX = 2;
+						//if(this.backgroundColor != "yellow") this.backgroundColor = "yellow";
 					}else{
 						this.x = target.x + 60 - 1;
 						this.y = target.y + 4;
-					}*/
+						if(this.scaleX != 1) this.scaleX = 1;
+						//if(this.backgroundColor != "red") this.backgroundColor = "red";
+					}
 					
 				}
 				
@@ -3147,11 +3177,11 @@ window.onload = function() {
 						Bullet.intersectStrict(weak).forEach(elem => {
 							if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 								game.assets['./sound/mini_bomb2.mp3'].clone().play();
-								deadFlgs[Num] = true
-								Get_NewBullet(elem.num, elem.value);
+								deadFlgs[Num] = true;
 								moveSpeed = 0;
-								return;
+								Get_NewBullet(elem.num, elem.value);
 							}
+							return;
 						})
 						/*for(var j = 0; j < bulOb.length; j++){
 						    for(var k = 0; k < bulOb[j].length; k++){
@@ -3461,8 +3491,8 @@ window.onload = function() {
                         tankColorCounts[category]--;
                         //alert(tankColorCwwsaounts)
                         new Explosion(this, scene);
-                        this.moveTo(-100, -100);
-                        destruction++
+						destruction++;
+                        this.moveTo((-64 * destruction), -100);
                         life = 0;
                         deadTank[Num - 1] = true;
                     }	
@@ -3487,11 +3517,11 @@ window.onload = function() {
 							Bullet.intersectStrict(weak).forEach(elem => {
 								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 									game.assets['./sound/mini_bomb2.mp3'].clone().play();
-									deadFlgs[Num] = true
-									Get_NewBullet(elem.num, elem.value);
+									deadFlgs[Num] = true;
 									moveSpeed = 0;
-									return;
+									Get_NewBullet(elem.num, elem.value);
 								}
+								return;
 							})
 							if(this.time % 2 == 0){
 								fireFlgs[Num] = false; //  発射状態をリセット
@@ -3611,7 +3641,7 @@ window.onload = function() {
 							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
 							*/
 							//  他戦車の弾迎撃処理
-							if (cateFlgs[category][2] == true && bulOb.length > 2) {
+							if (cateFlgs[category][2] == true && tankEntity.length > 2) {
 								let brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
@@ -3965,11 +3995,9 @@ window.onload = function() {
                     if (deadFlgs[Num] == true) {
                         new Mark(this, scene);
                         tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-
                         new Explosion(this, scene);
-                        this.moveTo(-100, -100)
                         destruction++
+						this.moveTo((-64 * destruction), -100);
                         life--;
                         deadTank[Num - 1] = true;
                     }
@@ -3982,10 +4010,10 @@ window.onload = function() {
 								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 									game.assets['./sound/mini_bomb2.mp3'].clone().play();
 									deadFlgs[Num] = true
-									Get_NewBullet(elem.num, elem.value);
 									moveSpeed = 0;
-									return;
+									Get_NewBullet(elem.num, elem.value);
 								}
+								return;
 							})
 							
 							/*for(var j = 0; j < bulOb.length; j++){
@@ -4068,7 +4096,7 @@ window.onload = function() {
 							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
 							*/
 							//  他戦車の弾迎撃処理
-							if (cateFlgs[category][2] == true && bulOb.length > 2) {
+							if (cateFlgs[category][2] == true && tankEntity.length > 2) {
 								let brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
@@ -4454,11 +4482,9 @@ window.onload = function() {
                     if (deadFlgs[Num] == true) {
                         new Mark(this, scene);
                         tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-
                         new Explosion(this, scene);
-                        this.moveTo(-100, -100)
-                        destruction++
+                        destruction++;
+						this.moveTo((-64 * destruction), -100);
                         life--;
                         deadTank[Num - 1] = true;
                     }
@@ -4470,11 +4496,11 @@ window.onload = function() {
 							Bullet.intersectStrict(weak).forEach(elem => {
 								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 									game.assets['./sound/mini_bomb2.mp3'].clone().play();
-									deadFlgs[Num] = true
-									Get_NewBullet(elem.num, elem.value);
+									deadFlgs[Num] = true;
 									moveSpeed = 0;
-									return;
+									Get_NewBullet(elem.num, elem.value);
 								}
+								return;
 							})
 							
 							if (shotStopFlg) {
@@ -4485,9 +4511,13 @@ window.onload = function() {
 								}
 							}
 
-							if (hittingTime > 30) {
-								let val = value;
-								while (value == val) value = Math.floor(Math.random() * 4);
+							if (hittingTime > 20) {
+								if(value < 2){
+									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
+								}else{
+									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+								}
+								
 								hittingTime = 0;
 							}
 							if(this.time == 0){
@@ -4501,7 +4531,6 @@ window.onload = function() {
 								//if(opaFlg) opaFlg = false;
 								stopFlg = false;
 								escapeFlg = false;
-								shotNGflg = false;
 								if(fireFlgs[Num])fireFlgs[Num] = false;
 							}
 
@@ -4536,20 +4565,6 @@ window.onload = function() {
 								if(!fireFlgs[Num])fireFlgs[Num] = true;
 								return;
 							})
-
-							if (reloadFlg == false) {
-								if (bullets[Num] == emax) reloadFlg = true;
-							} else {
-								if (reloadTime < cateReloadTimes[category]) {
-									reloadTime++;
-									if (shotNGflg == false) shotNGflg = true;
-								} else {
-									shotNGflg = false;
-									reloadFlg = false;
-									reloadTime = 0;
-								}
-
-							}
 
 							//	迎撃処理群
 							//	優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
@@ -4640,6 +4655,21 @@ window.onload = function() {
 									}
 								}
 							}
+
+							if (reloadFlg == false) {
+								if(shotNGflg) shotNGflg = false;
+								if (bullets[Num] == emax) reloadFlg = true;
+							} else {
+								if (reloadTime < cateReloadTimes[category]) {
+									reloadTime++;
+									if (shotNGflg == false) shotNGflg = true;
+								} else {
+									shotNGflg = false;
+									reloadFlg = false;
+									reloadTime = 0;
+								}
+
+							}
 							/*if (game.time % fireLate == 0 && shotNGflg == false) {
 								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
 									for (let i = 0; i < emax; i++) {
@@ -4683,16 +4713,16 @@ window.onload = function() {
 								}
 								if (shotStopFlg == false) {
 									if (value == 0) {
-										rot = 0;
+										rot = 180;
 										this.x -= speed;
 									} else if (value == 1) {
-										rot = 180;
+										rot = 0;
 										this.x += speed;
 									} else if (value == 2) {
-										rot = 90;
+										rot = 270;
 										this.y -= speed;
 									} else if (value == 3) {
-										rot = 270;
+										rot = 90;
 										this.y += speed;
 									}
 								}
@@ -5352,11 +5382,9 @@ window.onload = function() {
                     if (deadFlgs[Num] == true) {
                         new Mark(this, scene);
                         tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-
                         new Explosion(this, scene);
-                        this.moveTo(-100, -100)
-                        destruction++
+                        destruction++;
+						this.moveTo((-64 * destruction), -100);
                         life--;
                         deadTank[Num - 1] = true;
                     }
@@ -5380,11 +5408,11 @@ window.onload = function() {
 							Bullet.intersectStrict(weak).forEach(elem => {
 								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 									game.assets['./sound/mini_bomb2.mp3'].clone().play();
-									deadFlgs[Num] = true
-									Get_NewBullet(elem.num, elem.value);
+									deadFlgs[Num] = true;
 									moveSpeed = 0;
-									return;
+									Get_NewBullet(elem.num, elem.value);
 								}
+								return;
 							})
 							if (shotStopFlg == true) {
 								shotStopTime++;
@@ -5630,16 +5658,16 @@ window.onload = function() {
 							
 							if (shotStopFlg == false && moveSpeed > 0) {
 								if (value == 0) {
-									rot = 0;
+									rot = 180;
 									this.x -= speed;
 								} else if (value == 1) {
-									rot = 180;
+									rot = 0;
 									this.x += speed;
 								} else if (value == 2) {
-									rot = 90;
+									rot = 270;
 									this.y -= speed;
 								} else if (value == 3) {
-									rot = 270;
+									rot = 90;
 									this.y += speed;
 								}
 								/* 戦車本体の角度 */
@@ -5871,11 +5899,9 @@ window.onload = function() {
                     if (deadFlgs[Num] == true) {
                         new Mark(this, scene);
                         tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-
                         new Explosion(this, scene);
-                        this.moveTo(-100, -100)
-                        destruction++
+                        destruction++;
+						this.moveTo((-64 * destruction), -100);
                         life--;
                         deadTank[Num - 1] = true;
                     }
@@ -5884,10 +5910,11 @@ window.onload = function() {
 						Bullet.intersectStrict(weak).forEach(elem => {
 							if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 								game.assets['./sound/mini_bomb2.mp3'].clone().play();
-								deadFlgs[Num] = true
-								Get_NewBullet(elem.num, elem.value);
+								deadFlgs[Num] = true;
 								moveSpeed = 0;
+								Get_NewBullet(elem.num, elem.value);
 							}
+							return;
 						})
 						
 						/*for(var j = 0; j < bulOb.length; j++){
@@ -6227,16 +6254,16 @@ window.onload = function() {
 								/* 戦車本体の角度 */
 								if (shotStopFlg == false) {
 									if (value == 0) {
-										rot = 0;
+										rot = 180;
 										this.x -= speed;
 									} else if (value == 1) {
-										rot = 180;
+										rot = 0;
 										this.x += speed;
 									} else if (value == 2) {
-										rot = 90;
+										rot = 270;
 										this.y -= speed;
 									} else if (value == 3) {
-										rot = 270;
+										rot = 90;
 										this.y += speed;
 									}
 								}
@@ -6402,8 +6429,8 @@ window.onload = function() {
                         new Mark(this, scene);
                         tankColorCounts[category]--;
                         new Explosion(this, scene);
-                        this.moveTo(-100, -100);
                         destruction++;
+						this.moveTo((-64 * destruction), -100);
                         life--;
                         deadTank[Num - 1] = true;
                     }
@@ -6428,10 +6455,10 @@ window.onload = function() {
 								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 									game.assets['./sound/mini_bomb2.mp3'].clone().play();
 									deadFlgs[Num] = true;
-									Get_NewBullet(elem.num, elem.value);
 									moveSpeed = 0;
-									return;
 								}
+								Get_NewBullet(elem.num, elem.value);
+								return;
 							})
 							this.time++;
 							if (this.time % 2 == 0) {
@@ -6657,11 +6684,9 @@ window.onload = function() {
                     if (deadFlgs[Num] == true) {
                         new Mark(this, scene);
                         tankColorCounts[category]--;
-                        //alert(tankColorCounts)
-
                         new Explosion(this, scene);
-                        this.moveTo(-100, -100)
-                        destruction++
+                        destruction++;
+						this.moveTo((-64 * destruction), -100);
                         life--;
                         deadTank[Num - 1] = true;
                     }
@@ -6673,11 +6698,11 @@ window.onload = function() {
 							Bullet.intersectStrict(weak).forEach(elem => {
 								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 									game.assets['./sound/mini_bomb2.mp3'].clone().play();
-									deadFlgs[Num] = true
-									Get_NewBullet(elem.num, elem.value);
+									deadFlgs[Num] = true;
 									moveSpeed = 0;
-									return;
+									Get_NewBullet(elem.num, elem.value);
 								}
+								return;
 							})
 
 							this.time++;
@@ -7759,22 +7784,25 @@ window.onload = function() {
 						
 						if(worldFlg){
 							//  死亡判定処理
-							Bullet.intersectStrict(weak).forEach(elem => {
-								if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false && damFlg == false) {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									//game.assets['./sound/mini_bomb2.mp3'].clone().play();
-									new TouchFire(elem, scene);
-									life--;
-									damage.play();
-									if(life > 0){
-										damage.volume = 0.5;
-										damFlg = true;
+							if(!damFlg){
+								Bullet.intersectStrict(weak).forEach(elem => {
+									if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
+										let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
+										//game.assets['./sound/mini_bomb2.mp3'].clone().play();
+										new TouchFire(elem, scene);
+										life--;
+										damage.play();
+										if(life > 0){
+											damage.volume = 0.5;
+											damFlg = true;
+											ResetStatus();
+										}
+										Get_NewBullet(elem.num, elem.value);
 									}
-									ResetStatus();
-									Get_NewBullet(elem.num, elem.value);
 									return;
-								}
-							})
+								})
+							}
+							
 							if(damFlg){
 								if(damCng){
 									tank.opacity = 0.0;
@@ -8001,16 +8029,16 @@ window.onload = function() {
 								//	戦車本体の角度
 								if (shotStopFlg == false) {
 									if (value == 0) {
-										rot = 0;
+										rot = 180;
 										this.x -= speed;
 									} else if (value == 1) {
-										rot = 180;
+										rot = 0;
 										this.x += speed;
 									} else if (value == 2) {
-										rot = 90;
+										rot = 270;
 										this.y -= speed;
 									} else if (value == 3) {
-										rot = 270;
+										rot = 90;
 										this.y += speed;
 									}
 								}
@@ -8083,8 +8111,8 @@ window.onload = function() {
 						new Mark(this, scene);
 						tankColorCounts[category]--;
 						new Explosion(this, scene);
-						this.moveTo(-100, -100);
 						destruction++;
+						this.moveTo((-64 * destruction), -100);
 						deadFlgs[Num] = true;
 						deadTank[Num - 1] = true;
 					}
@@ -9923,7 +9951,7 @@ window.onload = function() {
 								stageNum++;
 								AllDelete();
 
-								if (stageNum % 6 == 0) {
+								if (stageNum % 5 == 0) {
 									game.replaceScene(createBonusScene())
 								} else {
 									game.replaceScene(createStartScene())
