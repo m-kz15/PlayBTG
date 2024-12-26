@@ -164,20 +164,6 @@ var cateReloadTimes = [
 	90, //random
 	180 //dazzle
 ];
-/*var cateMaxBullets = [
-	0, //brown
-	0, //gray
-	0, //green
-	0, //red
-	0, //lightgreen
-	0, //elitegray
-	0, //snow
-	0, //elitegreen
-	0, //sand
-	0, //pink
-	0, //random
-	0 //dazzle
-];*/
 var cateMaxBullets = [
 	1, //brown
 	2, //gray
@@ -7643,6 +7629,7 @@ window.onload = function() {
 					speed = 2.4;
 					fireLate = 18;
 					shotSpeed = 13;
+					intercept.scale(1.5,1.5);
 					break;
 				default:
 					break;
