@@ -2368,36 +2368,43 @@ window.onload = function() {
 					this.intersectStrict(BombExplosion).forEach(function() {
 						if (victory == false && defeat == false) {
 							new BombExplosion(bomb, num, scene)
-							bomb.moveTo(-900, -900)
+							bomb.moveTo(-900, -900);
 							scene.BomGroup.removeChild(bomb);
 						}
 					})
-					tankEntity.forEach(elem => {
+					if(this.time > 180 && !bombFlg){
+						tankEntity.forEach(elem => {
+							if (this.within(elem,120) || this.time > 555) {
+								bombFlg = true;
+								this.time = 0;
+							}
+						})
+					}
+					/*tankEntity.forEach(elem => {
 						if (this.time > 180) {
 							if ((this.intersect(elem) || this.time > 555) && bombFlg == false) {
 								bombFlg = true;
 								this.time = 0;
 							}
 						}
-						if (bombFlg == true && victory == false && defeat == false) {
-							if (this.time % 4 == 0) {
-								this.image = a_color;
-								//this.backgroundColor = "red"
-							} else if (this.time % 2 == 0) {
-								this.image = n_color;
-								//this.backgroundColor = "yellow"
-							}
-							if (this.time % 6 == 0) {
-								game.assets['./sound/Sample_0010.wav'].clone().play();
-							}
-							if (this.time == 45) {
-								new BombExplosion(this, num, scene)
-								this.moveTo(-900, -900)
-								scene.BomGroup.removeChild(this);
-							}
+					})*/
+					if (bombFlg == true && victory == false && defeat == false) {
+						if (this.time % 4 == 0) {
+							this.image = a_color;
+							//this.backgroundColor = "red"
+						} else if (this.time % 2 == 0) {
+							this.image = n_color;
+							//this.backgroundColor = "yellow"
 						}
-
-					})
+						if (this.time % 6 == 0) {
+							game.assets['./sound/Sample_0010.wav'].clone().play();
+						}
+						if (this.time == 45) {
+							new BombExplosion(this, num, scene);
+							this.moveTo(-900, -900);
+							scene.BomGroup.removeChild(this);
+						}
+					}
 					Bullet.intersectStrict(this).forEach(elem => {
 						if (bulStack[elem.num][elem.value] == true && victory == false && defeat == false) {
 							Get_NewBullet(elem.num, elem.value);
@@ -2808,7 +2815,7 @@ window.onload = function() {
 			this.originY = 20;
 			let target, rad, dx, dy;
 			let prediction = [0, 0];
-			this.moveTo(tankEntity[num-1].x, tankEntity[num-1].y)
+			this.moveTo(tankEntity[0].x, tankEntity[0].y)
 			/*let p = new Sprite(8,8);
 			p.moveTo(0,0);
 			p.backgroundColor = 'bule';
@@ -3081,11 +3088,14 @@ window.onload = function() {
 
 			//  弾の初期状態を設定
 			for (var i = 0; i < pmax; i++) {
-				colOb[Num][i] = new BulletCol(cur, floors[0], shotSpeed, 0, scene);
-				bulOb[Num][i] = new Bullet(colOb[Num][i], floors[0], ref, Num, shotSpeed, scene, i);
+				colOb[Num][i] = new BulletCol(cur, cannon, shotSpeed, 0, scene);
+				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false; //  弾の状態をoff
-				colOb[Num][i].moveTo(-210, -210);
-				bulOb[Num][i].moveTo(-100, -100);
+				//colOb[Num][i].moveTo(-210, -210);
+				//bulOb[Num][i].moveTo(-100, -100);
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 			//  爆弾の初期状態を設定
 			for (var i = 0; i < 2; i++) {
@@ -3414,8 +3424,11 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-220, -220)
-				bulOb[Num][i].moveTo(-100, -100)
+				//colOb[Num][i].moveTo(-220, -220)
+				//bulOb[Num][i].moveTo(-100, -100)
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 
 			//  爆弾の初期設定
@@ -3891,8 +3904,11 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-230, -230)
-				bulOb[Num][i].moveTo(-100, -100)
+				//colOb[Num][i].moveTo(-230, -230)
+				//bulOb[Num][i].moveTo(-100, -100)
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 
 			bomOb[Num][0] = new Bom(this, Num, scene);
@@ -4381,8 +4397,11 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-230, -230);
-				bulOb[Num][i].moveTo(-100, -100);
+				//colOb[Num][i].moveTo(-230, -230);
+				//bulOb[Num][i].moveTo(-100, -100);
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 
 			bomOb[Num][0] = new Bom(this, Num, scene);
@@ -5281,8 +5300,11 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-230, -230)
-				bulOb[Num][i].moveTo(-100, -100)
+				//colOb[Num][i].moveTo(-230, -230)
+				//bulOb[Num][i].moveTo(-100, -100)
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 
 			bomOb[Num][0] = new Bom(this, Num, scene);
@@ -5786,8 +5808,11 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-240, -240)
-				bulOb[Num][i].moveTo(-100, -100)
+				//colOb[Num][i].moveTo(-240, -240)
+				//bulOb[Num][i].moveTo(-100, -100)
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 
 			bomOb[Num][0] = new Bom(this, Num, scene);
@@ -6375,8 +6400,11 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(anoPoint, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-230, -230)
-				bulOb[Num][i].moveTo(-100, -100)
+				//colOb[Num][i].moveTo(-230, -230)
+				//bulOb[Num][i].moveTo(-100, -100)
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 
 			bomOb[Num][0] = new Bom(this, Num, scene);
@@ -6635,8 +6663,11 @@ window.onload = function() {
 				colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
 				bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i);
 				bulStack[Num][i] = false;
-				colOb[Num][i].moveTo(-230, -230)
-				bulOb[Num][i].moveTo(-100, -100)
+				//colOb[Num][i].moveTo(-230, -230)
+				//bulOb[Num][i].moveTo(-100, -100)
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 			}
 
 			bomOb[Num][0] = new Bom(this, Num, scene);
@@ -7657,8 +7688,11 @@ window.onload = function() {
 	            colOb[Num][i] = new BulletCol(alignment,cannon,cateShotSpeeds[category],grade,scene);
 	            bulOb[Num][i] = new Bullet(colOb[Num][i],cannon,cateMaxRefs[category],Num,cateShotSpeeds[category],scene,i);
 	            bulStack[Num][i] = false;
-	            colOb[Num][i].moveTo(-250,-250);
-	            bulOb[Num][i].moveTo(-100,-100);
+	            //colOb[Num][i].moveTo(-250,-250);
+	            //bulOb[Num][i].moveTo(-100,-100);
+				colOb[Num][i].destroy();
+				scene.BulGroup.removeChild(colOb[Num][i]);
+				scene.BulGroup.removeChild(bulOb[Num][i]);
 	        }
 
 	        bomOb[Num][0] = new Bom(this,Num,scene);
