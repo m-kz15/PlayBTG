@@ -178,6 +178,20 @@ var cateMaxBullets = [
 	1, //random
 	5 //dazzle
 ];
+/*var cateMaxBullets = [
+	0, //brown
+	0, //gray
+	0, //green
+	0, //red
+	0, //lightgreen
+	0, //elitegray
+	0, //snow
+	0, //elitegreen
+	0, //sand
+	0, //pink
+	0, //random
+	0 //dazzle
+];*/
 
 var cateFireLate = [
 	30, //brown
@@ -3179,6 +3193,7 @@ window.onload = function() {
 							}
 							return;
 						})
+						
 						/*for(var j = 0; j < bulOb.length; j++){
 						    for(var k = 0; k < bulOb[j].length; k++){
 						        if(weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true &&
@@ -3404,6 +3419,8 @@ window.onload = function() {
 			let shotStopTime = 0;
 
 			let tankStopFlg = false;
+
+			let brflg = false;
 
 			let life = 1; //  命
 
@@ -3641,7 +3658,7 @@ window.onload = function() {
 							*/
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && tankEntity.length > 2) {
-								let brflg = false;
+								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
@@ -3883,6 +3900,8 @@ window.onload = function() {
 
 			let life = 1;
 
+			let brflg = false;
+
 			if (moveSpeed != 0) {
 				if (stageNum >= 20) {
 					speed = speed + (0.1 * (stageNum / 20));
@@ -4099,7 +4118,7 @@ window.onload = function() {
 							*/
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && tankEntity.length > 2) {
-								let brflg = false;
+								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
@@ -4383,6 +4402,8 @@ window.onload = function() {
 
 			let life = 1;
 
+			let brflg = false;
+
 			if (moveSpeed != 0) {
 				if (stageNum >= 20) {
 					speed = speed + (0.1 * (stageNum / 20));
@@ -4575,7 +4596,7 @@ window.onload = function() {
 							//	優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								let brflg = false;
+								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
@@ -5794,6 +5815,8 @@ window.onload = function() {
 
 			let life = 1;
 
+			let brflg = false;
+
 			if (moveSpeed != 0) {
 				if (stageNum >= 20) {
 					speed = speed + (0.1 * (stageNum / 20));
@@ -6065,7 +6088,7 @@ window.onload = function() {
 							*/
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								let brflg = false;
+								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
@@ -7681,6 +7704,8 @@ window.onload = function() {
 			let damTime = 0;
 			let damCng = false;
 
+			let brflg = false;
+
 			enemyTarget[Num] = target;
 	        var alignment = new Target(Num,scene);
 
@@ -7791,16 +7816,16 @@ window.onload = function() {
 
 	        this.onenterframe = function(){
 	            if (deleteFlg == true) {
-					this.moveTo(-100, -100)
+					this.moveTo(-100, -100);
 					scene.removeChild(intercept);
 					scene.removeChild(intercept7);
 					scene.removeChild(alignment);
-					scene.TankGroup.removeChild(tank)
-					scene.CannonGroup.removeChild(cannon)
-					scene.removeChild(weak)
-					scene.removeChild(this)
+					scene.TankGroup.removeChild(tank);
+					scene.CannonGroup.removeChild(cannon);
+					scene.removeChild(weak);
+					scene.removeChild(this);
 				}
-				if(!deadFlgs[Num]){
+				if(life > 0){
 					if (!deadFlgs[0]) {
 						
 						if(worldFlg){
@@ -7909,7 +7934,7 @@ window.onload = function() {
 
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								let brflg = false;
+								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
@@ -8128,7 +8153,7 @@ window.onload = function() {
 							this.time++;
 						}
 					}
-					if(life <= 0){
+					if(life <= 0 || deadFlgs[Num]){
 						new Mark(this, scene);
 						tankColorCounts[category]--;
 						new Explosion(this, scene);
@@ -8136,6 +8161,7 @@ window.onload = function() {
 						this.moveTo((-64 * destruction), -100);
 						deadFlgs[Num] = true;
 						deadTank[Num - 1] = true;
+						if(life > 0) life = 0;
 					}
 				}
 	        }
