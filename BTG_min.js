@@ -6674,8 +6674,8 @@ window.onload = function() {
 			let life = 1;
 
 			if (addBullet != 0){
-				fireLate = 4;
-				reload -= 60;
+				fireLate = 6;
+				reload -= 120;
 			}
 
 			enemyTarget[Num] = target;
