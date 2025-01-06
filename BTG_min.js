@@ -6674,7 +6674,7 @@ window.onload = function() {
 			let life = 1;
 
 			if (addBullet != 0){
-				fireLate = 6;
+				fireLate = 4;
 				reload -= 60;
 			}
 
