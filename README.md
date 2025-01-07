@@ -5,14 +5,15 @@
 ・個人で作ったファンゲームとして見ていただけると幸いです。<br><br>
 
 <h2 style="text-align: center;">【注意事項】</h2>
-PC以外でのプレイでは操作ができません。<br><br>
+ver1.0はPC以外でのプレイでは操作ができません。<br>
+スマホでプレイする場合はver2.0を選んでください。<br><br>
 
 下のURLで遊べます。<br>
 ※ランキング機能を作りましたが、phpが動かないので機能していません。<br>
 -------------------------------------------------------<br>
-<a href="https://m-kz15.github.io/PlayBTG/indexTest.html">https://m-kz15.github.io/PlayBTG/indexTest.html</a> <br>
+<a href="https://m-kz15.github.io/PlayBTG/indexTest.html">BattleTankGame_ver1.0</a> <br>
 -------------------------------------------------------<br>
 
 -------------------------------------------------------<br>
-<a href="https://m-kz15.github.io/PlayBTG/index.html">https://m-kz15.github.io/PlayBTG/index.html</a> <br>
+<a href="https://m-kz15.github.io/PlayBTG/index.html">BattleTankGame_ver2.0</a> <br>
 -------------------------------------------------------<br>
