@@ -202,7 +202,7 @@ var cateFireLate = [
 	24, //elitegray
 	30, //snow
 	10, //elitegreen
-	25, //sand
+	23, //sand
 	9, //pink
 	10, //random
 	24 //dazzle
@@ -3086,7 +3086,8 @@ window.onload = function() {
 			this.tank = tank;
 			TankFrame(this, Num, scene);
 
-			console.log(tank.width + "   " + tank.height);
+			//console.log(tank.width + "   " + tank.height);
+			//console.log(cannon.width + "   " + cannon.height);
 			//markEntity[Num] = null;
 
 			var speed = moveSpeed; //移動速度
@@ -5478,7 +5479,7 @@ window.onload = function() {
 			function ResetAim(from) {
 				if(enemyTarget[Num] == tankEntity[0]){
 					let v = Rot_to_Vec(enemyTarget[Num].rotation, 0);
-					let val = 16 * (Math.floor(Math.random() * 3)+1) + 48;
+					let val = 16 * (Math.floor(Math.random() * 3)+1) + 24;
 					v.x = v.x * val + enemyTarget[Num].x;
 					v.y = v.y * val + enemyTarget[Num].y;
 					//console.log(v);
@@ -5718,7 +5719,7 @@ window.onload = function() {
 									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
 										for (let i = 0; i < emax; i++) {
 											if (bulStack[Num][i] == false) {
-												if(Math.floor(Math.random() * 2) == 0) ResetAim(this);
+												ResetAim(this);
 												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
 												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
 												ShotBullet(i)
@@ -9725,12 +9726,12 @@ window.onload = function() {
 			scene.BulGroup = new Group();
 
 
-			/*let backgroundMap = new Map(pixelSize, pixelSize);
+			let backgroundMap = new Map(pixelSize, pixelSize);
 			backgroundMap.image = game.assets['./image/MapImage/map0.png']
 			backgroundMap.loadData(stageData[0], stageData[1])
 			backgroundMap.collisionData = stageData[2];
-			scene.addChild(backgroundMap);*/
-			let backgroundMap = new MainMap(scene);
+			scene.addChild(backgroundMap);
+			//let backgroundMap = new MainMap(scene);
 
 			walls[0] = new Wall(18, 1, 1, 1, scene)
 			//Obstracle(walls[0],scene)
@@ -9790,7 +9791,7 @@ window.onload = function() {
 			//scene.addChild(scene.CursorGroup);
 
 
-			/*let filterMap = new Map(pixelSize, pixelSize);
+			let filterMap = new Map(pixelSize, pixelSize);
 				filterMap.image = backgroundMap.image;
 			let filImg = stageData[1];
 			for (let i = 0; i < stageData[0].length; i++) {
@@ -9805,9 +9806,9 @@ window.onload = function() {
 			filterMap.loadData(fmap, filImg);
 			//filterMap.collisionData = fcol;
 			if (debugFlg) filterMap.opacity = 0;
-			scene.addChild(filterMap);*/
+			scene.addChild(filterMap);
 
-			let filterMap = new FillterMap(scene);
+			//let filterMap = new FillterMap(scene);
 
 			/* カーソルの設置＆位置取得処理 */
 			cur = new Cursor(scene);
