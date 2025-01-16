@@ -1137,8 +1137,9 @@ window.onload = function() {
 			this.backgroundColor = "#0004";
 			this.x = x * pixelSize;
 			this.y = y * pixelSize - base;
-			new HoleImage(2, this.x, this.y, scene)
-			new HoleImage(1, this.x, this.y, scene)
+			new HoleImage(2, this.x, this.y, scene);
+			new HoleImage(1, this.x, this.y, scene);
+			
 			scene.addChild(this);
 		}
 	});
@@ -1149,6 +1150,11 @@ window.onload = function() {
 			this.backgroundColor = "#0008";
 			this.x = x + ((base / 2) * val);
 			this.y = y + ((base / 2) * val);
+			this.onenterframe = function(){
+				if(deleteFlg){
+					scene.removeChild(this);
+				}
+			}
 			scene.addChild(this);
 		}
 	});
@@ -1164,7 +1170,161 @@ window.onload = function() {
 		}
 	});
 	/* 障害物の当たり判定クラス群 */
-	var ObsTop = Class.create(Sprite, {
+	var ObsWidthTop = Class.create(Sprite, {
+		initialize: function(scene){
+			Sprite.call(this,60,4);
+			//this.backgroundColor = '#fff8';
+			this.onenterframe = function(){
+				if(deleteFlg) scene.removeChild(this);
+			}
+			scene.addChild(this);
+		}
+	});
+	var ObsWidthBottom = Class.create(Sprite, {
+		initialize: function(scene){
+			Sprite.call(this,60,4);
+			//this.backgroundColor = '#00f8';
+			this.onenterframe = function(){
+				if(deleteFlg) scene.removeChild(this);
+			}
+			scene.addChild(this);
+		}
+	});
+	var ObsHeightLeft = Class.create(Sprite, {
+		initialize: function(scene){
+			Sprite.call(this,4,60);
+			//this.backgroundColor = '#f008';
+			this.onenterframe = function(){
+				if(deleteFlg) scene.removeChild(this);
+			}
+			scene.addChild(this);
+		}
+	});
+	var ObsHeightRight = Class.create(Sprite, {
+		initialize: function(scene){
+			Sprite.call(this,4,60);
+			//this.backgroundColor = '#0f08';
+			this.onenterframe = function(){
+				if(deleteFlg) scene.removeChild(this);
+			}
+			scene.addChild(this);
+		}
+	});
+	function SetObs(scene,grid) {
+		let g1 = grid;
+		let g2 = grid[0].map((_, c) => grid.map(r => r[c]));
+		let wsp1 = null;
+		let wsp2 = null;
+		let hsp1 = null;
+		let hsp2 = null;
+		let wcnt1 = 0;
+		let wcnt2 = 0;
+		let hcnt1 = 0;
+		let hcnt2 = 0;
+		//console.log(g1[0]);
+		
+		for(let i = 0; i < g1.length; i++){
+			for(let j = 0; j < g1[i].length; j++){
+				if(g1[i][j] == 1 || g1[i][j] == 3 || g1[i][j] == 4){
+					if(wsp1 == null){
+						if(i > 0 && !(g1[i-1][j] == 1 || g1[i-1][j] == 3 || g1[i-1][j] == 4)){
+							wsp1 = new ObsWidthTop(scene);
+							wsp1.moveTo(pixelSize * j + 2, pixelSize * i - 20);
+							wcnt1++;
+						}
+						
+					}else{
+						if(i > 0 && !(g1[i-1][j] == 1 || g1[i-1][j] == 3 || g1[i-1][j] == 4)){
+							wsp1.width = pixelSize * (wcnt1+1) - 4;
+							wcnt1++;
+						}else{
+							wsp1 = null;
+							wcnt1 = 0;
+						}
+						
+					}
+					if(wsp2 == null){
+						if(i < g1.length-1 && !(g1[i+1][j] == 1 || g1[i+1][j] == 3 || g1[i+1][j] == 4)){
+							wsp2 = new ObsWidthBottom(scene);
+							wsp2.moveTo(pixelSize * j + 2, pixelSize * i + 44);
+							wcnt2++;
+						}
+						
+					}else{
+						if(i < g1.length-1 && !(g1[i+1][j] == 1 || g1[i+1][j] == 3 || g1[i+1][j] == 4)){
+							wsp2.width = pixelSize * (wcnt2+1) - 4;
+							wcnt2++;
+						}else{
+							wsp2 = null;
+							wcnt2 = 0;
+						}
+						
+					}
+				}else{
+					wcnt1 = 0;
+					wcnt2 = 0;
+					wsp1 = null;
+					wsp2 = null;
+				}
+			}
+			wcnt1 = 0;
+			wcnt2 = 0;
+			wsp1 = null;
+			wsp2 = null;
+		};
+		for(let i = 0; i < g2.length; i++){
+			//console.log(g2[i]);
+			for(let j = 0; j < g2[i].length; j++){
+				if(g2[i][j] == 1 || g2[i][j] == 3 || g2[i][j] == 4){
+					if(hsp1 == null){
+						if(i > 0 && !(g2[i-1][j] == 1 || g2[i-1][j] == 3 || g2[i-1][j] == 4)){
+							hsp1 = new ObsHeightLeft(scene);
+							hsp1.moveTo(pixelSize * i - 2, pixelSize * j - 16);
+							hcnt1++;
+						}
+						
+					}else{
+						if(i > 0 && !(g2[i-1][j] == 1 || g2[i-1][j] == 3 || g2[i-1][j] == 4)){
+							hsp1.height = pixelSize * (hcnt1+1) - 4;
+							hcnt1++;
+						}else{
+							hsp1 = null;
+							hcnt1 = 0;
+						}
+						
+					}
+					if(hsp2 == null){
+						if(i < g2.length-1 && !(g2[i+1][j] == 1 || g2[i+1][j] == 3 || g2[i+1][j] == 4)){
+							hsp2 = new ObsHeightRight(scene);
+							hsp2.moveTo(pixelSize * i + 62, pixelSize * j - 16);
+							hcnt2++;
+						}
+						
+					}else{
+						
+						if(i < g2.length-1 && !(g2[i+1][j] == 1 || g2[i+1][j] == 3 || g2[i+1][j] == 4)){
+							hsp2.height = pixelSize * (hcnt2+1) - 4;
+							hcnt2++;
+						}else{
+							hsp2 = null;
+							hcnt2 = 0;
+						}
+					}
+				}else{
+					hcnt1 = 0;
+					hcnt2 = 0;
+					hsp1 = null;
+					hsp2 = null;
+				}
+			}
+			hcnt1 = 0;
+			hcnt2 = 0;
+			hsp1 = null;
+			hsp2 = null;
+		}
+	}
+	/* 障害物の当たり判定クラス群 */
+	/*var ObsTop = Class.create(Sprite, {
 		initialize: function(target, num, scene) {
 			Sprite.call(this, target.width - 4, 2);
 			//this.backgroundColor = "white";
@@ -1227,9 +1387,9 @@ window.onload = function() {
 			obsChk[num][3] = true
 			scene.addChild(this);
 		}
-	});
+	});*/
 	/* 当たり判定生成処理 */
-	function Obstracle(target, scene) {
+	/*function Obstracle(target, scene) {
 		obsdir[obsNum] = []
 		obsChk[obsNum] = [false, false, false, false]
 		obsdir[obsNum][0] = new ObsTop(target, obsNum, scene)
@@ -1237,8 +1397,9 @@ window.onload = function() {
 		obsdir[obsNum][2] = new ObsLeft(target, obsNum, scene)
 		obsdir[obsNum][3] = new ObsRight(target, obsNum, scene)
 		obsNum++;
-	}
-	var RefWidth1 = Class.create(Sprite, {
+	}*/
+	/* 照準反射クラス群 */
+	var RefWidthTop = Class.create(Sprite, {
 		initialize: function(scene){
 			Sprite.call(this,56,8);
 			//this.backgroundColor = 'white';
@@ -1248,7 +1409,7 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	});
-	var RefWidth2 = Class.create(Sprite, {
+	var RefWidthBottom = Class.create(Sprite, {
 		initialize: function(scene){
 			Sprite.call(this,56,8);
 			//this.backgroundColor = 'blue';
@@ -1258,7 +1419,7 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	});
-	var RefHeight1 = Class.create(Sprite, {
+	var RefHeightLeft = Class.create(Sprite, {
 		initialize: function(scene){
 			Sprite.call(this,8,56);
 			//this.backgroundColor = 'red';
@@ -1268,7 +1429,7 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	});
-	var RefHeight2 = Class.create(Sprite, {
+	var RefHeightRight = Class.create(Sprite, {
 		initialize: function(scene){
 			Sprite.call(this,8,56);
 			//this.backgroundColor = 'green';
@@ -1297,7 +1458,7 @@ window.onload = function() {
 				if(g1[i][j] == 1 || g1[i][j] == 4){
 					if(wsp1 == null){
 						if(i > 0 && !(g1[i-1][j] == 1 || g1[i-1][j] == 4)){
-							wsp1 = new RefWidth1(scene);
+							wsp1 = new RefWidthTop(scene);
 							wsp1.moveTo(pixelSize * j + 4, pixelSize * i - 16);
 							wcnt1++;
 						}
@@ -1314,7 +1475,7 @@ window.onload = function() {
 					}
 					if(wsp2 == null){
 						if(i < g1.length-1 && !(g1[i+1][j] == 1 || g1[i+1][j] == 4)){
-							wsp2 = new RefWidth2(scene);
+							wsp2 = new RefWidthBottom(scene);
 							wsp2.moveTo(pixelSize * j + 4, pixelSize * i + 40);
 							wcnt2++;
 						}
@@ -1331,11 +1492,11 @@ window.onload = function() {
 					}
 					/*if(wsp1 == null && wsp2 == null){
 						if(i > 0 && !(g1[i-1][j] == 1 || g1[i-1][j] == 4)){
-							wsp1 = new RefWidth1(scene);
+							wsp1 = new RefWidthTop(scene);
 							wsp1.moveTo(pixelSize * j + 4, pixelSize * i - 16);
 						}
 						if(i < g1.length-1 && !(g1[i+1][j] == 1 || g1[i+1][j] == 4)){
-							wsp2 = new RefWidth2(scene);
+							wsp2 = new RefWidthBottom(scene);
 							wsp2.moveTo(pixelSize * j + 4, pixelSize * i + 40);
 						}
 						wcnt++;
@@ -1362,7 +1523,7 @@ window.onload = function() {
 				if(g2[i][j] == 1 || g2[i][j] == 4){
 					if(hsp1 == null){
 						if(i > 0 && !(g2[i-1][j] == 1 || g2[i-1][j] == 4)){
-							hsp1 = new RefHeight1(scene);
+							hsp1 = new RefHeightLeft(scene);
 							hsp1.moveTo(pixelSize * i, pixelSize * j - 12);
 							hcnt1++;
 						}
@@ -1379,7 +1540,7 @@ window.onload = function() {
 					}
 					if(hsp2 == null){
 						if(i < g2.length-1 && !(g2[i+1][j] == 1 || g2[i+1][j] == 4)){
-							hsp2 = new RefHeight2(scene);
+							hsp2 = new RefHeightRight(scene);
 							hsp2.moveTo(pixelSize * i + 56, pixelSize * j - 12);
 							hcnt2++;
 						}
@@ -1397,11 +1558,11 @@ window.onload = function() {
 					}
 					/*if(hsp1 == null && hsp2 == null){
 						if(i > 0 && !(g2[i-1][j] == 1 || g2[i-1][j] == 4)){
-							hsp1 = new RefHeight1(scene);
+							hsp1 = new RefHeightLeft(scene);
 							hsp1.moveTo(pixelSize * i, pixelSize * j - 12);
 						}
 						if(i < g2.length-1 && !(g2[i+1][j] == 1 || g2[i+1][j] == 4)){
-							hsp2 = new RefHeight2(scene);
+							hsp2 = new RefHeightRight(scene);
 							hsp2.moveTo(pixelSize * i + 56, pixelSize * j - 12);
 						}
 						hcnt++;
@@ -1424,7 +1585,7 @@ window.onload = function() {
 		}
 	}
 	/* 照準反射クラス群 */
-	var RefTop = Class.create(Sprite, {
+	/*var RefTop = Class.create(Sprite, {
 		initialize: function(target, num, scene) {
 			Sprite.call(this, target.width - 4, 8);
 			//if(debugFlg)this.backgroundColor = "white";
@@ -1493,9 +1654,9 @@ window.onload = function() {
 			refChk[num][3] = true
 			scene.addChild(this);
 		}
-	});
+	});*/
 	/* 当たり判定生成処理 */
-	function RefObstracle(target, scene) {
+	/*function RefObstracle(target, scene) {
 		refdir[refNum] = []
 		refChk[refNum] = [false, false, false, false]
 		refdir[refNum][0] = new RefTop(target, refNum, scene)
@@ -1503,7 +1664,7 @@ window.onload = function() {
 		refdir[refNum][2] = new RefLeft(target, refNum, scene)
 		refdir[refNum][3] = new RefRight(target, refNum, scene)
 		refNum++;
-	}
+	}*/
 	/* 戦車同士の当たり判定クラス群 */
 	var TankTop = Class.create(Sprite, {
 		initialize: function(target, num, scene) {
@@ -2010,15 +2171,17 @@ window.onload = function() {
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 					}*/
 
-					RefWidth1.intersectStrict(this).forEach(elem => {
+					RefWidthTop.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
 							//this.tgt[0] = (this.x + (this.width)) - (Math.cos(this.f) * (this.width / 2));
-							this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * ((this.y - (this.height)) - (elem.y)));
+							this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+							//this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * ((this.y - (this.height)) - (elem.y)));
 							this.tgt[1] = elem.y - 2.5;
 						}
-						this.x = (this.x) - (Math.cos(this.f) * ((this.y - (this.height)) - (elem.y)));
+						this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+						//this.x = (this.x) - (Math.cos(this.f) * ((this.y - (this.height)) - (elem.y)));
 						//this.x = (this.x) - (Math.cos(this.f) * (this.y - elem.y));
 						this.y = elem.y - (this.height);
 						//this.y = elem.y - (this.height+1);
@@ -2028,7 +2191,7 @@ window.onload = function() {
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						return;
 					})
-					RefWidth2.intersectStrict(this).forEach(elem => {
+					RefWidthBottom.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
@@ -2043,16 +2206,18 @@ window.onload = function() {
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						return;
 					})
-					RefHeight1.intersectStrict(this).forEach(elem => {
+					RefHeightLeft.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
 							this.tgt[0] = elem.x - 2.5;
-							this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
+							this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * ((elem.x) - (this.x)));
+							//this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
 						};
 						this.x = elem.x - (this.width);
 						//this.x = elem.x - (this.width+1);
-						this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
+						this.y = (this.y) - (Math.sin(this.f) * ((elem.x) - (this.x)));
+						//this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
 						//this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x)));
 						dx = dx * -1;
 						//df[0] *= -1;
@@ -2060,7 +2225,7 @@ window.onload = function() {
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						return;
 					})
-					RefHeight2.intersectStrict(this).forEach(elem => {
+					RefHeightRight.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						if (refcnt == 0) {
@@ -2224,56 +2389,55 @@ window.onload = function() {
 						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 					}*/
 
-					RefWidth1.intersectStrict(this).forEach(elem => {
+					RefWidthTop.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
-						this.x = (this.x) - (Math.cos(this.f) * ((this.y - (this.height)) - (elem.y)));
+						this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y)));
 						//this.x = (this.x) - (Math.cos(this.f) * (this.y - elem.y));
 						this.y = elem.y - (this.height);
 						//this.y = elem.y - (this.height+1);
 						//dy = dy * -1;
 						df[1] *= -1;
 						refcnt++;
-						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						this.rotation = (315 + (Math.atan2((dx * df[0]), (dy * df[1])) * 180) / Math.PI) * -1;
 						return;
 					})
-					RefWidth2.intersectStrict(this).forEach(elem => {
+					RefWidthBottom.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
-						this.y = elem.y + elem.height;
+						this.y = elem.y + elem.height+1;
 						//dy = dy * -1;
 						df[1] *= -1;
 						refcnt++;
-						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						this.rotation = (315 + (Math.atan2((dx * df[0]), (dy * df[1])) * 180) / Math.PI) * -1;
 						return;
 					})
-					RefHeight1.intersectStrict(this).forEach(elem => {
+					RefHeightLeft.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						this.x = elem.x - (this.width);
 						//this.x = elem.x - (this.width+1);
-						this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
+						this.y = (this.y) - (Math.sin(this.f) * ((elem.x) - (this.x)));
+						//this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
 						//this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x)));
 						//dx = dx * -1;
 						df[0] *= -1;
 						refcnt++;
-						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						this.rotation = (315 + (Math.atan2((dx * df[0]), (dy * df[1])) * 180) / Math.PI) * -1;
 						return;
 					})
-					RefHeight2.intersectStrict(this).forEach(elem => {
+					RefHeightRight.intersectStrict(this).forEach(elem => {
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
-						this.x = elem.x + elem.width + 1;
+						this.x = elem.x + elem.width+1;
 						this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
 						//dx = dx * -1;
 						df[0] *= -1;
 						refcnt++;
-						this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
+						this.rotation = (315 + (Math.atan2((dx * df[0]), (dy * df[1])) * 180) / Math.PI) * -1;
 						return;
 					})
-
-
 
 					if (this.time > 150) scene.removeChild(this);
 					if (refcnt > ref) scene.removeChild(this)
@@ -3644,7 +3808,20 @@ window.onload = function() {
 									}
 								}
 							}
-							for (let i = 0; i < obsdir.length; i++) {
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+							})
+							
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.moveTo(this.x, obsdir[i][0].y - 60)
 								}
@@ -3670,7 +3847,7 @@ window.onload = function() {
 							}
 							if (this.intersect(walls[3]) == true) {
 								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-							}
+							}*/
 						}
 
 					}
@@ -4116,9 +4293,20 @@ window.onload = function() {
 								}
 							}
 
-							
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 61);
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 62, this.y)
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+							})
 
-							for (let i = 0; i < obsdir.length; i++) {
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.y = obsdir[i][0].y - 61;
 									//this.moveTo(this.x, obsdir[i][0].y - 61)
@@ -4151,7 +4339,7 @@ window.onload = function() {
 							if (this.intersect(walls[3]) == true) {
 								this.x = (64 * 18) + 3;
 								//this.moveTo((64 * 18) + 3, this.y)
-							}
+							}*/
 						}
 					}
 
@@ -4618,7 +4806,24 @@ window.onload = function() {
 									}
 								}
 							}
-							for (let i = 0; i < obsdir.length; i++) {
+
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+								hittingTime++;
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+								hittingTime++;
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+								hittingTime++;
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+								hittingTime++;
+							})
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.moveTo(this.x, obsdir[i][0].y - 60)
 									hittingTime++;
@@ -4651,7 +4856,7 @@ window.onload = function() {
 							if (this.intersect(walls[3]) == true) {
 								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
 								hittingTime++;
-							}
+							}*/
 						}
 					}
 				}
@@ -5080,7 +5285,23 @@ window.onload = function() {
 									}
 								}
 							}
-							for (let i = 0; i < obsdir.length; i++) {
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+								hittingTime++;
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+								hittingTime++;
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+								hittingTime++;
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+								hittingTime++;
+							})
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.moveTo(this.x, obsdir[i][0].y - 60)
 									hittingTime++;
@@ -5117,7 +5338,7 @@ window.onload = function() {
 							if (this.intersect(walls[3]) == true) {
 								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
 								hittingTime++;
-							}
+							}*/
 						}
 					}
 				}
@@ -6182,7 +6403,23 @@ window.onload = function() {
 									}
 								}
 							}
-							for (let i = 0; i < obsdir.length; i++) {
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+								hittingTime++;
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+								hittingTime++;
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+								hittingTime++;
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+								hittingTime++;
+							})
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.moveTo(this.x, obsdir[i][0].y - 60)
 									hittingTime++;
@@ -6215,7 +6452,7 @@ window.onload = function() {
 							if (this.intersect(walls[3]) == true) {
 								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
 								hittingTime++;
-							}
+							}*/
 						}
 					}
 				}
@@ -6781,7 +7018,23 @@ window.onload = function() {
 									}
 								}
 							}
-							for (let i = 0; i < obsdir.length; i++) {
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+								hittingTime++;
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+								hittingTime++;
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+								hittingTime++;
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+								hittingTime++;
+							})
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.y = obsdir[i][0].y - 60;
 									//this.moveTo(this.x, obsdir[i][0].y - 60)
@@ -6822,7 +7075,7 @@ window.onload = function() {
 								this.x = (64 * 18) + 3;
 								//this.moveTo((64 * 18) + 3, this.y)
 								hittingTime++;
-							}
+							}*/
 						}
 					}
 
@@ -7069,8 +7322,20 @@ window.onload = function() {
 										this.moveTo(tankDir[i][3].x + (tankDir[i][3].width), this.y)
 									}
 								}
-							}	
-							for (let i = 0; i < obsdir.length; i++) {
+							}
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+							})
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.moveTo(this.x, obsdir[i][0].y - 60)
 								}
@@ -7095,7 +7360,7 @@ window.onload = function() {
 							}
 							if (this.intersect(walls[3]) == true) {
 								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-							}	
+							}*/
 						}
 					}
 				}
@@ -7317,7 +7582,19 @@ window.onload = function() {
 									}
 								}
 							}*/
-							for (let i = 0; i < obsdir.length; i++) {
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+							})
+							/*for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.moveTo(this.x, obsdir[i][0].y - 60)
 								}
@@ -7342,7 +7619,7 @@ window.onload = function() {
 							}
 							if (this.intersect(walls[3]) == true) {
 								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-							}
+							}*/
 						}
 					}
 				}
@@ -8586,6 +8863,23 @@ window.onload = function() {
 									}
 								}
 							}
+							ObsWidthTop.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y - 60);
+								hittingTime++;
+							})
+							ObsWidthBottom.intersect(this).forEach(elem => {
+								this.moveTo(this.x, elem.y + (elem.height))
+								hittingTime++;
+							})
+							ObsHeightLeft.intersect(this).forEach(elem => {
+								this.moveTo(elem.x - 60, this.y)
+								hittingTime++;
+							})
+							ObsHeightRight.intersect(this).forEach(elem => {
+								this.moveTo(elem.x + (elem.width), this.y)
+								hittingTime++;
+							})
+							/*
 							for (let i = 0; i < obsdir.length; i++) {
 								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
 									this.y = obsdir[i][0].y - 60;
@@ -8627,7 +8921,7 @@ window.onload = function() {
 								this.x = (64 * 18) + 3;
 								//this.moveTo((64 * 18) + 3, this.y)
 								hittingTime++;
-							}
+							}*/
 							this.time++;
 						}
 					}
@@ -9145,13 +9439,13 @@ window.onload = function() {
 						} else if (colJ == 3) {
 							holes.push(new Hole(fx, fy, scene))
 							grid[fy][fx] = 'Obstacle';
-							Obstracle(holes[holes.length - 1], scene)
+							//Obstracle(holes[holes.length - 1], scene)
 						} else {
 
 							if (colJ == 1) {
 								floors.push(new Floor(fx, fy, scene));
 								grid[fy][fx] = 'Obstacle';
-								Obstracle(floors[floors.length - 1], scene)
+								//Obstracle(floors[floors.length - 1], scene)
 								//RefObstracle(floors[floors.length - 1], scene)
 							} else {
 								grid[fy][fx] = 'Obstacle';
@@ -9189,6 +9483,7 @@ window.onload = function() {
 			filterMap.loadData(fmap, filImg);
 			scene.addChild(filterMap);
 
+			SetObs(scene,backgroundMap.collisionData);
 			SetRefs(scene,backgroundMap.collisionData);
 
 			/* カーソルの設置＆位置取得処理 */
@@ -9250,7 +9545,7 @@ window.onload = function() {
 
 
 			function AllDelete() {
-				for (let i = 0; i < obsdir.length; i++) {
+				/*for (let i = 0; i < obsdir.length; i++) {
 					for (let j = 0; j < obsdir[i].length; j++) {
 						scene.removeChild(obsdir[i][j])
 					}
@@ -9259,7 +9554,7 @@ window.onload = function() {
 					for (let j = 0; j < refdir[i].length; j++) {
 						scene.removeChild(refdir[i][j])
 					}
-				}
+				}*/
 				for (let i = 0; i < tankDir.length; i++) {
 					for (let j = 0; j < tankDir[i].length; j++) {
 						scene.removeChild(tankDir[i][j])
@@ -10064,13 +10359,13 @@ window.onload = function() {
 						} else if (colJ == 3) {
 							holes.push(new Hole(fx, fy, scene))
 							grid[fy][fx] = 'Obstacle';
-							Obstracle(holes[holes.length - 1], scene)
+							//Obstracle(holes[holes.length - 1], scene)
 						} else {
 
 							if (colJ == 1) {
 								floors.push(new Floor(fx, fy, scene));
 								grid[fy][fx] = 'Obstacle';
-								Obstracle(floors[floors.length - 1], scene)
+								//Obstracle(floors[floors.length - 1], scene)
 								//RefObstracle(floors[floors.length - 1], scene)
 							} else {
 								grid[fy][fx] = 'Obstacle';
@@ -10113,6 +10408,7 @@ window.onload = function() {
 
 			//let filterMap = new FillterMap(scene);
 
+			SetObs(scene,backgroundMap.collisionData);
 			SetRefs(scene,backgroundMap.collisionData);
 
 			/* カーソルの設置＆位置取得処理 */
@@ -10280,7 +10576,7 @@ window.onload = function() {
 
 			function AllDelete() {
 
-				for (let i = 0; i < obsdir.length; i++) {
+				/*for (let i = 0; i < obsdir.length; i++) {
 					for (let j = 0; j < obsdir[i].length; j++) {
 						scene.removeChild(obsdir[i][j])
 					};
@@ -10289,7 +10585,7 @@ window.onload = function() {
 					for (let j = 0; j < refdir[i].length; j++) {
 						scene.removeChild(refdir[i][j])
 					};
-				};
+				};*/
 				for (let i = 0; i < tankDir.length; i++) {
 					for (let j = 0; j < tankDir[i].length; j++) {
 						scene.removeChild(tankDir[i][j])
@@ -10543,6 +10839,7 @@ window.onload = function() {
 							}
 							if (game.time == 170) {
 								deleteFlg = true;
+								scene.removeChild(remaining);
 							}
 							if (game.time == 180) {
 								retryFlg = false;
@@ -10566,6 +10863,7 @@ window.onload = function() {
 							}
 							if (game.time == 170) {
 								deleteFlg = true;
+								scene.removeChild(remaining);
 							}
 							if (game.time == 180) {
 								retryFlg = true;
@@ -10593,6 +10891,7 @@ window.onload = function() {
 						}
 						if (scene.time == 120) {
 							deleteFlg = true;
+							scene.removeChild(remaining);
 							new DispBody(100, 240, 360 * 3, 240 * 3, scene)
 						}
 						if (scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length) {
