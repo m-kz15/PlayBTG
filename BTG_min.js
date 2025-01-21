@@ -622,7 +622,7 @@ const Config = {
 		Down: "s",
 		Left: "a",
 		A: "Space",
-		B: "q",
+		B: "e",
 		Start: "Escape"
 	},
 }
@@ -7294,7 +7294,7 @@ window.onload = function() {
 													ShotBullet(i)
 													this.aimingTime = 0;
 													if (category != 0) {
-														this.aimCmpTime = Math.floor(Math.random() * 40) + 20;
+														this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
 													} else {
 														this.aimCmpTime = Math.floor(Math.random() * 30) + 10;
 													}
@@ -9132,6 +9132,49 @@ window.onload = function() {
 		new DispLine(x, y, width, height, "#eea", scene)
 		//new DispLine(x,y+height,width,120,"#a00d",scene)
 	}
+	var DispCountDown = Class.create(Label,{
+		initialize: function(scene){
+			Label.call(this);
+			this.time = 0;
+			this.cnt = 3.3;
+			this.opacity = 0;
+			this.width = pixelSize * 6;
+			this.height = 48;
+			this.moveTo(pixelSize * 7.5, pixelSize * 0.5);
+			this.text = "ゲーム開始まで...";
+			this.font = 'bold 40px "Arial"';
+			this.color = '#fffd';
+			this.textAlign = 'left';
+
+			let cntText = new DispText(pixelSize * 9, pixelSize * 1.5, pixelSize * 4, 64, (this.cnt) + ' 秒', 'bold 48px "Arial"', '#fffd', 'left', scene);
+			cntText.opacity = 0;
+			this.onenterframe = function(){
+				this.time++;
+				if(this.cnt > 0){
+					if(this.time % 6 == 0){
+						this.cnt = Math.round((this.cnt - 0.1) * 10) / 10;
+						cntText.text = (this.cnt.toFixed(1)) + ' 秒';
+					}
+					if(this.time > 12){
+						if(this.opacity < 1.0){
+							this.opacity = Math.round((this.opacity + 0.2) * 10) / 10;
+							cntText.opacity = Math.round((cntText.opacity + 0.2) * 10) / 10;
+						}
+					}
+				}else{
+					if(this.opacity > 0.0){
+						this.opacity = Math.round((this.opacity - 0.1) * 10) / 10;
+						cntText.opacity = Math.round((cntText.opacity - 0.1) * 10) / 10;
+					}else{
+						scene.removeChild(cntText);
+						scene.removeChild(this);
+					}
+					
+				}
+			}
+			scene.addChild(this);
+		}
+	})
 	/* 警告演出クラス */
 	var Warning = Class.create(Sprite, {
 		initialize: function(scene) {
@@ -9202,7 +9245,7 @@ window.onload = function() {
 				if (this.time > 15) {
 					this.opacity += 0.25
 					if (this.time == 30) {
-						scene.removeChild(this)
+						scene.removeChild(this);
 					}
 				}
 			}
@@ -9342,6 +9385,7 @@ window.onload = function() {
 			game.time = 0;
 			worldFlg = false;
 			deleteFlg = false;
+			let outFlg = false;
 			let tutorialStage = [
 				[
 					[7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
@@ -9566,14 +9610,11 @@ window.onload = function() {
 				/*for(let i = 0; i < markEntity.length; i++){
 				    scene.removeChild(markEntity[i])
 				}*/
-				bulOb.forEach(elem => {
-					elem.forEach(elem2 => {
-						scene.BulGroup.removeChild(elem2)
-					})
-				})
 				for (let i = 0; i < colOb.length; i++) {
 					for (let j = 0; j < colOb[i].length; j++) {
 						if (bulStack[i][j] == true) {
+							bulStack[i][j] = false;
+							scene.BulGroup.removeChild(bulOb[i][j])
 							colOb[i][j].destroy();
 							scene.BulGroup.removeChild(colOb[i][j])
 							//scene.removeChild(colOb[i][j])
@@ -9609,12 +9650,47 @@ window.onload = function() {
 				new DispText(pixelSize, pixelSize * 10.5, pixelSize * 18, pixelSize / 2, '　　　　　　　　　　　　　　　　　　　　　　 　　　  壁に当たると跳ね返ります。', '24px sans-serif', 'white', 'left', scene)
 				new DispText(pixelSize, pixelSize * 11, pixelSize * 18, pixelSize / 2, '　照準　：マウス操作、または十字キー　　', '24px sans-serif', 'white', 'left', scene)
 				new DispText(pixelSize, pixelSize * 11.5, pixelSize * 18, pixelSize / 2, '　砲撃　：左クリック　　　　　　　　　　　　　　跳ね返った弾にも判定があるので', '24px sans-serif', 'white', 'left', scene)
-				new DispText(pixelSize, pixelSize * 12, pixelSize * 18, pixelSize / 2, '爆弾設置：Qキー　　　　　　　　　　　　　　　    自滅には注意してください。', '24px sans-serif', 'white', 'left', scene)
+				new DispText(pixelSize, pixelSize * 12, pixelSize * 18, pixelSize / 2, '爆弾設置：Eキー　　　　　　　　　　　　　　　    自滅には注意してください。', '24px sans-serif', 'white', 'left', scene)
 				new DispText(pixelSize, pixelSize * 12.5, pixelSize * 18, pixelSize / 2, '一時停止：Escキー　　　　　　　　　', '24px sans-serif', 'white', 'left', scene)
 			}
 
+			new DispCountDown(scene);
 
 			scene.onenterframe = function() {
+				if(outFlg){
+					obsdir = []
+					obsNum = 0;
+					refdir = []
+					refNum = 0;
+					bullets = []; //各戦車の弾数の制御用配列
+					boms = []; //爆弾の個数の制御用配列
+					bulOb = [
+						[]
+					]; //戦車の弾情報を保持する配列
+					colOb = [
+						[]
+					]; //弾の物理制御情報を保持する配列
+					bomOb = [
+						[]
+					]; //爆弾の情報を保持する配列
+					bulStack = []; //弾の状態の制御用配列
+					enemyTarget = []; //敵戦車が狙うターゲット
+					entVal = 0; //戦車の連番設定用変数
+					tankEntity = []; //戦車情報を保持する配列
+					tankDir = [];
+					//markEntity = [];
+					deadFlgs = []; //戦車の生存確認 
+					fireFlgs = []; //敵の砲撃制御
+					floors = []; //１ブロック分の壁
+					avoids = []; //(敵のみ)通行不可
+					walls = []; //ステージの壁
+					holes = []; //穴
+					tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+					destruction = 0;
+					victory = false;
+					defeat = false;
+					game.replaceScene(createTitleScene());
+				}
 				scene.time++;
 				Floor.intersectStrict(Aim).forEach(function(pair) {
 					scene.removeChild(pair[1])
@@ -9642,42 +9718,10 @@ window.onload = function() {
 						deleteFlg = true;
 						new FadeOut(scene)
 						AllDelete();
-						deleteFlg = false;
-						obsdir = []
-						obsNum = 0;
-						refdir = []
-						refNum = 0;
-						bullets = []; //各戦車の弾数の制御用配列
-						boms = []; //爆弾の個数の制御用配列
-						bulOb = [
-							[]
-						]; //戦車の弾情報を保持する配列
-						colOb = [
-							[]
-						]; //弾の物理制御情報を保持する配列
-						bomOb = [
-							[]
-						]; //爆弾の情報を保持する配列
-						bulStack = []; //弾の状態の制御用配列
-						enemyTarget = []; //敵戦車が狙うターゲット
-						entVal = 0; //戦車の連番設定用変数
-						tankEntity = []; //戦車情報を保持する配列
-						tankDir = [];
-						//markEntity = [];
-						deadFlgs = []; //戦車の生存確認 
-						fireFlgs = []; //敵の砲撃制御
-						floors = []; //１ブロック分の壁
-						avoids = []; //(敵のみ)通行不可
-						walls = []; //ステージの壁
-						holes = []; //穴
-						tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-						destruction = 0;
-						victory = false;
-						defeat = false;
-						game.replaceScene(createTitleScene())
+						outFlg = true;
 					}
 				}
-				document.onkeyup = function(e) {
+				/*document.onkeyup = function(e) {
 					if ((e.code == 'Escape') && scene.time > 240) {
 						if (confirm("\r\nタイトルに戻りますか？")) {
 							BGM.play();
@@ -9686,7 +9730,6 @@ window.onload = function() {
 							deleteFlg = true;
 							new FadeOut(scene)
 							AllDelete();
-							deleteFlg = false;
 							obsdir = []
 							obsNum = 0;
 							refdir = []
@@ -9718,10 +9761,10 @@ window.onload = function() {
 							destruction = 0;
 							victory = false;
 							defeat = false;
-							game.replaceScene(createTitleScene())
+							outFlg = true;
 						}
 					}
-				}
+				}*/
 
 				if (scene.time == 210 && complete == false && victory == false) {
 					worldFlg = true;
@@ -10632,9 +10675,12 @@ window.onload = function() {
 			}
 			let chgBgm = false;
 
+			new DispCountDown(scene);
+
 			scene.onenterframe = function() {
 
 				scene.time++;
+				
 				if (scene.time % 6 == 0) {
 					remaining.text = '敵残数：' + (tankEntity.length - 1 - destruction) + '　　　残機：' + zanki;
 				}
@@ -10770,7 +10816,7 @@ window.onload = function() {
 					else if (game.input.down) cur.y += 8;
 					if (game.input.right) cur.x += 8;
 					else if (game.input.left) cur.x -= 8;
-					if (scene.time == 240) scene.removeChild(startLabel)
+					if (scene.time == 270) scene.removeChild(startLabel)
 					world.step(game.fps);
 					game.time++;
 
