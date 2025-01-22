@@ -1673,6 +1673,7 @@ window.onload = function() {
 			this.x = target.x + 4;
 			this.y = target.y - 1;
 			this.onenterframe = function() {
+				if(deleteFlg)scene.removeChild(this);
 				if(worldFlg){
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
@@ -1704,6 +1705,7 @@ window.onload = function() {
 			this.x = target.x + 4;
 			this.y = target.y + 60 - 2;
 			this.onenterframe = function() {
+				if(deleteFlg)scene.removeChild(this);
 				if(worldFlg){
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
@@ -1734,6 +1736,7 @@ window.onload = function() {
 			this.x = target.x;
 			this.y = target.y + 4;
 			this.onenterframe = function() {
+				if(deleteFlg)scene.removeChild(this);
 				if(worldFlg){
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
@@ -1764,6 +1767,7 @@ window.onload = function() {
 			this.x = target.x + 60 - 1;
 			this.y = target.y + 4;
 			this.onenterframe = function() {
+				if(deleteFlg)scene.removeChild(this);
 				if(worldFlg){
 					if (deadFlgs[num] == true) {
 						scene.removeChild(this);
@@ -2457,6 +2461,9 @@ window.onload = function() {
 			//this.rotation = 45;
 			this.moveTo(target.x + (target.width / 2), target.y + (target.height / 2))
 			this.time = 0;
+			this.onenterframe = function(){
+				if(deleteFlg)scene.removeChild(this);
+			}
 			scene.addChild(this);
 		}
 	})
@@ -2548,6 +2555,10 @@ window.onload = function() {
 			this.applyImpulse(new b2Vec2(Math.cos(rad) * (shotSpeed), Math.sin(rad) * (shotSpeed)));
 
 			this.onenterframe = function() {
+				if(deleteFlg){
+					this.destroy();
+					scene.BulGroup.removeChild(this);
+				}
 				if(worldFlg){
 					this.vec = { x: this.vx, y: this.vy };
 					this.rad = Math.atan2(this.vec.y, this.vec.x);
@@ -3235,7 +3246,7 @@ window.onload = function() {
 			this.moveTo((point.x + point.width / 2) - this.width / 2, (point.y + point.height / 2) - this.height / 2);
 			//this.moveTo(point.x-12,point.y-12)
 			this.onenterframe = function() {
-				//if(deleteFlg == true) scene.removeChild(this);
+				if(deleteFlg == true) scene.removeChild(this);
 				if(worldFlg){
 					this.time++;
 					this.rotation += 45;
@@ -7170,7 +7181,8 @@ window.onload = function() {
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
-					this.moveTo(-100, -100)
+					this.moveTo(-100, -100);
+					scene.removeChild(anoPoint)
 					scene.TankGroup.removeChild(tank)
 					scene.CannonGroup.removeChild(cannon)
 					scene.removeChild(weak)
@@ -10637,9 +10649,9 @@ window.onload = function() {
 				for (let i = 0; i < tankEntity.length; i++) {
 					scene.removeChild(tankEntity[i]);
 				};
-				scene.MarkGroup.childNodes.forEach(elem => {
+				/*scene.MarkGroup.childNodes.forEach(elem => {
 					scene.removeChild(elem);
-				})
+				})*/
 				/*for(let i = 0; i < markEntity.length; i++){
 				    scene.removeChild(markEntity[i]);
 				};*/
@@ -10893,6 +10905,13 @@ window.onload = function() {
 								deadTank = [false];
 								stageNum++;
 								AllDelete();
+								scene.removeChild(scene.MarkGroup);
+								scene.removeChild(scene.BomGroup);
+								scene.removeChild(scene.TankGroup);
+								scene.removeChild(scene.SmokeGroup);
+								scene.removeChild(scene.FireGroup);
+								scene.removeChild(scene.BulGroup);
+								scene.removeChild(scene.CannonGroup);
 
 								if (stageNum % 5 == 0) {
 									game.replaceScene(createBonusScene())
@@ -10914,6 +10933,13 @@ window.onload = function() {
 							if (game.time == 180) {
 								retryFlg = true;
 								AllDelete();
+								scene.removeChild(scene.MarkGroup);
+								scene.removeChild(scene.BomGroup);
+								scene.removeChild(scene.TankGroup);
+								scene.removeChild(scene.SmokeGroup);
+								scene.removeChild(scene.FireGroup);
+								scene.removeChild(scene.BulGroup);
+								scene.removeChild(scene.CannonGroup);
 
 								game.replaceScene(createStartScene())
 							}
@@ -10989,6 +11015,13 @@ window.onload = function() {
 								new FadeOut(scene)
 								stageNum++;
 								AllDelete();
+								scene.removeChild(scene.MarkGroup);
+								scene.removeChild(scene.BomGroup);
+								scene.removeChild(scene.TankGroup);
+								scene.removeChild(scene.SmokeGroup);
+								scene.removeChild(scene.FireGroup);
+								scene.removeChild(scene.BulGroup);
+								scene.removeChild(scene.CannonGroup);
 
 								game.replaceScene(createStartScene())
 							});
