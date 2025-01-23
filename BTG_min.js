@@ -114,7 +114,7 @@ var cateRanges = [
 	[400, 200, 150], //green
 	[200, 0, 0], //red
 	[300, 200, 200], //lightgreen
-	[300, 250, 200], //elitegray
+	[320, 250, 200], //elitegray
 	[300, 200, 200], //snow
 	[0, 0, 0], //elitegreen
 	[300, 0, 0], //sand
@@ -1808,8 +1808,9 @@ window.onload = function() {
 			this.backgroundColor = "#6afc"
 			this.moveTo(0, 0);
 
-			/*this.onenterframe = function(){
-			    for(let i = 1; i < tankEntity.length; i++){
+			this.onenterframe = function(){
+				if(deleteFlg)scene.removeChild(this);
+			    /*for(let i = 1; i < tankEntity.length; i++){
 			        if(deadFlgs[i] == false){
 			            if(this.within(tankEntity[i], 64)){
 			                let vector = {
@@ -1838,9 +1839,9 @@ window.onload = function() {
 			            }
 			        }
 
-			    };
+			    };*/
 			    
-			}*/
+			}
 			scene.addChild(this);
 		}
 	})
@@ -1973,7 +1974,9 @@ window.onload = function() {
 			this.onenterframe = function() {
 				if (deleteFlg == true) scene.removeChild(this);
 				if(worldFlg){
-					
+					/*rad = cannon.rotation * (Math.PI / 180.0);
+					dx = Math.cos(rad) * shotSpeed;
+					dy = Math.sin(rad) * shotSpeed;*/
 					//this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 					this.x += dx
 					this.y += dy
@@ -2721,7 +2724,7 @@ window.onload = function() {
 					}
 
 					if (rcnt > ref) {
-						new TouchFire(this, scene);
+						//new TouchFire(this, scene);
 						Get_NewBullet(num, value);
 						/*target.moveTo(-100,-100)
 						scene.BulGroup.removeChild(target);
@@ -2732,7 +2735,7 @@ window.onload = function() {
 						//scene.removeChild(target);
 					}
 					if (this.intersectStrict(target) == false) {
-						new TouchFire(this, scene);
+						//new TouchFire(this, scene);
 						/*bullets[num]--;
 						game.assets['./sound/Sample_0000.wav'].clone().play();
 						//game.assets['./sound/Sample_0004.wav'].clone().play();
@@ -2777,8 +2780,8 @@ window.onload = function() {
 						if (!(this.num == elem.num && this.value == elem.value)) {
 							if (bulStack[this.num][this.value] == true && bulStack[elem.num][elem.value] == true) {
 								game.assets['./sound/Sample_0000.wav'].clone().play();
-								new TouchFire(bulOb[this.num][this.value], scene);
-								new TouchFire(bulOb[elem.num][elem.value], scene);
+								//new TouchFire(bulOb[this.num][this.value], scene);
+								//new TouchFire(bulOb[elem.num][elem.value], scene);
 								Get_NewBullet(this.num, this.value);
 								Get_NewBullet(elem.num, elem.value);
 							}
@@ -2803,7 +2806,7 @@ window.onload = function() {
 		    y: -100
 		});
 		let target = new PhyCircleSprite(2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true)*/
-
+		new TouchFire(bulOb[num][val], now_scene);
 		bullets[num]--;
 		if(bullets[num] < 0) bullets[num] = 0;
 		game.assets['./sound/Sample_0000.wav'].clone().play();
@@ -3923,7 +3926,10 @@ window.onload = function() {
 
 			//  ステージ20以降のステータス強化処理
 			if (stageNum > 20) {
-				shotSpeed = shotSpeed + (0.4 * (stageNum / 20));
+				//shotSpeed = (shotSpeed + (0.4 * (stageNum / 20)));
+				//shotSpeed = shotSpeed + Math.round((0.4 * (stageNum / 20)) * 10) / 10;
+				shotSpeed = Math.round((shotSpeed + (0.4 * (stageNum / 20))) * 10) / 10;
+				//console.log(shotSpeed)
 			}
 
 			if (category == 2 && addBullet != 0) {
@@ -4174,28 +4180,26 @@ window.onload = function() {
 							//  プレイヤーの弾迎撃処理
 							if (cateFlgs[category][0] == true) {
 								for (let i = 0; i < bulOb[0].length; i++) {
-									if (bulStack[0][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-										if (dist != null && dist < cateRanges[category][0]) {
-											this.intersect(PlayerBulAim).forEach(function() {
-												enemyTarget[Num] = bulOb[0][i]; //  迎撃のためにターゲット変更
-												return;
-											})
-										}
-
+									if (!bulStack[0][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
+									if (dist != null && dist < cateRanges[category][0]) {
+										this.intersect(PlayerBulAim).forEach(function() {
+											enemyTarget[Num] = bulOb[0][i]; //  迎撃のためにターゲット変更
+											return;
+										})
+										break;
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true) {
+							if (cateFlgs[category][1] == true && ref > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
-									if (bulStack[Num][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-										if (dist != null && dist < cateRanges[category][1]) {
-											enemyTarget[Num] = bulOb[Num][i]; //  迎撃のためにターゲット変更
-											break;
-										}
-									}
+									if (!bulStack[Num][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
+									if (dist != null && dist < cateRanges[category][1]) {
+										enemyTarget[Num] = bulOb[Num][i]; //  迎撃のためにターゲット変更
+										break;
+									}	
 								}
 							}
 
@@ -4409,7 +4413,8 @@ window.onload = function() {
 
 			if (moveSpeed != 0) {
 				if (stageNum >= 20) {
-					speed = speed + (0.1 * (stageNum / 20));
+					//speed = speed + (0.1 * (stageNum / 20));
+					speed = Math.round((speed + (0.1 * (stageNum / 20))) * 10) / 10;
 				}
 			}
 
@@ -4649,47 +4654,45 @@ window.onload = function() {
 							//  プレイヤーの弾迎撃処理
 							if (cateFlgs[category][0] == true) {
 								for (let i = 0; i < bulOb[0].length; i++) {
-									if (bulStack[0][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-										if (dist != null && dist < cateRanges[category][0]) {
+									if(!bulStack[0][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
+									if (dist != null && dist < cateRanges[category][0]) {
+										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+											if (cateEscapes[category][1] != 0){
+												enemyTarget[Num] = bulOb[0][i];
+												return;
+											} 
 											
-											PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-												if (cateEscapes[category][1] != 0){
-													enemyTarget[Num] = bulOb[0][i];
-													return;
-												} 
-												
-											})
-											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-												if (dist < cateEscapes[category][1]) {
-													escapeTarget = bulOb[0][i];
-													escapeFlg = true;
-													break;
-												}
+										})
+										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+											if (dist < cateEscapes[category][1]) {
+												escapeTarget = bulOb[0][i];
+												escapeFlg = true;
+												break;
 											}
 										}
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true) {
+							if (cateFlgs[category][1] == true && ref > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
-									if (bulStack[Num][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-										if (dist != null && dist < cateRanges[category][1]) {
-											BulAim.intersect(this).forEach(elem => {
-												if (cateEscapes[category][2] != 0) {
-													enemyTarget[Num] = bulOb[Num][i];
-													escapeTarget = bulOb[Num][i];
-													if (cateEscapes[category][0] == true) {
-														if (dist < cateEscapes[category][2] && dist > 100) {
-															escapeFlg = true;
-														}
+									if(!bulStack[Num][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
+									if (dist != null && dist < cateRanges[category][1]) {
+										BulAim.intersect(this).forEach(elem => {
+											if (cateEscapes[category][2] != 0) {
+												enemyTarget[Num] = bulOb[Num][i];
+												escapeTarget = bulOb[Num][i];
+												if (cateEscapes[category][0] == true) {
+													if (dist < cateEscapes[category][2] && dist > 100) {
+														escapeFlg = true;
 													}
-													return;
 												}
-											})
-										}
+												return;
+											}
+										})
+										break;
 									}
 								}
 							}
@@ -4928,7 +4931,8 @@ window.onload = function() {
 
 			if (moveSpeed != 0) {
 				if (stageNum >= 20) {
-					speed = speed + (0.1 * (stageNum / 20));
+					//speed = speed + (0.1 * (stageNum / 20));
+					speed = Math.round((speed + (0.1 * (stageNum / 20))) * 10) / 10;
 				}
 			}
 
@@ -5144,47 +5148,47 @@ window.onload = function() {
 							//  プレイヤーの弾迎撃処理
 							if (cateFlgs[category][0] == true) {
 								for (let i = 0; i < bulOb[0].length; i++) {
-									if (bulStack[0][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-										if (dist != null && dist < cateRanges[category][0]) {
+									if (!bulStack[0][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
+									if (dist != null && dist < cateRanges[category][0]) {
 											
-											intercept.intersect(PlayerBulAim).forEach(function() {
-												if (cateEscapes[category][1] != 0){
-													enemyTarget[Num] = bulOb[0][i];
-													return;
-												} 
-											})
-											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-												if (dist < cateEscapes[category][1]) {
-													escapeTarget = bulOb[0][i];
-													escapeFlg = true;
-													break;
-												}
+										intercept.intersect(PlayerBulAim).forEach(function() {
+											if (cateEscapes[category][1] != 0){
+												enemyTarget[Num] = bulOb[0][i];
+												return;
+											} 
+										})
+										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+											if (dist < cateEscapes[category][1]) {
+												escapeTarget = bulOb[0][i];
+												escapeFlg = true;
+												break;
 											}
 										}
+										
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true) {
+							if (cateFlgs[category][1] == true && ref > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
-									if (bulStack[Num][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-										if (dist != null && dist < cateRanges[category][1]) {
-											this.intersect(BulAim).forEach(function() {
-												if (cateEscapes[category][2] != 0) {
-													enemyTarget[Num] = bulOb[Num][i];
-													escapeTarget = bulOb[Num][i];
-													if (cateEscapes[category][0] == true) {
-														if (dist < cateEscapes[category][2] && dist > 100) {
-															escapeFlg = true
-															
-														}
+									if (!bulStack[Num][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
+									if (dist != null && dist < cateRanges[category][1]) {
+										this.intersect(BulAim).forEach(function() {
+											if (cateEscapes[category][2] != 0) {
+												enemyTarget[Num] = bulOb[Num][i];
+												escapeTarget = bulOb[Num][i];
+												if (cateEscapes[category][0] == true) {
+													if (dist < cateEscapes[category][2] && dist > 100) {
+														escapeFlg = true
+														
 													}
-													return;
 												}
-											})
-										}
+												return;
+											}
+										})
+										break;
 									}
 								}
 							}
@@ -5851,7 +5855,8 @@ window.onload = function() {
 
 			if (moveSpeed != 0) {
 				if (stageNum >= 20) {
-					speed = speed + (0.1 * (stageNum / 20));
+					//speed = speed + (0.1 * (stageNum / 20));
+					speed = Math.round((speed + (0.1 * (stageNum / 20))) * 10) / 10;
 				}
 			}
 
@@ -6188,22 +6193,21 @@ window.onload = function() {
 							//  プレイヤーの弾迎撃処理
 							if (cateFlgs[category][0] == true) {
 								for (let i = 0; i < bulOb[0].length; i++) {
-									if (bulStack[0][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-										if (dist != null && dist < cateRanges[category][0]) {
+									if (!bulStack[0][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
+									if (dist != null && dist < cateRanges[category][0]) {
 											
-											intercept.intersect(PlayerBulAim).forEach(function() {
-												if (cateEscapes[category][1] != 0){
-													enemyTarget[Num] = bulOb[0][i];
-													return;
-												} 
-											})
-											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-												if (dist < cateEscapes[category][1]) {
-													escapeTarget = bulOb[0][i];
-													escapeFlg = true;
-													break;
-												}
+										intercept.intersect(PlayerBulAim).forEach(function() {
+											if (cateEscapes[category][1] != 0){
+												enemyTarget[Num] = bulOb[0][i];
+												return;
+											} 
+										})
+										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+											if (dist < cateEscapes[category][1]) {
+												escapeTarget = bulOb[0][i];
+												escapeFlg = true;
+												break;
 											}
 										}
 									}
@@ -6498,7 +6502,8 @@ window.onload = function() {
 			tank.opacity = 1.0;
 			cannon.opacity = 1.0;
 
-			const intercept = new Intercept96(this, scene)
+			const intercept = new Intercept96(this, scene);
+			if(category == 5)intercept.scale(1.2,1.2);
 			const intercept7 = new InterceptC(cannon, scene)
 			var value = Math.floor(Math.random() * 4);
 			var speed = moveSpeed;
@@ -6527,7 +6532,8 @@ window.onload = function() {
 
 			if (moveSpeed != 0) {
 				if (stageNum >= 20) {
-					speed = speed + (0.1 * (stageNum / 20));
+					//speed = speed + (0.1 * (stageNum / 20));
+					speed = Math.round((speed + (0.1 * (stageNum / 20))) * 10) / 10;
 				}
 			}
 
@@ -6552,6 +6558,7 @@ window.onload = function() {
 				initialize: function() {
 					Aim.call(this, alignment, cannon, 24, Num, scene);
 					if(ref == 0)this.scale(2,2);
+					//if(debugFlg)this.backgroundColor = 'yellow'
 				}
 			})
 
@@ -6616,15 +6623,19 @@ window.onload = function() {
 
 			}
 
+			//console.log(speed)
 			if (addBullet != 0 && category == 5){
 				fireLate = 20;
-				moveSpeed -= 0.2;
+				//speed -= 0.2;
+				speed = Math.round((speed - 0.2) * 10) / 10;
 			} 
 			if(addBullet != 0 && category == 10){
 				reload = 120;
-				moveSpeed -= 0.3;
+				//speed -= 0.3;
+				speed = Math.round((speed - 0.3) * 10) / 10;
 				fireLate = Math.floor(Math.random() * 30) + 30;
 			} 
+			//console.log(speed)
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
@@ -6674,6 +6685,7 @@ window.onload = function() {
 						if (worldFlg == true) {
 							this.time++;
 							if (this.time % 2 == 0) {
+								new EnemyAim();
 								if (escapeFlg == false) rootFlg = false;
 								if (enemyTarget[Num] != target) rootFlg = true;
 								if (tankStopFlg) tankStopFlg = false;
@@ -6752,10 +6764,7 @@ window.onload = function() {
 							    }
 							}*/
 
-							new EnemyAim();
-
-
-
+	
 							/*for (let elem of floors) {
 								if (intercept7.intersect(elem)) {
 									shotNGflg = true;
@@ -6827,6 +6836,39 @@ window.onload = function() {
 							//  プレイヤーの弾迎撃処理
 							if (cateFlgs[category][0] == true) {
 								for (let i = 0; i < bulOb[0].length; i++) {
+									if(!bulStack[0][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
+									if (dist != null && dist < cateRanges[category][0]) {
+										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+											if(elem.target.num == 0 && elem.target.value == i){
+												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
+												if (this.time % 10 == 0) {
+													value = Escape_Rot(this, bulOb[0][i]);
+													//SelDirection(weak,bulOb[0][i],0)
+												}
+											}
+											return;
+										})
+										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+											if (dist < cateEscapes[category][1]) {
+												escapeTarget = bulOb[0][i]
+												escapeFlg = true;
+											}
+											if (dist < 128) {
+												if (this.time % 10 == 0) {
+													//enemyTarget[Num] = bulOb[0][i];
+													value = Escape_Rot(this, bulOb[0][i]);
+													//SelDirection(weak,bulOb[0][i],0)
+												}
+											}
+										}
+										
+										break;
+									}
+								}
+							}
+							/*if (cateFlgs[category][0] == true) {
+								for (let i = 0; i < bulOb[0].length; i++) {
 									if (bulStack[0][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 										if (dist != null && dist < cateRanges[category][0]) {
@@ -6849,19 +6891,45 @@ window.onload = function() {
 													//SelDirection(weak,bulOb[0][i],0)
 												}
 											})
-											/*PlayerBulAim.intersectStrict(intercept).forEach(function(){
-											    if(cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
-											    if(this.time % 5 == 0){
-											        value = Escape_Rot(this,bulOb[0][i]);
-											        //SelDirection(weak,bulOb[0][i],0)
-											    }
-											})*/
+											
 										}
 									}
 								}
-							}
+							}*/
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true) {
+							if (cateFlgs[category][1] == true && ref > 0) {
+								for (let i = 0; i < bulOb[Num].length; i++) {
+									if(!bulStack[Num][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
+									if (dist != null && dist < cateRanges[category][1]) {
+										if (intercept.intersectStrict(bulOb[Num][i])) {
+											if (this.time % 10 == 0) {
+												value = Escape_Rot(this, bulOb[Num][i]);
+											}
+										}
+										BulAim.intersectStrict(intercept).forEach(elem => {
+											if (elem.target.num == Num && elem.target.value == i) {
+												if (this.time % 5 == 0) {
+													value = Escape_Rot(this, bulOb[Num][i]);
+													//SelDirection(weak,bulOb[0][i],0)
+												}
+												if (cateEscapes[category][2] != 0) {
+													enemyTarget[Num] = bulOb[Num][i];
+													if (cateEscapes[category][0] == true) {
+														if (dist < cateEscapes[category][2] && dist > 100) {
+															escapeTarget = bulOb[Num][i]
+															escapeFlg = true;
+														}
+													}
+												}
+											}
+											return;
+										})
+										break;
+									}	
+								}
+							}
+							/*if (cateFlgs[category][1] == true) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
 									if (bulStack[Num][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
@@ -6889,25 +6957,10 @@ window.onload = function() {
 												}
 
 											})
-											/*this.intersect(BulAim).forEach(function(){     
-											    if(cateEscapes[category][2] != 0){
-											        enemyTarget[Num] = bulOb[Num][i];
-											        if(cateEscapes[category][0]==true){
-											            if(dist < cateEscapes[category][2] && dist > 100){
-											                escapeTarget = bulOb[Num][i]
-											                escapeFlg = true
-											            }
-											        }
-											    }
-											    if(this.time % 5 == 0){
-											        value = Escape_Rot(this,bulOb[Num][i]);
-											        //SelDirection(weak,bulOb[0][i],0)
-											    }
-											})*/
 										}
 									}
 								}
-							}
+							}*/
 
 							if (reloadFlg == false) {
 								if (bullets[Num] == emax) reloadFlg = true;
@@ -8601,7 +8654,7 @@ window.onload = function() {
 									if (bulStack[elem.num][elem.value] == true && defeat == false && victory == false && complete == false) {
 										let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 										//game.assets['./sound/mini_bomb2.mp3'].clone().play();
-										new TouchFire(elem, scene);
+										//new TouchFire(elem, scene);
 										life--;
 										damage.play();
 										if(life > 0){
@@ -8725,41 +8778,41 @@ window.onload = function() {
 							//  プレイヤーの弾迎撃処理
 							if (cateFlgs[category][0] == true) {
 								for (let i = 0; i < bulOb[0].length; i++) {
-									if (bulStack[0][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-										if (dist != null && dist < cateRanges[category][0]) {
-											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-												if (dist < cateEscapes[category][1]) {
-													escapeTarget = bulOb[0][i];
-													escapeFlg = true;
-												}
+									if(!bulStack[0][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
+									if (dist != null && dist < cateRanges[category][0]) {
+										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+											if (dist < cateEscapes[category][1]) {
+												escapeTarget = bulOb[0][i];
+												escapeFlg = true;
 											}
-											intercept.intersect(PlayerBulAim).forEach(function() {
-												if (cateEscapes[category][1] != 0 && enemyTarget[Num] != bulOb[0][i]) enemyTarget[Num] = bulOb[0][i];
-											})
 										}
+										intercept.intersect(PlayerBulAim).forEach(function() {
+											if (cateEscapes[category][1] != 0 && enemyTarget[Num] != bulOb[0][i]) enemyTarget[Num] = bulOb[0][i];
+										})
+										break;
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true) {
+							if (cateFlgs[category][1] == true && ref > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
-									if (bulStack[Num][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-										if (dist != null && dist < cateRanges[category][1]) {
-											this.intersect(BulAim).forEach(function() {
-												if (cateEscapes[category][2] != 0) {
-													enemyTarget[Num] = bulOb[Num][i];
-													escapeTarget = bulOb[Num][i];
-													if (cateEscapes[category][0] == true) {
-														if (dist < cateEscapes[category][2] && dist > 100) {
-															escapeFlg = true;
-														}
+									if (!bulStack[Num][i])continue;
+									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
+									if (dist != null && dist < cateRanges[category][1]) {
+										this.intersect(BulAim).forEach(function() {
+											if (cateEscapes[category][2] != 0) {
+												enemyTarget[Num] = bulOb[Num][i];
+												escapeTarget = bulOb[Num][i];
+												if (cateEscapes[category][0] == true) {
+													if (dist < cateEscapes[category][2] && dist > 100) {
+														escapeFlg = true;
 													}
 												}
-												
-											})
-										}
+											}
+											
+										})
+										break;
 									}
 								}
 							}
@@ -10072,7 +10125,7 @@ window.onload = function() {
 				[colorsName[5], '　弾数　：' + (cateMaxBullets[5] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[5], "移動速度：普通", "・Grayの強化個体。<br>　異常な生存能力を誇るが、<br>　冷静に対処すれば倒せる。"],
 				[colorsName[6], '　弾数　：' + (cateMaxBullets[6] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[6], "移動速度：遅い", "・ステルスで姿を眩ます厄介者。<br>　死角からの砲撃に要注意！"],
 				[colorsName[7], '　弾数　：' + (cateMaxBullets[7] + addBullet), "　弾速　：とても速い", "跳弾回数：" + cateMaxRefs[7], "移動速度：動かない", "・Greenの強化個体。<br>　圧倒的な命中精度を誇る。"],
-				[colorsName[8], '　弾数　：' + (cateMaxBullets[8] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[8], "移動速度：とても速い", "・簡潔にいうと爆弾魔。<br>　また移動も弾速も速いので注意。"],
+				[colorsName[8], '　弾数　：' + (cateMaxBullets[8] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[8], "移動速度：とても速い", "・簡潔にいうと爆弾魔。<br>　機動力を活かした奇襲に要注意。"],
 				[colorsName[9], '　弾数　：' + (cateMaxBullets[9] + addBullet), "　弾速　：速い", "跳弾回数：" + cateMaxRefs[9], "移動速度：動かない", "・機関砲のような連射をしてくる。<br>　彼の正面には立たないように…"],
 				[colorsName[10], "　弾数　：" + (cateMaxBullets[10] + addBullet), "　弾速　：最速", "跳弾回数：" + cateMaxRefs[10], "移動速度：普通", "・いつ現れるか分からない戦車。<br>　圧倒的な弾速に要注意。"],
 				[colorsName[11], "　弾数　：3～5", "　弾速　：普通~とても速い", "跳弾回数：0~1", "移動速度：遅い~速い", "・攻防ともに優れたボス格。<br>　一度の被弾では倒されない。<br>　体力が減ると性能が変化する。<br>　爆破に巻き込めばすぐに倒せる。"],
