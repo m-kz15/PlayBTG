@@ -131,7 +131,7 @@ var cateEscapes = [
 	[true, 280, 230, 180], //elitegray
 	[true, 200, 200, 180], //snow
 	[false, 0, 0, 0], //elitegreen
-	[true, 240, 0, 0], //sand
+	[true, 280, 0, 0], //sand
 	[false, 0, 0, 0], //pink
 	[true, 280, 0, 0], //random
 	[true, 240, 200, 160] //dazzle
@@ -4158,47 +4158,59 @@ window.onload = function() {
 							*/
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && tankEntity.length > 2) {
-								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
+									if(deadFlgs[i] || bullets[i] == 0) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
 										if (bulStack[i][j] == true) {
 											let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
-											intercept.intersect(BulAim).forEach(function() {
-												if (dist != null && dist < cateRanges[category][2]) {
-													enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
-													brflg = true;
-													return;
-												}
-											})
-
+											if (dist != null && dist < cateRanges[category][2]) {
+												BulAim.intersect(intercept).forEach(elem => {
+													if(elem.target.num == i){
+														if(enemyTarget[Num] != bulOb[i][j])enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
+														return;
+													}
+													
+												})
+											}
 										}
 									}
-									if(brflg) break;
 								}
 							}
 							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true) {
+							if (cateFlgs[category][0] == true && bullets[0] > 0) {
 								for (let i = 0; i < bulOb[0].length; i++) {
 									if (!bulStack[0][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
-										this.intersect(PlayerBulAim).forEach(function() {
-											enemyTarget[Num] = bulOb[0][i]; //  迎撃のためにターゲット変更
-											return;
+										PlayerBulAim.intersect(intercept).forEach(elem => {
+											if(elem.target.value == i){
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														enemyTarget[Num] = bulOb[0][i];
+													}
+												}
+												return;
+											}
+											
 										})
-										break;
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && ref > 0) {
+							if (cateFlgs[category][1] == true && ref > 0 && bullets[Num] > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
 									if (!bulStack[Num][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
 									if (dist != null && dist < cateRanges[category][1]) {
-										enemyTarget[Num] = bulOb[Num][i]; //  迎撃のためにターゲット変更
-										break;
+										BulAim.intersect(intercept).forEach(elem => {
+											if(elem.target.num == Num){
+												enemyTarget[Num] = bulOb[Num][i]; //  迎撃のためにターゲット変更
+												return;
+											}
+											
+										})
+										
 									}	
 								}
 							}
@@ -4628,71 +4640,75 @@ window.onload = function() {
 							*/
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && tankEntity.length > 2) {
-								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
+									if(deadFlgs[i] || bullets[i] == 0) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
 										if (bulStack[i][j] == true) {
 											let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 											if (dist != null && dist < cateRanges[category][2]) {
-												
-												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-													if (dist < cateEscapes[category][3]) {
-														if (dist < 120) enemyTarget[Num] = bulOb[i][j];
+												BulAim.intersect(intercept).forEach(elem => {
+													if(elem.target.num == i){
+														if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+															if (dist < cateEscapes[category][3]) {
+																enemyTarget[Num] = bulOb[i][j];
+															}
+														}
 														escapeTarget = bulOb[i][j];
 														escapeFlg = true;
-														brflg = true;
-														break;
+														return;
 													}
-												}
+												})
+												
+												
 											}
 										}
 									}
-									if(brflg) break;
 								}
 							}
 							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true) {
+							if (cateFlgs[category][0] == true && bullets[0] > 0) {
 								for (let i = 0; i < bulOb[0].length; i++) {
 									if(!bulStack[0][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
 										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-											if (cateEscapes[category][1] != 0){
-												enemyTarget[Num] = bulOb[0][i];
-												return;
-											} 
-											
-										})
-										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-											if (dist < cateEscapes[category][1]) {
+											if(elem.target.value == i){
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														enemyTarget[Num] = bulOb[0][i];
+													}
+												}
 												escapeTarget = bulOb[0][i];
 												escapeFlg = true;
-												break;
+												return;
 											}
-										}
+										})
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && ref > 0) {
+							if (cateFlgs[category][1] == true && ref > 0 && bullets[Num] > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
 									if(!bulStack[Num][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
 									if (dist != null && dist < cateRanges[category][1]) {
 										BulAim.intersect(this).forEach(elem => {
-											if (cateEscapes[category][2] != 0) {
-												enemyTarget[Num] = bulOb[Num][i];
-												escapeTarget = bulOb[Num][i];
-												if (cateEscapes[category][0] == true) {
-													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeFlg = true;
+											if(elem.target.num == Num){
+												if (cateEscapes[category][2] != 0) {
+													if (cateEscapes[category][0] == true) {
+														if (dist < cateEscapes[category][2] && dist > 100) {
+															enemyTarget[Num] = bulOb[Num][i];
+														}
 													}
+													
 												}
+												escapeTarget = bulOb[Num][i];
+												escapeFlg = true;
 												return;
 											}
+											
 										})
-										break;
 									}
 								}
 							}
@@ -5122,70 +5138,76 @@ window.onload = function() {
 							//	優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
+									if(deadFlgs[i] || bullets[i] == 0) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
 										if (bulStack[i][j] == true) {
 											let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 											if (dist != null && dist < cateRanges[category][2]) {
-												
-												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-													if (dist < cateEscapes[category][3]) {
-														enemyTarget[Num] = bulOb[i][j];
+												BulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target.num == i){
+														if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+															if (dist < cateEscapes[category][3]) {
+																enemyTarget[Num] = bulOb[i][j];
+															}
+														}
 														escapeTarget = bulOb[i][j];
 														escapeFlg = true;
-														brflg = true;
-														break;
 													}
-												}
+													
+												})
 											}
 										}
 									}
-									if(brflg) break;
 								}
 							}
 							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true) {
+							if (cateFlgs[category][0] == true && bullets[0] > 0) {
 								for (let i = 0; i < bulOb[0].length; i++) {
 									if (!bulStack[0][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
-											
-										intercept.intersect(PlayerBulAim).forEach(function() {
-											if (cateEscapes[category][1] != 0){
-												enemyTarget[Num] = bulOb[0][i];
-												return;
-											} 
-										})
-										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-											if (dist < cateEscapes[category][1]) {
+										
+										PlayerBulAim.intersect(intercept).forEach(elem => {
+											if(elem.target.value == i){
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														enemyTarget[Num] = bulOb[0][i];
+													}
+												}
 												escapeTarget = bulOb[0][i];
 												escapeFlg = true;
-												break;
+												return;
 											}
-										}
+											
+											
+										})
+										
 										
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && ref > 0) {
+							if (cateFlgs[category][1] == true && ref > 0 && bullets[Num] > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
 									if (!bulStack[Num][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
 									if (dist != null && dist < cateRanges[category][1]) {
-										this.intersect(BulAim).forEach(function() {
-											if (cateEscapes[category][2] != 0) {
-												enemyTarget[Num] = bulOb[Num][i];
-												escapeTarget = bulOb[Num][i];
-												if (cateEscapes[category][0] == true) {
-													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeFlg = true
-														
+										BulAim.intersect(this).forEach(elem => {
+											if(elem.target.num == Num){
+												if (cateEscapes[category][2] != 0) {
+													if (cateEscapes[category][0] == true) {
+														if (dist < cateEscapes[category][2] && dist > 100) {
+															enemyTarget[Num] = bulOb[Num][i];
+														}
 													}
 												}
-												return;
+												if(dist > 100){
+													escapeTarget = bulOb[Num][i];
+													escapeFlg = true
+													return;
+												}
 											}
 										})
 										break;
@@ -5836,7 +5858,8 @@ window.onload = function() {
 			tank.opacity = 1.0;
 			cannon.opacity = 1.0;
 
-			const intercept = new Intercept96(this, scene)
+			const intercept = new Intercept96(this, scene);
+			intercept.scale(1.5,1.5);
 			const intercept7 = new InterceptC(cannon, scene)
 			var value = Math.floor(Math.random() * 4);;
 			var speed = moveSpeed;
@@ -6191,25 +6214,27 @@ window.onload = function() {
 								
 							}*/
 							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true) {
+							if (cateFlgs[category][0] == true && bullets[0] > 0) {
 								for (let i = 0; i < bulOb[0].length; i++) {
 									if (!bulStack[0][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
-											
-										intercept.intersect(PlayerBulAim).forEach(function() {
-											if (cateEscapes[category][1] != 0){
-												enemyTarget[Num] = bulOb[0][i];
-												return;
-											} 
-										})
-										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-											if (dist < cateEscapes[category][1]) {
+										
+										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+											if(elem.target.value == i){
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														enemyTarget[Num] = bulOb[0][i];
+													}
+												}
 												escapeTarget = bulOb[0][i];
 												escapeFlg = true;
-												break;
+												return;
 											}
-										}
+											
+											
+										})
+										
 									}
 								}
 							}
@@ -6341,8 +6366,8 @@ window.onload = function() {
 											}
 										}
 									} else {
-										value = Escape_Rot(weak, escapeTarget);
-										//SelDirection(weak, escapeTarget, 0);
+										//value = Escape_Rot(weak, escapeTarget);
+										SelDirection(weak, escapeTarget, 0);
 									}
 								}
 								
@@ -6805,22 +6830,27 @@ window.onload = function() {
 							*/
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
+									if(deadFlgs[i] || bullets[i] == 0) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
 										if (bulStack[i][j] == true) {
 											let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 											if (dist != null && dist < cateRanges[category][2]) {
-												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-													if (dist < cateEscapes[category][3]) {
+												
+												BulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target.num == i){
+														if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+															if (dist < cateEscapes[category][3]) {
+																enemyTarget[Num] = bulOb[i][j];
+															}
+														}
 														escapeTarget = bulOb[i][j];
 														escapeFlg = true;
-														enemyTarget[Num] = bulOb[i][j];
-														brflg = true;
-														break;
 													}
-												}
+													
+												})
+												
 												/*BulAim.intersect(intercept).forEach(function() {
 													if (cateEscapes[category][3] != 0) enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
 													if (this.time % 5 == 0) {
@@ -6830,40 +6860,29 @@ window.onload = function() {
 											}
 										}
 									}
-									if(brflg) break;
 								}
 							}
 							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true) {
+							if (cateFlgs[category][0] == true && bullets[0] > 0) {
 								for (let i = 0; i < bulOb[0].length; i++) {
 									if(!bulStack[0][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
+										
 										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-											if(elem.target.num == 0 && elem.target.value == i){
-												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
-												if (this.time % 10 == 0) {
-													value = Escape_Rot(this, bulOb[0][i]);
-													//SelDirection(weak,bulOb[0][i],0)
+											if(elem.target.value == i){
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														enemyTarget[Num] = bulOb[0][i];
+													}
 												}
+												escapeTarget = bulOb[0][i]
+												escapeFlg = true;
+												
 											}
 											return;
 										})
-										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-											if (dist < cateEscapes[category][1]) {
-												escapeTarget = bulOb[0][i]
-												escapeFlg = true;
-											}
-											if (dist < 128) {
-												if (this.time % 10 == 0) {
-													//enemyTarget[Num] = bulOb[0][i];
-													value = Escape_Rot(this, bulOb[0][i]);
-													//SelDirection(weak,bulOb[0][i],0)
-												}
-											}
-										}
 										
-										break;
 									}
 								}
 							}
@@ -6897,7 +6916,7 @@ window.onload = function() {
 								}
 							}*/
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && ref > 0) {
+							if (cateFlgs[category][1] == true && ref > 0 && bullets[Num] > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
 									if(!bulStack[Num][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
@@ -6908,24 +6927,17 @@ window.onload = function() {
 											}
 										}
 										BulAim.intersectStrict(intercept).forEach(elem => {
-											if (elem.target.num == Num && elem.target.value == i) {
-												if (this.time % 5 == 0) {
-													value = Escape_Rot(this, bulOb[Num][i]);
-													//SelDirection(weak,bulOb[0][i],0)
-												}
-												if (cateEscapes[category][2] != 0) {
+											if (elem.target.num == Num) {
+												if (cateEscapes[category][2] != 0 && cateEscapes[category][0] == true && dist < cateEscapes[category][2]) {
 													enemyTarget[Num] = bulOb[Num][i];
-													if (cateEscapes[category][0] == true) {
-														if (dist < cateEscapes[category][2] && dist > 100) {
-															escapeTarget = bulOb[Num][i]
-															escapeFlg = true;
-														}
-													}
+												}
+												if(dist > 100){
+													escapeTarget = bulOb[Num][i];
+													escapeFlg = true
+													return;
 												}
 											}
-											return;
 										})
-										break;
 									}	
 								}
 							}
@@ -8753,66 +8765,73 @@ window.onload = function() {
 
 							//  他戦車の弾迎撃処理
 							if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								brflg = false;
 								for (let i = 1; i < bulOb.length; i++) {
 									if(i == Num) continue;
+									if(deadFlgs[i] || bullets[i] == 0) continue;
 									for (let j = 0; j < bulOb[i].length; j++) {
 										if (bulStack[i][j] == true) {
 											let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 											if (dist != null && dist < cateRanges[category][2]) {
 												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 													if (dist < cateEscapes[category][3]) {
-														if (dist < 120) enemyTarget[Num] = bulOb[i][j];
-														escapeTarget = bulOb[i][j];
-														escapeFlg = true;
-														brflg = true;
-														break;
+														BulAim.intersectStrict(intercept).forEach(elem => {
+															if(elem.target.num == i)enemyTarget[Num] = bulOb[i][j];
+															escapeTarget = bulOb[i][j];
+															escapeFlg = true;
+															return;
+														})
 													}
 												}
+												
 											}
 										}
 									}
-									if(brflg) break;
 								}
 							}
 							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true) {
+							if (cateFlgs[category][0] == true && bullets[0] > 0) {
 								for (let i = 0; i < bulOb[0].length; i++) {
 									if(!bulStack[0][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
 										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 											if (dist < cateEscapes[category][1]) {
-												escapeTarget = bulOb[0][i];
-												escapeFlg = true;
+												PlayerBulAim.intersect(intercept).forEach(elem => {
+													if(elem.target.value == i){
+														if (enemyTarget[Num] != bulOb[0][i]) enemyTarget[Num] = bulOb[0][i];
+														escapeTarget = bulOb[0][i];
+														escapeFlg = true;
+													}
+													return;
+												})
 											}
 										}
-										intercept.intersect(PlayerBulAim).forEach(function() {
-											if (cateEscapes[category][1] != 0 && enemyTarget[Num] != bulOb[0][i]) enemyTarget[Num] = bulOb[0][i];
-										})
-										break;
+										
+										
 									}
 								}
 							}
 							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && ref > 0) {
+							if (cateFlgs[category][1] == true && ref > 0 && bullets[Num] > 0) {
 								for (let i = 0; i < bulOb[Num].length; i++) {
 									if (!bulStack[Num][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
 									if (dist != null && dist < cateRanges[category][1]) {
-										this.intersect(BulAim).forEach(function() {
-											if (cateEscapes[category][2] != 0) {
-												enemyTarget[Num] = bulOb[Num][i];
-												escapeTarget = bulOb[Num][i];
-												if (cateEscapes[category][0] == true) {
+										BulAim.intersect(this).forEach(elem => {
+											if(elem.target.num == Num){
+												
+												if (cateEscapes[category][2] != 0 && cateEscapes[category][0] == true) {
 													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeFlg = true;
+														enemyTarget[Num] = bulOb[Num][i];
 													}
 												}
+												if(dist > 100){
+													escapeTarget = bulOb[Num][i];
+													escapeFlg = true
+													return;
+												}
 											}
-											
 										})
-										break;
 									}
 								}
 							}
