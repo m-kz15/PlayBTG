@@ -2483,7 +2483,7 @@ window.onload = function() {
 			this.target = target;
 
 			this.onenterframe = function() {
-				if (deleteFlg == true) scene.removeChild(this);
+				if (deleteFlg) scene.removeChild(this);
 				if(worldFlg){
 					
 					this.x += dx;
@@ -2509,7 +2509,7 @@ window.onload = function() {
 			this.target = target;
 
 			this.onenterframe = function() {
-				if (deleteFlg == true) scene.removeChild(this);
+				if (deleteFlg) scene.removeChild(this);
 				if(worldFlg){
 					
 					this.x += dx
@@ -4631,6 +4631,10 @@ window.onload = function() {
 										if(!bulStack[i][j]) continue;
 										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 										if (dist != null && dist < cateRanges[category][2]) {
+											if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[i][j]) != null){
+												escapeTarget = bulOb[i][j];
+												escapeFlg = true;
+											}
 											BulAim.intersectStrict(this).forEach(function(){
 												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 													if (dist < cateEscapes[category][3]) {
@@ -4652,8 +4656,11 @@ window.onload = function() {
 									if (bulStack[0][i] == true) {
 										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 										if (dist != null && dist < cateRanges[category][0]) {
-											
-											PlayerBulAim.intersectStrict(this).forEach(function() {
+											if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[0][i]) != null){
+												escapeTarget = bulOb[0][i];
+												escapeFlg = true;
+											}
+											PlayerBulAim.intersectStrict(intercept).forEach(function() {
 												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 													if (dist < cateEscapes[category][1]) {
 														if(enemyTarget[Num] != bulOb[0][i])enemyTarget[Num] = bulOb[0][i];
@@ -5122,6 +5129,10 @@ window.onload = function() {
 										if(!bulStack[i][j]) continue;
 										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 										if (dist != null && dist < cateRanges[category][2]) {
+											if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[i][j]) != null){
+												escapeTarget = bulOb[i][j];
+												escapeFlg = true;
+											}
 											BulAim.intersectStrict(this).forEach(function(){
 												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 													if (dist < cateEscapes[category][3]) {
@@ -5143,7 +5154,10 @@ window.onload = function() {
 									if(!bulStack[0][i]) continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
-											
+										if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[0][i]) != null){
+											escapeTarget = bulOb[0][i];
+											escapeFlg = true;
+										}
 										PlayerBulAim.intersectStrict(intercept).forEach(function() {
 											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 												if (dist < cateEscapes[category][1]) {
@@ -6184,19 +6198,23 @@ window.onload = function() {
 									if (!bulStack[0][i])continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
-										
+										if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[0][i]) != null){
+											escapeTarget = bulOb[0][i];
+											escapeFlg = true;
+											if(this.time % 30 == 0) SelDirection(weak, bulOb[0][i], 0);
+										}
 										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-											if(elem.target.value == i){
-												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-													if (dist < cateEscapes[category][1]) {
-														enemyTarget[Num] = bulOb[0][i];
-													}
+											/*if(elem.target.value == i){
+												
+											}*/
+											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+												if (dist < cateEscapes[category][1]) {
+													enemyTarget[Num] = bulOb[0][i];
 												}
-												escapeTarget = bulOb[0][i];
-												escapeFlg = true;
-												return;
 											}
-											
+											escapeTarget = bulOb[0][i];
+											escapeFlg = true;
+											return;
 											
 										})
 										
@@ -6801,6 +6819,10 @@ window.onload = function() {
 										if(!bulStack[i][j]) continue;
 										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 										if (dist != null && dist < cateRanges[category][2]) {
+											if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[i][j]) != null){
+												escapeTarget = bulOb[i][j];
+												escapeFlg = true;
+											}
 											BulAim.intersectStrict(this).forEach(function(){
 												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 													if (dist < cateEscapes[category][3]) {
@@ -6827,10 +6849,15 @@ window.onload = function() {
 									if(!bulStack[0][i]) continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
+										if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[0][i]) != null){
+											escapeTarget = bulOb[0][i]
+											escapeFlg = true;
+										}
 										PlayerBulAim.intersectStrict(intercept).forEach(function() {
 											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 												if (dist < cateEscapes[category][1]) {
 													if(enemyTarget[Num] != bulOb[0][i])enemyTarget[Num] = bulOb[0][i];
+													if(this.time % 10 == 0) value = Escape_Rot(this,bulOb[0][i]);
 												}
 											}
 											escapeTarget = bulOb[0][i]
@@ -6865,7 +6892,6 @@ window.onload = function() {
 											escapeTarget = bulOb[Num][i]
 											escapeFlg = true;
 											return;
-
 										})
 									}
 								}
@@ -8419,6 +8445,9 @@ window.onload = function() {
 
 			let brflg = false;
 
+			let escapeTarget = null;
+			let escapeFlg = false;
+
 			enemyTarget[Num] = target;
 	        var alignment = new Target(Num,scene);
 
@@ -8667,6 +8696,10 @@ window.onload = function() {
 										if(!bulStack[i][j]) continue;
 										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
 										if (dist != null && dist < cateRanges[category][2]) {
+											if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[i][j]) != null){
+												escapeTarget = bulOb[i][j];
+												escapeFlg = true;
+											}
 											BulAim.intersectStrict(this).forEach(function(){
 												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
 													if (dist < cateEscapes[category][3]) {
@@ -8688,6 +8721,10 @@ window.onload = function() {
 									if(!bulStack[0][i]) continue;
 									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
 									if (dist != null && dist < cateRanges[category][0]) {
+										if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[0][i]) != null){
+											escapeTarget = bulOb[0][i];
+											escapeFlg = true;
+										}
 										PlayerBulAim.intersectStrict(intercept).forEach(function(){
 											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 												if (dist < cateEscapes[category][1]) {
@@ -9658,6 +9695,18 @@ window.onload = function() {
 					destruction = 0;
 					victory = false;
 					defeat = false;
+					while(scene.firstChild){
+						console.log(scene.firstChild);
+						if(scene.firstChild instanceof enchant.box2d.PhySprite){
+							console.log('PhySprite');
+							scene.firstChild.destroy();
+						}else{
+							console.log('Sprite or Label or Entity');
+							
+						}
+						scene.removeChild(scene.firstChild);
+						
+					}
 					game.replaceScene(createTitleScene());
 				}
 				scene.time++;
@@ -9955,6 +10004,9 @@ window.onload = function() {
 
 					scene.time++
 					if (scene.time == 30) {
+						while(scene.firstChild){
+							scene.removeChild(scene.firstChild);
+						}
 						if (orflg == 1) {
 							deadTank = [false];
 							Repository.data.Level = addBullet;
@@ -10155,6 +10207,9 @@ window.onload = function() {
 				if (flg == true) {
 					scene.time++
 					if (scene.time == 30) {
+						while(scene.firstChild){
+							scene.removeChild(scene.firstChild);
+						}
 						game.replaceScene(createTitleScene()); // 現在表示しているシーンをゲームシーンに置き換える
 					}
 				}
@@ -10245,6 +10300,9 @@ window.onload = function() {
 					new FadeOut(scene)
 				}
 				if (scene.time == 180) {
+					while(scene.firstChild){
+						scene.removeChild(scene.firstChild);
+					}
 					game.replaceScene(createGameScene()); // 現在表示しているシーンをゲームシーンに置き換える
 				}
 			}
@@ -10307,6 +10365,9 @@ window.onload = function() {
 					new FadeOut(scene)
 				}
 				if (scene.time == 180) {
+					while(scene.firstChild){
+						scene.removeChild(scene.firstChild);
+					}
 					game.replaceScene(createStartScene()); // 現在表示しているシーンをゲームシーンに置き換える
 				}
 			}
@@ -10869,7 +10930,18 @@ window.onload = function() {
 								scene.removeChild(scene.FireGroup);
 								scene.removeChild(scene.BulGroup);
 								scene.removeChild(scene.CannonGroup);
-
+								while(scene.firstChild){
+									console.log(scene.firstChild);
+									if(scene.firstChild instanceof enchant.box2d.PhySprite){
+										console.log('PhySprite');
+										scene.firstChild.destroy();
+									}else{
+										console.log('Sprite or Label or Entity');
+										
+									}
+									scene.removeChild(scene.firstChild);
+									
+								}
 								if (stageNum % 5 == 0) {
 									game.replaceScene(createBonusScene())
 								} else {
@@ -10897,7 +10969,18 @@ window.onload = function() {
 								scene.removeChild(scene.FireGroup);
 								scene.removeChild(scene.BulGroup);
 								scene.removeChild(scene.CannonGroup);
-
+								while(scene.firstChild){
+									console.log(scene.firstChild);
+									if(scene.firstChild instanceof enchant.box2d.PhySprite){
+										console.log('PhySprite');
+										scene.firstChild.destroy();
+									}else{
+										console.log('Sprite or Label or Entity');
+										
+									}
+									scene.removeChild(scene.firstChild);
+									
+								}
 								game.replaceScene(createStartScene())
 							}
 						}
@@ -10979,7 +11062,18 @@ window.onload = function() {
 								scene.removeChild(scene.FireGroup);
 								scene.removeChild(scene.BulGroup);
 								scene.removeChild(scene.CannonGroup);
-
+								while(scene.firstChild){
+									console.log(scene.firstChild);
+									if(scene.firstChild instanceof enchant.box2d.PhySprite){
+										console.log('PhySprite');
+										scene.firstChild.destroy();
+									}else{
+										console.log('Sprite or Label or Entity');
+										
+									}
+									scene.removeChild(scene.firstChild);
+									
+								}
 								game.replaceScene(createStartScene())
 							});
 						}
