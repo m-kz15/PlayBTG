@@ -3327,8 +3327,8 @@ window.onload = function() {
 							this.rotation = (135 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						} else {
 							rad = (target.rotation + 270) * (Math.PI / 180.0);
-							dx = Math.cos(rad) * (target.width*2);
-							dy = Math.sin(rad) * (target.height*2);
+							dx = Math.cos(rad) * (target.width*0.8);
+							dy = Math.sin(rad) * (target.height*0.8);
 							this.rotation = (45 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 						}
 						//p.moveTo(this.x,this.y);
@@ -6906,7 +6906,7 @@ window.onload = function() {
 			cannon.opacity = 1.0;
 
 			const intercept = new Intercept96(this, scene);
-			if(category == 5)intercept.scale(1.2,1.2);
+			//if(category == 5)intercept.scale(1.2,1.2);
 			const intercept7 = new InterceptC(cannon, scene)
 			var value = Math.floor(Math.random() * 4);
 			var speed = moveSpeed;
