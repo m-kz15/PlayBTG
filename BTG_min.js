@@ -110,9 +110,9 @@ var cateFlgs = [
     プレイヤー,自身,他戦車 */
 var cateRanges = [
 	[0, 0, 0], //brown
-	[200, 0, 0], //gray
+	[300, 0, 0], //gray
 	[400, 200, 150], //green
-	[200, 0, 0], //red
+	[240, 0, 0], //red
 	[300, 200, 200], //lightgreen
 	[320, 250, 200], //elitegray
 	[300, 200, 200], //snow
@@ -124,16 +124,16 @@ var cateRanges = [
 ];
 var cateEscapes = [
 	[false, 0, 0, 0], //brown
-	[true, 300, 0, 0], //gray
+	[true, 200, 0, 0], //gray
 	[true, 300, 180, 120], //green
-	[false, 0, 0, 0], //red
+	[true, 240, 0, 0], //red
 	[true, 200, 0, 0], //lightgreen
 	[true, 280, 230, 180], //elitegray
 	[true, 200, 200, 180], //snow
 	[false, 0, 0, 0], //elitegreen
 	[true, 280, 0, 0], //sand
 	[false, 0, 0, 0], //pink
-	[true, 280, 0, 0], //random
+	[true, 260, 0, 0], //random
 	[true, 240, 200, 160] //dazzle
 ];
 var cateDistances = [
@@ -4163,6 +4163,50 @@ window.onload = function() {
 							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
 							*/
 							if(Bullet.collection.length > 0){
+								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
+									let c = Bullet.collection[i];
+									if(!bulStack[c.num][c.value]) continue;
+									if(c.num == 0 && !cateFlgs[category][0]) continue;
+									if(c.num == Num && !cateFlgs[category][1]) continue;
+									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
+									let dist = Instrumentation(enemyTarget[Num], c);
+									switch(c.num){
+										case 0:
+											if (dist != null && dist < cateRanges[category][0]) {
+												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target == c)enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+													//console.log(t.num + ' ' + t.value);
+												})
+											}
+											break;
+
+										case Num:
+											if(ref == 0) break;
+											BulAim.intersectStrict(this).forEach(elem => {
+												if(elem.target == c){
+													if (dist != null && dist < cateRanges[category][1] && dist > 100) {
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+												}
+											})
+											break;
+
+										default:
+											if(dist != null && dist < cateRanges[category][2]){
+												BulAim.intersect(this).forEach(elem => {
+													if(elem.target.num == c.num){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+												})
+											}
+											break;
+									}
+								};
+								
+							}
+							/*if(Bullet.collection.length > 0){
 								let d = 9999;
 								let t = null;
 								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
@@ -4217,7 +4261,7 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 							
 							
 
@@ -4701,6 +4745,70 @@ window.onload = function() {
 							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
 							*/
 							if(Bullet.collection.length > 0){
+								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
+									let c = Bullet.collection[i];
+									if(!bulStack[c.num][c.value]) continue;
+									if(c.num == 0 && !cateFlgs[category][0]) continue;
+									if(c.num == Num && !cateFlgs[category][1]) continue;
+									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
+									let dist = Instrumentation(enemyTarget[Num], c);
+									switch(c.num){
+										case 0:
+											if (dist != null && dist < cateRanges[category][0]) {
+												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+													
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+
+										case Num:
+											if(ref == 0) break;
+											BulAim.intersectStrict(this).forEach(elem => {
+												if(elem.target == c){
+													if (dist != null && dist < cateRanges[category][1] && dist > 100) {
+														if (cateEscapes[category][0] == true && cateEscapes[category][2] != 0) {
+															if (dist < cateEscapes[category][2] && dist > 100) {
+																escapeTarget = c;
+																escapeFlg = true;
+															}
+														}
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+												}
+											})
+											break;
+
+										default:
+											if(dist != null && dist < cateRanges[category][2]){
+												BulAim.intersectStrict(this).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+													}
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+													if (dist < cateEscapes[category][3]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+									}
+								};
+								
+							}
+							/*if(Bullet.collection.length > 0){
 								let d = 9999;
 								let t = null;
 								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
@@ -4774,7 +4882,7 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
 							
 
@@ -5270,8 +5378,73 @@ window.onload = function() {
 								return;
 							})
 
-
+							//	迎撃処理群
+							//	優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
 							if(Bullet.collection.length > 0){
+								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
+									let c = Bullet.collection[i];
+									if(!bulStack[c.num][c.value]) continue;
+									if(c.num == 0 && !cateFlgs[category][0]) continue;
+									if(c.num == Num && !cateFlgs[category][1]) continue;
+									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
+									let dist = Instrumentation(enemyTarget[Num], c);
+									switch(c.num){
+										case 0:
+											if (dist != null && dist < cateRanges[category][0]) {
+												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+													
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+
+										case Num:
+											if(ref == 0) break;
+											BulAim.intersectStrict(this).forEach(elem => {
+												if(elem.target == c){
+													if (dist != null && dist < cateRanges[category][1] && dist > 100) {
+														if (cateEscapes[category][0] == true && cateEscapes[category][2] != 0) {
+															if (dist < cateEscapes[category][2] && dist > 100) {
+																escapeTarget = c;
+																escapeFlg = true;
+															}
+														}
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+												}
+											})
+											break;
+
+										default:
+											if(dist != null && dist < cateRanges[category][2]){
+												BulAim.intersectStrict(this).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+													}
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+													if (dist < cateEscapes[category][3]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+									}
+								};
+								
+							}
+							/*if(Bullet.collection.length > 0){
 								let d = 9999;
 								let t = null;
 								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
@@ -5347,7 +5520,7 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
 							//	迎撃処理群
 							//	優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
@@ -6423,7 +6596,7 @@ window.onload = function() {
 										if(escapeTarget != null && Instrumentation(escapeTarget, bulOb[0][i]) != null){
 											escapeTarget = bulOb[0][i];
 											escapeFlg = true;
-											if(this.time % 30 == 0) SelDirection(weak, bulOb[0][i], 0);
+											if(this.time % 10 == 0) SelDirection(weak, bulOb[0][i], 0);
 										}
 										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
 											/*if(elem.target.value == i){
@@ -7025,12 +7198,81 @@ window.onload = function() {
 								return;
 							});
 
-							if (this.time % 5 == 0) {
+							if (this.time % 3 == 0) {
 								
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
 							}
 
+							/* 迎撃処理群
+							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
+							*/
 							if(Bullet.collection.length > 0){
+								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
+									let c = Bullet.collection[i];
+									if(!bulStack[c.num][c.value]) continue;
+									if(c.num == 0 && !cateFlgs[category][0]) continue;
+									if(c.num == Num && !cateFlgs[category][1]) continue;
+									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
+									let dist = Instrumentation(enemyTarget[Num], c);
+									switch(c.num){
+										case 0:
+											if (dist != null && dist < cateRanges[category][0]) {
+												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+														if(this.time % 20 == 0) value = Escape_Rot(this, c);
+													}
+													
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+
+										case Num:
+											if(ref == 0) break;
+											BulAim.intersectStrict(this).forEach(elem => {
+												if(elem.target == c){
+													if (dist != null && dist < cateRanges[category][1] && dist > 100) {
+														if (cateEscapes[category][0] == true && cateEscapes[category][2] != 0) {
+															if (dist < cateEscapes[category][2] && dist > 100) {
+																escapeTarget = c;
+																escapeFlg = true;
+															}
+														}
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+												}
+											})
+											break;
+
+										default:
+											if(dist != null && dist < cateRanges[category][2]){
+												BulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+													}
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+													if (dist < cateEscapes[category][3]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+									}
+								};
+								
+							}
+
+							/*if(Bullet.collection.length > 0){
 								let d = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
 								let t = null;
 								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
@@ -7107,7 +7349,7 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
 							/* 迎撃処理群
 							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
@@ -7221,7 +7463,10 @@ window.onload = function() {
 										for (let i = 0; i < emax; i++) {
 											if (bulStack[Num][i] == false) {
 												
-												if (category == 5 || category == 10) {
+												if (category == 5) {
+													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
+												}else if(category == 10){
+													if(scene.time < 360)break;
 													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
 												}else{
 													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
@@ -8990,6 +9235,72 @@ window.onload = function() {
 							}
 
 							if(Bullet.collection.length > 0){
+								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
+									let c = Bullet.collection[i];
+									if(!bulStack[c.num][c.value]) continue;
+									if(c.num == 0 && !cateFlgs[category][0]) continue;
+									if(c.num == Num && !cateFlgs[category][1]) continue;
+									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
+									let dist = Instrumentation(enemyTarget[Num], c);
+									switch(c.num){
+										case 0:
+											if (dist != null && dist < cateRanges[category][0]) {
+												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+														if(this.time % 9 == 0) value = Escape_Rot(this, c);
+													}
+													
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
+													if (dist < cateEscapes[category][1]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+
+										case Num:
+											if(ref == 0) break;
+											BulAim.intersectStrict(this).forEach(elem => {
+												if(elem.target == c){
+													if (dist != null && dist < cateRanges[category][1] && dist > 100) {
+														if (cateEscapes[category][0] == true && cateEscapes[category][2] != 0) {
+															if (dist < cateEscapes[category][2] && dist > 100) {
+																escapeTarget = c;
+																escapeFlg = true;
+															}
+														}
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+														//console.log(t.num + ' ' + t.value);
+													}
+												}
+											})
+											break;
+
+										default:
+											if(dist != null && dist < cateRanges[category][2]){
+												BulAim.intersectStrict(intercept).forEach(elem => {
+													if(elem.target == c){
+														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
+													}
+												})
+												if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
+													if (dist < cateEscapes[category][3]) {
+														escapeTarget = c;
+														escapeFlg = true;
+													}
+												}
+											}
+											break;
+									}
+								};
+								
+							}
+
+							/*if(Bullet.collection.length > 0){
 								let d = Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2));
 								let t = null;
 								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
@@ -9067,7 +9378,7 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
 							// 迎撃処理群
 							//   優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
