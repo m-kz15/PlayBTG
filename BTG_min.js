@@ -112,7 +112,7 @@ var cateRanges = [
 	[0, 0, 0], //brown
 	[300, 0, 0], //gray
 	[400, 200, 150], //green
-	[240, 0, 0], //red
+	[220, 0, 0], //red
 	[300, 200, 200], //lightgreen
 	[320, 250, 200], //elitegray
 	[300, 200, 200], //snow
@@ -126,7 +126,7 @@ var cateEscapes = [
 	[false, 0, 0, 0], //brown
 	[true, 200, 0, 0], //gray
 	[true, 300, 180, 120], //green
-	[true, 240, 0, 0], //red
+	[true, 220, 0, 0], //red
 	[true, 200, 0, 0], //lightgreen
 	[true, 280, 230, 180], //elitegray
 	[true, 200, 200, 180], //snow
@@ -3333,7 +3333,7 @@ window.onload = function() {
 						}
 						//p.moveTo(this.x,this.y);
 						//this.rotation = (315+(Math.atan2(dx, dy) * 180) / Math.PI)*-1;
-						switch(this.intersect(target)){
+						switch(this.intersectStrict(target)){
 							case false:
 								var vector = {
 									x: (target.x + target.width/2) - (this.x + this.width/2),
@@ -3916,6 +3916,8 @@ window.onload = function() {
 			let shotNGflg = false;
 			let reloadFlg = false;
 			let reloadTime = 0;
+			
+			var escapeFlg = false;
 
 			let shotStopFlg = false;
 			let shotStopTime = 0;
@@ -4145,9 +4147,10 @@ window.onload = function() {
 							    enemyTarget[Num] = target
 							}*/
 							if (this.time % 5 == 0) {
-								if (enemyTarget[Num] != target) enemyTarget[Num] = target;
+								if (enemyTarget[Num] != target && !escapeFlg) enemyTarget[Num] = target;
 							}
 
+							if(this.time % 2 == 0) escapeFlg = false;
 							//  一定範囲内にターゲットがいた場合
 							/*if (tank.within(target, 320) == true) {
 								enemyTarget[Num] = target
@@ -4176,6 +4179,7 @@ window.onload = function() {
 												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
 													if(elem.target == c)enemyTarget[Num] = c; //  迎撃のためにターゲット変更
 													//console.log(t.num + ' ' + t.value);
+													escapeFlg = true;
 												})
 											}
 											break;
@@ -4187,6 +4191,7 @@ window.onload = function() {
 													if (dist != null && dist < cateRanges[category][1] && dist > 100) {
 														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
 														//console.log(t.num + ' ' + t.value);
+														escapeFlg = true;
 													}
 												}
 											})
@@ -4198,6 +4203,7 @@ window.onload = function() {
 													if(elem.target.num == c.num){
 														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
 														//console.log(t.num + ' ' + t.value);
+														escapeFlg = true;
 													}
 												})
 											}
@@ -4695,7 +4701,7 @@ window.onload = function() {
 							this.time++;
 							if (this.time % 2 == 0) {
 								stopFlg = false;
-								escapeFlg = false;
+								//escapeFlg = false;
 								shotNGflg = false;
 								fireFlgs[Num] = false;
                                 
@@ -4736,8 +4742,9 @@ window.onload = function() {
 							        stopFlg = true;
 							    }
 							})*/
-							if (this.time % 10 == 0) {
+							if (this.time % 5 == 0) {
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
+								escapeFlg = false;
 							}
 
 
@@ -5342,7 +5349,7 @@ window.onload = function() {
 							if (this.time % 2 == 0) {
 								//if(opaFlg) opaFlg = false;
 								stopFlg = false;
-								escapeFlg = false;
+								//escapeFlg = false;
 								if(fireFlgs[Num])fireFlgs[Num] = false;
 							}
 
@@ -5371,6 +5378,7 @@ window.onload = function() {
 
 							if(this.time % 5 == 0){
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
+								escapeFlg = false;
 							}
 
 							EnemyAim.intersect(alignment).forEach(elem => {
@@ -7092,7 +7100,6 @@ window.onload = function() {
 								if (escapeFlg == false) rootFlg = false;
 								if (enemyTarget[Num] != target) rootFlg = true;
 								if (tankStopFlg) tankStopFlg = false;
-								escapeFlg = false;
 								shotNGflg = false;
 								fireFlgs[Num] = false;
 								if(moveSpeed != 0 && rootFlg == false){
@@ -7201,6 +7208,7 @@ window.onload = function() {
 							if (this.time % 3 == 0) {
 								
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
+								escapeFlg = false;
 							}
 
 							/* 迎撃処理群
@@ -9219,7 +9227,7 @@ window.onload = function() {
 										reloadTime = 0;
 									}
 								}
-								escapeFlg = false;
+								//escapeFlg = false;
 								fireFlgs[Num] = false;
 							}
 
@@ -9232,6 +9240,7 @@ window.onload = function() {
 
 							if (this.time % 5 == 0) {
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
+								escapeFlg = false;
 							}
 
 							if(Bullet.collection.length > 0){
