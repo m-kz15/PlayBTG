@@ -1952,24 +1952,41 @@ window.onload = function() {
 				//this.backgroundColor = "#aff4"
 				this.image = n_color;
 			}
-			/*else if(debugFlg){
-			                this.backgroundColor = "#f008"
-			            }*/
-
 
 			let vec = Pos_to_Vec({ x: (target.x + target.width / 2), y: (target.y + target.height / 2) }, { x: (cannon.x + cannon.width / 2), y: (cannon.y + cannon.height / 2) });
 			let rad = Math.atan2(vec.y, vec.x);
-			this.moveTo((cannon.x + (cannon.width / 2) - 3.45) + Math.cos(rad) * (56), (cannon.y + (cannon.height / 2) - 4.5) + Math.sin(rad) * (56));
-			/*this.moveTo(cannon.x+(cannon.width/2)-3.45,cannon.y+(cannon.height/2)-4.5)
-			const vector = {
-			    x: (target.x+target.width/2) - (cannon.x+cannon.width/2),
-			    y: (target.y+target.height/2) - (cannon.y+cannon.height/2)
-			};
-			var rad = Math.atan2(vector.y, vector.x);*/
+			
 			var dx = Math.cos(rad) * shotSpeed;
 			var dy = Math.sin(rad) * shotSpeed;
-			//this.moveTo(this.x+(base*4)*Math.cos(rad), this.y+(base*4)*Math.sin(rad));
-			cannon.rotation = (270 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+
+			if(num == 0){
+				cannon.rotation = (270 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+				this.moveTo((cannon.x + (cannon.width / 2) - 3.45) + Math.cos(rad) * (56), (cannon.y + (cannon.height / 2) - 4.5) + Math.sin(rad) * (56));
+			}else{
+				var rot = (-90 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+				if(rot < 0){
+					rot = 360 + rot;
+				}
+				let sa = cannon.rotation - (rot);
+				if(Math.abs(sa) > 180){
+					sa = sa * -1; 
+				}
+	
+				if(Math.abs(sa) >= 5){
+					let rotmove = sa == 0 ? 0 : sa > 0 ? -5 : 5;
+					if(rotmove != 0){
+						cannon.rotation += rotmove;
+					}
+				}else{
+					cannon.rotation = rot;
+				}
+				
+				rad = cannon.rotation * (Math.PI / 180);
+				this.moveTo((cannon.x + (cannon.width / 2) - 3.45) + Math.cos(rad) * (56), (cannon.y + (cannon.height / 2) - 4.5) + Math.sin(rad) * (56));
+			
+				dx = Math.cos(rad) * shotSpeed;
+				dy = Math.sin(rad) * shotSpeed;
+			}
 			this.rotation = (315 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
 			this.onenterframe = function() {
 				if (deleteFlg == true) scene.removeChild(this);
