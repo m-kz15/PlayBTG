@@ -1085,7 +1085,7 @@ window.onload = function() {
 
 	let viewGame = document.getElementById('enchant-stage');
 		viewGame.style.display = "block";
-	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+	/*if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
 		if(window.innerWidth > viewGame.clientWidth){
 			//scl = window.innerWidth / viewGame.clientWidth;
 			//alert(scl)
@@ -1105,7 +1105,11 @@ window.onload = function() {
 		viewGame.style.position = "absolute";
 		viewGame.style.left = ScreenMargin + "px";
 		game._pageX = ScreenMargin;
-	}
+	}*/
+	ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
+	viewGame.style.position = "absolute";
+	viewGame.style.left = ScreenMargin + "px";
+	game._pageX = ScreenMargin;
 	
 
 	/* ステージ端の壁クラス */
@@ -3642,9 +3646,13 @@ window.onload = function() {
 				})
 			} else {
 				document.addEventListener('mousemove', function(e) {
+					cur.x = (e.x - ScreenMargin) * (game.width / viewGame.clientWidth) + (cur.width / 2);
+					cur.y = (e.y) * (game.height / viewGame.clientHeight) + (cur.height / 2);
+				})
+				/*document.addEventListener('mousemove', function(e) {
 					cur.x = (e.x - 36) * 2.7 - (ScreenMargin * 2);
 					cur.y = (e.y) * 2.65;
-				})
+				})*/
 				//  画面クリック時の砲撃処理
 				scene.addEventListener('touchstart', function() {
 					if (worldFlg == true && scene.time > 210) { //  処理しても良い状態か
@@ -11971,7 +11979,7 @@ window.onload = function() {
 window.onresize = function(){
     let viewGame = document.getElementById('enchant-stage');
     //viewGame.style.display = "block";
-	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+	/*if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
 		if(window.innerWidth > viewGame.clientWidth){
 			//scl = window.innerWidth / viewGame.clientWidth;
 			//alert(scl)
@@ -11991,5 +11999,9 @@ window.onresize = function(){
 		viewGame.style.position = "absolute";
 		viewGame.style.left = ScreenMargin + "px";
 		game._pageX = ScreenMargin;
-	}
+	}*/
+	ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
+	viewGame.style.position = "absolute";
+	viewGame.style.left = ScreenMargin + "px";
+	game._pageX = ScreenMargin;
 };
