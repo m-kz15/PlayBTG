@@ -15,5 +15,5 @@ ver1.0はPC以外でのプレイでは操作ができません。<br>
 -------------------------------------------------------<br>
 
 -------------------------------------------------------<br>
-<a href="https://m-kz15.github.io/PlayBTG/index.html">BattleTankGame_ver2.0</a> <br>
+<a href="https://m-kz15.github.io/PlayBTG/game.html">BattleTankGame_ver2.0</a> <br>
 -------------------------------------------------------<br>
