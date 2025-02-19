@@ -11970,10 +11970,22 @@ window.onload = function() {
 		}
 
 	}
-	if(debugFlg){
-		game.debug();	//	ゲームをデバッグモードで実行させる。
+	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+		if (Math.abs(window.orientation) == 90) {
+			if(debugFlg){
+				game.debug();	//	ゲームをデバッグモードで実行させる。
+			}else{
+				game.start(); // ゲームをスタートさせます
+			}
+		}else{
+			
+		}
 	}else{
-		game.start(); // ゲームをスタートさせます
+		if(debugFlg){
+			game.debug();	//	ゲームをデバッグモードで実行させる。
+		}else{
+			game.start(); // ゲームをスタートさせます
+		}
 	}
 }
 window.onresize = function(){
