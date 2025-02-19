@@ -22,6 +22,30 @@
     width: 80px;
     font-size: 6px;
 }
+#button3{
+  position: absolute;
+  top: 70px;
+  left: 0px;
+  width: 80px;
+  font-size: 6px;
+}
+@keyframes blinking {
+	0% {
+    color: #622;
+	}
+  25% {
+    color: #911;
+  }
+  50% {
+    color: #f00;
+  }
+  75% {
+    color: #911;
+  }
+	100% {
+		color: #622;
+	}
+}
 
   /*ゲーム画面*/
   /*#enchant-stage {
