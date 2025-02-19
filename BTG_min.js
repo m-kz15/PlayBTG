@@ -805,12 +805,18 @@ class Vpad {
 		});
 
 		//横長の場合位置変更
-		if (window.innerWidth > window.innerHeight) {
+		if (Math.abs(window.orientation) == 90) {
 			pad.style.width = `${window.innerWidth}px`;
 			pad.style.position = "absolute"; //画面の上にかぶせるため
 			pad.style.backgroundColor = "transparent"; //透明
 			pad.style.bottom = "0px"; //下に固定
 		}
+		/*if (window.innerWidth > window.innerHeight) {
+			pad.style.width = `${window.innerWidth}px`;
+			pad.style.position = "absolute"; //画面の上にかぶせるため
+			pad.style.backgroundColor = "transparent"; //透明
+			pad.style.bottom = "0px"; //下に固定
+		}*/
 			
 		const height = Number(pixelSize * stage_h / 2.65) * 0.5; //ゲーム画面の半分の高さをゲームパッドの高さに
 		pad.style.height = `${height}px`;
