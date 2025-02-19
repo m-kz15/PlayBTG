@@ -3,6 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="robots" content="noindex" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="initial-scale=1.0">
     <script type="text/javascript" src="./enchant/enchant.js"></script>
     <script type="text/javascript" src="./enchant/Box2dWeb-2.1.a.3.js"></script>
     <script type="text/javascript" src="./enchant/box2d.enchant.js"></script>
@@ -67,7 +70,10 @@
 				// IE11
 				} else if( document.body.msRequestFullscreen ) {
 					document.body.msRequestFullscreen();
-				}				
+					
+				} else if (document.body.webkitEnterFullscreen){
+					document.body.webkitEnterFullscreen();
+				} 				
 			});
 
 			// フルスクリーン解除
@@ -90,6 +96,9 @@
 				// IE11
 				} else if( document.msExitFullscreen ) {
 					document.msExitFullscreen();
+					
+				} else if( document.webkitExitFullScreen ){
+					document.webkitExitFullScreen();
 				}
 			});
 			document.getElementById('button3').addEventListener('click', function(){
