@@ -12029,6 +12029,15 @@ window.onload = function() {
 		}
 	}
 }
+if (navigator.userAgent.match(/iPhone/)) {
+	window.addEventListener('orientationchange',function(){
+		let viewGame = document.getElementById('enchant-stage');
+		ScreenMargin = ((window.innerWidth-viewGame.clientWidth)/2);
+		viewGame.style.position = "absolute";
+		viewGame.style.left = ScreenMargin + "px";
+		game._pageX = ScreenMargin;
+	})
+}
 window.onresize = function(){
     let viewGame = document.getElementById('enchant-stage');
     //viewGame.style.display = "block";
