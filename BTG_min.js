@@ -786,7 +786,11 @@ class Vpad {
 		this.input = input; //InputManagerのinput
 		this.resizePad();
 		// リサイズイベントの登録
-		window.addEventListener('resize', () => { this.resizePad(); });
+		if (navigator.userAgent.match(/iPhone/)) {
+			window.addEventListener('orientationchange',  () => { this.resizePad(); })
+		}else{
+			window.addEventListener('resize', () => { this.resizePad(); });
+		}
 	}
 	//画面サイズが変わるたびにvpadも作り変える
 	resizePad() {
