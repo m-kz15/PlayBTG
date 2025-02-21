@@ -582,6 +582,18 @@ var Hit_Rot = function(from, to) {
 	return value;
 }
 
+function getOrientation(screen, window) {
+	// 新しいAPIが利用可能な場合は、screen.orientationを使用
+	if (screen && screen.orientation && screen.orientation.type) {
+		  return screen.orientation.type;
+		}
+		// 古いAPIを使う必要がある場合はwindow.orientationを使用
+		if ("orientation" in window) {
+		  return Math.abs(window.orientation) === 90 ? "landscape" : "portrait";
+		}
+		// どちらも利用できない場合は、デフォルトを'portrait'とする
+		return "portrait";
+}
 
 /*function collision(L, R, T, B, x, y, radius){ 
 	if(L - radius > x || R + radius < x || T - radius > y || B + radius < y){
@@ -805,12 +817,31 @@ class Vpad {
 		});
 
 		//横長の場合位置変更
-		if (Math.abs(window.orientation) == 90) {
+		if (navigator.userAgent.match(/iPhone/)) {
+			let _orientation = getOrientation(screen, window);
+			if(_orientation === "landscape-primary" || _orientation === "landscape-secondary" || _orientation === "landscape"){
+				pad.style.width = `${window.innerWidth}px`;
+				pad.style.position = "absolute"; //画面の上にかぶせるため
+				pad.style.backgroundColor = "transparent"; //透明
+				pad.style.bottom = "0px"; //下に固定
+			}else{
+
+			}
+			console.log(_orientation)
+		}else{
+			if (window.innerWidth > window.innerHeight) {
+				pad.style.width = `${window.innerWidth}px`;
+				pad.style.position = "absolute"; //画面の上にかぶせるため
+				pad.style.backgroundColor = "transparent"; //透明
+				pad.style.bottom = "0px"; //下に固定
+			}
+		}
+		/*if (Math.abs(window.orientation) == 90) {
 			pad.style.width = `${window.innerWidth}px`;
 			pad.style.position = "absolute"; //画面の上にかぶせるため
 			pad.style.backgroundColor = "transparent"; //透明
 			pad.style.bottom = "0px"; //下に固定
-		}
+		}*/
 		/*if (window.innerWidth > window.innerHeight) {
 			pad.style.width = `${window.innerWidth}px`;
 			pad.style.position = "absolute"; //画面の上にかぶせるため
