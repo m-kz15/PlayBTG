@@ -827,7 +827,8 @@ class Vpad {
 				pad.style.width = `${window.innerWidth}px`;
 				pad.style.position = "absolute"; //画面の上にかぶせるため
 				pad.style.backgroundColor = "transparent"; //透明
-				pad.style.bottom = "0px"; //下に固定
+				//pad.style.bottom = "0px"; //下に固定
+				pad.style.top = `${Number(pixelSize * stage_h / 2.65) * 0.5}px`; //下に固定
 			}else{
 
 			}
