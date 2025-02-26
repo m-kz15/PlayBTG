@@ -114,7 +114,7 @@ var cateRanges = [
 	[400, 200, 150], //green
 	[220, 0, 0], //red
 	[300, 200, 200], //lightgreen
-	[320, 250, 200], //elitegray
+	[360, 250, 200], //elitegray
 	[300, 200, 200], //snow
 	[0, 0, 0], //elitegreen
 	[300, 0, 0], //sand
@@ -128,7 +128,7 @@ var cateEscapes = [
 	[true, 300, 180, 120], //green
 	[true, 220, 0, 0], //red
 	[true, 200, 0, 0], //lightgreen
-	[true, 280, 230, 180], //elitegray
+	[true, 320, 230, 180], //elitegray
 	[true, 200, 200, 180], //snow
 	[false, 0, 0, 0], //elitegreen
 	[true, 280, 0, 0], //sand
@@ -507,7 +507,7 @@ var Vec_Distance = function(from, to) {
 	return Math.sqrt(vector.x + vector.y);
 }
 
-var Escape_Rot = function(from, to) {
+var Escape_Rot = function(from, to, value) {
 	let v = Rot_to_Vec(to.rotation, 270);
 	v.x = v.x * 96 + to.x;
 	v.y = v.y * 96 + to.y;
@@ -520,7 +520,7 @@ var Escape_Rot = function(from, to) {
 	let rad = Math.atan2(p.y, p.x);
 	let r = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
 	if(r < 0) r *= -1;
-	let value = Math.floor(Math.random() * 4);
+	//let value = Math.floor(Math.random() * 4);
 	if (r > 338 || r <= 23) {
 		while (value == 2) value = Math.floor(Math.random() * 4);
 	} else if (r > 23 && r <= 68) {
@@ -3698,8 +3698,8 @@ window.onload = function() {
 				})
 			} else {
 				document.addEventListener('mousemove', function(e) {
-					cur.x = (e.x - ScreenMargin) * (game.width / viewGame.clientWidth) + (cur.width / 2);
-					cur.y = (e.y) * (game.height / viewGame.clientHeight) + (cur.height / 2);
+					cur.x = (e.x - ScreenMargin) * (game.width / viewGame.clientWidth) - (cur.width / 2);
+					cur.y = (e.y) * (game.height / viewGame.clientHeight) - (cur.height / 2);
 				})
 				/*document.addEventListener('mousemove', function(e) {
 					cur.x = (e.x - 36) * 2.7 - (ScreenMargin * 2);
@@ -6970,7 +6970,7 @@ window.onload = function() {
 										}else{
 											if(escapeFlg){
 												//SelDirection(weak, escapeTarget, 0);
-												value = Escape_Rot(weak, escapeTarget);
+												value = Escape_Rot(weak, escapeTarget, value);
 											}else{
 												SelDirection(weak, target, 1);
 											}
@@ -7283,8 +7283,8 @@ window.onload = function() {
 					sa = sa * -1; 
 				}
 	
-				if(Math.abs(sa) >= 10){
-					let rotmove = sa == 0 ? 0 : sa > 0 ? -10 : 10;
+				if(Math.abs(sa) >= 12){
+					let rotmove = sa == 0 ? 0 : sa > 0 ? -12 : 12;
 					if(rotmove != 0){
 						from.rotation += rotmove;
 					}
@@ -7304,6 +7304,22 @@ window.onload = function() {
 					let dx = Math.cos(rad) * speed;
 					let dy = Math.sin(rad) * speed;
 					from.moveBy(dx, dy);
+				}
+			}
+			function ResetAim(from) {
+				if(enemyTarget[Num] != tankEntity[0]){
+					let v = Rot_to_Vec(enemyTarget[Num].rotation, 270);
+					let dis = Math.trunc(Vec_Distance(from, enemyTarget[Num]) / 30);
+					let val = dis * enemyTarget[Num].shotSpeed + shotSpeed;
+					console.log(val)
+					v.x = v.x * val + enemyTarget[Num].x;
+					v.y = v.y * val + enemyTarget[Num].y;
+					//console.log(v);
+					let p = Pos_to_Vec({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) }, v);
+					//console.log({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) });
+					//console.log(p);
+					let rad = Math.atan2(p.y, p.x);
+					cannon.rotation = (90 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
 				}
 			}
 
@@ -7504,7 +7520,7 @@ window.onload = function() {
 													if(elem.target == c){
 														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
 														//console.log(t.num + ' ' + t.value);
-														if(this.time % 20 == 0) value = Escape_Rot(this, c);
+														if(this.time % 20 == 0) value = Escape_Rot(this, c, value);
 													}
 													
 												})
@@ -7747,6 +7763,7 @@ window.onload = function() {
 											if (bulStack[Num][i] == false) {
 												
 												if (category == 5) {
+													ResetAim(this);
 													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
 												}else if(category == 10){
 													if(scene.time < 360)break;
@@ -7794,7 +7811,7 @@ window.onload = function() {
 												if (tankEntity[i].intersectStrict(intercept) && i != Num && deadFlgs[i] == false) {
 													//fireFlgs[Num] = false;
 													//tankStopFlg = true;
-													value = Escape_Rot(this, tankEntity[i]);
+													value = Escape_Rot(this, tankEntity[i], value);
 													break;
 												}
 											}
@@ -9583,7 +9600,7 @@ window.onload = function() {
 													if(elem.target == c){
 														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
 														//console.log(t.num + ' ' + t.value);
-														if(this.time % 9 == 0) value = Escape_Rot(this, c);
+														if(this.time % 9 == 0) value = Escape_Rot(this, c, value);
 													}
 													
 												})
@@ -9844,7 +9861,7 @@ window.onload = function() {
 												if (tankEntity[i].intersectStrict(intercept) && i != Num && deadFlgs[i] == false) {
 													//fireFlgs[Num] = false;
 													//tankStopFlg = true;
-													value = Escape_Rot(this, tankEntity[i]);
+													value = Escape_Rot(this, tankEntity[i], value);
 													break;
 												}
 											}
