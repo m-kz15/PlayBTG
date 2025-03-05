@@ -103,7 +103,7 @@ var cateFlgs = [
 	[false, false, false], //elitegreen
 	[true, false, false], //sand
 	[false, false, false], //pink
-	[true, false, false], //random
+	[true, false, true], //random
 	[true, true, true] //dazzle
 ];
 /* 各戦車の守備範囲
@@ -119,7 +119,7 @@ var cateRanges = [
 	[0, 0, 0], //elitegreen
 	[300, 0, 0], //sand
 	[500, 0, 0], //pink
-	[300, 0, 0], //random
+	[500, 0, 300], //random
 	[300, 300, 300] //dazzle
 ];
 var cateEscapes = [
@@ -133,7 +133,7 @@ var cateEscapes = [
 	[false, 0, 0, 0], //elitegreen
 	[true, 280, 0, 0], //sand
 	[false, 0, 0, 0], //pink
-	[true, 260, 0, 0], //random
+	[true, 400, 0, 280], //random
 	[true, 240, 200, 160] //dazzle
 ];
 var cateDistances = [
@@ -246,7 +246,7 @@ var cateMoveSpeeds = [
 	0.0, //elitegreen
 	2.6, //sand
 	0.0, //pink
-	1.0, //random
+	2.8, //random
 	2.0 //dazzle
 ];
 
@@ -1987,7 +1987,7 @@ window.onload = function() {
 
 	/* 照準クラス */
 	var Aim = Class.create(Sprite, {
-		initialize: function(target, cannon, shotSpeed, num, scene) {
+		initialize: function(target, cannon, shotSpeed, num, scene, lateFlg) {
 			Sprite.call(this, base / 2, base / 2);
 			if (num == 0) {
 				let n_color = new Surface(base / 2, base / 2);
@@ -2018,24 +2018,36 @@ window.onload = function() {
 					sa = sa * -1; 
 				}
 	
-				if(Math.abs(sa) > 5){
-					let rotmove = sa == 0 ? 0 : sa > 0 ? -8 : 8;
-					if(rotmove != 0){
-						cannon.rotation += rotmove;
-					}
-				}else if(Math.abs(sa) >= 5){
-					let rotmove = sa == 0 ? 0 : sa > 0 ? -5 : 5;
-					if(rotmove != 0){
-						cannon.rotation += rotmove;
-					}
-				}else if(Math.abs(sa) >= 3){
-					let rotmove = sa == 0 ? 0 : sa > 0 ? -3 : 3;
-					if(rotmove != 0){
-						cannon.rotation += rotmove;
+				if(lateFlg){
+					if(Math.abs(sa) >= 1.5){
+						let rotmove = sa == 0 ? 0 : sa > 0 ? -1.5 : 1.5;
+						if(rotmove != 0){
+							cannon.rotation += rotmove;
+						}
+					}else{
+						cannon.rotation = rot;
 					}
 				}else{
-					cannon.rotation = rot;
+					if(Math.abs(sa) > 5){
+						let rotmove = sa == 0 ? 0 : sa > 0 ? -8 : 8;
+						if(rotmove != 0){
+							cannon.rotation += rotmove;
+						}
+					}else if(Math.abs(sa) >= 5){
+						let rotmove = sa == 0 ? 0 : sa > 0 ? -5 : 5;
+						if(rotmove != 0){
+							cannon.rotation += rotmove;
+						}
+					}else if(Math.abs(sa) >= 3){
+						let rotmove = sa == 0 ? 0 : sa > 0 ? -3 : 3;
+						if(rotmove != 0){
+							cannon.rotation += rotmove;
+						}
+					}else{
+						cannon.rotation = rot;
+					}
 				}
+				
 				
 				rad = cannon.rotation * (Math.PI / 180);
 				this.moveTo((cannon.x + (cannon.width / 2) - 3.45) + Math.cos(rad) * (56), (cannon.y + (cannon.height / 2) - 4.5) + Math.sin(rad) * (56));
@@ -3917,7 +3929,7 @@ window.onload = function() {
 								if(playerType == 8){
 									if(game.time % 2 == 0) new EnemyAim();
 								}else{
-									new Aim(cur, cannon, 48, Num, scene);
+									new Aim(cur, cannon, 48, Num, scene, false);
 								}
 							}
 								//new EnemyAim();
@@ -4082,7 +4094,7 @@ window.onload = function() {
 			//  独自の敵の照準処理
 			var EnemyAim = Class.create(Aim, { //  Aimクラスを継承
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 20, Num, scene);
+					Aim.call(this, alignment, cannon, 20, Num, scene, false);
 				}
 			})
 
@@ -4738,7 +4750,7 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 24, Num, scene);
+					Aim.call(this, alignment, cannon, 24, Num, scene, false);
 					if(ref == 0){
 						this.scale(2,2);
 					}
@@ -5426,7 +5438,7 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 24, Num, scene);
+					Aim.call(this, alignment, cannon, 24, Num, scene, false);
 				}
 			})
 
@@ -6493,7 +6505,7 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 28, Num, scene);
+					Aim.call(this, alignment, cannon, 28, Num, scene, false);
 					this.scale(2,2);
 				}
 			})
@@ -7206,7 +7218,7 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 24, Num, scene);
+					Aim.call(this, alignment, cannon, 24, Num, scene, false);
 					if(ref == 0)this.scale(2,2);
 					//if(debugFlg)this.backgroundColor = 'yellow'
 				}
@@ -8274,7 +8286,7 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 24, Num, scene);
+					Aim.call(this, alignment, cannon, 24, Num, scene, false);
 				}
 			})
 
@@ -9317,10 +9329,10 @@ window.onload = function() {
 	        var EnemyAim = Class.create(Aim,{
 	            initialize: function(){
 					if(ref == 0){
-						Aim.call(this, alignment, cannon, 24, Num, scene);
+						Aim.call(this, alignment, cannon, 24, Num, scene, false);
 						this.scale(2,2);
 					}else{
-						Aim.call(this, alignment, cannon, 20, Num, scene);
+						Aim.call(this, alignment, cannon, 20, Num, scene, false);
 					}
 	            }
 	        });
@@ -10024,6 +10036,8 @@ window.onload = function() {
 
 			const intercept = new Intercept96(this, scene);
 			const intercept7 = new InterceptC(cannon, scene);
+
+			intercept.scale(3.0,3.0);
 			var value = Math.floor(Math.random() * 4);
 			var speed = moveSpeed;
 			var rot = 0;
@@ -10039,20 +10053,6 @@ window.onload = function() {
 			let life = 1;
 
 			let brflg = false;
-
-			if (moveSpeed != 0) {
-				if (stageNum >= 20) {
-					//speed = speed + (0.1 * (stageNum / 20));
-					speed = Math.round((speed + (0.1 * (stageNum / 20))) * 10) / 10;
-				}
-			}
-
-			if (addBullet != 0 && fireLate > 19) fireLate = fireLate - 5;
-
-			if (category == 2 && addBullet != 0) {
-				ref = ref + addBullet;
-				fireLate = 25;
-			}
 
 			enemyTarget[Num] = target;
 			var alignment = new Target(Num, scene)
@@ -10073,15 +10073,83 @@ window.onload = function() {
 
 			var EnemyAim = Class.create(Aim, {
 				initialize: function() {
-					Aim.call(this, alignment, cannon, 24, Num, scene);
+					Aim.call(this, alignment, cannon, 24, Num, scene, true);
 					if(ref == 0){
 						this.scale(2,2);
 					}
 				}
 			})
 
-			//  移動方向決め処理
 			function SelDirection(target1, target2, or) {
+				if (or == 0) {
+					if (Math.floor(Math.random() * 2) == 0) {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
+							}
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
+							}
+						}
+					} else {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+							}
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+							}
+						}
+					}
+					
+				} else if (or == 1) {
+					if (Math.floor(Math.random() * 2) == 0) {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
+							}
+
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
+							}
+						}
+					} else {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+							}
+
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+							} else {
+								while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+							}
+						}
+					}
+
+				}
+			}
+
+			//  移動方向決め処理
+			/*function SelDirection(target1, target2, or) {
 				if (or == 0) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
@@ -10114,7 +10182,7 @@ window.onload = function() {
 					}
 
 				}
-			}
+			}*/
 
 			function ShotBullet(i) {
 				game.assets['./sound/s_car_door_O2.wav'].clone().play();
@@ -10146,16 +10214,16 @@ window.onload = function() {
 					rot = 360 + rot;
 				}
 				let sa = from.rotation - (rot);
-				if(Math.abs(sa) > 180){
+				if(Math.abs(sa) >= 179){
 					sa = sa * -1; 
 				}
 	
-				if(Math.abs(sa) >= 10){
-					let rotmove = sa == 0 ? 0 : sa > 0 ? -10 : 10;
+				if(Math.abs(sa) >= 15){
+					let rotmove = sa == 0 ? 0 : sa > 0 ? -15 : 15;
 					if(rotmove != 0){
 						from.rotation += rotmove;
 					}
-					return false;
+					return true;
 				}else{
 					if(sa != 0) from.rotation = rot;
 					return true;
@@ -10163,7 +10231,7 @@ window.onload = function() {
 			}
 			function MoveBody(from, speed, rot) {
 				if(RotBody(from, rot)){
-					let rot = from.rotation - 180;
+					let rot = from.rotation;
 					if(rot < 0){
 						rot = 360 + rot;
 					}
@@ -10173,6 +10241,98 @@ window.onload = function() {
 					from.moveBy(dx, dy);
 				}
 			}
+			function ResetAim(from) {
+				if(enemyTarget[Num] != tankEntity[0]){
+					let v = Rot_to_Vec(enemyTarget[Num].rotation, 270);
+					let dis = Math.trunc(Vec_Distance(from, enemyTarget[Num]) / 30);
+					let val = dis * enemyTarget[Num].shotSpeed;
+					//console.log(val)
+					v.x = v.x * val + enemyTarget[Num].x;
+					v.y = v.y * val + enemyTarget[Num].y;
+					//console.log(v);
+					let p = Pos_to_Vec({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) }, v);
+					//console.log({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) });
+					//console.log(p);
+					let rad = Math.atan2(p.y, p.x);
+					cannon.rotation = (90 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+				}
+			}
+
+			var d_Escape_Rot = function(from, to, value) {
+				let v = Rot_to_Vec(to.rotation, 270);
+				/*let dis = Math.trunc(Vec_Distance(from, to) / 30);
+				let val = dis * to.shotSpeed + shotSpeed;
+				v.x = v.x * val + to.x;
+				v.y = v.y * val + to.y;*/
+				v.x = v.x * 1 + to.x;
+				v.y = v.y * 1 + to.y;
+				//new Point(v);
+				let p = Pos_to_Vec({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) }, v);
+				let rad = Math.atan2(p.y, p.x);
+				let r = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+				if(r < 0){
+					r = 359 + r;
+				}
+				if(r > 359){
+					r = r - 360;
+				}
+				if(from.time % 60 == 0) value = Math.floor(Math.random() * 8);
+				if (r > 338 || r <= 23) {
+					if(r <= 23){
+						while (value == 2 || value == 4 || value == 5 || value == 3 || value == 1) value = Math.floor(Math.random() * 8);
+					}else{
+						while (value == 2 || value == 4 || value == 5 || value == 3 || value == 0) value = Math.floor(Math.random() * 8);
+					}
+					//while (value == 2 || value == 4 || value == 5 || value == 3) value = Math.floor(Math.random() * 8);
+				} else if (r > 23 && r <= 68) {
+					if (r > 46) {
+						while (value == 1 || value == 5 || value == 7 || value == 6) value = Math.floor(Math.random() * 8);
+					} else {
+						while (value == 2 || value == 4 || value == 5 || value == 6) value = Math.floor(Math.random() * 8);
+					}
+				} else if (r > 68 && r <= 113) {
+					if(r > 90){
+						while (value == 1 || value == 5 || value == 7 || value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+					}else{
+						while (value == 1 || value == 5 || value == 7 || value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+					}
+					//while (value == 1 || value == 5 || value == 7 || value == 0) value = Math.floor(Math.random() * 8);
+				} else if (r > 113 && r <= 158) {
+					if (r > 136) {
+						while (value == 3 || value == 6 || value == 7 || value == 4) value = Math.floor(Math.random() * 8);
+					} else {
+						while (value == 1 || value == 5 || value == 7 || value == 4) value = Math.floor(Math.random() * 8);
+					}
+				} else if (r > 158 && r <= 203) {
+					if(r > 180){
+						while (value == 3 || value == 7 || value == 6 || value == 2 || value == 0) value = Math.floor(Math.random() * 8);
+					}else{
+						while (value == 3 || value == 7 || value == 6 || value == 2 || value == 1) value = Math.floor(Math.random() * 8);
+					}
+					//while (value == 3 || value == 7 || value == 6 || value == 2) value = Math.floor(Math.random() * 8);
+				} else if (r > 203 && r <= 248) {
+					if (r > 226) {
+						while (value == 0 || value == 6 || value == 4 || value == 5) value = Math.floor(Math.random() * 8);
+					} else {
+						while (value == 3 || value == 6 || value == 7 || value == 5) value = Math.floor(Math.random() * 8);
+					}
+				} else if (r > 248 && r <= 293) {
+					if(r > 270){
+						while (value == 0 || value == 6 || value == 4 || value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+					}else{
+						while (value == 0 || value == 6 || value == 4 || value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+					}
+					//while (value == 0 || value == 6 || value == 4 || value == 1) value = Math.floor(Math.random() * 8);
+				} else if (r > 293 && r <= 338) {
+					if (r > 316) {
+						while (value == 2 || value == 4 || value == 5 || value == 7) value = Math.floor(Math.random() * 8);
+					} else {
+						while (value == 0 || value == 4 || value == 6 || value == 7) value = Math.floor(Math.random() * 8);
+					}
+			
+				};
+				return value;
+			};
 
 			this.onenterframe = function() {
 				if (deleteFlg == true) {
@@ -10218,15 +10378,6 @@ window.onload = function() {
 								}
 							}
 
-							if (hittingTime > 20) {
-								if(value < 2){
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								}else{
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
-								}
-								
-								hittingTime = 0;
-							}
 							this.time++;
 							if (this.time % 2 == 0) {
 								stopFlg = false;
@@ -10276,8 +10427,11 @@ window.onload = function() {
 													if(elem.target == c){
 														enemyTarget[Num] = c; //  迎撃のためにターゲット変更
 														//console.log(t.num + ' ' + t.value);
+														//value = d_Escape_Rot(this, c, value);
+														escapeTarget = c;
+														escapeFlg = true;
+														return;
 													}
-													
 												})
 												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
 													if (dist < cateEscapes[category][1]) {
@@ -10326,6 +10480,33 @@ window.onload = function() {
 								
 							}
 
+							if (hittingTime > 20) {
+								if(!escapeFlg){
+									if (value == 4) {
+										//左上
+										while (value == 4 || value == 0 || value == 1) value = Math.floor(Math.random() * 8);
+									} else if (value == 5) {
+										//右上
+										while (value == 5 || value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+									} else if (value == 6) {
+										//左下
+										while (value == 6 || value == 2 || value == 3) value = Math.floor(Math.random() * 8);
+									} else if (value == 7) {
+										//右下
+										while (value == 7 || value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+									} else if (value == 0) {
+										while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
+									} else if (value == 1) {
+										while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
+									} else if (value == 2) {
+										while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+									} else if (value == 3) {
+										while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+									}
+								}
+								
+								hittingTime = 0;
+							}
 
 							if (reloadFlg == false) {
 								if (bullets[Num] == emax) reloadFlg = true;
@@ -10345,14 +10526,19 @@ window.onload = function() {
 								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
 									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
 										for (let i = 0; i < emax; i++) {
+											if(scene.time < 720) break;
 											if (bulStack[Num][i] == false) {
-												if(category == 2){
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
-												}else{
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
-												}
+												ResetAim(this);
+												colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
 												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-												ShotBullet(i)
+												ShotBullet(i);
+												if(addBullet){
+													if(bullets[Num] >= 1){
+														fireLate = 30;
+													}else{
+														fireLate = 10;
+													}
+												}
 												break;
 											}
 
@@ -10362,7 +10548,7 @@ window.onload = function() {
 							}
 							
 							if (moveSpeed > 0) {
-								if (this.time % 5 == 0) {
+								if (this.time % 3 == 0) {
 									if (escapeFlg == false) {
 										if (Math.sqrt(Math.pow(weak.x - target.x, 2) + Math.pow(weak.y - target.y, 2)) < cateDistances[category]) {
 											SelDirection(weak, target, 0);
@@ -10371,19 +10557,22 @@ window.onload = function() {
 												SelDirection(weak, target, 1);
 											}
 										}
-									} else {
-										SelDirection(weak, escapeTarget, 0);
-									}
-									if(tankEntity.length > 2){
-										for (var i = 0; i < tankEntity.length; i++) {
-											if (i != Num && deadFlgs[i] == false) {
-												if (this.intersect(tankEntity[i]) == true) {
-													SelDirection(weak, tankEntity[i], 0);
-													break;
+										if(tankEntity.length > 2){
+											for (var i = 0; i < tankEntity.length; i++) {
+												if (i != Num && deadFlgs[i] == false) {
+													if (this.intersect(tankEntity[i]) == true) {
+														SelDirection(weak, tankEntity[i], 0);
+														break;
+													}
 												}
 											}
 										}
+									} else {
+										value = d_Escape_Rot(this, escapeTarget, value);
+										
+										//SelDirection(weak, escapeTarget, 0);
 									}
+									
 									
 									if (grade > 3 && boms[0] > 0) {
 										for (let elem of bomOb) {
@@ -10397,17 +10586,37 @@ window.onload = function() {
 								}
 								/* 戦車本体の角度 */
 								if (shotStopFlg == false) {
-									if (value == 0) {
-										rot = 0;
+									if (value == 4) {
+										//左上
+										rot = 225
+										//this.x -= speed / 1.5;
+										//this.y -= speed / 1.5;
+									} else if (value == 5) {
+										//右上
+										rot = 315
+										//this.x += speed / 1.5;
+										//this.y -= speed / 1.5;
+									} else if (value == 6) {
+										//左下
+										rot = 135
+										//this.x -= speed / 1.5;
+										//this.y += speed / 1.5;
+									} else if (value == 7) {
+										//右下
+										rot = 45
+										//this.x += speed / 1.5;
+										//this.y += speed / 1.5;
+									} else if (value == 0) {
+										rot = 180;
 										//this.x -= speed;
 									} else if (value == 1) {
-										rot = 180;
+										rot = 0;
 										//this.x += speed;
 									} else if (value == 2) {
-										rot = 90;
+										rot = 270;
 										//this.y -= speed;
 									} else if (value == 3) {
-										rot = 270;
+										rot = 90;
 										//this.y += speed;
 									}
 								}
@@ -10455,6 +10664,22 @@ window.onload = function() {
 			scene.addChild(this);
 		}
 	});
+
+	var Point = Class.create(Sprite,{
+		initialize: function(v){
+			Sprite.call(this,10, 10);
+			this.moveTo(v.x,v.y);
+			this.backgroundColor = '#ff0';
+			this.opacity = 1.0;
+			this.onenterframe = function(){
+				this.opacity -= 0.05;
+				if(this.opacity < 0){
+					now_scene.removeChild(this);
+				}
+			}
+			now_scene.addChild(this);
+		}
+	})
 
 	/*var TestEntity = Class.create(Sprite,{
 	    initialize: function(x,y,tankPath,cannonPath,target,grade,category,scene){
@@ -12018,7 +12243,7 @@ window.onload = function() {
 				if((abn == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][9] == 12) stageData[i][10] = 10;
 				if ((stageData[i][10] != 11 && stageData[i][7] > 0) || stageData[i][10] == 8 || stageData[i][10] == 10) {
 					stageData[i][7] = cateMoveSpeeds[stageData[i][10]];
-					if (stageData[i][9] > 2) {
+					if (stageData[i][9] > 2 && stageData[i][10] != 10) {
 						stageData[i][7] = cateMoveSpeeds[stageData[i][10]] + addSpeed;
 					}
 				};
@@ -12028,7 +12253,8 @@ window.onload = function() {
 				bulStack.push([])
 				if (retryFlg == false) {
 					if (stageData[i][10] == 10) {
-						tankEntity.push(new AIElite(stageData[i][0], stageData[i][1], './image/ObjectImage/abnormal.png', './image/ObjectImage/abnormalcannon.png', tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], 10, stageData[i][10], scene, filterMap, backgroundMap, grid))
+						tankEntity.push(new newElite(stageData[i][0], stageData[i][1], './image/ObjectImage/abnormal.png', './image/ObjectImage/abnormalcannon.png', tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], 10, stageData[i][10], scene, filterMap))
+						//tankEntity.push(new AIElite(stageData[i][0], stageData[i][1], './image/ObjectImage/abnormal.png', './image/ObjectImage/abnormalcannon.png', tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], 10, stageData[i][10], scene, filterMap, backgroundMap, grid))
 						//tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],cateMaxBullets[10]+addBullet,0,cateShotSpeeds[10],1.5,cateFireLate[10],10,10,scene,filterMap))
 					} else if (stageData[i][10] == 7 || stageData[i][10] == 0) {
 						tankEntity.push(new AnotherElite(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], 0, cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
@@ -12058,7 +12284,8 @@ window.onload = function() {
 				} else {
 					if (deadTank[i - 4] == false) {
 						if (stageData[i][10] == 10) {
-							tankEntity.push(new AIElite(stageData[i][0], stageData[i][1], './image/ObjectImage/abnormal.png', './image/ObjectImage/abnormalcannon.png', tankEntity[0], cateMaxBullets[10] + addBullet, cateMaxRefs[10], cateShotSpeeds[10], stageData[i][7], cateFireLate[10], 10, 10, scene, filterMap, backgroundMap, grid))
+							tankEntity.push(new newElite(stageData[i][0], stageData[i][1], './image/ObjectImage/abnormal.png', './image/ObjectImage/abnormalcannon.png', tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], stageData[i][7], cateFireLate[stageData[i][10]], 10, stageData[i][10], scene, filterMap))
+							//tankEntity.push(new AIElite(stageData[i][0], stageData[i][1], './image/ObjectImage/abnormal.png', './image/ObjectImage/abnormalcannon.png', tankEntity[0], cateMaxBullets[10] + addBullet, cateMaxRefs[10], cateShotSpeeds[10], stageData[i][7], cateFireLate[10], 10, 10, scene, filterMap, backgroundMap, grid))
 							//tankEntity.push(new Elite(stageData[i][0],stageData[i][1],'./image/ObjectImage/abnormal.png','./image/ObjectImage/abnormalcannon.png',tankEntity[0],cateMaxBullets[10]+addBullet,0,cateShotSpeeds[10],1.5,cateFireLate[10],10,10,scene,filterMap))
 						} else if (stageData[i][10] == 7 || stageData[i][10] == 0) {
 							tankEntity.push(new AnotherElite(stageData[i][0], stageData[i][1], stageData[i][2], stageData[i][3], tankEntity[0], cateMaxBullets[stageData[i][10]] + addBullet, cateMaxRefs[stageData[i][10]], cateShotSpeeds[stageData[i][10]], 0, cateFireLate[stageData[i][10]], stageData[i][9], stageData[i][10], scene, filterMap));
