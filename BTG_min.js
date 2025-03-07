@@ -246,7 +246,7 @@ var cateMoveSpeeds = [
 	0.0, //elitegreen
 	2.6, //sand
 	0.0, //pink
-	2.8, //random
+	2.5, //random
 	2.0 //dazzle
 ];
 
@@ -269,7 +269,7 @@ var BGMs = [ //bgm指定用配列
 	'./sound/THIRD.mp3',
 	'./sound/SEVENTH.mp3',
 	'./sound/SIXTH.mp3',
-	'./sound/THIRD.mp3',
+	'./sound/TENTH.mp3',
 	'./sound/NINTH.mp3',
 	'./sound/EIGHTH.mp3',
 	'./sound/TENTH.mp3',
@@ -519,46 +519,69 @@ var Escape_Rot = function(from, to, value) {
 	//let r = Vec_to_Rot(p);
 	let rad = Math.atan2(p.y, p.x);
 	let r = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
-	if(r < 0) r *= -1;
+	if(r < 0){
+		r = 359 + r;
+	}else if(r > 359){
+		r = r - 360;
+	}
+	let arr = [0,1,2,3];
+	if(from.time % 60 == 0){
+		value = Math.floor(Math.random() * 4);
+	}
 	//let value = Math.floor(Math.random() * 4);
 	if (r > 338 || r <= 23) {
-		while (value == 2) value = Math.floor(Math.random() * 4);
+		arr = [0,1,3];
+		//while (value == 2) value = Math.floor(Math.random() * 4);
 	} else if (r > 23 && r <= 68) {
 		if (r > 46) {
-			while (value == 1) value = Math.floor(Math.random() * 4);
+			arr = [0,2,3];
+			//while (value == 1) value = Math.floor(Math.random() * 4);
 		} else {
-			while (value == 2) value = Math.floor(Math.random() * 4);
+			arr = [0,1,3];
+			//while (value == 2) value = Math.floor(Math.random() * 4);
 		}
 		//while(value == 2 || value == 1) value = Math.floor(Math.random() * 4);
 	} else if (r > 68 && r <= 113) {
-		while (value == 1) value = Math.floor(Math.random() * 4);
+		arr = [0,2,3];
+		//while (value == 1) value = Math.floor(Math.random() * 4);
 	} else if (r > 113 && r <= 158) {
 		if (r > 136) {
-			while (value == 3) value = Math.floor(Math.random() * 4);
+			arr = [0,1,2];
+			//while (value == 3) value = Math.floor(Math.random() * 4);
 		} else {
-			while (value == 1) value = Math.floor(Math.random() * 4);
+			arr = [0,2,3];
+			//while (value == 1) value = Math.floor(Math.random() * 4);
 		}
 		//while(value == 3 || value == 1) value = Math.floor(Math.random() * 4);
 	} else if (r > 158 && r <= 203) {
-		while (value == 3) value = Math.floor(Math.random() * 4);
+		arr = [0,1,2];
+		//while (value == 3) value = Math.floor(Math.random() * 4);
 	} else if (r > 203 && r <= 248) {
 		if (r > 226) {
-			while (value == 0) value = Math.floor(Math.random() * 4);
+			arr = [1,2,3];
+			//while (value == 0) value = Math.floor(Math.random() * 4);
 		} else {
-			while (value == 3) value = Math.floor(Math.random() * 4);
+			arr = [0,1,2];
+			//while (value == 3) value = Math.floor(Math.random() * 4);
 		}
 		//while(value == 3 || value == 0) value = Math.floor(Math.random() * 4);
 	} else if (r > 248 && r <= 293) {
-		while (value == 0) value = Math.floor(Math.random() * 4);
+		arr = [1,2,3];
+		//while (value == 0) value = Math.floor(Math.random() * 4);
 	} else if (r > 293 && r <= 338) {
 		if (r > 316) {
-			while (value == 2) value = Math.floor(Math.random() * 4);
+			arr = [0,1,3];
+			//while (value == 2) value = Math.floor(Math.random() * 4);
 		} else {
-			while (value == 0) value = Math.floor(Math.random() * 4);
+			arr = [1,2,3];
+			//while (value == 0) value = Math.floor(Math.random() * 4);
 		}
 
 	};
-
+	if(arr.indexOf(value) == -1){
+		value = arr[Math.floor(Math.random() * arr.length)];
+		//console.log(value + ' ' + r)
+	}
 	return value;
 };
 
@@ -581,6 +604,131 @@ var Hit_Rot = function(from, to) {
 
 	return value;
 }
+
+var New_Escape_Rot = function(from, to, value) {
+	let t1 = Get_Center(from);
+	let t2 = Get_Center(to);
+	let rem = [-1];
+	let arr = [0,1,2,3,4,5,6,7];
+
+	if (t1.x > t2.x) {
+		if (t1.y > t2.y) {
+			arr = [1,3,5,6,7];
+			//while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
+		} else {
+			arr = [1,2,4,5,7];
+			//while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
+		}
+	} else {
+		if (t1.y > t2.y) {
+			arr = [0,3,4,6,7];
+			//while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
+		} else {
+			arr = [0,2,4,5,6];
+			//while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
+		}
+	}
+
+	let v = Rot_to_Vec(to.rotation, 270);
+	v.x = v.x * 96 + t2.x;
+	v.y = v.y * 96 + t2.y;
+	let p = Pos_to_Vec(t1, v);
+	let rad = Math.atan2(p.y, p.x);
+	let r = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+	if(r < 0){
+		r = 359 + r;
+	}else if(r > 359){
+		r = r - 360;
+	}
+	if (r > 338 || r <= 23) {
+		if(r <= 23){
+			rem = [2,5];
+			//while (value == 2 || value == 4 || value == 5 || value == 3 || value == 1) value = Math.floor(Math.random() * 8);
+		}else{
+			rem = [2,4];
+			//while (value == 2 || value == 4 || value == 5 || value == 3 || value == 0) value = Math.floor(Math.random() * 8);
+		}
+		//while (value == 2 || value == 4 || value == 5 || value == 3) value = Math.floor(Math.random() * 8);
+	} else if (r > 23 && r <= 68) {
+		if (r > 46) {
+			rem = [1,5];
+			//while (value == 1 || value == 5 || value == 7 || value == 6) value = Math.floor(Math.random() * 8);
+		} else {
+			rem = [2,5];
+			//while (value == 2 || value == 4 || value == 5 || value == 6) value = Math.floor(Math.random() * 8);
+		}
+	} else if (r > 68 && r <= 113) {
+		if(r > 90){
+			rem = [1,7];
+			//while (value == 1 || value == 5 || value == 7 || value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+		}else{
+			rem = [1,5];
+			//while (value == 1 || value == 5 || value == 7 || value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+		}
+		//while (value == 1 || value == 5 || value == 7 || value == 0) value = Math.floor(Math.random() * 8);
+	} else if (r > 113 && r <= 158) {
+		if (r > 136) {
+			rem = [3,7];
+			//while (value == 3 || value == 6 || value == 7 || value == 4) value = Math.floor(Math.random() * 8);
+		} else {
+			rem = [1,7];
+			//while (value == 1 || value == 5 || value == 7 || value == 4) value = Math.floor(Math.random() * 8);
+		}
+	} else if (r > 158 && r <= 203) {
+		if(r > 180){
+			rem = [3,6];
+			//while (value == 3 || value == 7 || value == 6 || value == 2 || value == 0) value = Math.floor(Math.random() * 8);
+		}else{
+			rem = [3,7];
+			//while (value == 3 || value == 7 || value == 6 || value == 2 || value == 1) value = Math.floor(Math.random() * 8);
+		}
+		//while (value == 3 || value == 7 || value == 6 || value == 2) value = Math.floor(Math.random() * 8);
+	} else if (r > 203 && r <= 248) {
+		if (r > 226) {
+			rem = [0,6];
+			//while (value == 0 || value == 6 || value == 4 || value == 5) value = Math.floor(Math.random() * 8);
+		} else {
+			rem = [3,6];
+			//while (value == 3 || value == 6 || value == 7 || value == 5) value = Math.floor(Math.random() * 8);
+		}
+	} else if (r > 248 && r <= 293) {
+		if(r > 270){
+			rem = [0,4];
+			//while (value == 0 || value == 6 || value == 4 || value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+		}else{
+			rem = [0,6];
+			//while (value == 0 || value == 6 || value == 4 || value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+		}
+		//while (value == 0 || value == 6 || value == 4 || value == 1) value = Math.floor(Math.random() * 8);
+	} else if (r > 293 && r <= 338) {
+		if (r > 316) {
+			rem = [2,4];
+			//while (value == 2 || value == 4 || value == 5 || value == 7) value = Math.floor(Math.random() * 8);
+		} else {
+			rem = [0,4];
+			//while (value == 0 || value == 4 || value == 6 || value == 7) value = Math.floor(Math.random() * 8);
+		}
+
+	}else{
+		rem = [-1];
+	}
+	for(i = 0; i < rem.length; i++){
+		if(arr.indexOf(rem[i]) != -1){
+			arr.splice(arr.indexOf(rem[i]), 1);
+		}
+	}
+	if(arr.indexOf(value) == -1){
+		value = arr[Math.floor(Math.random() * arr.length)];
+		//console.log(value + '\r\n' + rem + '\r\n' + arr);
+	}
+	return value;
+}
+
+var Get_Center = function(obj){
+    var pos = {x: obj.x + (obj.width / 2), y: obj.y + (obj.height / 2)};
+
+    return pos;
+};
 
 function getOrientation(screen, window) {
 	// 新しいAPIが利用可能な場合は、screen.orientationを使用
@@ -832,7 +980,7 @@ class Vpad {
 			}else{
 
 			}
-			console.log(_orientation)
+			//console.log(_orientation)
 		}else{
 			if (window.innerWidth > window.innerHeight) {
 				pad.style.width = `${window.innerWidth}px`;
@@ -3970,34 +4118,6 @@ window.onload = function() {
 							ObsHeightRight.intersect(this).forEach(elem => {
 								this.moveTo(elem.x + (elem.width), this.y)
 							})
-							
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.moveTo(this.x, obsdir[i][0].y - 60)
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.moveTo(obsdir[i][2].x - 60, this.y)
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
-								}
-							}
-							//  フィールドの壁に衝突した場合の処理
-							if (this.intersect(walls[0]) == true) {
-								this.moveTo(this.x, walls[0].y + walls[0].height)
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.moveTo(walls[2].x + walls[2].width, this.y)
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-							}*/
 						}
 
 					}
@@ -4189,19 +4309,6 @@ window.onload = function() {
                     }	
 					if (deadFlgs[0] == false) {
 						
-						
-						/*for(var j = 0; j < bulOb.length; j++){
-						    for(var k = 0; k < bulOb[j].length; k++){
-						        if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
-						            game.assets['./sound/mini_bomb2.mp3'].clone().play();
-						            deadFlgs[Num] = true
-						            Get_NewBullet(j,k);
-						            moveSpeed = 0;
-						        }
-						    }
-						}*/
-						
-						
 						//  実行可能なら
 						if (worldFlg == true) {
 							//  死亡判定処理
@@ -4384,121 +4491,7 @@ window.onload = function() {
 								};
 								
 							}
-							/*if(Bullet.collection.length > 0){
-								let d = 9999;
-								let t = null;
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									let c = Bullet.collection[i];
-									if(!bulStack[c.num][c.value]) continue;
-									if(c.num == 0 && !cateFlgs[category][0]) continue;
-									if(c.num == Num && !cateFlgs[category][1]) continue;
-									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
-									if(c.num != Num){
-										if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-											d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-											t = c;
-										}
-									}else{
-										if(ref == 0) continue;
-										BulAim.intersectStrict(this).forEach(elem => {
-											if(elem.target == c){
-												if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-													d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-													t = c;
-												}
-											}
-										})
-									}
-								};
-								if(t != null){
-									let dist = Instrumentation(enemyTarget[Num], t);
-									switch(t.num){
-										case 0:
-											if (dist != null && dist < cateRanges[category][0]) {
-												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-													enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-													//console.log(t.num + ' ' + t.value);
-												})
-											}
-											break;
-										case Num:
-											if (dist != null && dist < cateRanges[category][1] && dist > 100) {
-												enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-												//console.log(t.num + ' ' + t.value);
-											}
-											break;
-										default:
-											if(dist != null && dist < cateRanges[category][2]){
-												BulAim.intersect(this).forEach(elem => {
-													if(elem.target.num == t.num){
-														enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-														//console.log(t.num + ' ' + t.value);
-													}
-												})
-											}
-											break;
-									}
-								}
-							}*/
 							
-							
-
-							/* 迎撃処理群
-							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
-							*/
-							//  他戦車の弾迎撃処理
-							/*if (cateFlgs[category][2] == true && tankEntity.length > 2) {
-								for (let i = 1; i < bulOb.length; i++) {
-									if(i == Num || bullets[i] == 0) continue;
-									for (let j = 0; j < bulOb[i].length; j++) {
-										if(!bulStack[i][j]) continue;
-										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
-										if(dist != null && dist < cateRanges[category][2]){
-											BulAim.intersect(this).forEach(elem => {
-												if(elem.target.num == i && elem.target.value == j){
-													enemyTarget[Num] = bulOb[i][j]; //  迎撃のためにターゲット変更
-												}
-												return;
-											})
-											
-										}	
-									}
-								}
-							}
-							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true && bullets[0] > 0) {
-								for (let i = 0; i < bulOb[0].length; i++) {
-									if (!bulStack[0][i])continue;
-									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-									if (dist != null && dist < cateRanges[category][0]) {
-										PlayerBulAim.intersectStrict(this).forEach(elem => {
-											if(elem.target.num == 0 && elem.target.value == i){
-												enemyTarget[Num] = bulOb[0][i]; //  迎撃のためにターゲット変更
-											}
-											return;
-										})
-										
-									}
-								}
-							}
-							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && ref > 0 && bullets[Num] > 0) {
-								for (let i = 0; i < bulOb[Num].length; i++) {
-									if (!bulStack[Num][i])continue;
-									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-									if (dist != null && dist < cateRanges[category][1] && dist > 100) {
-										BulAim.intersectStrict(this).forEach(elem => {
-											if(elem.target.num == Num && elem.target.value == i){
-												enemyTarget[Num] = bulOb[Num][i]; //  迎撃のためにターゲット変更
-											}
-											
-											return;
-										})
-										
-									}	
-								}
-							}*/
-
 							if (reloadFlg == false) {
 								if (bullets[Num] == max) reloadFlg = true;
 							} else {
@@ -4626,41 +4619,6 @@ window.onload = function() {
 							ObsHeightRight.intersect(this).forEach(elem => {
 								this.moveTo(elem.x + (elem.width), this.y)
 							})
-
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.y = obsdir[i][0].y - 61;
-									//this.moveTo(this.x, obsdir[i][0].y - 61)
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.y = obsdir[i][1].y + obsdir[i][1].height + 3;
-									//this.moveTo(this.x, obsdir[i][1].y + obsdir[i][1].height + 3)
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.x = obsdir[i][2].x - 62;
-									//this.moveTo(obsdir[i][2].x - 62, this.y)
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.x = obsdir[i][3].x + obsdir[i][3].width + 3;
-									//this.moveTo(obsdir[i][3].x + obsdir[i][3].width + 3, this.y)
-								}
-							}
-							if (this.intersect(walls[0]) == true) {
-								this.y = (64 * 2) - 15;
-								//this.moveTo(this.x, (64 * 2) - 15)
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.y = (64 * 13) - 13;
-								//this.moveTo(this.x, (64 * 13) - 13)
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.x = (64 * 1) + 3;
-								//this.moveTo((64 * 1) + 3, this.y)
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.x = (64 * 18) + 3;
-								//this.moveTo((64 * 18) + 3, this.y)
-							}*/
 						}
 					}
 
@@ -4759,38 +4717,46 @@ window.onload = function() {
 
 			//  移動方向決め処理
 			function SelDirection(target1, target2, or) {
+				let arr = [0,1,2,3];
 				if (or == 0) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
 						} else {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					}
-
 				} else if (or == 1) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 					}
-
 				}
+				if(arr.indexOf(value) == -1) value = arr[Math.floor(Math.random() * arr.length)];
 			}
 
 			function ShotBullet(i) {
@@ -4887,16 +4853,6 @@ window.onload = function() {
 								return;
 							})
 							
-							/*for(var j = 0; j < bulOb.length; j++){
-								for(var k = 0; k < bulOb[j].length; k++){
-									if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
-										game.assets['./sound/mini_bomb2.mp3'].clone().play();
-										deadFlgs[Num] = true
-										Get_NewBullet(j,k);
-										moveSpeed = 0;
-									}
-								}
-							}*/
 							if (shotStopFlg == true) {
 								shotStopTime++;
 								if (shotStopTime > 10) {
@@ -4906,10 +4862,19 @@ window.onload = function() {
 							}
 
 							if (hittingTime > 20) {
-								if(value < 2){
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								}else{
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+								let arr = [];
+								switch(value){
+									case 0:
+									case 1:
+										arr = [2,3];
+										break;
+									case 2:
+									case 3:
+										arr = [0,1];
+										break;
+								}
+								if(arr.indexOf(value) == -1){
+									value = arr[Math.floor(Math.random() * arr.length)];
 								}
 								
 								hittingTime = 0;
@@ -4925,18 +4890,6 @@ window.onload = function() {
 
 							new EnemyAim();
 
-							/*for (let elem of floors) {
-								if (this.intersect(elem) == true) {
-									shotNGflg = true;
-									break;
-								}
-							};
-							for (let elem of walls) {
-								if (this.intersect(elem) == true) {
-									shotNGflg = true;
-									break;
-								}
-							};*/
 							Floor.intersectStrict(intercept7).forEach(function(){
 							    shotNGflg = true;
 								return;
@@ -4951,13 +4904,6 @@ window.onload = function() {
 								return;
 							})
 
-
-
-							/*avoids.forEach(elem=>{
-							    if(tank.within(elem,60)==true){
-							        stopFlg = true;
-							    }
-							})*/
 							if (this.time % 5 == 0) {
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
 								escapeFlg = false;
@@ -5031,155 +4977,7 @@ window.onload = function() {
 								};
 								
 							}
-							/*if(Bullet.collection.length > 0){
-								let d = 9999;
-								let t = null;
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									let c = Bullet.collection[i];
-									if(!bulStack[c.num][c.value]) continue;
-									if(c.num == 0 && !cateFlgs[category][0]) continue;
-									if(c.num == Num && !cateFlgs[category][1]) continue;
-									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
-									if(c.num != Num){
-										if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-											d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-											t = c;
-										}
-									}else{
-										if(ref == 0) continue;
-										BulAim.intersectStrict(this).forEach(elem => {
-											if(elem.target == c){
-												if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-													d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-													t = c;
-												}
-											}
-										})
-									}
-								};
-								if(t != null){
-									let dist = Instrumentation(enemyTarget[Num], t);
-									switch(t.num){
-										case 0:
-											if (dist != null && dist < cateRanges[category][0]) {
-												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-													enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-													//console.log(t.num + ' ' + t.value);
-												})
-												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-													if (dist < cateEscapes[category][1]) {
-														escapeTarget = t;
-														escapeFlg = true;
-													}
-												}
-											}
-											break;
-										case Num:
-											if (dist != null && dist < cateRanges[category][1] && dist > 100) {
-												if (cateEscapes[category][0] == true && cateEscapes[category][2] != 0) {
-													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeTarget = t;
-														escapeFlg = true;
-													}
-												}
-												enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-												//console.log(t.num + ' ' + t.value);
-											}
-											break;
-										default:
-											if(dist != null && dist < cateRanges[category][2]){
-												//console.log(t.num + ' ' + t.value);
-												BulAim.intersect(this).forEach(elem => {
-													if(elem.target.num == t.num){
-														if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-															if (dist < cateEscapes[category][3]) {
-																escapeTarget = t;
-																escapeFlg = true;
-															}
-														}
-														enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-														
-													}
-												})
-											}
-											break;
-									}
-								}
-							}*/
-
 							
-
-							/* 迎撃処理群
-							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
-							*/
-							//  他戦車の弾迎撃処理
-							/*if (cateFlgs[category][2] == true && tankEntity.length > 2) {
-								for (let i = 1; i < bulOb.length; i++) {
-									if(i == Num || bullets[i] == 0) continue;
-									for (let j = 0; j < bulOb[i].length; j++) {
-										if(!bulStack[i][j]) continue;
-										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
-										if (dist != null && dist < cateRanges[category][2]) {
-											if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-												if (dist < cateEscapes[category][3]) {
-													enemyTarget[Num] = bulOb[i][j];
-													
-												}
-											}
-											escapeTarget = bulOb[i][j];
-											escapeFlg = true;
-													
-										}	
-									}
-								}
-							}
-							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true && bullets[0] > 0) {
-								for (let i = 0; i < bulOb[0].length; i++) {
-									if (bulStack[0][i] == true) {
-										let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-										if (dist != null && dist < cateRanges[category][0]) {
-											PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-												if (cateEscapes[category][1] != 0){
-													enemyTarget[Num] = bulOb[0][i];
-													return;
-												} 
-												
-											})
-											if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-												if (dist < cateEscapes[category][1]) {
-													escapeTarget = bulOb[0][i];
-													escapeFlg = true;
-													break;
-												}
-											}
-											
-										}
-									}
-								}
-							}
-							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && bullets[Num] > 0) {
-								for (let i = 0; i < bulOb[Num].length; i++) {
-									if(!bulStack[Num][i]) continue;
-									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-									if (dist != null && dist < cateRanges[category][1]) {
-										BulAim.intersect(this).forEach(elem => {
-											if (cateEscapes[category][2] != 0) {
-												enemyTarget[Num] = bulOb[Num][i];
-												escapeTarget = bulOb[Num][i];
-												if (cateEscapes[category][0] == true) {
-													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeFlg = true;
-													}
-												}
-												return;
-											}
-										})
-									}
-								}
-							}*/
-
 							if (reloadFlg == false) {
 								if (bullets[Num] == emax) reloadFlg = true;
 							} else {
@@ -5213,25 +5011,6 @@ window.onload = function() {
 									}
 								}
 							}
-
-							/*if (this.time % fireLate == 0 && shotNGflg == false) {
-								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
-									for (let i = 0; i < emax; i++) {
-										if (bulStack[Num][i] == false) {
-											if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
-												if (category == 2) {
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
-												}else{
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
-												}
-												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-												ShotBullet(i);
-												break;
-											}
-										}
-									}
-								}
-							}*/
 							
 							if (moveSpeed > 0) {
 								if (this.time % 5 == 0) {
@@ -5320,40 +5099,6 @@ window.onload = function() {
 								this.moveTo(elem.x + (elem.width), this.y)
 								hittingTime++;
 							})
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.moveTo(this.x, obsdir[i][0].y - 60)
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.moveTo(obsdir[i][2].x - 60, this.y)
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
-									hittingTime++;
-								}
-							}
-							if (this.intersect(walls[0]) == true) {
-								this.moveTo(this.x, walls[0].y + walls[0].height)
-								hittingTime++;
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
-								hittingTime++;
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.moveTo(walls[2].x + walls[2].width, this.y)
-								hittingTime++;
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-								hittingTime++;
-							}*/
 						}
 					}
 				}
@@ -5444,38 +5189,47 @@ window.onload = function() {
 
 			//  移動方向決め処理
 			function SelDirection(target1, target2, or) {
+				let arr = [0,1,2,3];
 				if (or == 0) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
 						} else {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					}
-
 				} else if (or == 1) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 					}
-
 				}
+				if(arr.indexOf(value) == -1) value = arr[Math.floor(Math.random() * arr.length)];
+				
 			}
 
 			function ShotBullet(i) {
@@ -5547,10 +5301,19 @@ window.onload = function() {
 							}
 
 							if (hittingTime > 20) {
-								if(value < 2){
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								}else{
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+								let arr = [];
+								switch(value){
+									case 0:
+									case 1:
+										arr = [2,3];
+										break;
+									case 2:
+									case 3:
+										arr = [0,1];
+										break;
+								}
+								if(arr.indexOf(value) == -1){
+									value = arr[Math.floor(Math.random() * arr.length)];
 								}
 								
 								hittingTime = 0;
@@ -5668,150 +5431,7 @@ window.onload = function() {
 								};
 								
 							}
-							/*if(Bullet.collection.length > 0){
-								let d = 9999;
-								let t = null;
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									let c = Bullet.collection[i];
-									if(!bulStack[c.num][c.value]) continue;
-									if(c.num == 0 && !cateFlgs[category][0]) continue;
-									if(c.num == Num && !cateFlgs[category][1]) continue;
-									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
-									if(c.num != Num){
-										if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-											d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-											t = c;
-										}
-									}else{
-										if(ref == 0) continue;
-										BulAim.intersectStrict(this).forEach(elem => {
-											if(elem.target == c){
-												if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-													d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-													t = c;
-												}
-											}
-										})
-									}
-								};
-								if(t != null){
-									let dist = Instrumentation(enemyTarget[Num], t);
-									switch(t.num){
-										case 0:
-											if (dist != null && dist < cateRanges[category][0]) {
-												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-													enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-													//console.log(t.num + ' ' + t.value);
-												})
-												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-													if (dist < cateEscapes[category][1]) {
-														escapeTarget = t;
-														escapeFlg = true;
-													}
-												}
-											}
-											break;
-										case Num:
-											if (dist != null && dist < cateRanges[category][1] && dist > 100) {
-												if (cateEscapes[category][0] == true && cateEscapes[category][2] != 0) {
-													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeTarget = t;
-														escapeFlg = true;
-													}
-												}
-												enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-												//console.log(t.num + ' ' + t.value);
-											}
-											break;
-										default:
-											if(dist != null && dist < cateRanges[category][2]){
-												//console.log(t.num + ' ' + t.value);
-												BulAim.intersect(this).forEach(elem => {
-													if(elem.target.num == t.num){
-														if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-															if (dist < cateEscapes[category][3]) {
-																escapeTarget = t;
-																escapeFlg = true;
-															}
-														}
-														enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-														
-													}
-												})
-												
-												
-											}	
-											break;
-									}
-								}
-							}*/
-
-							//	迎撃処理群
-							//	優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
-							//  他戦車の弾迎撃処理
-							/*if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								for (let i = 1; i < bulOb.length; i++) {
-									if(i == Num || bullets[i] == 0) continue;
-									for (let j = 0; j < bulOb[i].length; j++) {
-										if(!bulStack[i][j]) continue;
-										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
-										if (dist != null && dist < cateRanges[category][2]) {
-											if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-												if (dist < cateEscapes[category][3]) {
-													enemyTarget[Num] = bulOb[i][j];
-													escapeTarget = bulOb[i][j];
-													escapeFlg = true;
-												}
-											}
-											
-										}
-									}
-								}
-							}
-							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true && bullets[0] > 0) {
-								for (let i = 0; i < bulOb[0].length; i++) {
-									if(!bulStack[0][i]) continue;
-									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-									if (dist != null && dist < cateRanges[category][0]) {
-										intercept.intersect(PlayerBulAim).forEach(function() {
-											if (cateEscapes[category][1] != 0){
-												enemyTarget[Num] = bulOb[0][i];
-												return;
-											} 
-										})
-										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-											if (dist < cateEscapes[category][1]) {
-												escapeTarget = bulOb[0][i];
-												escapeFlg = true;
-											}
-										}
-										
-									}
-								}
-							}
-							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && bullets[Num] > 0) {
-								for (let i = 0; i < bulOb[Num].length; i++) {
-									if(!bulStack[Num][i]) continue;
-									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-									if (dist != null && dist < cateRanges[category][1]) {
-										this.intersect(BulAim).forEach(function() {
-											if (cateEscapes[category][2] != 0) {
-												enemyTarget[Num] = bulOb[Num][i];
-												escapeTarget = bulOb[Num][i];
-												if (cateEscapes[category][0] == true) {
-													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeFlg = true
-														
-													}
-												}
-												return;
-											}
-										})
-									}
-								}
-							}*/
+							
 							if (shotNGflg == false) {
 								if (this.time % fireLate == 0 && fireFlgs[Num] == true) {
 									if (Math.floor(Math.random() * emax * 2) > bullets[Num] && bullets[Num] < emax) {
@@ -5936,44 +5556,6 @@ window.onload = function() {
 								this.moveTo(elem.x + (elem.width), this.y)
 								hittingTime++;
 							})
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.moveTo(this.x, obsdir[i][0].y - 60)
-									hittingTime++;
-									break;
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
-									hittingTime++;
-									break;
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.moveTo(obsdir[i][2].x - 60, this.y)
-									hittingTime++;
-									break;
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
-									hittingTime++;
-									break;
-								}
-							}
-							if (this.intersect(walls[0]) == true) {
-								this.moveTo(this.x, walls[0].y + walls[0].height)
-								hittingTime++;
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
-								hittingTime++;
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.moveTo(walls[2].x + walls[2].width, this.y)
-								hittingTime++;
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-								hittingTime++;
-							}*/
 						}
 					}
 				}
@@ -6511,68 +6093,43 @@ window.onload = function() {
 			})
 
 			//  移動方向決め処理
-			/*function SelDirection(target1, target2, or) {
-				if (or == 0) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
-						} else {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
-						}
-					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
-						} else {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
-						}
-					}
-
-				} else if (or == 1) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
-						} else {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
-						}
-
-					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
-						} else {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
-						}
-					}
-
-				}
-			}*/
 			function SelDirection(target1, target2, or) {
+				let arr = [];
 				if (or == 0) {
 					if (Math.floor(Math.random() * 2) == 0) {
 						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
+								arr = [1,3,5,6,7];
+								//while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
+								arr = [1,2,4,5,7];
+								//while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
 							}
 						} else {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
+								arr = [0,3,4,6,7];
+								//while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
+								arr = [0,2,4,5,6];
+								//while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
 							}
 						}
 					} else {
 						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+								arr = [1,3,4,5,6,7];
+								//while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+								arr = [1,2,4,5,6,7];
+								//while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
 							}
 						} else {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+								arr = [0,3,4,5,6,7];
+								//while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+								arr = [0,2,4,5,6,7];
+								//while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
 							}
 						}
 					}
@@ -6581,36 +6138,45 @@ window.onload = function() {
 					if (Math.floor(Math.random() * 2) == 0) {
 						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
+								arr = [0,2,4,5,6];
+								//while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
+								arr = [0,3,4,6,7];
+								//while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
 							}
 
 						} else {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
+								arr = [1,2,4,5,7];
+								//while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
+								arr = [1,3,5,6,7];
+								//while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
 							}
 						}
 					} else {
 						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+								arr = [0,2,4,5,6,7];
+								//while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+								arr = [0,3,4,5,6,7];
+								//while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
 							}
 
 						} else {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-								while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+								arr = [1,2,4,5,6,7];
+								//while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
 							} else {
-								while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+								arr = [1,3,4,5,6,7];
+								//while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
 							}
 						}
 					}
 
 				}
+				if(arr.indexOf(value) == -1) value = arr[Math.floor(Math.random() * arr.length)];
 			}
 
 			function ShotBullet(i) {
@@ -6707,19 +6273,6 @@ window.onload = function() {
                     }
 					if (deadFlgs[0] == false) {
 						
-						
-						/*for(var j = 0; j < bulOb.length; j++){
-						    for(var k = 0; k < bulOb[j].length; k++){
-						        if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
-						            game.assets['./sound/mini_bomb2.mp3'].clone().play();
-						            deadFlgs[Num] = true
-						            Get_NewBullet(j,k);
-						            moveSpeed = 0;
-						        }
-						    }
-						}*/
-						
-
 						if (worldFlg == true) {
 							//  死亡判定処理
 							Bullet.intersectStrict(weak).forEach(elem => {
@@ -6740,31 +6293,31 @@ window.onload = function() {
 							}
 	
 							if (hittingTime > 10) {
-								/*if(value < 2){
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								}else{
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
-								}*/
-								if (value == 4) {
-									//左上
-									while (value == 4 || value == 0 || value == 1) value = Math.floor(Math.random() * 8);
-								} else if (value == 5) {
-									//右上
-									while (value == 5 || value == 1 || value == 2) value = Math.floor(Math.random() * 8);
-								} else if (value == 6) {
-									//左下
-									while (value == 6 || value == 2 || value == 3) value = Math.floor(Math.random() * 8);
-								} else if (value == 7) {
-									//右下
-									while (value == 7 || value == 0 || value == 3) value = Math.floor(Math.random() * 8);
-								} else if (value == 0) {
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								} else if (value == 1) {
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								} else if (value == 2) {
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
-								} else if (value == 3) {
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+								let arr = [];
+								switch(value){
+									case 0:
+									case 1:
+										arr = [2,3];
+										break;
+									case 2:
+									case 3:
+										arr = [0,1];
+										break;
+									case 4:
+										arr = [2,3,5,6,7];
+										break;
+									case 5:
+										arr = [0,3,4,6,7];
+										break;
+									case 6:
+										arr = [0,1,4,5,7];
+										break;
+									case 7:
+										arr = [1,2,4,5,6];
+										break;
+								}
+								if(arr.indexOf(value) == -1){
+									value = arr[Math.floor(Math.random() * arr.length)];
 								}
 								
 								hittingTime = 0;
@@ -6780,25 +6333,6 @@ window.onload = function() {
 
 							new EnemyAim();
 
-							/*for (let elem of floors) {
-								if (this.intersect(elem) == true) {
-									shotNGflg = true;
-									break;
-								}
-							};
-							for (let elem of walls) {
-								if (this.intersect(elem) == true) {
-									shotNGflg = true;
-									break;
-								}
-							};*/
-							/*intercept7.intersectStrict(Floor).forEach(function(){
-							    shotNGflg = true;
-							})
-							intercept7.intersectStrict(Wall).forEach(function(){
-							    shotNGflg = true;
-							})*/
-
 							EnemyAim.intersect(alignment).forEach(elem => {
 								fireFlgs[Num] = true;
 							})
@@ -6806,14 +6340,6 @@ window.onload = function() {
 							if(this.time % 5 == 0){
 								if (enemyTarget[Num] != target && escapeFlg == false) enemyTarget[Num] = target;
 							}
-
-
-
-							/*avoids.forEach(elem=>{
-							    if(tank.within(elem,60)==true){
-							        stopFlg = true;
-							    }
-							})*/
 
 							/* 迎撃処理群
 							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
@@ -6982,7 +6508,7 @@ window.onload = function() {
 										}else{
 											if(escapeFlg){
 												//SelDirection(weak, escapeTarget, 0);
-												value = Escape_Rot(weak, escapeTarget, value);
+												value = New_Escape_Rot(weak, escapeTarget, value);
 											}else{
 												SelDirection(weak, target, 1);
 											}
@@ -7042,22 +6568,7 @@ window.onload = function() {
 									rot = 90;
 									//this.y += speed;
 								}
-								/*if (value == 0) {
-									rot = 180;
-									this.x -= speed;
-								} else if (value == 1) {
-									rot = 0;
-									this.x += speed;
-								} else if (value == 2) {
-									rot = 270;
-									this.y -= speed;
-								} else if (value == 3) {
-									rot = 90;
-									this.y += speed;
-								}*/
 								/* 戦車本体の角度 */
-								/*this.rotation = rot;
-								tank.rotation = rot;*/
 								MoveBody(this, speed, rot);
 								tank.rotation = this.rotation;
 							}
@@ -7096,40 +6607,6 @@ window.onload = function() {
 								this.moveTo(elem.x + (elem.width), this.y)
 								hittingTime++;
 							})
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.moveTo(this.x, obsdir[i][0].y - 60)
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.moveTo(obsdir[i][2].x - 60, this.y)
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
-									hittingTime++;
-								}
-							}
-							if (this.intersect(walls[0]) == true) {
-								this.moveTo(this.x, walls[0].y + walls[0].height)
-								hittingTime++;
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
-								hittingTime++;
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.moveTo(walls[2].x + walls[2].width, this.y)
-								hittingTime++;
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-								hittingTime++;
-							}*/
 						}
 					}
 				}
@@ -7226,36 +6703,46 @@ window.onload = function() {
 
 			//  移動方向決め処理
 			function SelDirection(target1, target2, or) {
+				let arr = [0,1,2,3];
 				if (or == 0) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
 						} else {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					}
 				} else if (or == 1) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 					}
 				}
+				if(arr.indexOf(value) == -1) value = arr[Math.floor(Math.random() * arr.length)];
 			}
 
 			function ShotBullet(i) {
@@ -7277,7 +6764,7 @@ window.onload = function() {
 			function Instrumentation(target1, target2) {
 				let dist1 = Math.sqrt(Math.pow(weak.x - target1.x, 2) + Math.pow(weak.y - target1.y, 2));
 				let dist2 = Math.sqrt(Math.pow(weak.x - target2.x, 2) + Math.pow(weak.y - target2.y, 2));
-				if (dist1 > dist2) {
+				if (dist1 >= dist2) {
 					return dist2;
 				} else {
 					return null;
@@ -7320,14 +6807,16 @@ window.onload = function() {
 			}
 			function ResetAim(from) {
 				if(enemyTarget[Num] != tankEntity[0]){
+					let t1 = Get_Center(from);
+					let t2 = Get_Center(enemyTarget[Num]);
 					let v = Rot_to_Vec(enemyTarget[Num].rotation, 270);
-					let dis = Math.trunc(Vec_Distance(from, enemyTarget[Num]) / 30);
+					let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
 					let val = dis * enemyTarget[Num].shotSpeed + shotSpeed;
-					console.log(val)
-					v.x = v.x * val + enemyTarget[Num].x;
-					v.y = v.y * val + enemyTarget[Num].y;
+					v.x = v.x * val + t2.x;
+					v.y = v.y * val + t2.y;
+					//new Point(v);
 					//console.log(v);
-					let p = Pos_to_Vec({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) }, v);
+					let p = Pos_to_Vec(t1, v);
 					//console.log({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) });
 					//console.log(p);
 					let rad = Math.atan2(p.y, p.x);
@@ -7453,41 +6942,23 @@ window.onload = function() {
 							}
 
 							if (hittingTime >= 20) {
-								if(value < 2){
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								}else{
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+								let arr = [];
+								switch(value){
+									case 0:
+									case 1:
+										arr = [2,3];
+										break;
+									case 2:
+									case 3:
+										arr = [0,1];
+										break;
+								}
+								if(arr.indexOf(value) == -1){
+									value = arr[Math.floor(Math.random() * arr.length)];
 								}
 								hittingTime = 0;
 							}
 
-							/*for(var j = 0; j < bulOb.length; j++){
-							    for(var k = 0; k < bulOb[j].length; k++){
-							        if(tank.within(bulOb[j][k],28)==true || weak.intersectStrict(bulOb[j][k])==true){
-							            game.assets['./sound/mini_bomb2.mp3'].clone().play();
-							            deadFlgs[Num] = true
-							            colOb[j][k].destroy()
-							            colOb[j][k].moveTo(-200,-200)
-							            bulOb[j][k].moveTo(-200,-200)
-							            bulStack[j][k] = false;
-							            moveSpeed = 0;
-							        }
-							    }
-							}*/
-
-	
-							/*for (let elem of floors) {
-								if (intercept7.intersect(elem)) {
-									shotNGflg = true;
-									break;
-								}
-							};
-							for (let elem of walls) {
-								if (intercept7.intersect(elem)) {
-									shotNGflg = true;
-									break;
-								}
-							};*/
 							new EnemyAim();
 
 							if(ref > 0){
@@ -7583,176 +7054,6 @@ window.onload = function() {
 								
 							}
 
-							/*if(Bullet.collection.length > 0){
-								let d = Math.sqrt(Math.pow(weak.x - enemyTarget[Num].x, 2) + Math.pow(weak.y - enemyTarget[Num].y, 2));
-								let t = null;
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									let c = Bullet.collection[i];
-									if(!bulStack[c.num][c.value]) continue;
-									if(c.num == 0 && !cateFlgs[category][0]) continue;
-									if(c.num == Num && !cateFlgs[category][1]) continue;
-									if(!(c.num == 0 || c.num == Num) && !cateFlgs[category][2]) continue;
-									if(c.num != Num){
-										if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-											d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-											t = c;
-										}
-									}else{
-										if(ref == 0) continue;
-										BulAim.intersectStrict(this).forEach(elem => {
-											if(elem.target == c){
-												if(d > Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2))){
-													d = Math.sqrt(Math.pow(weak.x - c.x, 2) + Math.pow(weak.y - c.y, 2));
-													t = c;
-												}
-											}
-										})
-									}
-								};
-								if(t != null){
-									let dist = Instrumentation(enemyTarget[Num], t);
-									switch(t.num){
-										case 0:
-											if (dist != null && dist < cateRanges[category][0]) {
-												PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-													enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-													//console.log(t.num + ' ' + t.value);
-													if(this.time % 10 == 0) value = Escape_Rot(this, t);
-												})
-												if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-													if (dist < cateEscapes[category][1]) {
-														escapeTarget = t;
-														escapeFlg = true;
-													}
-												}
-											}
-											break;
-										case Num:
-											if (dist != null && dist < cateRanges[category][1] && dist > 100) {
-												if (cateEscapes[category][0] == true && cateEscapes[category][2] != 0) {
-													if (dist < cateEscapes[category][2] && dist > 100) {
-														escapeTarget = t;
-														escapeFlg = true;
-													}
-												}
-												enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-												//console.log(t.num + ' ' + t.value);
-											}
-											break;
-										default:
-											if(dist != null && dist < cateRanges[category][2]){
-												//console.log(t.num + ' ' + t.value);
-												BulAim.intersectStrict(intercept).forEach(elem => {
-													if(elem.target.num == t.num){
-														if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-															if (dist < cateEscapes[category][3]) {
-																escapeTarget = t;
-																escapeFlg = true;
-															}
-														}
-														enemyTarget[Num] = t; //  迎撃のためにターゲット変更
-														
-													}
-												})
-												
-												
-											}	
-											break;
-									}
-								}
-							}*/
-
-							/* 迎撃処理群
-							    優先順位：自身の弾＞プレイヤーの弾＞他戦車の弾
-							*/
-							//  他戦車の弾迎撃処理
-							/*if (cateFlgs[category][2] == true && bulOb.length > 2) {
-								for (let i = 1; i < bulOb.length; i++) {
-									if(i == Num || bullets[i] == 0) continue;
-									for (let j = 0; j < bulOb[i].length; j++) {
-										if(!bulStack[i][j]) continue;
-										let dist = Instrumentation(enemyTarget[Num], bulOb[i][j]);
-										if (dist != null && dist < cateRanges[category][2]) {
-											if (cateEscapes[category][0] == true && cateEscapes[category][3] != 0) {
-												if (dist < cateEscapes[category][3]) {
-													escapeTarget = bulOb[i][j];
-													escapeFlg = true;
-													enemyTarget[Num] = bulOb[i][j];
-													brflg = true;
-													break;
-												}
-											}
-											
-										}
-									}
-								}
-							}
-							//  プレイヤーの弾迎撃処理
-							if (cateFlgs[category][0] == true && bullets[0] > 0) {
-								for (let i = 0; i < bulOb[0].length; i++) {
-									if(!bulStack[0][i]) continue;
-									let dist = Instrumentation(enemyTarget[Num], bulOb[0][i]);
-									if (dist != null && dist < cateRanges[category][0]) {
-										PlayerBulAim.intersectStrict(intercept).forEach(elem => {
-											if(elem.target.num == 0 && elem.target.value == i){
-												if (cateEscapes[category][1] != 0) enemyTarget[Num] = bulOb[0][i];
-												if (this.time % 10 == 0) {
-													value = Escape_Rot(this, bulOb[0][i]);
-													//SelDirection(weak,bulOb[0][i],0)
-												}
-											}
-											return;
-										})
-										if (cateEscapes[category][0] == true && cateEscapes[category][1] != 0) {
-											if (dist < cateEscapes[category][1]) {
-												escapeTarget = bulOb[0][i]
-												escapeFlg = true;
-											}
-											if (dist < 128) {
-												if (this.time % 10 == 0) {
-													//enemyTarget[Num] = bulOb[0][i];
-													value = Escape_Rot(this, bulOb[0][i]);
-													//SelDirection(weak,bulOb[0][i],0)
-												}
-											}
-										}
-										
-									}
-								}
-							}
-							//  自身の弾迎撃処理
-							if (cateFlgs[category][1] == true && bullets[Num] > 0) {
-								for (let i = 0; i < bulOb[Num].length; i++) {
-									if(!bulStack[Num][i]) continue;
-									let dist = Instrumentation(enemyTarget[Num], bulOb[Num][i]);
-									if (dist != null && dist < cateRanges[category][1]) {
-										if (intercept.intersectStrict(bulOb[Num][i])) {
-											if (this.time % 10 == 0) {
-												value = Escape_Rot(this, bulOb[Num][i]);
-											}
-										}
-										BulAim.intersectStrict(intercept).forEach(elem => {
-											if (elem.target.num == Num && elem.target.value == i) {
-												if (this.time % 5 == 0) {
-													value = Escape_Rot(this, bulOb[Num][i]);
-													//SelDirection(weak,bulOb[0][i],0)
-												}
-												if (cateEscapes[category][2] != 0) {
-													enemyTarget[Num] = bulOb[Num][i];
-													if (cateEscapes[category][0] == true) {
-														if (dist < cateEscapes[category][2] && dist > 100) {
-															escapeTarget = bulOb[Num][i]
-															escapeFlg = true;
-														}
-													}
-												}
-											}
-											return;
-										})
-									}
-								}
-							}*/
-
 							if (reloadFlg == false) {
 								if (bullets[Num] == emax) reloadFlg = true;
 							} else {
@@ -7823,7 +7124,8 @@ window.onload = function() {
 												if (tankEntity[i].intersectStrict(intercept) && i != Num && deadFlgs[i] == false) {
 													//fireFlgs[Num] = false;
 													//tankStopFlg = true;
-													value = Escape_Rot(this, tankEntity[i], value);
+													//value = Escape_Rot(this, tankEntity[i], value);
+													SelDirection(weak, tankEntity[i], 0)
 													break;
 												}
 											}
@@ -7838,6 +7140,7 @@ window.onload = function() {
 										}
 										
 									} else {
+										//value = Escape_Rot(this, escapeTarget, value);
 										SelDirection(weak, escapeTarget, 0);
 									}
 								}
@@ -7895,48 +7198,6 @@ window.onload = function() {
 								this.moveTo(elem.x + (elem.width), this.y)
 								hittingTime++;
 							})
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.y = obsdir[i][0].y - 60;
-									//this.moveTo(this.x, obsdir[i][0].y - 60)
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.y = obsdir[i][1].y + (obsdir[i][1].height);
-									//this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.x = obsdir[i][2].x - 60;
-									//this.moveTo(obsdir[i][2].x - 60, this.y)
-									hittingTime++;
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.x = obsdir[i][3].x + (obsdir[i][3].width);
-									//this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
-									hittingTime++;
-								}
-							}
-							if (this.intersect(walls[0]) == true) {
-								this.y = (64 * 2) - 16;
-								//this.moveTo(this.x, (64 * 2) - 16)
-								hittingTime++;
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.y = (64 * 13) - 12;
-								//this.moveTo(this.x, (64 * 13) - 12)
-								hittingTime++;
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.x = (64 * 1);
-								//this.moveTo((64 * 1), this.y)
-								hittingTime++;
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.x = (64 * 18) + 3;
-								//this.moveTo((64 * 18) + 3, this.y)
-								hittingTime++;
-							}*/
 						}
 					}
 
@@ -8051,18 +7312,6 @@ window.onload = function() {
 					if (deadFlgs[0] == false) {
 						
 						
-						/*for(var j = 0; j < bulOb.length; j++){
-						    for(var k = 0; k < bulOb[j].length; k++){
-						        if(defeat == false && weak.intersectStrict(bulOb[j][k])==true && bulStack[j][k] == true){
-						            game.assets['./sound/mini_bomb2.mp3'].clone().play();
-						            deadFlgs[Num] = true
-						            Get_NewBullet(j,k);
-						            moveSpeed = 0;
-						        }
-						    }
-						}*/
-
-
 						if (worldFlg == true) {
 							//  死亡判定処理
 							Bullet.intersectStrict(weak).forEach(elem => {
@@ -8197,32 +7446,6 @@ window.onload = function() {
 							ObsHeightRight.intersect(this).forEach(elem => {
 								this.moveTo(elem.x + (elem.width), this.y)
 							})
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.moveTo(this.x, obsdir[i][0].y - 60)
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.moveTo(obsdir[i][2].x - 60, this.y)
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
-								}
-							}	
-							if (this.intersect(walls[0]) == true) {
-								this.moveTo(this.x, walls[0].y + walls[0].height)
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.moveTo(walls[2].x + walls[2].width, this.y)
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-							}*/
 						}
 					}
 				}
@@ -8343,31 +7566,11 @@ window.onload = function() {
 
 							new EnemyAim();
 
-							/*for (let elem of floors) {
-								if (this.intersect(elem) == true) {
-									shotNGflg = true;
-									break;
-								}
-							};
-							for (let elem of walls) {
-								if (this.intersect(elem) == true) {
-									shotNGflg = true;
-									break;
-								}
-							};*/
-
 							EnemyAim.intersect(alignment).forEach(elem => {
 								if(!fireFlgs[Num])fireFlgs[Num] = true;
 								return;
 							})
 
-
-
-							/*avoids.forEach(elem=>{
-							    if(tank.within(elem,60)==true){
-							        stopFlg = true;
-							    }
-							})*/
 							if (this.time % 10 == 0) {
 								enemyTarget[Num] = target;
 							}
@@ -8409,41 +7612,6 @@ window.onload = function() {
 								}
 							}
 
-							/*if (this.time % fireLate == 0 && shotNGflg == false) {
-								if (Math.floor(Math.random() * emax * 2) > bullets[Num]) {
-									for (let i = 0; i < emax; i++) {
-										if (bulStack[Num][i] == false) {
-											if (bullets[Num] < emax && deadFlgs[Num] == false && fireFlgs[Num] == true) {
-												if (category == 2) {
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, 0, scene);
-												}else{
-													colOb[Num][i] = new BulletCol(alignment, cannon, shotSpeed, grade, scene);
-												}
-												bulOb[Num][i] = new Bullet(colOb[Num][i], cannon, ref, Num, shotSpeed, scene, i)
-												ShotBullet(i);
-												break;
-											}
-										}
-									}
-								}
-							}*/
-							
-							/*for (let i = 0; i < tankDir.length; i++) {
-								if (deadFlgs[i] == false && i != Num) {
-									if (this.intersect(tankDir[i][0]) == true) {
-										this.moveTo(this.x, tankDir[i][0].y - 60)
-									}
-									if (this.intersect(tankDir[i][1]) == true) {
-										this.moveTo(this.x, tankDir[i][1].y + (tankDir[i][1].height))
-									}
-									if (this.intersect(tankDir[i][2]) == true) {
-										this.moveTo(tankDir[i][2].x - 60, this.y)
-									}
-									if (this.intersect(tankDir[i][3]) == true) {
-										this.moveTo(tankDir[i][3].x + (tankDir[i][3].width), this.y)
-									}
-								}
-							}*/
 							ObsWidthTop.intersect(this).forEach(elem => {
 								this.moveTo(this.x, elem.y - 60);
 							})
@@ -8456,32 +7624,6 @@ window.onload = function() {
 							ObsHeightRight.intersect(this).forEach(elem => {
 								this.moveTo(elem.x + (elem.width), this.y)
 							})
-							/*for (let i = 0; i < obsdir.length; i++) {
-								if (this.intersect(obsdir[i][0]) == true && obsChk[i][0] == true) {
-									this.moveTo(this.x, obsdir[i][0].y - 60)
-								}
-								if (this.intersect(obsdir[i][1]) == true && obsChk[i][1] == true) {
-									this.moveTo(this.x, obsdir[i][1].y + (obsdir[i][1].height))
-								}
-								if (this.intersect(obsdir[i][2]) == true && obsChk[i][2] == true) {
-									this.moveTo(obsdir[i][2].x - 60, this.y)
-								}
-								if (this.intersect(obsdir[i][3]) == true && obsChk[i][3] == true) {
-									this.moveTo(obsdir[i][3].x + (obsdir[i][3].width), this.y)
-								}
-							}
-							if (this.intersect(walls[0]) == true) {
-								this.moveTo(this.x, walls[0].y + walls[0].height)
-							}
-							if (this.intersect(walls[1]) == true) {
-								this.moveTo(this.x, walls[1].y - walls[1].height + 2)
-							}
-							if (this.intersect(walls[2]) == true) {
-								this.moveTo(walls[2].x + walls[2].width, this.y)
-							}
-							if (this.intersect(walls[3]) == true) {
-								this.moveTo(walls[3].x - walls[3].width + 2, this.y)
-							}*/
 						}
 					}
 				}
@@ -9363,36 +8505,46 @@ window.onload = function() {
 
 			//  移動方向決め処理
 			function SelDirection(target1, target2, or) {
+				let arr = [0,1,2,3];
 				if (or == 0) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
 						} else {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						}
 					}
 				} else if (or == 1) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [0,2];
+							//while (value == 1 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [0,3];
+							//while (value == 1 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 
 					} else {
 						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
+							arr = [1,2];
+							//while (value == 0 || value == 3) value = Math.floor(Math.random() * 4);
 						} else {
-							while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
+							arr = [1,3];
+							//while (value == 0 || value == 2) value = Math.floor(Math.random() * 4);
 						}
 					}
 				}
+				if(arr.indexOf(value) == -1) value = arr[Math.floor(Math.random() * arr.length)];
 			}
 
 			function ResetAim(from) {
@@ -9541,10 +8693,19 @@ window.onload = function() {
 								}
 							}
 							if (hittingTime >= 15) {
-								if(value < 2){
-									while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-								}else{
-									while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+								let arr = [];
+								switch(value){
+									case 0:
+									case 1:
+										arr = [2,3];
+										break;
+									case 2:
+									case 3:
+										arr = [0,1];
+										break;
+								}
+								if(arr.indexOf(value) == -1){
+									value = arr[Math.floor(Math.random() * arr.length)];
 								}
 								hittingTime = 0;
 							}
@@ -10081,7 +9242,90 @@ window.onload = function() {
 			})
 
 			function SelDirection(target1, target2, or) {
+				let arr = [];
 				if (or == 0) {
+					if (Math.floor(Math.random() * 2) == 0) {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [1,3,5,6,7];
+								//while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [1,2,4,5,7];
+								//while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
+							}
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [0,3,4,6,7];
+								//while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [0,2,4,5,6];
+								//while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
+							}
+						}
+					} else {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [1,3,4,5,6,7];
+								//while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [1,2,4,5,6,7];
+								//while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+							}
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [0,3,4,5,6,7];
+								//while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [0,2,4,5,6,7];
+								//while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+							}
+						}
+					}
+					
+				} else if (or == 1) {
+					if (Math.floor(Math.random() * 2) == 0) {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [0,2,4,5,6];
+								//while (value == 1 || value == 3 || value == 7) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [0,3,4,6,7];
+								//while (value == 1 || value == 2 || value == 5) value = Math.floor(Math.random() * 8);
+							}
+
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [1,2,4,5,7];
+								//while (value == 0 || value == 3 || value == 6) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [1,3,5,6,7];
+								//while (value == 0 || value == 2 || value == 4) value = Math.floor(Math.random() * 8);
+							}
+						}
+					} else {
+						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [0,2,4,5,6,7];
+								//while (value == 1 || value == 3) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [0,3,4,5,6,7];
+								//while (value == 1 || value == 2) value = Math.floor(Math.random() * 8);
+							}
+
+						} else {
+							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+								arr = [1,2,4,5,6,7];
+								//while (value == 0 || value == 3) value = Math.floor(Math.random() * 8);
+							} else {
+								arr = [1,3,4,5,6,7];
+								//while (value == 0 || value == 2) value = Math.floor(Math.random() * 8);
+							}
+						}
+					}
+
+				}
+				if(arr.indexOf(value) == -1) value = arr[Math.floor(Math.random() * arr.length)];
+				/*if (or == 0) {
 					if (Math.floor(Math.random() * 2) == 0) {
 						if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
 							if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
@@ -10145,7 +9389,7 @@ window.onload = function() {
 						}
 					}
 
-				}
+				}*/
 			}
 
 			//  移動方向決め処理
@@ -10200,7 +9444,7 @@ window.onload = function() {
 			function Instrumentation(target1, target2) {
 				let dist1 = Math.sqrt(Math.pow(weak.x - target1.x, 2) + Math.pow(weak.y - target1.y, 2));
 				let dist2 = Math.sqrt(Math.pow(weak.x - target2.x, 2) + Math.pow(weak.y - target2.y, 2));
-				if (dist1 > dist2) {
+				if (dist1 >= dist2) {
 					return dist2;
 				} else {
 					return null;
@@ -10482,26 +9726,31 @@ window.onload = function() {
 
 							if (hittingTime > 20) {
 								if(!escapeFlg){
-									if (value == 4) {
-										//左上
-										while (value == 4 || value == 0 || value == 1) value = Math.floor(Math.random() * 8);
-									} else if (value == 5) {
-										//右上
-										while (value == 5 || value == 1 || value == 2) value = Math.floor(Math.random() * 8);
-									} else if (value == 6) {
-										//左下
-										while (value == 6 || value == 2 || value == 3) value = Math.floor(Math.random() * 8);
-									} else if (value == 7) {
-										//右下
-										while (value == 7 || value == 0 || value == 3) value = Math.floor(Math.random() * 8);
-									} else if (value == 0) {
-										while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-									} else if (value == 1) {
-										while (value == 0 || value == 1) value = Math.floor(Math.random() * 4);
-									} else if (value == 2) {
-										while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
-									} else if (value == 3) {
-										while (value == 2 || value == 3) value = Math.floor(Math.random() * 4);
+									let arr = [];
+									switch(value){
+										case 0:
+										case 1:
+											arr = [2,3];
+											break;
+										case 2:
+										case 3:
+											arr = [0,1];
+											break;
+										case 4:
+											arr = [2,3,5,6,7];
+											break;
+										case 5:
+											arr = [0,3,4,6,7];
+											break;
+										case 6:
+											arr = [0,1,4,5,7];
+											break;
+										case 7:
+											arr = [1,2,4,5,6];
+											break;
+									}
+									if(arr.indexOf(value) == -1){
+										value = arr[Math.floor(Math.random() * arr.length)];
 									}
 								}
 								
@@ -10568,8 +9817,8 @@ window.onload = function() {
 											}
 										}
 									} else {
-										value = d_Escape_Rot(this, escapeTarget, value);
-										
+										//value = d_Escape_Rot(this, escapeTarget, value);
+										value = New_Escape_Rot(this, escapeTarget, value);
 										//SelDirection(weak, escapeTarget, 0);
 									}
 									
@@ -12384,16 +11633,6 @@ window.onload = function() {
 
 			function AllDelete() {
 
-				/*for (let i = 0; i < obsdir.length; i++) {
-					for (let j = 0; j < obsdir[i].length; j++) {
-						scene.removeChild(obsdir[i][j])
-					};
-				};
-				for (let i = 0; i < refdir.length; i++) {
-					for (let j = 0; j < refdir[i].length; j++) {
-						scene.removeChild(refdir[i][j])
-					};
-				};*/
 				for (let i = 0; i < tankDir.length; i++) {
 					for (let j = 0; j < tankDir[i].length; j++) {
 						scene.removeChild(tankDir[i][j])
@@ -12402,12 +11641,6 @@ window.onload = function() {
 				for (let i = 0; i < tankEntity.length; i++) {
 					scene.removeChild(tankEntity[i]);
 				};
-				/*scene.MarkGroup.childNodes.forEach(elem => {
-					scene.removeChild(elem);
-				})*/
-				/*for(let i = 0; i < markEntity.length; i++){
-				    scene.removeChild(markEntity[i]);
-				};*/
 				bulOb.forEach(elem => {
 					elem.forEach(elem2 => {
 						scene.BulGroup.removeChild(elem2)
@@ -12781,7 +12014,6 @@ window.onload = function() {
 
 								game.stop()
 								location.href = "./game.html";
-								//location.href = "https://m-kz15.github.io/PlayBTG/game.html";
 							});
 							toProceed.addEventListener(Event.TOUCH_START, function() {
 								complete = false;
@@ -12813,154 +12045,6 @@ window.onload = function() {
 							});
 						}
 					}
-
-
-
-
-
-					/*if((destruction == tankEntity.length-1 || zanki <= 0) && deadFlgs[0]==false && victory == false && complete == false){
-                        scene.removeChild(pauseButtton)
-                        scene.removeChild(blackImg)
-                        scene.removeChild(retire)
-                        BGM1.stop();
-                        
-                        for(var i = 4; i < Object.keys(stageData).length; i++){
-                            colors[stageData[i][10]] += 1;
-                        }
-                        let script = document.createElement("script");
-                            script.src = stagePath[stageNum+1];
-                        let head = document.getElementsByTagName("head");
-                            head[0].appendChild(script);
-                        if(zanki <= 0){
-                            scene.time = 0;
-                            new DispHead(100,60,360*3,180,"#a00",scene)
-                            new DispText(252,124,720,64,'ミッション終了！','bold 64px "Arial"','yellow','center',scene)
-                            score += destruction
-                            complete = true;
-                        }else if(stageNum % 20 == 0){
-                            
-                            scene.time = 0;
-                            new DispHead(100,60,360*3,180,"#a00",scene)
-                            new DispText(252,124,720,64,'ミッションコンプリート！','bold 64px "Arial"','yellow','center',scene)
-    
-                            score += destruction
-                            complete = true;
-                        }else{
-                            new DispText(360,300,720,64,'ミッションクリア！','bold 64px "Arial"','red','left',scene)
-                            new DispScore(scene)
-                            victory = true;
-                            game.time = 0;
-                        }
-                        
-                    }
-                    if(complete == true){
-                        if(scene.time == 15){
-                            BGM2 = game.assets['./sound/end.mp3'];
-                            BGM2.play()
-                            chgBgm = true;
-                        }else if(scene.time > 100 && chgBgm == true && BGM2.currentTime == BGM2.duration){
-                            BGM2.currentTime = 0;
-                            BGM2.stop()
-                            BGM3 = game.assets['./sound/result.mp3'];
-                            BGM3.currentTime = 0;
-                            BGM3.play()
-                            chgBgm = false;
-                        }else if(scene.time > 100 && chgBgm == false && BGM3.currentTime == BGM3.duration){
-                            BGM3 = game.assets['./sound/result.mp3'];
-                            BGM3.currentTime = 0;
-                            BGM3.play()
-                        }
-                        if(scene.time == 120){
-                            new DispBody(100,240,360*3,240*3,scene)
-                        }
-                        if(scene.time >= 120 && scene.time % 15 == 0 && dcnt < colors.length){
-                            new DispText(180,200+(56*(dcnt+1)),720,48,colorsName[dcnt],'48px "Arial"',fontColor[dcnt],'left',scene)
-                            new DispText(460,200+(56*(dcnt+1)),320*2,48,'：'+colors[dcnt],'48px "Arial"','#400','left',scene)
-                            dcnt++;
-                        }
-                        if(scene.time == 315){
-                            new DispText(650,420,320*2,64,'撃破数+残機：'+(score+zanki),'bold 64px "Arial"','#622','left',scene)
-                        }
-                        if(scene.time >= 345){
-                            var toTitle = new Label('➡タイトル画面へ');
-                                toTitle.moveTo(640,640);
-                                toTitle.width = 320*1.5;
-                                toTitle.height = 36;
-                                toTitle.font = '36px "Arial"';
-                                toTitle.color = '#400';
-                                toTitle.textAlign = 'center';
-                            var toProceed = new Label('➡さらなるステージへ...');
-                                toProceed.moveTo(640,720);
-                                toProceed.width = 320*1.5;
-                                toProceed.height = 36;
-                                toProceed.font = 'bold 36px "Arial"';
-                                toProceed.color = 'red';
-                                toProceed.textAlign = 'center';
-                            if(scene.time == 345){
-                                deleteFlg = true;
-                                scene.addChild(toTitle)
-                                if(stageNum != 100 && zanki > 0){
-                                    scene.addChild(toProceed)
-                                }
-                            }
-                            toTitle.addEventListener(Event.TOUCH_START, function() {
-                                
-                                game.stop()
-                                //location.href = "./game.html";
-                                location.href = "https://m-kz15.github.io/PlayBTG/game.html";
-                            });
-                            toProceed.addEventListener(Event.TOUCH_START, function() {
-                                complete = false;
-                                BGM3.stop()
-                                
-                                new FadeOut(scene)
-                                stageNum++;
-                                AllDelete();
-                                
-                                game.replaceScene(createStartScene())
-                            });
-                        }
-                    }else{
-                        if(deadFlgs[0]==true && defeat == false && zanki > 0){
-                            game.time = 0;
-                            
-                            defeat = true;
-                            BGM1.stop();
-                            scene.removeChild(pauseButtton)
-                            scene.removeChild(blackImg)
-                            scene.removeChild(retire)
-                        }
-                        if(defeat == true && zanki > 0 && game.time == 15){
-                            
-                            BGM2 = game.assets['./sound/failed.mp3'].play()
-                        } 
-                        if((defeat == true || victory == true && zanki > 0) && game.time == 150){
-                            new FadeOut(scene)
-                        }
-                        if((defeat == true || victory == true && zanki > 0) && game.time == 170){
-                            deleteFlg = true;
-                        }
-                        if(defeat==true && game.time == 180 && zanki > 0){
-                            AllDelete();
-                            
-                            game.replaceScene(createStartScene())
-                        }
-                        if(victory == true && game.time == 15){
-                            
-                            BGM2 = game.assets['./sound/success.mp3'].play()
-                        }
-                        if(victory == true && game.time == 180 && complete==false){
-                            score += destruction
-                            stageNum++;
-                            AllDelete();
-                            
-                            if(stageNum % 6 == 0){
-                                game.replaceScene(createBonusScene())
-                            }else{
-                                game.replaceScene(createStartScene())
-                            }
-                        }
-                    }*/
 				}
 			}
 			return scene;
