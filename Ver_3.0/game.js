@@ -14,6 +14,7 @@ var BGM;
 var zanki = 5;
 var gameMode = 0;
 var score = 0;
+var playerType = 0;
 
 var stageNum = 0;
 var stageData;
@@ -3149,6 +3150,10 @@ window.onload = function(){
 			let my = this;
 			this.cursor = new Cursor(scene);
 			this.rot = 0;
+
+			if(this.moveSpeed == 0){
+				this.moveSpeed = 1.5;
+			}
 
 			if(gameMode == 2){
 				this.life = zanki;
@@ -7132,6 +7137,20 @@ window.onload = function(){
 			this.category = category;
 			//this.backgroundColor = '#fff4';
 
+			var image = new Surface(this.width, this.height);
+			if(this.category == playerType){
+				image.context.fillStyle = '#0000';
+				image.context.lineWidth = 4;
+				image.context.strokeStyle = '#0ff';
+			}else{
+				image.context.fillStyle = '#0004';
+				image.context.lineWidth = 4;
+				image.context.strokeStyle = '#0000';
+			}	
+			roundedRect(image.context, 0, 0, this.width, this.height, 10);
+			
+			this.image = image;
+
 			this.tank = new Tank(this, category);
 			this.cannon = new Cannon(this, category);
 
@@ -7947,7 +7966,7 @@ window.onload = function(){
 			this.addChild(this.CannonGroup);
 
 			let listCnt = 0;
-			let selCnt = 0;
+			let selCnt = -1;
 
 			for (let i = 0; i < 7; i++) {
 				for (let j = 0; j < 2; j++) {
@@ -7968,12 +7987,44 @@ window.onload = function(){
 			var tankSpd = new ViewText(area.body, 'Text', {width: 36 * 12, height: 48}, {x: PixelSize * 6.5, y: PixelSize * 5.5}, '移動速度：', '36px sans-serif', 'black', 'left', true);
 			var tankDsc = new ViewText(area.body, 'Text', {width: 36 * 20, height: 36 * 3}, {x: PixelSize * 6.5, y: PixelSize * 6.5}, '・戦車の特徴', '36px sans-serif', 'black', 'left', true);
 
+			var change = new ViewButton(area.body, 'Change', {width: 36 * 10, height: 36}, {x: PixelSize * 0.5, y: PixelSize * 8}, '選択中の戦車に変更', '36px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+
 			var toTitle = new ViewText(area.head, 'Back', {width: PixelSize * 5.5, height: 48}, {x: PixelSize * 6.5, y: PixelSize * 12.5}, 'タイトル画面へ', '48px sans-serif', '#ebe799', 'center', true);
+
+			change.addEventListener(Event.TOUCH_START, function() {
+				playerType = selCnt;
+			});
 
 			toTitle.addEventListener(Event.TOUCH_START, function() {
 				flg = true;
 				new FadeOut(now_scene);
 			});
+
+			function TankColorChange(i, selFlg){
+				let c = PictureTank.collection[i];
+				if(selFlg){
+					var image = new Surface(c.width, c.height);
+						image.context.fillStyle = '#0000';
+						image.context.lineWidth = 6;
+						image.context.strokeStyle = '#FF1493';
+						roundedRect(image.context, 0, 0, c.width, c.height, 10);
+						c.image = image;
+				}else if(i == playerType){
+					var image = new Surface(c.width, c.height);
+						image.context.fillStyle = '#0000';
+						image.context.lineWidth = 4;
+						image.context.strokeStyle = '#0ff';
+						roundedRect(image.context, 0, 0, c.width, c.height, 10);
+						c.image = image;
+				}else{
+					var image = new Surface(c.width, c.height);
+						image.context.fillStyle = '#0004';
+						image.context.lineWidth = 4;
+						image.context.strokeStyle = '#0000';
+						roundedRect(image.context, 0, 0, c.width, c.height, 10);
+						c.image = image;
+				}
+			}
 
 			function ResetText(){
 				tankName.text = performance[selCnt][0];
@@ -8040,14 +8091,6 @@ window.onload = function(){
 			}
 
 			this.onenterframe = function(){
-				for(let i = 0; i < PictureTank.collection.length; i++){
-					let c = PictureTank.collection[i];
-					c.addEventListener(Event.TOUCH_START, function(){
-						selCnt = c.category;
-						ResetText();
-					})
-				}
-
 				if (!flg && BGM.currentTime == BGM.duration) {
 					BGM.play();
 				}
@@ -8059,6 +8102,23 @@ window.onload = function(){
 						game.replaceScene(new TitleScene());
 					}
 				}
+			}
+
+			/*c.addEventListener(Event.TOUCH_START, function(){
+				if(selCnt != -1)TankColorChange(selCnt,false);
+				selCnt = c.category;
+				ResetText();
+				TankColorChange(selCnt,true);
+			})*/
+
+			for(let i = 0; i < PictureTank.collection.length; i++){
+				let c = PictureTank.collection[i];
+				c.addEventListener(Event.TOUCH_START, function(){
+					if(selCnt != -1)TankColorChange(selCnt,false);
+					selCnt = c.category;
+					ResetText();
+					TankColorChange(selCnt,true);
+				})
 			}
 
 			new FadeIn(this);
