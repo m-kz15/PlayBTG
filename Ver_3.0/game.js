@@ -8338,7 +8338,7 @@ window.onload = function(){
 			SetObs(this,this.backgroundMap.collisionData);
 			SetRefs(this,this.backgroundMap.collisionData);
 
-			tankEntity.push(new Entity_Type0(stageData[3][0], stageData[3][1], 0, 0, this));
+			tankEntity.push(new Entity_Type0(stageData[3][0], stageData[3][1], playerType, 0, this));
 
 			for (let i = 4; i < Object.keys(stageData).length; i++) {
 				if (!retryFlg) {
