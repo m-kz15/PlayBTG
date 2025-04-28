@@ -54,6 +54,7 @@ var holes = [];
 var blocks = [];
 var deadTank = [false];
 var colors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //戦車の色を数える配列
+//var colors = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]; //戦車の色を数える配列
 var tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //配色ごとの敵戦車残数格納配列
 var colorsName = [ //各戦車の表示名格納配列
 	"Player",
@@ -236,15 +237,15 @@ const Categorys = {
     ],
 	BodyRotSpeed: [
 		15,		//Player
-		0,		//brown
+		5,		//brown
 		10,		//gray
 		10,		//green
 		15,		//red
 		10,		//lightgreen
 		15,		//elitegray
-		0, //elitegreen
+		5, //elitegreen
 		10, //snow
-		0, //pink
+		5, //pink
 		15,	//sand
 		15,	//random
 		10, //dazzle
@@ -2009,6 +2010,10 @@ window.onload = function(){
 				
 				if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
 				if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
+
+				if(Categorys.MaxRef[category] == 0){
+					this.scale(2.0, 2.0);
+				}
 			}
 			this.rad = Rot_to_Rad(from.rotation - 90);
 			let f = Get_Center(from);
@@ -2016,9 +2021,7 @@ window.onload = function(){
 			this.dx = Math.cos(this.rad) * 28;
 			this.dy = Math.sin(this.rad) * 28;
 
-			if(Categorys.MaxRef[category] == 0){
-				this.scale(2.0, 2.0);
-			}
+			
 			
 			now_scene.addChild(this);
 		},
@@ -2115,6 +2118,96 @@ window.onload = function(){
 									this.tgt[0] = elem.x + elem.width + 2.5;
 									this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
 								};
+								this.x = elem.x + elem.width + 1;
+								this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
+								this.dx = this.dx * -1;
+								break;
+						}
+						this.ref--;
+						this.rotation = (315 + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
+						return;
+					})
+					if (tankEntity[this.num].intersectStrict(this)) {
+						now_scene.removeChild(this);
+					};
+					TankBase.intersectStrict(this).forEach(elem => {
+						if(elem.num != 0){
+							now_scene.removeChild(this);
+						}
+					})
+					if (this.time > 150) now_scene.removeChild(this);
+					if (this.ref < 0) now_scene.removeChild(this)
+				}
+			};
+
+			now_scene.addChild(this);
+		}
+	});
+
+	var PlayerRefAim = Class.create(Sprite,{
+		initialize: function(ref, from, to, category, num){
+			Sprite.call(this, 8, 8);
+			this.time = 0;
+			this.category = category;
+			this.num = num;
+			this.ref = ref;
+			this.hitTime = 0;
+			this.debugColor = 'orange';
+			//this.backgroundColor = 'ffa500';
+
+			let n_color = new Surface(this.width, this.height);
+				n_color.context.beginPath();
+				n_color.context.fillStyle = 'rgba(170, 255, 255, 0.3)';
+				n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
+				n_color.context.fill();
+			this.image = n_color;
+
+			this.originX = 4;
+			this.originY = 4;
+
+			let fc = Get_Center(from);
+			this.vector = Pos_to_Vec(from, to);
+			this.rad = Vec_to_Rad(this.vector);
+			from.rotation = Rad_to_Rot(this.rad);
+			this.rad = Rot_to_Rad(from.rotation - 90);
+			this.dx = Math.cos(this.rad) * 20;
+			this.dy = Math.sin(this.rad) * 20;
+			this.rotation = (315 + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
+			
+			this.v;
+			this.f;
+			this.moveTo(fc.x + (36 * Math.cos(this.rad)) - (this.width / 2), fc.y + (36 * Math.sin(this.rad)) - (this.height / 2));
+
+			this.onenterframe = function(){
+				if(WorldFlg){
+					this.time++;
+
+					this.x += this.dx;
+					this.y += this.dy;
+
+					RefObstracle.intersectStrict(this).forEach(elem => {
+						this.v = Rot_to_Vec(this.rotation, 315);
+						this.f = Math.atan2(this.v.x, this.v.y);
+						switch(elem.name){
+							case 'RefTop':
+								this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+								this.y = elem.y - (this.height);
+								this.dy = this.dy * -1;
+								break;
+							case 'RefBottom':
+								
+								this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+								this.y = elem.y + elem.height;
+								this.dy = this.dy * -1;
+								break;
+							case 'RefLeft':
+								
+								this.x = elem.x - (this.width);
+								this.y = (this.y) - (Math.sin(this.f) * ((elem.x) - (this.x)));
+								this.dx = this.dx * -1;
+								break;
+							case 'RefRight':
+								
 								this.x = elem.x + elem.width + 1;
 								this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
 								this.dx = this.dx * -1;
@@ -3155,6 +3248,10 @@ window.onload = function(){
 				this.moveSpeed = 1.5;
 			}
 
+			if(this.bomMax == 0){
+				this.bomMax = 1;
+			}
+
 			if(gameMode == 2){
 				this.life = zanki;
 			}
@@ -3250,8 +3347,13 @@ window.onload = function(){
 								}
 							}
 		
-							new Aim(this.cannon, this.cursor, this.category, this.num);
-							//new RefAim(this.cannon, this.category, this.num);
+							if(playerType == 1 || playerType == 7){
+								new PlayerRefAim(this.ref, this.cannon, this.cursor, this.category, this.num);
+							}else{
+								new Aim(this.cannon, this.cursor, this.category, this.num);
+							}
+							
+							
 
 							if(!this.shotStopFlg){
 								switch (inputManager.checkDirection()) {
@@ -7143,7 +7245,7 @@ window.onload = function(){
 				image.context.lineWidth = 4;
 				image.context.strokeStyle = '#0ff';
 			}else{
-				image.context.fillStyle = '#0004';
+				image.context.fillStyle = '#0008';
 				image.context.lineWidth = 4;
 				image.context.strokeStyle = '#0000';
 			}	
@@ -7336,16 +7438,16 @@ window.onload = function(){
 	var ViewRemaining = Class.create(Label,{
 		initialize: function(){
 			Label.call(this);
-			this.backgroundColor = "#000c";
+			this.backgroundColor = "#0008";
 			this.time = 0
 
 			this.width = PixelSize * 8;
 			this.height = 48;
-			this.moveTo(PixelSize * 6, PixelSize * 13.5);
+			this.moveTo(PixelSize * 6, PixelSize * 14);
 			this.text = '敵残数：' + (tankEntity.length - 1 - destruction) + '　　　残機：' + zanki;
 			this.font = 'bold 40px "Arial"';
 			this.color = '#fffd';
-			this.textAlign = 'left';
+			this.textAlign = 'center';
 
 			this.onenterframe = function(){
 				if(WorldFlg){
@@ -7815,6 +7917,7 @@ window.onload = function(){
 					zanki = Repository.data.Zanki;
 					colors = Repository.data.Scores;
 					gameMode = Repository.data.Level;
+					playerType = Repository.data.Type;
 					colors.forEach(elem => {
 						score += elem;
 					});
@@ -7973,7 +8076,7 @@ window.onload = function(){
 					if (j == 0) {
 						dispTanks[listCnt] = new PictureTank(j + 2, i + 3.5, listCnt, this)._Output();
 					} else {
-						dispTanks[listCnt] = new PictureTank(j + 3, i + 3.5, listCnt, this)._Output();
+						dispTanks[listCnt] = new PictureTank(j + 3.5, i + 3.5, listCnt, this)._Output();
 					}
 					listCnt++;
 				}
@@ -7988,11 +8091,16 @@ window.onload = function(){
 			var tankDsc = new ViewText(area.body, 'Text', {width: 36 * 20, height: 36 * 3}, {x: PixelSize * 6.5, y: PixelSize * 6.5}, '・戦車の特徴', '36px sans-serif', 'black', 'left', true);
 
 			var change = new ViewButton(area.body, 'Change', {width: 36 * 10, height: 36}, {x: PixelSize * 0.5, y: PixelSize * 8}, '選択中の戦車に変更', '36px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var selTank = new ViewText(this, 'Select', {width: 60, height: 20}, {x: 0, y: 0}, '自機→', '20px sans-serif', '#00f', 'center', true);
 
 			var toTitle = new ViewText(area.head, 'Back', {width: PixelSize * 5.5, height: 48}, {x: PixelSize * 6.5, y: PixelSize * 12.5}, 'タイトル画面へ', '48px sans-serif', '#ebe799', 'center', true);
 
 			change.addEventListener(Event.TOUCH_START, function() {
+				let i = playerType;
 				playerType = selCnt;
+				TankColorChange(i,false);
+				TankColorChange(playerType,false);
+				selTank.moveTo(PictureTank.collection[playerType].x - 60, PictureTank.collection[playerType].y + 20);
 			});
 
 			toTitle.addEventListener(Event.TOUCH_START, function() {
@@ -8018,7 +8126,7 @@ window.onload = function(){
 						c.image = image;
 				}else{
 					var image = new Surface(c.width, c.height);
-						image.context.fillStyle = '#0004';
+						image.context.fillStyle = '#0008';
 						image.context.lineWidth = 4;
 						image.context.strokeStyle = '#0000';
 						roundedRect(image.context, 0, 0, c.width, c.height, 10);
@@ -8113,6 +8221,9 @@ window.onload = function(){
 
 			for(let i = 0; i < PictureTank.collection.length; i++){
 				let c = PictureTank.collection[i];
+				if(c.category == playerType){
+					selTank.moveTo(c.x - 60, c.y + 20);
+				}
 				c.addEventListener(Event.TOUCH_START, function(){
 					if(selCnt != -1)TankColorChange(selCnt,false);
 					selCnt = c.category;
@@ -8583,7 +8694,7 @@ window.onload = function(){
 						}
 						if (this.time == 120) {
 							new ViewFrame(area.body, 'Result', area.type.Body.size, {x: 0, y: 0}, area.type.Body.color);
-							new ViewFrame(area.body, 'Back', {width: 460, height: 56 * 13}, {x: 44, y: 0}, '#dd9');
+							new ViewFrame(area.body, 'Back', {width: 460, height: 56 * 13.5}, {x: 0, y: 0}, '#dd9');
 						}
 						if (this.time >= 120 && this.time % 15 == 0 && dcnt < colors.length) {
 							if(colors[dcnt] > 0){
@@ -8672,6 +8783,7 @@ window.onload = function(){
 					Repository.data.Zanki = zanki;
 					Repository.data.Scores = colors;
 					Repository.data.Level = gameMode;
+					Repository.data.Type = playerType;
 					Repository.save();
 					alert('セーブが完了しました。');
 				}
@@ -8683,6 +8795,7 @@ window.onload = function(){
 					Repository.data.Zanki = zanki;
 					Repository.data.Scores = colors;
 					Repository.data.Level = gameMode;
+					Repository.data.Type = playerType;
 					Repository.save();
 					zanki = 0;
 					deadFlgs[0] = true;

@@ -7,7 +7,8 @@ var Repository = {
         StageNum: 0,
         Zanki: 0,
         Scores: [],
-        Level: 0
+        Level: 0,
+        Type: 0
     },
 
     restore: function() {
@@ -20,7 +21,8 @@ var Repository = {
                 StageNum: 0,
                 Zanki: 0,
                 Scores: [],
-                Level: 0
+                Level: 0,
+                Type: 0
             }
         }
     },
@@ -56,6 +58,9 @@ var Repository = {
     },
     getLevel: function(){
         return this.data.Level;
+    },
+    getType: function(){
+        return this.data.Type;
     }
     /*getCircleName : function(cd) {
         var item = getItemfromList(this.data.CircleNameList, 'xxxxx', cd);
