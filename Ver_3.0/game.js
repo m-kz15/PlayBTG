@@ -310,9 +310,9 @@ const Categorys = {
 		[0, 0, 0], //elitegreen
 		[300, 200, 200], //snow
 		[0, 0, 0], //pink
-		[300, 0, 0], //sand
+		[250, 0, 0], //sand
 		[500, 0, 300], //random
-		[300, 300, 300], //dazzle
+		[250, 300, 200], //dazzle
 		[300, 300, 300] //abysal
     ],
     EscapeRange: [
@@ -1342,6 +1342,8 @@ window.onload = function(){
 		'./image/ObjectImage/AbyssalCannon.png',
 		'./image/ObjectImage/R2.png',
 		'./image/ObjectImage/mark.png',
+		'./image/ObjectImage/block.png',
+		'./image/ObjectImage/block_top.png',
 		'./image/MapImage/map0.png',
 		'./sound/mini_bomb1.mp3',
 		'./sound/mini_bomb2.mp3',
@@ -1404,10 +1406,13 @@ window.onload = function(){
 	var Block = Class.create(PhyBoxSprite, {
 		initialize: function(x, y, scene){
 			PhyBoxSprite.call(this, PixelSize, PixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
-			this.backgroundColor = "#ddd4";
+			//this.backgroundColor = "#ddd4";
+			//this.image = game.assets['./image/ObjectImage/block.png'];
 			this.x = x * PixelSize;
 			this.y = y * PixelSize - Quarter;
 			this.tilePath = {x: x, y: y};
+			this.frontimage = new Block_Imgage(this);
+			this.topimage = new Block_Imgage_Top(this, this.tilePath);
 			this.obs = BlockObs(this);
 			this.ref = BlockRef(this);
 			scene.addChild(this);
@@ -1421,8 +1426,38 @@ window.onload = function(){
 			this.ref.forEach(elem => {
 				now_scene.removeChild(elem);
 			});
+			this.frontimage._Destroy();
+			this.topimage._Destroy();
 			this.destroy();
 			//now_scene.removeChild(this);
+		}
+	})
+
+	var Block_Imgage = Class.create(Sprite,{
+		initialize: function(from){
+			Sprite.call(this, 64, 64);
+			this.from = from;
+			this.image = game.assets['./image/ObjectImage/block.png'];
+			this.moveTo(this.from.x, this.from.y+16);
+			
+			now_scene.addChild(this);
+		},
+		_Destroy: function(){
+			now_scene.removeChild(this);
+		}
+	})
+
+	var Block_Imgage_Top = Class.create(Sprite,{
+		initialize: function(from,tilePath){
+			Sprite.call(this, 64, 64);
+			this.from = from;
+			this.image = game.assets['./image/ObjectImage/block_top.png'];
+			this.moveTo(this.from.x, this.from.y - 16);
+			
+			now_scene.BlockGroup.addChild(this);
+		},
+		_Destroy: function(){
+			now_scene.BlockGroup.removeChild(this);
 		}
 	})
 
@@ -1885,14 +1920,19 @@ window.onload = function(){
 			Sprite.call(this, 56, 70);
 			//this.backgroundColor = "#fff";
 			this.image = game.assets[Categorys.Image[category].tank];
-			this.x = area.x + 2;
-			this.y = area.y - 5;
+			this.pos = {x: (area.width - this.width) / 2, y: (area.height - this.height) / 2};
+			//this.x = area.x + 2;
+			//this.y = area.y - 5;
+			this.x = area.x + this.pos.x;
+			this.y = area.y + this.pos.y;
 			this.scaleX = 0.95;
 			this.scaleY = 0.87;
 			this.rotation = 0;
 			this.onenterframe = function() {
-				this.x = area.x + 2;
-				this.y = area.y - 5;
+				//this.x = area.x + 2;
+				//this.y = area.y - 5;
+				this.x = area.x + this.pos.x;
+				this.y = area.y + this.pos.y;
 			}
 			now_scene.TankGroup.addChild(this);
 			return this;
@@ -5263,7 +5303,7 @@ window.onload = function(){
 							if (this.category != 1) {
 								this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
 							} else {
-								this.aimCmpTime = Math.floor(Math.random() * 30) + 10;
+								this.aimCmpTime = Math.floor(Math.random() * 30) + 30;
 							}
 							break;
 						}
@@ -7232,7 +7272,7 @@ window.onload = function(){
 
 	var PictureTank = Class.create(Sprite, {
 		initialize: function(x, y, category, scene) {
-			Sprite.call(this, PixelSize - 4, PixelSize - 4);
+			Sprite.call(this, PixelSize+8, PixelSize);
 			//this.from = scene;
 			this.x = x * PixelSize;
 			this.y = y * PixelSize;
@@ -7354,7 +7394,7 @@ window.onload = function(){
 			scene.addChild(this)
 		}
 	})
-
+	
 	var ViewCountDown = Class.create(Label,{
 		initialize: function(){
 			Label.call(this);
@@ -7514,6 +7554,29 @@ window.onload = function(){
 		},
 		_Output: function(){
 			this.from.addChild(this);
+		}
+	})
+
+	var ViewMessage = Class.create(ViewText,{
+		initialize: function(from, type, size, position, text, font, color, align, delTime){
+			ViewText.call(this, from, type, size, position, text, font, color, align, true);
+			this.time = 0;
+			this.opacity = 0.25;
+
+			this.onenterframe = function(){
+				this.time++;
+				if(this.time < 12 && this.time % 3 == 0){
+					this.opacity += 0.25;
+				}else if(this.time > delTime + 15 && this.time % 3 == 0){
+					this.opacity -= 0.2;
+				}
+				if(this.time == delTime + 30){
+					this._Remove();
+				}
+			}
+		},
+		_Remove: function(){
+			this.from.removeChild(this);
 		}
 	})
 
@@ -8029,7 +8092,7 @@ window.onload = function(){
 
 			if(gameMode == 0){
 				performance = [
-					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車"],
+					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車。<br>　高性能かつ汎用性が高いため<br>　初心者におすすめ。"],
 					[colorsName[1], "　耐久　：" + Categorys.Life[1], "　弾数　：" + Categorys.MaxBullet[1], "　弾速　：遅い(" + Categorys.ShotSpeed[1] + ")", "跳弾回数：" + Categorys.MaxRef[1], "移動速度：動かない(" + Categorys.MoveSpeed[1] + ")", "・弾道予測型<br>　最も弱い戦車。<br>　よく狙って攻撃するため命中率は高い。"],
 					[colorsName[2], "　耐久　：" + Categorys.Life[2], "　弾数　：" + Categorys.MaxBullet[2], "　弾速　：普通(" + Categorys.ShotSpeed[2] + ")", "跳弾回数：" + Categorys.MaxRef[2], "移動速度：遅い(" + Categorys.MoveSpeed[2] + ")", "・最短追尾型<br>　最短経路を計算して移動する。<br>　配置によっては脅威になりうる。"],
 					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + Categorys.MaxBullet[3], "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + Categorys.MaxRef[3], "移動速度：遅い(" + Categorys.MoveSpeed[3] + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。"],
@@ -8046,7 +8109,7 @@ window.onload = function(){
 				];
 			}else{
 				performance = [
-					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車"],
+					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車。<br>　高性能かつ汎用性が高いため<br>　初心者におすすめ。"],
 					[colorsName[1], "　耐久　：" + Categorys.Life[1], "　弾数　：" + (Categorys.MaxBullet[1] + 2), "　弾速　：普通(" + (Categorys.ShotSpeed[1] + 2) + ")", "跳弾回数：" + Categorys.MaxRef[1], "移動速度：動かない(" + Categorys.MoveSpeed[1] + ")", "・弾道予測型<br>　最も弱い戦車。<br>　よく狙って攻撃するため命中率は高い。"],
 					[colorsName[2], "　耐久　：" + Categorys.Life[2], "　弾数　：" + (Categorys.MaxBullet[2] + 1), "　弾速　：普通(" + (Categorys.ShotSpeed[2] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[2], "移動速度：遅い(" + Categorys.MoveSpeed[2] + ")", "・最短追尾型<br>　最短経路を計算して移動する。<br>　配置によっては脅威になりうる。"],
 					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.5) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。"],
@@ -8069,17 +8132,19 @@ window.onload = function(){
 			this.addChild(this.CannonGroup);
 
 			let listCnt = 0;
+			let margin = 0;
 			let selCnt = -1;
 
 			for (let i = 0; i < 7; i++) {
 				for (let j = 0; j < 2; j++) {
 					if (j == 0) {
-						dispTanks[listCnt] = new PictureTank(j + 2, i + 3.5, listCnt, this)._Output();
+						dispTanks[listCnt] = new PictureTank(j + 2, i + 3.2 + margin, listCnt, this)._Output();
 					} else {
-						dispTanks[listCnt] = new PictureTank(j + 3.5, i + 3.5, listCnt, this)._Output();
+						dispTanks[listCnt] = new PictureTank(j + 3.5, i + 3.2 + margin, listCnt, this)._Output();
 					}
 					listCnt++;
 				}
+				margin += 0.05;
 			}
 
 			var tankName = new ViewText(area.body, 'Text', {width: 48 * 12, height: 48}, {x: PixelSize * 6.5, y: PixelSize * 0.5}, '戦車名', '48px sans-serif', 'black', 'left', true);
@@ -8096,11 +8161,17 @@ window.onload = function(){
 			var toTitle = new ViewText(area.head, 'Back', {width: PixelSize * 5.5, height: 48}, {x: PixelSize * 6.5, y: PixelSize * 12.5}, 'タイトル画面へ', '48px sans-serif', '#ebe799', 'center', true);
 
 			change.addEventListener(Event.TOUCH_START, function() {
-				let i = playerType;
-				playerType = selCnt;
-				TankColorChange(i,false);
-				TankColorChange(playerType,false);
-				selTank.moveTo(PictureTank.collection[playerType].x - 60, PictureTank.collection[playerType].y + 20);
+				if(selCnt > 11){
+					new ViewMessage(now_scene, 'Message', {width: 960, height: 48}, {x: PixelSize * 2.5, y: PixelSize * 7.5}, performance[selCnt][0] + 'は自機として使用できません！', '48px sans-serif', '#f00', 'center', 60).backgroundColor = '#000a';
+				}else if(playerType != selCnt){
+					let i = playerType;
+					playerType = selCnt;
+					TankColorChange(i,false);
+					TankColorChange(playerType,false);
+					selTank.moveTo(PictureTank.collection[playerType].x - 60, PictureTank.collection[playerType].y + 20);
+					new ViewMessage(now_scene, 'Message', {width: 960, height: 48}, {x: PixelSize * 2.5, y: PixelSize * 7.5}, '自機を' + performance[selCnt][0] + 'に変更しました。', '48px sans-serif', '#0ff', 'center', 60).backgroundColor = '#000a';
+				}
+				
 			});
 
 			toTitle.addEventListener(Event.TOUCH_START, function() {
@@ -8388,6 +8459,7 @@ window.onload = function(){
 			this.BulletGroup = new Group();
 			this.FireGroup = new Group();
 			this.CannonGroup = new Group();
+			this.BlockGroup = new Group();
 
 			this.backgroundMap = new MainMap(this);
 
@@ -8441,6 +8513,7 @@ window.onload = function(){
 			this.addChild(this.BulletGroup);
 			this.addChild(this.FireGroup);
 			this.addChild(this.CannonGroup);
+			this.addChild(this.BlockGroup);
 			
 
 			let filterMap = new FillterMap(this);
@@ -8452,6 +8525,7 @@ window.onload = function(){
 			tankEntity.push(new Entity_Type0(stageData[3][0], stageData[3][1], playerType, 0, this));
 
 			for (let i = 4; i < Object.keys(stageData).length; i++) {
+				if((Math.floor(Math.random() * 10) == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][2] == 11) stageData[i][2] = 11;
 				if (!retryFlg) {
 					switch(stageData[i][2]){
 						case 1:
@@ -8547,8 +8621,6 @@ window.onload = function(){
 			var remaining = new ViewRemaining();
 
 			BGM = game.assets['./sound/start.mp3'];
-			let BGM2 = game.assets['./sound/end.mp3'];
-			let BGM3 = game.assets['./sound/result.mp3'];
 			BGM.play();
 			BGM.volume = 0.2;
 
@@ -8575,6 +8647,7 @@ window.onload = function(){
 				if(game.time == 210 && (complete == false && victory == false && defeat == false && resultFlg == false)){
 					WorldFlg = true;
 					remaining._Add();
+					new ViewMessage(this, 'Message', {width: 640, height: 64}, {x: PixelSize * 5, y: PixelSize * 5}, 'S T A R T', 'bold 64px "Arial"', 'yellow', 'center', 60);
 				}
 
 				if(gameStatus == 0){
@@ -8764,18 +8837,13 @@ window.onload = function(){
 			this.backgroundColor = '#0008';
 			this.time = 0;
 
+			BGM.volume = 0.5;
+
 			new ViewText(this, 'Title', {width: 640, height: 96}, {x: 64 * 5, y: 64 * 1.5}, 'PAUSE', '96px sans-serif', 'white', 'center',true);
-
-			/*var save = new ViewText(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 5}, 'SAVE', '64px sans-serif', 'white', 'center',true);
-
-			var retire = new ViewText(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 7.5}, 'RETIRE', '64px sans-serif', 'white', 'center',true);
-
-			var back = new ViewText(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 10}, 'CONTINUE', '64px sans-serif', 'white', 'center',true);*/
 
 			var save = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 5}, 'SAVE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
 			var retire = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 7.5}, 'RETIRE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
 			var back = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 10}, 'CONTINUE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
-
 
 			save.addEventListener(Event.TOUCH_START, function() {
 				if (confirm("現在の進捗をセーブしますか？\r\nタイトルのつづきからを選択すると現在のステージから再開できます。")) {
@@ -8786,6 +8854,7 @@ window.onload = function(){
 					Repository.data.Type = playerType;
 					Repository.save();
 					alert('セーブが完了しました。');
+					//new ViewMessage(that, 'Message', {width: PixelSize * 11, height: 64}, {x: PixelSize * 4.5, y: PixelSize * 5}, 'セーブが完了しました。', '64px "Arial"', 'white', 'center', 60);
 				}
 			});
 
@@ -8804,6 +8873,7 @@ window.onload = function(){
 			});
 
 			back.addEventListener(Event.TOUCH_START, function() {
+				BGM.volume = 1.0;
 				that._Remove();
 			});
 
@@ -8813,9 +8883,11 @@ window.onload = function(){
 					if (BGM.currentTime == BGM.duration) {
 						BGM.currentTime = 0;
 						BGM.play();
+						BGM.volume = 0.5;
 					}
 				}
 				if (inputManager.checkButton("Start") == inputManager.keyStatus.DOWN){
+					BGM.volume = 1.0;
 					this._Remove();
 				}
 			}
