@@ -8647,7 +8647,7 @@ window.onload = function(){
 				if(game.time == 210 && (complete == false && victory == false && defeat == false && resultFlg == false)){
 					WorldFlg = true;
 					remaining._Add();
-					new ViewMessage(this, 'Message', {width: 640, height: 64}, {x: PixelSize * 5, y: PixelSize * 5}, 'S T A R T', 'bold 64px "Arial"', 'yellow', 'center', 60);
+					new ViewMessage(this, 'Message', {width: 640, height: 64}, {x: PixelSize * 5, y: PixelSize * 6}, 'S T A R T', 'bold 64px "Arial"', 'yellow', 'center', 60);
 				}
 
 				if(gameStatus == 0){
