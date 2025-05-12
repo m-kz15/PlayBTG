@@ -864,28 +864,28 @@ const ViewConfig = {
 			color: '#eea'
 		}
 	},
-	'Test': {
+	'Pause': {
 		Head: {
 			position: {
-				x: PixelSize * 2,
-				y: PixelSize * 0.5
+				x: PixelSize * 0,
+				y: PixelSize * 0
 			},
 			size: {
-				width: PixelSize * 16,
-				height: PixelSize * 14
+				width: PixelSize * 0,
+				height: PixelSize * 0
 			},
-			color: '#a00'
+			color: '#000'
 		},
 		Body: {
 			position: {
-				x: PixelSize * 2,
-				y: PixelSize * 3
+				x: PixelSize * 0,
+				y: PixelSize * 9
 			},
 			size: {
-				width: PixelSize * 16,
-				height: PixelSize * 11
+				width: PixelSize * 20,
+				height: PixelSize * 8
 			},
-			color: '#eea'
+			color: '#00000000'
 		}
 	}
 }
@@ -2024,7 +2024,21 @@ window.onload = function(){
 				//from.rotation = ((Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI) * -1;
 				from.rotation = Rad_to_Rot(this.rad);
 			}else{
-				
+				/*if(num == 0){
+					let n_color = new Surface(this.width, this.height);
+						n_color.context.beginPath();
+						n_color.context.fillStyle = 'rgba(170, 255, 255, 0.3)';
+						n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
+						n_color.context.fill();
+					this.image = n_color;
+				}else{
+					if(Categorys.MaxRef[category] == 0){
+						this.scale(2.0, 2.0);
+					}
+				}*/
+				if(Categorys.MaxRef[category] == 0){
+					this.scale(2.0, 2.0);
+				}
 				var rot = Rad_to_Rot(this.rad);
 				if(rot < 0){
 					rot = 360 + rot;
@@ -2050,10 +2064,6 @@ window.onload = function(){
 				
 				if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
 				if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
-
-				if(Categorys.MaxRef[category] == 0){
-					this.scale(2.0, 2.0);
-				}
 			}
 			this.rad = Rot_to_Rad(from.rotation - 90);
 			let f = Get_Center(from);
@@ -4697,16 +4707,23 @@ window.onload = function(){
 									switch(c.num){
 										case 0:
 											if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
+												let tgtFlg = false;
 												PlayerBulAim.intersectStrict(Around).forEach(elem => {
+													if(this.attackTarget == c && tgtFlg) return;
 													if(elem.target == c){
+														tgtFlg = true;
 														this.attackTarget = c; //  迎撃のためにターゲット変更
 														if(this.time % 6 == 0) dirValue = Escape_Rot4(this, c, dirValue);
 													}
 												})
+												if(!tgtFlg && category == 6){
+													this.attackTarget = target;
+												}
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][1]) {
 														this.escapeTarget = c;
 														escapeFlg = true;
+														
 													}
 												}
 											}
@@ -6040,11 +6057,17 @@ window.onload = function(){
 									switch(c.num){
 										case 0:
 											if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
+												let tgtFlg = false;
 												PlayerBulAim.intersectStrict(Around).forEach(elem => {
-													if(elem.target == c)this.attackTarget = c; //  迎撃のためにターゲット変更
+													if(this.attackTarget == c && tgtFlg) return;
+													if(elem.target == c){
+														tgtFlg = true;
+														this.attackTarget = c; //  迎撃のためにターゲット変更
+													}
 												})
+												if(!tgtFlg) this.attackTarget = target;
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
-													if (dist < Categorys.EscapeRange[this.category][1]) {
+													if (dist < Categorys.EscapeRange[this.category][1] && tgtFlg) {
 														this.escapeTarget = c;
 														escapeFlg = true;
 													}
@@ -7634,9 +7657,9 @@ window.onload = function(){
 					this.type = ViewConfig.Result;
 					this._SetResult();
 					break;
-				case 'Test':
-					this.type = ViewConfig.Test;
-					this._SetTest();
+				case 'Pause':
+					this.type = ViewConfig.Pause;
+					this._SetPause();
 					break;
 			};
 
@@ -7685,15 +7708,9 @@ window.onload = function(){
 			new ViewFrame(this.head, 'Top', {width: this.type.Head.size.width, height: 5}, {x: 0, y: 32}, 'yellow');
 			//new ViewFrame(this.body, 'Result', this.type.Body.size, {x: 0, y: 0}, this.type.Body.color);
 		},
-		_SetTest: function(){
-			this.head.moveTo(this.type.Head.position.x, this.type.Head.position.y);
+		_SetPause: function(){
 			this.body.moveTo(this.type.Body.position.x, this.type.Body.position.y);
-			new ViewFrame(this.head, 'Test', this.type.Head.size, {x: 0, y: 0}, this.type.Head.color);
-			new ViewFrame(this.head, 'Top', {width: this.type.Head.size.width, height: 5}, {x: 0, y: 32}, 'yellow');
-			new ViewFrame(this.head, 'Bottom', {width: this.type.Head.size.width, height: 5}, {x: 0, y: this.type.Head.size.height - 37}, 'yellow');
-			new ViewFrame(this.body, 'Test', this.type.Body.size, {x: 0, y: 0}, this.type.Body.color);
-
-			new ViewText(this.head, 'Title', {width: 640, height: 64}, {x: 192, y: 64}, 'TITLE', '48px sans-serif', 'white', 'center', true);
+			new ViewFrame(this.body, 'Pause', this.type.Body.size, {x: 0, y: 0}, this.type.Body.color);
 		}
 	});
 
@@ -8663,7 +8680,7 @@ window.onload = function(){
 					world.step(game.fps);
 					this.time++;
 
-					if (inputManager.checkButton("Start") == inputManager.keyStatus.DOWN && gameStatus == 0) {
+					if (inputManager.checkButton("Start") == inputManager.keyStatus.DOWN && gameStatus == 0 && game.time > 250) {
 						new PauseScene();
 					}
 
@@ -8841,9 +8858,39 @@ window.onload = function(){
 
 			new ViewText(this, 'Title', {width: 640, height: 96}, {x: 64 * 5, y: 64 * 1.5}, 'PAUSE', '96px sans-serif', 'white', 'center',true);
 
-			var save = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 5}, 'SAVE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
-			var retire = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 7.5}, 'RETIRE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
-			var back = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 10}, 'CONTINUE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
+			var save = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 4}, 'SAVE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
+			var retire = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 6.5}, 'RETIRE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
+			var back = new ViewButton(this, 'Title', {width: 640, height: 64}, {x: 64 * 5, y: 64 * 9}, 'CONTINUE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
+
+			//let area = new SetArea({x: 0, y: 0}, 'Pause');
+
+			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+				new ViewFrame(this, 'Pause', {width: PixelSize * 20,height: PixelSize * 4.5}, {x: 0, y: PixelSize * 10.5}, '#000000aa');
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 11}, '　移動　：十字パッド（斜め移動可）', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 11.75}, '　照準　：画面タップか画面スライド', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 12.5}, '　砲撃　：Bボタン', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 13.25}, '爆弾設置：Aボタン', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 14}, '一時停止：Startボタン', '28px sans-serif', 'white', 'left', true);
+
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11}, '※補足説明', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11.75}, '・ステージ上にある茶色の壁は爆弾でしか壊せません。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 12.5}, '・爆弾の爆発は、戦車の耐久を無視して撃破が可能。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 13.25}, '　サバイバルモードでは爆発に巻き込まれると即', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 14}, '　ゲームオーバーになるため注意してください。', '28px sans-serif', 'white', 'left', true);
+			} else {
+				new ViewFrame(this, 'Pause', {width: PixelSize * 20,height: PixelSize * 4.5}, {x: 0, y: PixelSize * 10.5}, '#000000aa');
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 11}, '　移動　：WASDキー　（斜め移動可）', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 11.75}, '　照準　：マウス操作', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 12.5}, '　砲撃　：左クリック', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 13.25}, '爆弾設置：Eキー', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 14}, '一時停止：Escキー', '28px sans-serif', 'white', 'left', true);
+
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11}, '※補足説明', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11.75}, '・ステージ上にある茶色の壁は爆弾でしか壊せません。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 12.5}, '・爆弾の爆発は、戦車の耐久を無視して撃破が可能。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 13.25}, '　サバイバルモードでは爆発に巻き込まれると即', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 14}, '　ゲームオーバーになるため注意してください。', '28px sans-serif', 'white', 'left', true);
+			}
 
 			save.addEventListener(Event.TOUCH_START, function() {
 				if (confirm("現在の進捗をセーブしますか？\r\nタイトルのつづきからを選択すると現在のステージから再開できます。")) {
