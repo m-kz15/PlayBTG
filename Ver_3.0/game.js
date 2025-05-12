@@ -742,6 +742,10 @@ function getOrientation(screen, window) {
 		return "portrait";
 }
 
+function noscroll(e){
+	e.preventDefault();
+}
+
 
 const ViewConfig = {
 	'Title': {
@@ -1105,8 +1109,11 @@ class Vpad {
 				pad.style.backgroundColor = "transparent"; //透明
 				//pad.style.bottom = "0px"; //下に固定
 				pad.style.top = `${window.innerHeight - (Number(PixelSize * Stage_H / 2.65) * 0.5)}px`; //下に固定
+				document.addEventListener('touchmove', noscroll, {passive: false});
+				document.addEventListener('wheel', noscroll, {passive: false});
 			}else{
-
+				document.removeEventListener('touchmove', noscroll);
+				document.removeEventListener('wheel', noscroll);
 			}
 			//console.log(_orientation)
 		}else{
@@ -7417,6 +7424,49 @@ window.onload = function(){
 			scene.addChild(this)
 		}
 	})
+
+	/* プレイヤー位置表示クラス */
+	var PlayerLabel = Class.create(Label, {
+		initialize: function(player) {
+			Label.call(this, 1, 1)
+			this.x = player.x - ((player.width * 2))
+			this.y = player.y - PixelSize;
+			this.time = 0
+			this.text = "Player<br><br>↓"
+			this.textAlign = 'center';
+			this.font = '32px sans-serif';
+			this.color = 'aliceblue'
+			var flg = false;
+			this.onenterframe = function() {
+				if (game.time >= 170) {
+					this.time++
+					if (this.time % 2 == 0) {
+						this.opacity -= 0.1
+						if (this.opacity <= 0) {
+							now_scene.removeChild(this)
+						}
+					}
+				} else {
+					if (game.time % 20) {
+						if (flg == true) {
+							flg = false;
+						} else if (flg == false) {
+							flg = true
+						}
+					} else {
+						if (flg == true) {
+							this.scaleX += 0.1
+							this.scaleY += 0.1
+						} else {
+							this.scaleX -= 0.1
+							this.scaleY -= 0.1
+						}
+					}
+				}
+			}
+			now_scene.addChild(this)
+		}
+	})
 	
 	var ViewCountDown = Class.create(Label,{
 		initialize: function(){
@@ -8631,6 +8681,8 @@ window.onload = function(){
 
 			var area;
 
+			new PlayerLabel(tankEntity[0]);
+
 			new FadeIn(this);
 			new ViewCountDown();
 			var dcnt = 1;
@@ -8642,6 +8694,8 @@ window.onload = function(){
 			BGM.volume = 0.2;
 
 			let chgBgm = false;
+
+			
 
             this.onenterframe = function(){
                 game.time++;
