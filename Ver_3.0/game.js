@@ -372,6 +372,26 @@ const stagePath = [
 	'./stage/stage17.js',
 	'./stage/stage18.js',
 	'./stage/stage19.js',
+	/*'./stage/stage20.js',
+	'./stage/stage21.js',
+	'./stage/stage22.js',
+	'./stage/stage23.js',
+	'./stage/stage24.js',
+	'./stage/stage25.js',
+	'./stage/stage26.js',
+	'./stage/stage27.js',
+	'./stage/stage28.js',
+	'./stage/stage29.js',
+	'./stage/stage30.js',
+	'./stage/stage31.js',
+	'./stage/stage32.js',
+	'./stage/stage33.js',
+	'./stage/stage34.js',
+	'./stage/stage35.js',
+	'./stage/stage36.js',
+	'./stage/stage37.js',
+	'./stage/stage38.js',
+	'./stage/stage39.js',*/
 ];
 
 class Vector2 {
@@ -506,6 +526,36 @@ var Rot_to_Vec = function(rot, add) {
 	};
 	return vector;
 };
+
+var Get_HitPoint = function(from, to){
+	let t1 = Get_Center(from);
+	let t2 = Get_Center(to);
+
+	let v1 = Pos_to_Vec(from, to);
+	//let v2 = Pos_to_Vec(to, from);
+
+	let rad1 = Vec_to_Rad(v1);
+	//let rad2 = Vec_to_Rad(v2);
+
+	let rot1 = Rad_to_Rot(rad1);
+	//let rot2 = Rad_to_Rot(rad2);
+
+	rad1 = Rot_to_Rad(rot1 - 90);
+	//rad2 = Rot_to_Rad(rot2 - 90);
+
+	let p1 = {x: t1.x + Math.cos(rad1) * (from.width/2), y: t1.y + Math.sin(rad1) * (from.height/2)};
+	//let p2 = {x: t2.x + Math.cos(rad2) * (to.width/2), y: t2.y + Math.sin(rad2) * (to.height/2)};
+
+	/*let rect = from.getOrientedBoundingRect(),
+	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
+	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]};*/
+
+	//let point = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
+
+	//console.log(point.x + '    ' + point.y + '\n' + p1.x + '    ' + p1.y + '\n' + p2.x + '    ' + p2.y);
+
+	return p1;
+}
 
 var Set_Arg = function(from, to, rad, range) {
     let v1 = Get_Center(from);
@@ -1398,7 +1448,6 @@ window.onload = function(){
     stageScreen.style.left = ScreenMargin + "px";
     game._pageX = ScreenMargin;
 
-
 	var Wall = Class.create(PhyBoxSprite, {
 		initialize: function(width, height, x, y, name, scene) {
 			PhyBoxSprite.call(this, width * PixelSize, height * PixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
@@ -2243,6 +2292,7 @@ window.onload = function(){
 					this.y += this.dy;
 
 					RefObstracle.intersectStrict(this).forEach(elem => {
+						//let point = new Point(Get_HitPoint(this, elem));
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						switch(elem.name){
@@ -2357,6 +2407,10 @@ window.onload = function(){
 			let cnt = 0;
 			let hitTime = 0;
 
+			/*if(category == 11){
+				this.bullet.scale(0.8, 1.5);
+			}*/
+
 			//this.backgroundColor = 'white'
 
 			switch(category){
@@ -2370,6 +2424,8 @@ window.onload = function(){
 					random1 = (Math.floor(Math.random() * 20) - 10) / 2;
 					break;
 				case 5:
+					random0 = (Math.floor(Math.random() * 12) - 6) / 2;
+					random1 = (Math.floor(Math.random() * 12) - 6) / 2;
 					break;
 				case 9:
 					random0 = (Math.floor(Math.random() * 40) - 20) / 2;
@@ -2408,7 +2464,7 @@ window.onload = function(){
 						if(!refFlg){
 							this.ref--;
 							refFlg = true;
-							game.assets['./sound/s_car_trunk_O.wav'].clone().play();
+							if(gameStatus == 0)game.assets['./sound/s_car_trunk_O.wav'].clone().play();
 						}
 						if(hitTime >= 30){
 							hitTime = 0;
@@ -2448,7 +2504,7 @@ window.onload = function(){
 			this.destroy();
 			now_scene.BulletGroup.removeChild(this);
 			now_scene.BulletGroup.removeChild(this.bullet);
-			game.assets['./sound/Sample_0000.wav'].clone().play();
+			if(gameStatus == 0)game.assets['./sound/Sample_0000.wav'].clone().play();
 		}
 	});
 
@@ -6074,13 +6130,39 @@ window.onload = function(){
 												})
 												if(!tgtFlg) this.attackTarget = target;
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
-													if (dist < Categorys.EscapeRange[this.category][1] && tgtFlg) {
+													if (dist < Categorys.EscapeRange[this.category][1]) {
 														this.escapeTarget = c;
 														escapeFlg = true;
 													}
 												}
 											}
 											break;
+										/*case 0:
+											if(dist != null){
+												let tgtFlg = false;
+												if (dist < Categorys.DefenceRange[this.category][0]) {
+													PlayerBulAim.intersectStrict(Around).forEach(elem => {
+														if(this.attackTarget == c && tgtFlg) return;
+														if(elem.target == c){
+															tgtFlg = true;
+															this.attackTarget = c; //  迎撃のためにターゲット変更
+														}
+													})
+													if(!tgtFlg) this.attackTarget = target;
+												}
+												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
+													if (dist < Categorys.EscapeRange[this.category][1]) {
+														if(this.escapeTarget == null || this.escapeTarget != c){
+
+														}else{
+															escapeFlg = true;
+															this.escapeTarget = c;
+														}
+														
+													}
+												}
+											}
+											break;*/
 
 										case this.num:
 											if(this.ref == 0) break;
@@ -6303,7 +6385,23 @@ window.onload = function(){
 				//from.cannon.rotation = (90 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
 				this.cannon.rotation = Rad_to_Rot(rad);
 			}
-		}
+		}/*,
+		_JudgeDist: function(elem) {
+			if(this.attackTarget.name == 'Bullet'){
+				let t1 = Get_Center(this);
+				let t2 = Get_Center(elem);
+				let v = Rot_to_Vec(elem.rotation, -90);
+				let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
+				let val = dis * elem.from.shotSpeed;
+				v.x = v.x * val + t2.x;
+				v.y = v.y * val + t2.y;
+				let p = {
+					x: t1.x - v.x,
+					y: t1.y - v.y
+				};
+				return p;
+			}
+		}*/
 	})
 
 	//	精強型
@@ -8863,7 +8961,7 @@ window.onload = function(){
 							
 							if (this.time == 345) {
 								this.addChild(toTitle)
-								if (stageNum != 100 && defeat == false) {
+								if (stageNum != (stagePath.length-1) && defeat == false) {
 									this.addChild(toProceed)
 								}
 							}
