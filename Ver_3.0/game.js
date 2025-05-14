@@ -372,7 +372,7 @@ const stagePath = [
 	'./stage/stage17.js',
 	'./stage/stage18.js',
 	'./stage/stage19.js',
-	/*'./stage/stage20.js',
+	'./stage/stage20.js',
 	'./stage/stage21.js',
 	'./stage/stage22.js',
 	'./stage/stage23.js',
@@ -391,7 +391,7 @@ const stagePath = [
 	'./stage/stage36.js',
 	'./stage/stage37.js',
 	'./stage/stage38.js',
-	'./stage/stage39.js',*/
+	'./stage/stage39.js',
 ];
 
 class Vector2 {
@@ -546,9 +546,25 @@ var Get_HitPoint = function(from, to){
 	let p1 = {x: t1.x + Math.cos(rad1) * (from.width/2), y: t1.y + Math.sin(rad1) * (from.height/2)};
 	//let p2 = {x: t2.x + Math.cos(rad2) * (to.width/2), y: t2.y + Math.sin(rad2) * (to.height/2)};
 
-	/*let rect = from.getOrientedBoundingRect(),
+	let rect = from.getOrientedBoundingRect(),
 	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
-	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]};*/
+	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]},
+	top = {x: rt.x - lt.x, y: rt.y - lt.y},
+    right = {x: rb.x - rt.x, y: rb.y - rt.y},
+	bottom = {x: lb.x - rb.x, y: lb.y - rb.y},
+    left = {x: lt.x - lb.x, y: lt.y - lb.y};
+
+	let dlist = [top, right, bottom, left];
+
+	let close = 9999;
+	let closeNum = -1;
+
+	for(let i = 0; i < 4; i++){
+		if(dlist[i] < close){
+			close = dlist[i];
+			closeNum = i;
+		}
+	}
 
 	//let point = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
 
@@ -2140,6 +2156,8 @@ window.onload = function(){
 				}
 				this.x += this.dx;
 				this.y += this.dy;
+
+				//this.tl.moveTo(this.x + this.dx, this.y + this.dy, 1, enchant.Easing.QUAD_EASEINOUT);
 			}
 			Wall.intersectStrict(this).forEach(elem => {
 				now_scene.removeChild(this);
@@ -2233,10 +2251,8 @@ window.onload = function(){
 						this.rotation = (315 + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
 						return;
 					})
-					if (tankEntity[this.num].intersectStrict(this)) {
-						now_scene.removeChild(this);
-					};
 					TankBase.intersectStrict(this).forEach(elem => {
+						//let point = new Point(Get_HitPoint(this, elem));
 						if(elem.num != 0){
 							now_scene.removeChild(this);
 						}
@@ -2291,8 +2307,15 @@ window.onload = function(){
 					this.x += this.dx;
 					this.y += this.dy;
 
+					/*Wall.intersectStrict(this).forEach(elem => {
+						let point = new Point(Get_HitPoint(this, elem));
+					})
+					Block.intersectStrict(this).forEach(elem => {
+						let point = new Point(Get_HitPoint(this, elem));
+					})*/
+
 					RefObstracle.intersectStrict(this).forEach(elem => {
-						//let point = new Point(Get_HitPoint(this, elem));
+						
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
 						switch(elem.name){
@@ -2501,6 +2524,7 @@ window.onload = function(){
 			bullets[this.num]--;
 			bulStack[this.num][this.id] = false; //  弾の状態をoffにする
 			new TouchFire(this.bullet);
+			Spark_Effect(this.bullet);
 			this.destroy();
 			now_scene.BulletGroup.removeChild(this);
 			now_scene.BulletGroup.removeChild(this.bullet);
@@ -2940,6 +2964,45 @@ window.onload = function(){
 			now_scene.addChild(this);
 		}
 	})
+
+	var Spark = Class.create(Sprite, {
+		initialize: function(from){
+			Sprite.call(this, 1, 6);
+			let rot = from.rotation;
+			
+			var rad = Rot_to_Rad(from.rotation - 90);
+
+			this.moveTo(((from.x + from.width/2)) + Math.cos(rad) * (10), ((from.y + from.height/2)) + Math.sin(rad) * (10));
+
+			this.rotation = (rot) + (Math.floor(Math.random() * 120) - 60);
+			let v = Rot_to_Vec(this.rotation, 90);
+			this.dx = v.x * 3;
+			this.dy = v.y * 3;
+			this.x += this.dx;
+			this.y += this.dy;
+			//this.moveTo(v.x,v.y);
+			this.backgroundColor = '#ff9';
+			this.opacity = 1.0;
+			this.scale(2.0, 2.0);
+			this.onenterframe = function(){
+				this.opacity -= 0.1;
+				this.x += this.dx;
+				this.y += this.dy;
+				if(this.opacity < 0){
+					now_scene.SparkGroup.removeChild(this);
+				}
+			}
+			now_scene.SparkGroup.addChild(this);
+		}
+	})
+
+	function Spark_Effect(from){
+		new Spark(from);
+		new Spark(from);
+		new Spark(from);
+		new Spark(from);
+		new Spark(from);
+	}
 
 	var InterceptAround = Class.create(Sprite, {
 		initialize: function(from) {
@@ -7437,10 +7500,11 @@ window.onload = function(){
 
 	var Point = Class.create(Sprite,{
 		initialize: function(v){
-			Sprite.call(this,10, 10);
+			Sprite.call(this,1, 1);
 			this.moveTo(v.x,v.y);
 			this.backgroundColor = '#ff0';
 			this.opacity = 1.0;
+			this.scale(10.0, 10.0);
 			this.onenterframe = function(){
 				this.opacity -= 0.05;
 				if(this.opacity < 0){
@@ -8625,6 +8689,7 @@ window.onload = function(){
 			this.FireGroup = new Group();
 			this.CannonGroup = new Group();
 			this.BlockGroup = new Group();
+			this.SparkGroup = new Group();
 
 			this.backgroundMap = new MainMap(this);
 
@@ -8678,6 +8743,7 @@ window.onload = function(){
 			this.addChild(this.BulletGroup);
 			this.addChild(this.FireGroup);
 			this.addChild(this.CannonGroup);
+			this.addChild(this.SparkGroup);
 			this.addChild(this.BlockGroup);
 			
 
