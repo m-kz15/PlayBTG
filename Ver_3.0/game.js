@@ -252,7 +252,7 @@ const Categorys = {
 		8	//abysal
 	],
 	CannonRotSpeed: [
-		5,		//Player
+		15,		//Player
 		1.5,		//brown
 		3,		//gray
 		5,		//green
@@ -261,7 +261,7 @@ const Categorys = {
 		8,		//elitegray
 		1.2, //elitegreen
 		5, //snow
-		10, //pink
+		5, //pink
 		10,	//sand
 		1.5,	//random
 		10, //dazzle
@@ -407,6 +407,11 @@ class Vector2 {
     clone() {
         return new Vector2(this.x, this.y);
     }
+	copy(v){
+		this.x = v.x;
+		this.y = v.y;
+		return this;
+	}
     add(v) {
         this.x += v.x;
         this.y += v.y;
@@ -417,21 +422,60 @@ class Vector2 {
         this.y -= v.y;
         return this;
     }
+	dot(v1, v2) {
+        return (v1.x * v2.x + v1.y * v2.y);
+    }
     times(num) {
         this.x *= num;
         this.y *= num;
         return this;
     }
+	normal(a, b){
+		return b
+			.clone()
+			.sub(a);
+	}
+	multiply(v, w) {
+		if (w !== undefined ) {
+			return this.multiplyVectors( v, w );
+		}
+		this.x *= v.x;
+		this.y *= v.y;
+		return this;
+	}
+	multiplyVectors(a, b) {
+		this.x = a.x * b.x;
+		this.y = a.y * b.y;
+		return this;
+	}
+	multiplyScalar(scalar){
+		this.x *= scalar;
+		this.y *= scalar;
+		return this;
+	}
+	reflect(normal){
+		let _vector = this.clone();
+		return this.sub(_vector.copy( normal ).multiplyScalar( 2 * this.dot( normal ) ) );
+	}
+	normalized() {
+        const {x, y, magnitude} = this;
+        return new Vector2(x/magnitude, y/magnitude);
+    }
+	equals(v){
+		if(v !== Vector2){
+			return false;
+		}
+		return this == v;
+	}
+	isVertical(v1, v2) {
+		return (Vector2.dot(v1, v2) === 0);
+	}
     get inverse() {
         return this.clone().times(-1);
     }
     get magnitude() {
         const {x, y} = this;
         return Math.sqrt(x**2 + y**2);
-    }
-    get normalized() {
-        const {x, y, magnitude} = this;
-        return new Vector2(x/magnitude, y/magnitude);
     }
     static add(v1, v2) {
         return v1.clone().add(v2);
@@ -507,6 +551,12 @@ var Vec_to_Rad = function(vector){
 }
 
 var Rot_to_Rad = function(rot){
+	if(rot < 0){
+		rot = 359 + rot;
+	}
+	if(rot > 359){
+		rot = rot - 360;
+	}
     var rad = rot * (Math.PI / 180);
 
     return rad;
@@ -519,7 +569,14 @@ var Rad_to_Rot = function(rad){
 };
 
 var Rot_to_Vec = function(rot, add) {
-	let rad = (rot + add) * (Math.PI / 180.0);
+	let newRot = (rot + add);
+	if(newRot < 0){
+		newRot = 359 + newRot;
+	}
+	if(newRot > 359){
+		newRot = newRot - 360;
+	}
+	let rad = newRot * (Math.PI / 180.0);
 	let vector = {
 		x: Math.cos(rad) * 1,
 		y: Math.sin(rad) * 1
@@ -527,7 +584,150 @@ var Rot_to_Vec = function(rot, add) {
 	return vector;
 };
 
+var Rad_to_Tan = function(rad){
+	return Math.tan(rad);
+}
+
+var Get_RefPoint = function(from, to){
+	let t2 = Get_Center(to);
+	let v2 = Rot_to_Vec(to.rotation, 315);
+	let rad2 = Math.atan2(-v2.x, -v2.y);
+	let tan2 = Rad_to_Tan(rad2);
+
+	let rect = from.getOrientedBoundingRect(),
+	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
+	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]};
+
+	let lines = [
+		[rt, lt],
+		[lt, lb],
+		[lb, rb],
+		[rb, rt]
+	];
+
+	let close = 9999;
+	let closeNum = -1;
+
+	for(let i = 0; i < 4; i++){
+		let a = Vec_Distance(lines[i][0], t2);
+		let b = Vec_Distance(lines[i][1], t2);
+		let c = Math.abs(a) + Math.abs(b);
+		if(c < close){
+			close = c;
+			closeNum = i;
+		}
+	}
+
+	var p1 = new Vector2(lines[closeNum][0].x, lines[closeNum][0].y);
+    var p2 = new Vector2(lines[closeNum][1].x, lines[closeNum][1].y);
+
+	var n = new Vector2().normal(p1, p2).normalized();
+
+	var point = Nearest(p1, p2, new Vector2(t2.x, t2.y));
+
+	
+
+	if (point.equals(p1) || point.equals(p2)) {
+        return to;
+    }
+    else {
+        // めり込まないように補正
+		return {x: point.x + n.x * 1, y: point.y + n.y * 1};
+        to.x = point.x + n.x * 1;
+        to.y = point.y + n.y * 1;
+        // 反射ベクトル適用
+        var r = Vector2.reflect({x: to.dx, y: to.dy}, n);
+        to.dx = r.x;
+		to.dy = r.y;
+    }
+};
+
+var Nearest = function(A, B, P){
+	var a = Vector2.sub(B, A);
+    var b = Vector2.sub(P, A);
+    // 内積 ÷ |a|^2
+    //var r = Vector2.dot(a, b) / a.lengthSquared();
+	var r = Vector2.dot(a, b) / (a.x * a.x + a.y * a.y);
+
+    if (r <= 0) return A;
+    if (r >= 1) return B;
+
+    return new Vector2(A.x + r * a.x, A.y + r * a.y);
+}
+
 var Get_HitPoint = function(from, to){
+	//let t2 = {x: (to.x + (to.width/2)) + Math.cos(to.rad) * (to.width/2), y: (to.y + (to.height/2)) + Math.sin(to.rad) * (to.height/2)}
+	let t2 = Get_Center(to);
+
+	/*let rot2 = Rad_to_Rot(to.rad) - 180;
+	if(rot2 < 0){
+		rot2 = 359 + rot2;
+	}
+	if(rot2 > 359){
+		rot2 = rot2 - 360;
+	}
+	let rad2 = Rot_to_Rad(rot2);
+	let tan2 = Rad_to_Tan(rad2);*/
+
+	let v2 = Rot_to_Vec(to.rotation, 315);
+	let rad2 = Math.atan2(-v2.x, -v2.y);
+
+	let tan2 = Rad_to_Tan(rad2);
+
+	//console.log(tan2);
+
+	/*let rect = from.getOrientedBoundingRect(),
+	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
+	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]},
+	top = {x: rt.x - lt.x, y: rt.y - lt.y},
+    right = {x: rb.x - rt.x, y: rb.y - rt.y},
+	bottom = {x: lb.x - rb.x, y: lb.y - rb.y},
+    left = {x: lt.x - lb.x, y: lt.y - lb.y};*/
+
+	let top = {x: t2.x, y: from.y},
+	right = {x: from.x + from.width, y: t2.y},
+	bottom = {x: t2.x, y: from.y + from.height},
+	left = {x: from.x, y: t2.y};
+
+	let dlist = [top, right, bottom, left];
+
+	let close = 9999;
+	let closeNum = -1;
+
+	for(let i = 0; i < 4; i++){
+		if(Math.abs(Vec_Distance(dlist[i], t2)) < close){
+			close = Vec_Distance(dlist[i], t2);
+			closeNum = i;
+		}
+	}
+
+	let a, b;
+	let point = {x: 0, y: 0};
+
+	switch(closeNum){
+		case 0:
+			a = top.y - t2.y;
+			b = (a / tan2);
+			break;
+		case 1:
+			b = right.x - t2.x;
+			a = (b * tan2);
+			break;
+		case 2:
+			a = bottom.y - t2.y;
+			b = (a / tan2);
+			break;
+		case 3:
+			b = left.x - t2.x;
+			a = (b * tan2);
+			break;
+	}
+	point = {x: t2.x + b, y: t2.y + a}
+	console.log(point.x + ' ' + point.y)
+	return point;
+}
+
+/*var Get_HitPoint = function(from, to){
 	let t1 = Get_Center(from);
 	let t2 = Get_Center(to);
 
@@ -571,6 +771,18 @@ var Get_HitPoint = function(from, to){
 	//console.log(point.x + '    ' + point.y + '\n' + p1.x + '    ' + p1.y + '\n' + p2.x + '    ' + p2.y);
 
 	return p1;
+}*/
+
+var Vec_to_Rot = function(from, to){
+	let rad = Vec_to_Rad({x: from.x - to.x, y: from.y - to.y});
+	let rot = Rad_to_Rot(rad);
+	if(rot < 0){
+		rot = 359 + rot;
+	}else if(rot > 359){
+		rot = rot - 360;
+	}
+	return rot;
+	//return Math.atan2((from.x - to.x), (from.y - to.y)) * (180 / Math.PI);
 }
 
 var Set_Arg = function(from, to, rad, range) {
@@ -2085,32 +2297,47 @@ window.onload = function(){
 			this.vector = Pos_to_Vec(from, to);
 			this.rad = Vec_to_Rad(this.vector);
 
-			if (num == 0) {
+			if(num == 0){
 				let n_color = new Surface(this.width, this.height);
 					n_color.context.beginPath();
 					n_color.context.fillStyle = 'rgba(170, 255, 255, 0.3)';
 					n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
 					n_color.context.fill();
 				this.image = n_color;
+			}else if(Categorys.MaxRef[category] == 0){
+				this.scale(2.0, 2.0);
+			}
 
-				//from.rotation = ((Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI) * -1;
-				from.rotation = Rad_to_Rot(this.rad);
-			}else{
-				/*if(num == 0){
-					let n_color = new Surface(this.width, this.height);
-						n_color.context.beginPath();
-						n_color.context.fillStyle = 'rgba(170, 255, 255, 0.3)';
-						n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
-						n_color.context.fill();
-					this.image = n_color;
-				}else{
-					if(Categorys.MaxRef[category] == 0){
-						this.scale(2.0, 2.0);
-					}
-				}*/
-				if(Categorys.MaxRef[category] == 0){
-					this.scale(2.0, 2.0);
+			var rot = Rad_to_Rot(this.rad);
+			if(rot < 0){
+				rot = 360 + rot;
+			}
+			if(rot >= 360){
+				rot = rot % 360;
+			}
+			let sa = from.rotation - (rot);
+			if(Math.abs(sa) >= 180){
+				sa = sa * -1; 
+			}
+				
+
+			let speed = Categorys.CannonRotSpeed[category];
+			if(Math.abs(sa) >= speed){
+				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
+				if(rotmove != 0){
+					from.rotation += rotmove;
 				}
+			}else{
+				from.rotation = rot;
+			}
+				
+			if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
+			if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
+
+			/*if (num == 0 && gameMode == 0) {
+				//from.rotation = ((Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI) * -1;
+				//from.rotation = Rad_to_Rot(this.rad);
+			}else{
 				var rot = Rad_to_Rot(this.rad);
 				if(rot < 0){
 					rot = 360 + rot;
@@ -2136,7 +2363,7 @@ window.onload = function(){
 				
 				if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
 				if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
-			}
+			}*/
 			this.rad = Rot_to_Rad(from.rotation - 90);
 			let f = Get_Center(from);
 			this.moveTo((f.x - 3.45) + Math.cos(this.rad) * (56), (f.y - 4.5) + Math.sin(this.rad) * (56));
@@ -2163,6 +2390,7 @@ window.onload = function(){
 				now_scene.removeChild(this);
 			});
 			Block.intersectStrict(this).forEach(elem => {
+				
 				now_scene.removeChild(this);
 			})
 			if(this.num != 0){
@@ -2290,7 +2518,34 @@ window.onload = function(){
 			let fc = Get_Center(from);
 			this.vector = Pos_to_Vec(from, to);
 			this.rad = Vec_to_Rad(this.vector);
-			from.rotation = Rad_to_Rot(this.rad);
+
+			var rot = Rad_to_Rot(this.rad);
+			if(rot < 0){
+				rot = 360 + rot;
+			}
+			if(rot >= 360){
+				rot = rot % 360;
+			}
+			let sa = from.rotation - (rot);
+			if(Math.abs(sa) >= 180){
+				sa = sa * -1; 
+			}
+				
+			let speed = Categorys.CannonRotSpeed[category];
+			if(Math.abs(sa) >= speed){
+				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
+				if(rotmove != 0){
+					from.rotation += rotmove;
+				}
+			}else{
+				from.rotation = rot;
+			}
+				
+			if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
+			if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
+
+			
+			//from.rotation = Rad_to_Rot(this.rad);
 			this.rad = Rot_to_Rad(from.rotation - 90);
 			this.dx = Math.cos(this.rad) * 20;
 			this.dy = Math.sin(this.rad) * 20;
@@ -2308,13 +2563,14 @@ window.onload = function(){
 					this.y += this.dy;
 
 					/*Wall.intersectStrict(this).forEach(elem => {
-						let point = new Point(Get_HitPoint(this, elem));
+						let point = new Point(Get_HitPoint(elem, this));
 					})
 					Block.intersectStrict(this).forEach(elem => {
-						let point = new Point(Get_HitPoint(this, elem));
+						let point = new Point(Get_HitPoint(elem, this));
 					})*/
 
 					RefObstracle.intersectStrict(this).forEach(elem => {
+						//let point = new Point(Get_HitPoint(elem, this));
 						
 						this.v = Rot_to_Vec(this.rotation, 315);
 						this.f = Math.atan2(this.v.x, this.v.y);
@@ -2412,6 +2668,29 @@ window.onload = function(){
 			BulAim.call(this, from);
 		}
 	})
+
+	function Search(from, to, angle, length){
+		const SightAngle = angle;
+		const SightLength = length;
+
+		if(from.within(to, SightLength)){
+			//console.log(Vec_to_Rot(from, to) + ' ' + from.rotation)
+			let target_angle = (Vec_to_Rot(from, to)) - from.rotation;
+			if(target_angle < 0){
+				target_angle = 359 + target_angle;
+			}else if(target_angle > 359){
+				target_angle = target_angle - 360;
+			}
+			//console.log(target_angle < SightAngle || target_angle > (360 - SightAngle));
+			if(target_angle < SightAngle || target_angle > (360 - SightAngle)){
+				return true;
+			}else{
+				return false;
+			}
+			
+		}
+		return false;
+	}
 	
 	var BulletCol = Class.create(PhyCircleSprite,{
 		initialize: function(shotSpeed, ref, from, category, num, id){
@@ -2430,16 +2709,14 @@ window.onload = function(){
 			let cnt = 0;
 			let hitTime = 0;
 
-			/*if(category == 11){
-				this.bullet.scale(0.8, 1.5);
-			}*/
-
-			//this.backgroundColor = 'white'
-
 			switch(category){
 				case 0:
+					break;
 				case 1:
+					this.bullet.scale(0.8, 1.0);
+					break;
 				case 2:
+					break;
 				case 3:
 					break;
 				case 4:
@@ -2449,6 +2726,9 @@ window.onload = function(){
 				case 5:
 					random0 = (Math.floor(Math.random() * 12) - 6) / 2;
 					random1 = (Math.floor(Math.random() * 12) - 6) / 2;
+					break;
+				case 7:
+					this.bullet.scale(0.8, 0.8);
 					break;
 				case 9:
 					random0 = (Math.floor(Math.random() * 40) - 20) / 2;
@@ -3420,7 +3700,7 @@ window.onload = function(){
 			this.cursor = new Cursor(scene);
 			this.rot = 0;
 
-			if(this.moveSpeed == 0){
+			if(this.moveSpeed < 1.5){
 				this.moveSpeed = 1.5;
 			}
 
@@ -3428,8 +3708,57 @@ window.onload = function(){
 				this.bomMax = 1;
 			}
 
-			if(gameMode == 2){
-				this.life = zanki;
+			
+
+			if(gameMode > 0){
+				if(gameMode == 2){
+					this.life = zanki;
+				}
+				switch(category){
+					case 1:
+						this.shotSpeed += 2;
+						this.bulMax += 2;
+						break;
+					case 2:
+						this.shotSpeed += 1;
+						this.bulMax += 1;
+						break;
+					case 3:
+						this.moveSpeed += 0.5;
+						this.bulMax += 1;
+						this.ref = 1;
+						break;
+					case 4:
+						this.shotSpeed += 1;
+						this.bulMax += 1;
+						break;
+					case 5:
+						this.moveSpeed += 0.5;
+						this.bulMax += 1;
+						break;
+					case 6:
+						this.moveSpeed += 0.5;
+						this.shotSpeed += 1;
+						this.bulMax += 1;
+						break;
+					case 7:
+						this.bulMax += 1;
+						break;
+					case 8:
+						this.moveSpeed += 0.5;
+						break;
+					case 9:
+						this.bulMax += 1;
+						break;
+					case 10:
+						this.moveSpeed += 0.5;
+						this.bomMax += 2;
+						break;
+					case 11:
+						this.shotSpeed += 1;
+						this.bulMax += 1;
+						break;
+				}
 			}
 
 
@@ -3528,8 +3857,6 @@ window.onload = function(){
 							}else{
 								new Aim(this.cannon, this.cursor, this.category, this.num);
 							}
-							
-							
 
 							if(!this.shotStopFlg){
 								switch (inputManager.checkDirection()) {
@@ -3670,6 +3997,7 @@ window.onload = function(){
 			var returnFlg = false;
 
 			var rot = 0;
+			var cflg = false;
 
 			if(gameMode > 0){
 				switch(category){
@@ -3966,7 +4294,7 @@ window.onload = function(){
 
 							if(this.moveSpeed > 0){
 								if(returnFlg){
-									let cflg = this._Move(rot);
+									cflg = this._Move(rot);
 									if(cflg) moveCnt += this.moveSpeed;
 									if(moveCnt == PixelSize){
 										returnFlg = false;
@@ -4009,7 +4337,7 @@ window.onload = function(){
 								}else if (!this.shotStopFlg && !this.tankStopFlg) {
 									//  移動処理
 									if (root != false && !Around.intersect(target)) {
-										let cflg = this._Move(rot);
+										cflg = this._Move(rot);
 										if(cflg) moveCnt += this.moveSpeed;	
 									}
 									//console.log(moveCnt);
@@ -4097,6 +4425,33 @@ window.onload = function(){
 									case 'ObsRight':
 										this.moveTo(elem.x + (elem.width), this.y)
 										break;
+								}
+								if(cflg){
+									switch(rot){
+									case 0:
+										grid[myPath[0]-1][myPath[1]] = 'Obstacle';
+										break;
+									case 90:
+										grid[myPath[0]][myPath[1]+1] = 'Obstacle';
+										break;
+									case 180:
+										grid[myPath[0]+1][myPath[1]] = 'Obstacle';
+										break;
+									case 270:
+										grid[myPath[0]][myPath[1]-1] = 'Obstacle';
+										break;
+									}
+									root = findShortestPath([myPath[0], myPath[1]], grid, scene);
+									if (root[0] == "East") {
+										rot = 90;
+									} else if (root[0] == "West") {
+										rot = 270;
+									} else if (root[0] == "North") {
+										rot = 0;
+									} else if (root[0] == "South") {
+										rot = 180;
+									}
+									moveCnt = 0
 								}
 							})
 						}
@@ -4834,17 +5189,24 @@ window.onload = function(){
 										case 0:
 											if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
 												let tgtFlg = false;
+												/*if(Search(this.cannon, c, 25, Categorys.DefenceRange[this.category][0])){
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+													tgtFlg = true;
+												}*/
 												PlayerBulAim.intersectStrict(Around).forEach(elem => {
-													if(this.attackTarget == c && tgtFlg) return;
+													if(tgtFlg) return;
 													if(elem.target == c){
-														tgtFlg = true;
 														this.attackTarget = c; //  迎撃のためにターゲット変更
-														if(this.time % 6 == 0) dirValue = Escape_Rot4(this, c, dirValue);
+														tgtFlg = true;
 													}
 												})
 												if(!tgtFlg && category == 6){
 													this.attackTarget = target;
 												}
+												/*if(this.attackTarget != c){
+													if(Search(c, this.weak, 3, dist)) this.attackTarget = c; //  迎撃のためにターゲット変更
+													//if(this.time % 6 == 0) dirValue = Escape_Rot4(this, this.attackTarget, dirValue);
+												}*/
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][1]) {
 														this.escapeTarget = c;
@@ -5350,6 +5712,9 @@ window.onload = function(){
 								if (elem.hitTime < 4 && !this.fireFlg) this.fireFlg = true;
 								if (this.aimingTime < (this.aimCmpTime + 15)) this.aimingTime += 3;
                                 elem.hitTime++;
+								if(elem.hitTime >= 4){
+									now_scene.removeChild(elem);
+								}
 								return;
 							})
 
@@ -5358,6 +5723,22 @@ window.onload = function(){
 									this.aimRot *= -1;
 								}
 							}
+							/*if(this.category == 7){
+								if(this.aimingTime > 0){
+									if(this.aimRot<0){
+										this.aimRot = -Categorys.CannonRotSpeed[this.category] / 2;
+									}else{
+										this.aimRot = Categorys.CannonRotSpeed[this.category] / 2;
+									}
+								}else{
+									if(this.aimRot<0){
+										this.aimRot = -Categorys.CannonRotSpeed[this.category];
+									}else{
+										this.aimRot = Categorys.CannonRotSpeed[this.category];
+									}
+								}
+							}*/
+							
 							if (this.aimingTime < this.aimCmpTime) {
 								if (!this.fireFlg) {
 									this.cannon.rotation += this.aimRot;
@@ -5365,7 +5746,7 @@ window.onload = function(){
 							}
 
 							if(this.time % 5 == 0){
-								if (this.aimingTime > 0 && !this.fireFlg) this.aimingTime--;
+								if (this.aimingTime > 0 && !this.fireFlg) this.aimingTime-=3;
 								if (this.bulReloadFlg == false) {
 									if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
 								} else {
@@ -5445,6 +5826,7 @@ window.onload = function(){
 							this.aimingTime = 0;
 							if (this.category != 1) {
 								this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
+								//this.cannon.rotation += this.aimRot/2;
 							} else {
 								this.aimCmpTime = Math.floor(Math.random() * 30) + 30;
 							}
@@ -6185,7 +6567,7 @@ window.onload = function(){
 											if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
 												let tgtFlg = false;
 												PlayerBulAim.intersectStrict(Around).forEach(elem => {
-													if(this.attackTarget == c && tgtFlg) return;
+													if(tgtFlg) return;
 													if(elem.target == c){
 														tgtFlg = true;
 														this.attackTarget = c; //  迎撃のためにターゲット変更
@@ -6939,7 +7321,7 @@ window.onload = function(){
 					break;
 				case 1:
 					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.2;
-					this.fireLate = this.fireLate - 11;
+					this.fireLate = this.fireLate - 15;
 					this.shotSpeed = this.shotSpeed + 4;
 					//disRange = 150;
 					this.ref = 0;
