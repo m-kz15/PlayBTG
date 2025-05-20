@@ -57,20 +57,20 @@ var colors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //戦車の色を数え
 //var colors = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]; //戦車の色を数える配列
 var tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //配色ごとの敵戦車残数格納配列
 var colorsName = [ //各戦車の表示名格納配列
-	"Player",
-	"Brown",
-	"Gray",
-	"Green",
-	"Red",
-	"LightGreen",
-	"EliteGray ",
-	"EliteGreen",
-	"Snow",
-	"Pink",
-	"Sand",
-	"Black",
-	"Dazzle",
-	"Abysal"
+	"Player",	//0
+	"Brown",	//1
+	"Gray",		//2
+	"Green",	//3
+	"Red",		//4
+	"LightGreen",//5
+	"EliteGray ",//6
+	"EliteGreen",//7
+	"Snow",		//8
+	"Pink",		//9
+	"Sand",		//10
+	"Black",	//11
+	"Dazzle",	//12
+	"Abysal"	//13
 ]
 let fontColor = [ //各戦車の表示色格納配列
 	'blue',
@@ -9138,7 +9138,7 @@ window.onload = function(){
 			tankEntity.push(new Entity_Type0(stageData[3][0], stageData[3][1], playerType, 0, this));
 
 			for (let i = 4; i < Object.keys(stageData).length; i++) {
-				if((Math.floor(Math.random() * 10) == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 0) || stageData[i][2] == 11) stageData[i][2] = 11;
+				if((Math.floor(Math.random() * 10) == 0 && stageNum > 10 && i == 4 && stageNum % 5 != 4) || stageData[i][2] == 11) stageData[i][2] = 11;
 				if (!retryFlg) {
 					switch(stageData[i][2]){
 						case 1:
