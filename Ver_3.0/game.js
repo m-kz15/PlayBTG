@@ -9425,7 +9425,7 @@ window.onload = function(){
 								new FadeOut(now_scene)
 								stageNum++;
 								
-								this._Remove();
+								now_scene._Remove();
 								
 								game.replaceScene(new StartScene());
 							});
