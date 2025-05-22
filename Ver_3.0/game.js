@@ -197,7 +197,7 @@ const Categorys = {
 		24,  //elitegray
 		10, //elitegreen
 		30, //snow
-		9, //pink
+		6, //pink
 		23, //sand
 		10, //random
 		30, //dazzle
@@ -223,7 +223,7 @@ const Categorys = {
         2.4,    //Player
         0.0,    //brown
         1.0,    //gray
-        1.0,    //green
+        1.2,    //green
         2.0,     //red
 		1.2, //lightgreen
 		1.6, //elitegray
@@ -245,7 +245,7 @@ const Categorys = {
 		15,		//elitegray
 		5, //elitegreen
 		10, //snow
-		5, //pink
+		10, //pink
 		15,	//sand
 		15,	//random
 		10, //dazzle
@@ -277,7 +277,7 @@ const Categorys = {
 		180,		//elitegray
 		90, //elitegreen
 		600, //snow
-		360, //pink
+		300, //pink
 		90, //sand
 		90, //random
 		210, //dazzle
@@ -551,12 +551,13 @@ var Vec_to_Rad = function(vector){
 }
 
 var Rot_to_Rad = function(rot){
+	if(Math.abs(rot) >= 360){
+		rot = rot % 360;
+	}
 	if(rot < 0){
-		rot = 359 + rot;
+		rot = 360 + rot;
 	}
-	if(rot > 359){
-		rot = rot - 360;
-	}
+	
     var rad = rot * (Math.PI / 180);
 
     return rad;
@@ -565,17 +566,27 @@ var Rot_to_Rad = function(rot){
 var Rad_to_Rot = function(rad){
     //var rot = rad / (Math.PI / 180);
 	var rot = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
+
+	if(Math.abs(rot) >= 360){
+		rot = rot % 360;
+	}
+	if(rot < 0){
+		rot = 360 + rot;
+	}
+
     return rot;
 };
 
 var Rot_to_Vec = function(rot, add) {
 	let newRot = (rot + add);
+
+	if(Math.abs(newRot) >= 360){
+		newRot = newRot % 360;
+	}
 	if(newRot < 0){
-		newRot = 359 + newRot;
+		newRot = 360 + newRot;
 	}
-	if(newRot > 359){
-		newRot = newRot - 360;
-	}
+	
 	let rad = newRot * (Math.PI / 180.0);
 	let vector = {
 		x: Math.cos(rad) * 1,
@@ -776,11 +787,13 @@ var Get_HitPoint = function(from, to){
 var Vec_to_Rot = function(from, to){
 	let rad = Vec_to_Rad({x: from.x - to.x, y: from.y - to.y});
 	let rot = Rad_to_Rot(rad);
-	if(rot < 0){
-		rot = 359 + rot;
-	}else if(rot > 359){
-		rot = rot - 360;
+	if(Math.abs(rot) >= 360){
+		rot = rot % 360;
 	}
+	if(rot < 0){
+		rot = 360 + rot;
+	}
+	
 	return rot;
 	//return Math.atan2((from.x - to.x), (from.y - to.y)) * (180 / Math.PI);
 }
@@ -1966,6 +1979,7 @@ window.onload = function(){
 						if(i > 0 && !(g1[i-1][j] == 1 || g1[i-1][j] == 4)){
 							wsp1 = new RefObstracle('RefTop',scene);
 							wsp1.moveTo(PixelSize * j + 4, PixelSize * i - 16);
+							//wsp1.backgroundColor = 'blue'
 							wcnt1++;
 						}
 						
@@ -1983,6 +1997,7 @@ window.onload = function(){
 						if(i < g1.length-1 && !(g1[i+1][j] == 1 || g1[i+1][j] == 4)){
 							wsp2 = new RefObstracle('RefBottom',scene);
 							wsp2.moveTo(PixelSize * j + 4, PixelSize * i + 40);
+							//wsp2.backgroundColor = 'white'
 							wcnt2++;
 						}
 						
@@ -2016,6 +2031,7 @@ window.onload = function(){
 						if(i > 0 && !(g2[i-1][j] == 1 || g2[i-1][j] == 4)){
 							hsp1 = new RefObstracle('RefLeft',scene);
 							hsp1.moveTo(PixelSize * i, PixelSize * j - 12);
+							//hsp1.backgroundColor = 'green'
 							hcnt1++;
 						}
 						
@@ -2033,6 +2049,7 @@ window.onload = function(){
 						if(i < g2.length-1 && !(g2[i+1][j] == 1 || g2[i+1][j] == 4)){
 							hsp2 = new RefObstracle('RefRight',scene);
 							hsp2.moveTo(PixelSize * i + 56, PixelSize * j - 12);
+							//hsp2.backgroundColor = 'red'
 							hcnt2++;
 						}
 						
@@ -2294,8 +2311,18 @@ window.onload = function(){
 			//this.opacity = 0;
 			this.debugColor = 'orange';
 			
-			this.vector = Pos_to_Vec(from, to);
-			this.rad = Vec_to_Rad(this.vector);
+			//this.vector = Pos_to_Vec(from, to);
+			//this.rad = Vec_to_Rad(this.vector);
+
+			let angle = Vec_to_Rot(Get_Center(from), Get_Center(to)) + 90;
+			if(Math.abs(angle) >= 360){
+				angle = angle % 360;
+			}
+			if(angle < 0){
+				angle = 360 + angle;
+			}
+
+			this.rad = Rot_to_Rad(angle);
 
 			if(num == 0){
 				let n_color = new Surface(this.width, this.height);
@@ -2309,30 +2336,39 @@ window.onload = function(){
 			}
 
 			var rot = Rad_to_Rot(this.rad);
+			if(Math.abs(rot) >= 360){
+				rot = rot % 360;
+			}
 			if(rot < 0){
 				rot = 360 + rot;
 			}
-			if(rot >= 360){
-				rot = rot % 360;
-			}
+			
 			let sa = from.rotation - (rot);
 			if(Math.abs(sa) >= 180){
 				sa = sa * -1; 
 			}
-				
+			
+			let resultRot = 0;
 
 			let speed = Categorys.CannonRotSpeed[category];
 			if(Math.abs(sa) >= speed){
 				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
 				if(rotmove != 0){
-					from.rotation += rotmove;
+					resultRot = from.rotation + rotmove;
+					//from.rotation += rotmove;
 				}
 			}else{
-				from.rotation = rot;
+				resultRot = rot;
+				//from.rotation = rot;
 			}
 				
-			if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
-			if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
+			/*if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
+			if(from.rotation < 0) from.rotation = 359 + from.rotation;*/
+
+			if(Math.abs(resultRot) >= 360) resultRot %= 360;
+			if(resultRot < 0) resultRot = 360 + resultRot;
+
+			from.rotation = resultRot;
 
 			/*if (num == 0 && gameMode == 0) {
 				//from.rotation = ((Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI) * -1;
@@ -2412,6 +2448,7 @@ window.onload = function(){
 			this.ref = ref;
 			this.hitTime = 0;
 			this.debugColor = 'orange';
+			//this.backgroundColor = 'orange'
 
 			this.originX = 4;
 			this.originY = 4;
@@ -2440,38 +2477,54 @@ window.onload = function(){
 						switch(elem.name){
 							case 'RefTop':
 								if(this.ref == Categorys.MaxRef[category]){
-									this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+									//this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+									//this.tgt[1] = elem.y - 2.5;
+									this.tgt[0] = (this.x + this.width/2) - (Math.cos(this.f) * ((elem.y) - (this.y + this.height)))
 									this.tgt[1] = elem.y - 2.5;
 								}
-								this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+								//this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+								//this.y = elem.y - (this.height);
+								this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y + this.height)));
 								this.y = elem.y - (this.height);
 								this.dy = this.dy * -1;
 								break;
 							case 'RefBottom':
 								if(this.ref == Categorys.MaxRef[category]){
-									this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+									//this.tgt[0] = (this.x + (this.width/2)) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+									//this.tgt[1] = elem.y + elem.height + 2.5;
+									this.tgt[0] = (this.x + this.width/2) - (Math.cos(this.f) * ((this.y - this.height/2) - (elem.y + elem.height)));
 									this.tgt[1] = elem.y + elem.height + 2.5;
 								}
-								this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+								//this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+								//this.y = elem.y + elem.height;
+								this.x = (this.x) - (Math.cos(this.f) * ((this.y - this.height/2) - (elem.y + elem.height)));
 								this.y = elem.y + elem.height;
 								this.dy = this.dy * -1;
 								break;
 							case 'RefLeft':
 								if(this.ref == Categorys.MaxRef[category]){
+									//this.tgt[0] = elem.x - 2.5;
+									//this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * ((elem.x) - (this.x)));
 									this.tgt[0] = elem.x - 2.5;
-									this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * ((elem.x) - (this.x)));
+									this.tgt[1] = (this.y + this.height/2) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
 								};
+								//this.x = elem.x - (this.width);
+								//this.y = (this.y) - (Math.sin(this.f) * ((elem.x) - (this.x)));
+								this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
 								this.x = elem.x - (this.width);
-								this.y = (this.y) - (Math.sin(this.f) * ((elem.x) - (this.x)));
 								this.dx = this.dx * -1;
 								break;
 							case 'RefRight':
 								if(this.ref == Categorys.MaxRef[category]){
+									//this.tgt[0] = elem.x + elem.width + 2.5;
+									//this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
 									this.tgt[0] = elem.x + elem.width + 2.5;
-									this.tgt[1] = (this.y + (this.height/2)) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
+									this.tgt[1] = (this.y + this.height/2) - (Math.sin(this.f) * ((elem.x + elem.width) - (this.x + this.width)));
 								};
-								this.x = elem.x + elem.width + 1;
-								this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
+								//this.x = elem.x + elem.width + 1;
+								//this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
+								this.y = (this.y) - (Math.sin(this.f) * ((elem.x + elem.width) - (this.x + this.width)));
+								this.x = elem.x + elem.width;
 								this.dx = this.dx * -1;
 								break;
 						}
@@ -2530,19 +2583,23 @@ window.onload = function(){
 			if(Math.abs(sa) >= 180){
 				sa = sa * -1; 
 			}
+
+			let resultRot = 0;
 				
 			let speed = Categorys.CannonRotSpeed[category];
 			if(Math.abs(sa) >= speed){
 				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
 				if(rotmove != 0){
-					from.rotation += rotmove;
+					resultRot = from.rotation + rotmove;
 				}
 			}else{
-				from.rotation = rot;
+				resultRot = rot;
 			}
 				
-			if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
-			if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
+			if(Math.abs(resultRot) >= 360) resultRot %= 360;
+			if(resultRot < 0) resultRot = 360 + resultRot;
+
+			from.rotation = resultRot;
 
 			
 			//from.rotation = Rad_to_Rot(this.rad);
@@ -2562,13 +2619,6 @@ window.onload = function(){
 					this.x += this.dx;
 					this.y += this.dy;
 
-					/*Wall.intersectStrict(this).forEach(elem => {
-						let point = new Point(Get_HitPoint(elem, this));
-					})
-					Block.intersectStrict(this).forEach(elem => {
-						let point = new Point(Get_HitPoint(elem, this));
-					})*/
-
 					RefObstracle.intersectStrict(this).forEach(elem => {
 						//let point = new Point(Get_HitPoint(elem, this));
 						
@@ -2576,26 +2626,28 @@ window.onload = function(){
 						this.f = Math.atan2(this.v.x, this.v.y);
 						switch(elem.name){
 							case 'RefTop':
-								this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y)));
+								this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y + this.height)));
 								this.y = elem.y - (this.height);
 								this.dy = this.dy * -1;
 								break;
 							case 'RefBottom':
 								
-								this.x = (this.x) - (Math.cos(this.f) * (this.y - (elem.y + elem.height)));
+								this.x = (this.x) - (Math.cos(this.f) * ((this.y - this.height/2) - (elem.y + elem.height)));
 								this.y = elem.y + elem.height;
 								this.dy = this.dy * -1;
 								break;
 							case 'RefLeft':
-								
+
+								this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
 								this.x = elem.x - (this.width);
-								this.y = (this.y) - (Math.sin(this.f) * ((elem.x) - (this.x)));
+									
 								this.dx = this.dx * -1;
 								break;
 							case 'RefRight':
+								this.y = (this.y) - (Math.sin(this.f) * ((elem.x + elem.width) - (this.x + this.width)));
+								this.x = elem.x + elem.width;
 								
-								this.x = elem.x + elem.width + 1;
-								this.y = (this.y) - (Math.sin(this.f) * (this.x - (elem.x + elem.width)));
+								
 								this.dx = this.dx * -1;
 								break;
 						}
@@ -2674,13 +2726,15 @@ window.onload = function(){
 		const SightLength = length;
 
 		if(from.within(to, SightLength)){
-			//console.log(Vec_to_Rot(from, to) + ' ' + from.rotation)
+			
 			let target_angle = (Vec_to_Rot(from, to)) - from.rotation;
-			if(target_angle < 0){
-				target_angle = 359 + target_angle;
-			}else if(target_angle > 359){
-				target_angle = target_angle - 360;
+			if(Math.abs(target_angle) >= 360){
+				target_angle = target_angle % 360;
 			}
+			if(target_angle < 0){
+				target_angle = 360 + target_angle;
+			}
+			//console.log(target_angle + ' ' + from.rotation)
 			//console.log(target_angle < SightAngle || target_angle > (360 - SightAngle));
 			if(target_angle < SightAngle || target_angle > (360 - SightAngle)){
 				return true;
@@ -2731,8 +2785,15 @@ window.onload = function(){
 					this.bullet.scale(0.8, 0.8);
 					break;
 				case 9:
-					random0 = (Math.floor(Math.random() * 40) - 20) / 2;
-					random1 = (Math.floor(Math.random() * 40) - 20) / 2;
+					if(this.num == 0){
+						random0 = (Math.floor(Math.random() * 16) - 8) / 2;
+						random1 = (Math.floor(Math.random() * 16) - 8) / 2;
+					}else{
+						random0 = (Math.floor(Math.random() * 30) - 15) / 2;
+						random1 = (Math.floor(Math.random() * 30) - 15) / 2;
+					}
+					
+					this.bullet.scale(0.7, 0.7);
 					break;
 			};
 
@@ -3457,6 +3518,7 @@ window.onload = function(){
 			this.bomMax = Categorys.MaxBom[this.category];
 			this.moveSpeed = Categorys.MoveSpeed[this.category];
 			this.reload = Categorys.Reload[this.category];
+			this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category];
 
 			this.bomSetFlg = false;
 			this.bomReload = 0;
@@ -3497,7 +3559,7 @@ window.onload = function(){
 				sa = sa * -1; 
 			}
 
-			let speed = Categorys.BodyRotSpeed[this.category];
+			let speed = this.bodyRotSpeed;
 
 			if(Math.abs(sa) > speed){
 				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
@@ -3700,8 +3762,8 @@ window.onload = function(){
 			this.cursor = new Cursor(scene);
 			this.rot = 0;
 
-			if(this.moveSpeed < 1.5){
-				this.moveSpeed = 1.5;
+			if(this.moveSpeed < 2.0){
+				this.moveSpeed = 2.0;
 			}
 
 			if(this.bomMax == 0){
@@ -3749,6 +3811,7 @@ window.onload = function(){
 						break;
 					case 9:
 						this.bulMax += 1;
+						this.fireLate -= 2;
 						break;
 					case 10:
 						this.moveSpeed += 0.5;
@@ -3771,12 +3834,17 @@ window.onload = function(){
 			this.shotStopFlg = false;
 			this.shotStopTime = 0;
 
+			this.fullFireFlg = false;
+			this.firecnt = 0;
+			this.firstFireFlg = false;
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
 
 			if (!navigator.userAgent.match(/iPhone|iPad|Android/)) {
 				scene.addEventListener('touchstart', function() {
+					if(my.category == 9 && (my.fullFireFlg || my.firecnt > 0) && my.shotNGflg) return;
 					my._Attack();
 				})
 			}
@@ -3827,6 +3895,7 @@ window.onload = function(){
 							}
 	
 							if ((inputManager.checkButton("A") == inputManager.keyStatus.DOWN)) {
+								if(this.category == 9 && (this.fullFireFlg || this.firecnt > 0) && this.shotNGflg) return;
 								this._Attack();
 							}
 
@@ -3855,8 +3924,49 @@ window.onload = function(){
 							if(playerType == 1 || playerType == 7){
 								new PlayerRefAim(this.ref, this.cannon, this.cursor, this.category, this.num);
 							}else{
-								new Aim(this.cannon, this.cursor, this.category, this.num);
+								let aim = new Aim(this.cannon, this.cursor, this.category, this.num);
+								if(this.category == 9 && this.bulReloadFlg){
+									let n_color = new Surface(aim.width, aim.height);
+										n_color.context.beginPath();
+										n_color.context.fillStyle = 'rgba(255, 0, 0, 0.4)';
+										n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
+										n_color.context.fill();
+									aim.image = n_color;
+								}
 							}
+
+							if(this.category == 9){
+								if (this.bulReloadFlg == false) {
+									if (bullets[this.num] == this.bulMax || this.firecnt >= this.bulMax){
+										this.bulReloadFlg = true;
+									} 
+								} else {
+									if (this.bulReloadTime < this.reload) {
+										this.bulReloadTime++;
+										if (this.shotNGflg == false) this.shotNGflg = true;
+									} else {
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+										this.fullFireFlg = false;
+										this.firecnt = 0;
+										this.firstFireFlg = false;
+									}
+
+								}
+								
+								if (this.fullFireFlg && this.firecnt >= 0 && !this.shotNGflg) {
+									if(!this.firstFireFlg){
+										this.firstFireFlg = true;
+										this.time = 0;
+									}else{
+										if(this.time % this.fireLate == 0){
+											this._Attack();
+										}
+									}
+								}
+							}
+							
 
 							if(!this.shotStopFlg){
 								switch (inputManager.checkDirection()) {
@@ -3954,11 +4064,15 @@ window.onload = function(){
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							if(this.category == 9){
+								this.fullFireFlg = true;
+								this.firecnt++;
+							}
 							break;
 						}
 					}
 
-				}
+				}		
 			}
 		}
 	});
@@ -5465,7 +5579,7 @@ window.onload = function(){
 
 			if(gameMode > 0){
 				this.bulMax += 1;
-				this.fireLate -= 3;
+				this.fireLate -= 2;
 			}
 
 			for (var i = 0; i < this.bulMax; i++) {
@@ -5709,10 +5823,10 @@ window.onload = function(){
 									this.cursor.y = elem.tgt[1];
 								}
 								if (elem.hitTime == 0 && this.cannon.rotation != elem.agl) this.cannon.rotation = elem.agl;
-								if (elem.hitTime < 4 && !this.fireFlg) this.fireFlg = true;
+								if (elem.hitTime < 5 && !this.fireFlg) this.fireFlg = true;
 								if (this.aimingTime < (this.aimCmpTime + 15)) this.aimingTime += 3;
                                 elem.hitTime++;
-								if(elem.hitTime >= 4){
+								if(elem.hitTime >= 5){
 									now_scene.removeChild(elem);
 								}
 								return;
@@ -7166,7 +7280,7 @@ window.onload = function(){
 								}
 							})
 
-							if (!this.shotNGflg) {
+							if (!this.shotNGflg && !this.damFlg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
 									if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 									//if(Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
@@ -7369,6 +7483,7 @@ window.onload = function(){
 			this.firecnt = 0;
 
 			this.distance = Categorys.Distances[this.category];
+			this.cflg = true;
 
 			/*var map = scene.backgroundMap;
 			var grid = scene.grid;
@@ -7589,8 +7704,16 @@ window.onload = function(){
 												})
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][1]) {
-														this.escapeTarget = c;
-														escapeFlg = true;
+														if(this.escapeTarget == null){
+															this.escapeTarget = c;
+															escapeFlg = true;
+														}else{
+															if(Search(c, this, 25, Categorys.EscapeRange[this.category][1])){
+																this.escapeTarget = c;
+																escapeFlg = true;
+															}
+														}
+														
 													}
 												}
 											}
@@ -7637,6 +7760,7 @@ window.onload = function(){
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
+									this.fireLate = 15;
 								} 
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -7658,7 +7782,7 @@ window.onload = function(){
 								}
 							})
 
-							if (!this.shotNGflg) {
+							if (!this.shotNGflg && !this.damFlg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
 									//if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 									if(Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
@@ -7682,6 +7806,7 @@ window.onload = function(){
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
 									}else{
+										if(!this.cflg) return;
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										}else{
@@ -7729,7 +7854,7 @@ window.onload = function(){
 											rot = 315;
 											break;
 									}
-									this._Move(rot);
+									this.cflg = this._Move(rot);
 									
 								}
 							}
@@ -7788,11 +7913,26 @@ window.onload = function(){
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							if(Math.floor(Math.random() * 2) == 0) this._ResetAim();
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							
 							if(this.life == 1){
-								this.fullFireFlg = true;
-								this.firecnt++;
+								/*this.fullFireFlg = true;
+								this.firecnt++;*/
+								if(!this.fullFireFlg){
+									if(Math.floor(Math.random() * 5) == 0){
+										this.fullFireFlg = true;
+										this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
+										this.firecnt++;
+										this.fireLate = 10;
+									}
+									
+								}else{
+									this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
+									this.firecnt++;
+								}
+								//console.log(this.fireLate)
+								
 							}
+							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							break;
 						}
 					}
@@ -7824,18 +7964,21 @@ window.onload = function(){
 					break;
 				case 2:
 					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.3;
-					this.fireLate = this.fireLate + 5;
+					this.fireLate = this.fireLate + 3;
 					this.shotSpeed = this.shotSpeed - 1;
+					this.bodyRotSpeed = this.bodyRotSpeed + 4;
 					//disRange = 300;
+					this.distance = this.distance + 50;
 					break;
 				case 1:
 					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.2;
-					this.fireLate = this.fireLate - 23;
+					this.fireLate = this.fireLate - 12;
 					this.shotSpeed = this.shotSpeed + 4;
+					this.bodyRotSpeed = this.bodyRotSpeed + 3;
 					//disRange = 150;
 					this.ref = 0;
 					this.reload = this.reload - 30;
-					this.distance = this.distance + 100;
+					this.distance = this.distance + 50;
 					break;
 				default:
 					break;
@@ -8986,6 +9129,7 @@ window.onload = function(){
 				}
 				if (this.time == 180) {
 					this._Remove();
+					console.clear();
 					game.replaceScene(new TestScene()); // 現在表示しているシーンをゲームシーンに置き換える
 				}
 			}
