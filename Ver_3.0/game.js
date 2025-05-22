@@ -3844,7 +3844,7 @@ window.onload = function(){
 
 			if (!navigator.userAgent.match(/iPhone|iPad|Android/)) {
 				scene.addEventListener('touchstart', function() {
-					if(my.category == 9 && (my.fullFireFlg || my.firecnt > 0) && my.shotNGflg) return;
+					if(my.category == 9 && (my.fullFireFlg || my.firecnt > 0) || my.shotNGflg) return;
 					my._Attack();
 				})
 			}
@@ -3895,7 +3895,7 @@ window.onload = function(){
 							}
 	
 							if ((inputManager.checkButton("A") == inputManager.keyStatus.DOWN)) {
-								if(this.category == 9 && (this.fullFireFlg || this.firecnt > 0) && this.shotNGflg) return;
+								if(this.category == 9 && (this.fullFireFlg || this.firecnt > 0) || this.shotNGflg) return;
 								this._Attack();
 							}
 
