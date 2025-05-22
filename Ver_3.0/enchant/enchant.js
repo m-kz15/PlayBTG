@@ -2735,9 +2735,9 @@
             set: function(rotation) {
                 if(this._rotation !== rotation) {
                     /* 20250218 */
-                    if(Math.abs(rotation) > 359) rotation %= 360;
-				    if(rotation < 0) rotation = 360 - Math.abs(rotation);
-                    this._rotation = Math.round(rotation * 10) / 10;
+                    if(Math.abs(rotation) >= 360) rotation %= 360;
+				    if(rotation < 0) rotation = 360 + rotation;
+                    this._rotation = Math.round(rotation * 100) / 100;
                     this._dirty = true;
                 }
             }
