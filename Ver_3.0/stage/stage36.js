@@ -53,9 +53,9 @@ function LoadStage(){
     ];
     setting[3] = [15,8];
     setting[4] = [17,11,1]
-    setting[5] = [10,13,2]
+    setting[5] = [10,13,6]
     setting[6] = [5,2,2]
-    setting[7] = [4,12,3]
+    setting[7] = [4,12,10]
     setting[8] = [6,4,7]
 
 
