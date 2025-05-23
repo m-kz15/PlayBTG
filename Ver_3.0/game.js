@@ -277,7 +277,7 @@ const Categorys = {
 		180,		//elitegray
 		90, //elitegreen
 		600, //snow
-		300, //pink
+		180, //pink
 		90, //sand
 		90, //random
 		210, //dazzle
@@ -394,7 +394,7 @@ const stagePath = [
 	'./stage/stage39.js',
 ];
 
-class Vector2 {
+/*class Vector2 {
     constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
@@ -496,7 +496,8 @@ class Vector2 {
         return Vector2.sub(v1, v2).magnitude;
     }
 
-}
+}*/
+
 
 var delStageFile = function() {
 	if (stageNum > 0) {
@@ -599,59 +600,87 @@ var Rad_to_Tan = function(rad){
 	return Math.tan(rad);
 }
 
-var Get_RefPoint = function(from, to){
+/*var Hit_Reflection = function(from, to){
+	let t1 = Get_Center(from);
 	let t2 = Get_Center(to);
-	let v2 = Rot_to_Vec(to.rotation, 315);
-	let rad2 = Math.atan2(-v2.x, -v2.y);
-	let tan2 = Rad_to_Tan(rad2);
 
-	let rect = from.getOrientedBoundingRect(),
-	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
-	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]};
+	let rect1 = from.getOrientedBoundingRect(),
+	lt1 = {x: rect1.leftTop[0], y: rect1.leftTop[1]}, rt1 = {x: rect1.rightTop[0], y: rect1.rightTop[1]},
+	lb1 = {x: rect1.leftBottom[0], y: rect1.leftBottom[1]}, rb1 = {x: rect1.rightBottom[0], y: rect1.rightBottom[1]},
+	top1 = {x: rt1.x - lt1.x, y: rt1.y - lt1.y},
+    right1 = {x: rb1.x - rt1.x, y: rb1.y - rt1.y},
+	bottom1 = {x: lb1.x - rb1.x, y: lb1.y - rb1.y},
+    left1 = {x: lt1.x - lb1.x, y: lt1.y - lb1.y};
 
-	let lines = [
-		[rt, lt],
-		[lt, lb],
-		[lb, rb],
-		[rb, rt]
-	];
+	let rect2 = to.getOrientedBoundingRect(),
+	lt2 = {x: rect2.leftTop[0], y: rect2.leftTop[1]}, rt2 = {x: rect2.rightTop[0], y: rect2.rightTop[1]},
+	lb2 = {x: rect2.leftBottom[0], y: rect2.leftBottom[1]}, rb2 = {x: rect2.rightBottom[0], y: rect2.rightBottom[1]},
+	top2 = {x: rt2.x - lt2.x, y: rt2.y - lt2.y},
+    right2 = {x: rb2.x - rt2.x, y: rb2.y - rt2.y},
+	bottom2 = {x: lb2.x - rb2.x, y: lb2.y - rb2.y},
+    left2 = {x: lt2.x - lb2.x, y: lt2.y - lb2.y};
 
-	let close = 9999;
-	let closeNum = -1;
 
-	for(let i = 0; i < 4; i++){
-		let a = Vec_Distance(lines[i][0], t2);
-		let b = Vec_Distance(lines[i][1], t2);
-		let c = Math.abs(a) + Math.abs(b);
-		if(c < close){
-			close = c;
-			closeNum = i;
-		}
-	}
+	const dx = t1.x - t2.x;
+	const dy = t1.y - t2.y;
 
-	var p1 = new Vector2(lines[closeNum][0].x, lines[closeNum][0].y);
-    var p2 = new Vector2(lines[closeNum][1].x, lines[closeNum][1].y);
+	let boundWidth = 0, boundHeight = 0;
+	if (dx < 0) { boundWidth = right1.x - left2.x; } //dx = 負の値ならこのアクターが左側。自分の右端から、相手の左端を引いた値が重なりの幅。
+    else if (dx > 0) { boundWidth = right2.x - left1.x; } //dx = 正の値ならこのアクターが右側。相手の右端から、自分の左端を引いた値が重なりの幅。
+    if (dy < 0) { boundHeight = bottom1.y - top2.y; } //dy = 負の値ならこのアクターが上側。自分の下端から、相手の上端を引いた値が重なりの高さ。
+    else if (dy > 0) { boundHeight = bottom2.y - top1.y; } //dy = 正の値ならこのアクターが下側。相手の下端から、自分の上端を引いた値が重なりの高さ。
 
-	var n = new Vector2().normal(p1, p2).normalized();
+	if (boundWidth <= boundHeight + 3) { // 横の重なりより縦の重なりが大きいなら、横の衝突。誤差3ピクセルまで許容
+        if (dx < 0) { this._velocityX += -speed; } // dx = 負の値ならこのアクターが左側。左にバウンス
+        else if (dx > 0) { this._velocityX += speed; } // dx = 正の値ならこのアクターが右側。右にバウンス。
+    }
+    if (boundHeight <= boundWidth + 3) { // 縦の重なりより横の重なりが大きいなら、縦の衝突。誤差3ピクセルまで許容
+        if (dy < 0) { this._velocityY += -speed; } // dy = 負の値ならこのアクターが上側、上にバウンス
+        else if (dy > 0) { this._velocityY += speed; } // dy = 正の値ならこのアクターが下側、下にバウンス
+    }
+    return;
+}*/
 
-	var point = Nearest(p1, p2, new Vector2(t2.x, t2.y));
+/*var Hit_Reflection = function(from, to, addRot){
+
+	let vector = Rot_to_Vec(from.rotation, addRot);
+	let radian = Math.atan2(vector.x, vector.y);
+
+	this.dx = Math.cos(this.rad) * 20;
+	this.dy = Math.sin(this.rad) * 20;
+
 
 	
+	this.v = Rot_to_Vec(this.rotation, 315);
+	this.f = Math.atan2(this.v.x, this.v.y);
+	switch(elem.name){
+		case 'RefTop':
+			this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y + this.height)));
+			this.y = elem.y - (this.height);
+			this.dy = this.dy * -1;
+			break;
+		case 'RefBottom':
+			this.x = (this.x) - (Math.cos(this.f) * ((this.y - this.height/2) - (elem.y + elem.height)));
+			this.y = elem.y + elem.height;
+			this.dy = this.dy * -1;
+			break;
+		case 'RefLeft':
+				this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
+				this.x = elem.x - (this.width);
+				this.dx = this.dx * -1;
+				break;
+		case 'RefRight':
+				this.y = (this.y) - (Math.sin(this.f) * ((elem.x + elem.width) - (this.x + this.width)));
+				this.x = elem.x + elem.width;
+				this.dx = this.dx * -1;
+				break;
+	}
+	this.ref--;
+	this.rotation = (addRot + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
+	return;
+					
 
-	if (point.equals(p1) || point.equals(p2)) {
-        return to;
-    }
-    else {
-        // めり込まないように補正
-		return {x: point.x + n.x * 1, y: point.y + n.y * 1};
-        to.x = point.x + n.x * 1;
-        to.y = point.y + n.y * 1;
-        // 反射ベクトル適用
-        var r = Vector2.reflect({x: to.dx, y: to.dy}, n);
-        to.dx = r.x;
-		to.dy = r.y;
-    }
-};
+}
 
 var Nearest = function(A, B, P){
 	var a = Vector2.sub(B, A);
@@ -664,124 +693,6 @@ var Nearest = function(A, B, P){
     if (r >= 1) return B;
 
     return new Vector2(A.x + r * a.x, A.y + r * a.y);
-}
-
-var Get_HitPoint = function(from, to){
-	//let t2 = {x: (to.x + (to.width/2)) + Math.cos(to.rad) * (to.width/2), y: (to.y + (to.height/2)) + Math.sin(to.rad) * (to.height/2)}
-	let t2 = Get_Center(to);
-
-	/*let rot2 = Rad_to_Rot(to.rad) - 180;
-	if(rot2 < 0){
-		rot2 = 359 + rot2;
-	}
-	if(rot2 > 359){
-		rot2 = rot2 - 360;
-	}
-	let rad2 = Rot_to_Rad(rot2);
-	let tan2 = Rad_to_Tan(rad2);*/
-
-	let v2 = Rot_to_Vec(to.rotation, 315);
-	let rad2 = Math.atan2(-v2.x, -v2.y);
-
-	let tan2 = Rad_to_Tan(rad2);
-
-	//console.log(tan2);
-
-	/*let rect = from.getOrientedBoundingRect(),
-	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
-	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]},
-	top = {x: rt.x - lt.x, y: rt.y - lt.y},
-    right = {x: rb.x - rt.x, y: rb.y - rt.y},
-	bottom = {x: lb.x - rb.x, y: lb.y - rb.y},
-    left = {x: lt.x - lb.x, y: lt.y - lb.y};*/
-
-	let top = {x: t2.x, y: from.y},
-	right = {x: from.x + from.width, y: t2.y},
-	bottom = {x: t2.x, y: from.y + from.height},
-	left = {x: from.x, y: t2.y};
-
-	let dlist = [top, right, bottom, left];
-
-	let close = 9999;
-	let closeNum = -1;
-
-	for(let i = 0; i < 4; i++){
-		if(Math.abs(Vec_Distance(dlist[i], t2)) < close){
-			close = Vec_Distance(dlist[i], t2);
-			closeNum = i;
-		}
-	}
-
-	let a, b;
-	let point = {x: 0, y: 0};
-
-	switch(closeNum){
-		case 0:
-			a = top.y - t2.y;
-			b = (a / tan2);
-			break;
-		case 1:
-			b = right.x - t2.x;
-			a = (b * tan2);
-			break;
-		case 2:
-			a = bottom.y - t2.y;
-			b = (a / tan2);
-			break;
-		case 3:
-			b = left.x - t2.x;
-			a = (b * tan2);
-			break;
-	}
-	point = {x: t2.x + b, y: t2.y + a}
-	console.log(point.x + ' ' + point.y)
-	return point;
-}
-
-/*var Get_HitPoint = function(from, to){
-	let t1 = Get_Center(from);
-	let t2 = Get_Center(to);
-
-	let v1 = Pos_to_Vec(from, to);
-	//let v2 = Pos_to_Vec(to, from);
-
-	let rad1 = Vec_to_Rad(v1);
-	//let rad2 = Vec_to_Rad(v2);
-
-	let rot1 = Rad_to_Rot(rad1);
-	//let rot2 = Rad_to_Rot(rad2);
-
-	rad1 = Rot_to_Rad(rot1 - 90);
-	//rad2 = Rot_to_Rad(rot2 - 90);
-
-	let p1 = {x: t1.x + Math.cos(rad1) * (from.width/2), y: t1.y + Math.sin(rad1) * (from.height/2)};
-	//let p2 = {x: t2.x + Math.cos(rad2) * (to.width/2), y: t2.y + Math.sin(rad2) * (to.height/2)};
-
-	let rect = from.getOrientedBoundingRect(),
-	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
-	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]},
-	top = {x: rt.x - lt.x, y: rt.y - lt.y},
-    right = {x: rb.x - rt.x, y: rb.y - rt.y},
-	bottom = {x: lb.x - rb.x, y: lb.y - rb.y},
-    left = {x: lt.x - lb.x, y: lt.y - lb.y};
-
-	let dlist = [top, right, bottom, left];
-
-	let close = 9999;
-	let closeNum = -1;
-
-	for(let i = 0; i < 4; i++){
-		if(dlist[i] < close){
-			close = dlist[i];
-			closeNum = i;
-		}
-	}
-
-	//let point = {x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2};
-
-	//console.log(point.x + '    ' + point.y + '\n' + p1.x + '    ' + p1.y + '\n' + p2.x + '    ' + p2.y);
-
-	return p1;
 }*/
 
 var Vec_to_Rot = function(from, to){
@@ -5707,6 +5618,7 @@ window.onload = function(){
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.fullFireFlg = true;
 							this.shotStopFlg = true;
+							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * (3 - gameMode);
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							this.firecnt++;
 							break;
