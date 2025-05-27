@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex" />
+	<meta name="viewport" content="width=device-width, viewport-fit=cover">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+    <script type="text/javascript" src="./enchant/enchant.js"></script>
+    <script type="text/javascript" src="./enchant/Box2dWeb-2.1.a.3.js"></script>
+    <script type="text/javascript" src="./enchant/box2d.enchant.js"></script>
+    <script type="text/javascript" src="./enchant/ui.enchant.js"></script>
+    <link type="text/css" rel="stylesheet" href="style.css" id="css">
+	<script src="WebStrage.js"></script>
+	<script src="Repository.js"></script>
+	<!--<script type="text/javascript" src="InputManager.js"></script>-->
+    <script type="text/javascript" src="game_life.js"></script>
+    
+    <script>
+        //if (window == top.window) location.href = "index.html"; //万が一直接ここを読み込まれたとき、index.htmlに戻す
+    </script>
+</head>
+<body>
+    <button id="button1">フルスクリーン表示</button>
+    <button id="button2">解除</button>
+	<button id="button3"><h2>ゲームの再起動</h2></button>
+	<script>
+		if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+			if (Math.abs(window.orientation) == 90) {
+				let b3 = document.getElementById('button3');
+				b3.style.visibility = "hidden";
+				b3.disabled = true;
+			} else {
+				alert("このゲームは横向きで遊んで下さい\r\n※画面を横向きにしないとゲームは始まりません。");
+				document.getElementById('button3').style.animation = "blinking 1s ease-out infinite";
+				let b1 = document.getElementById('button1');
+				b1.style.visibility = "hidden";
+				b1.disabled = true;
+				let b2 = document.getElementById('button2');
+				b2.style.visibility = "hidden";
+				b2.disabled = true;
+			}
+			
+      	}else{
+			let b3 = document.getElementById('button3');
+				b3.style.visibility = "hidden";
+				b3.disabled = true;
+		}
+
+		function noscroll(e){
+			e.preventDefault();
+		}
+ 
+		window.addEventListener('load', function(){
+			// フルスクリーン表示
+			document.getElementById('button1').addEventListener('click', function(){
+				document.addEventListener('touchmove', noscroll, {passive: false});
+				document.addEventListener('wheel', noscroll, {passive: false});
+				//screen.orientation.lock();
+				// Chrome & Firefox v64以降
+				if( document.body.requestFullscreen ) {
+         				document.body.requestFullscreen();
+                        
+				// Firefox v63以前
+				} else if( document.body.mozRequestFullScreen ) {
+					document.body.mozRequestFullScreen();
+
+				// Safari & Edge & Chrome v68以前
+				} else if( document.body.webkitRequestFullscreen ) {
+					document.body.webkitRequestFullscreen();
+          
+				// IE11
+				} else if( document.body.msRequestFullscreen ) {
+					document.body.msRequestFullscreen();
+
+				} else if (document.body.webkitEnterFullscreen){
+					document.body.webkitEnterFullscreen();
+				} 
+			});
+
+			// フルスクリーン解除
+			document.getElementById('button2').addEventListener('click', function(){
+				document.removeEventListener('touchmove', noscroll);
+				document.removeEventListener('wheel', noscroll);
+				//screen.orientation.unlock();
+				// Chrome & Firefox v64以降
+				if( document.exitFullscreen ) {
+					document.exitFullscreen();
+
+				// Firefox v63以前
+				} else if( document.mozCancelFullScreen ) {
+					document.mozCancelFullScreen();
+
+				// Safari & Edge & Chrome v44以前
+				} else if( document.webkitCancelFullScreen ) {
+					document.webkitCancelFullScreen();
+
+				// IE11
+				} else if( document.msExitFullscreen ) {
+					document.msExitFullscreen();
+					
+				} else if( document.webkitExitFullScreen ){
+					document.webkitExitFullScreen();
+				}
+			});
+			document.getElementById('button3').addEventListener('click', function(){
+				//location.href = "game.html";
+				window.location.replace("game_life.html");
+			});
+		});
+	</script>
+</body>
+</html>
