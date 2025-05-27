@@ -130,11 +130,11 @@ const Categorys = {
         18,  //gray
         15,  //green
         20,   //red
-		26, //lightgreen
-		48,  //elitegray
+		32, //lightgreen
+		28,  //elitegray
 		10,//elitegreen
 		25, //snow
-		40, //pink
+		42, //pink
 		30, //sand
 		20, //random
 		50,  //dazzle
@@ -151,7 +151,7 @@ const Categorys = {
 		3, //elitegreen
 		2, //snow
 		6, //pink
-		2, //sand
+		3, //sand
 		1, //random
 		5, //dazzle
 		4	//abysal
@@ -2916,6 +2916,9 @@ window.onload = function(){
 					
 					this.bullet.scale(0.7, 0.7);
 					break;
+				case 11:
+					this.bullet.scale(0.6, 1.0);
+					break;
 			};
 
 			this.vec = Rot_to_Vec(from.rotation + (random0 + random1), -90);
@@ -3485,7 +3488,7 @@ window.onload = function(){
 			this.image = image;
 
 			this.onenterframe = function(){
-				this.moveTo(from.x, from.y - 32);
+				this.moveTo(from.x - 2, from.y - 32);
 			}
 
 			now_scene.addChild(this);
@@ -7709,7 +7712,7 @@ window.onload = function(){
 							this.shotStopFlg = true;
 							if(Math.floor(Math.random() * 3) == 0) this._ResetAim();
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							if(this.life == 1){
+							if((this.life / Categorys.Life[this.category]) < 0.25){
 								this.fullFireFlg = true;
 								this.firecnt++;
 							}
@@ -7738,26 +7741,19 @@ window.onload = function(){
 			}
 		},
 		_ResetStatus: function(){
-			switch(Math.round(this.life / 10)){
-				case 3:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed + 0.4;
-					break;
-				case 2:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.3;
-					this.fireLate = this.fireLate + 5;
-					this.shotSpeed = this.shotSpeed - 1;
-					//disRange = 300;
-					break;
-				case 1:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.2;
-					this.fireLate = this.fireLate - 15;
-					this.shotSpeed = this.shotSpeed + 4;
-					//disRange = 150;
-					this.ref = 0;
-					this.reload = this.reload - 30;
-					break;
-				default:
-					break;
+			let percent = (this.life / Categorys.Life[this.category]);
+			if(percent < 0.25){
+				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
+				this.fireLate = Categorys.FireLate[this.category] - 10;
+				this.shotSpeed = Categorys.ShotSpeed[this.category] + 3;
+				this.ref = 0;
+				this.reload = Categorys.Reload[this.category] - 30;
+			}else if(percent < 0.5){
+				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
+				this.fireLate = Categorys.FireLate[this.category] + 5;
+				this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
+			}else if(percent < 0.75){
+				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 			}
 		}
 	})
@@ -8240,7 +8236,7 @@ window.onload = function(){
 							this.shotStopFlg = true;
 							if(Math.floor(Math.random() * 2) == 0) this._ResetAim();
 							
-							if(this.life == 1){
+							if((this.life / Categorys.Life[this.category]) < 0.25){
 								/*this.fullFireFlg = true;
 								this.firecnt++;*/
 								if(!this.fullFireFlg){
@@ -8284,30 +8280,23 @@ window.onload = function(){
 			}
 		},
 		_ResetStatus: function(){
-			switch(Math.round(this.life / 10)){
-				case 3:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed + 0.4;
-					break;
-				case 2:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.3;
-					this.fireLate = this.fireLate + 3;
-					this.shotSpeed = this.shotSpeed - 1;
-					this.bodyRotSpeed = this.bodyRotSpeed + 4;
-					//disRange = 300;
-					this.distance = this.distance + 50;
-					break;
-				case 1:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.2;
-					this.fireLate = this.fireLate - 12;
-					this.shotSpeed = this.shotSpeed + 4;
-					this.bodyRotSpeed = this.bodyRotSpeed + 3;
-					//disRange = 150;
-					this.ref = 0;
-					this.reload = this.reload - 30;
-					this.distance = this.distance + 50;
-					break;
-				default:
-					break;
+			let percent = (this.life / Categorys.Life[this.category]);
+			if(percent < 0.25){
+				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
+				this.fireLate = Categorys.FireLate[this.category] - 12;
+				this.shotSpeed = Categorys.ShotSpeed[this.category] + 3;
+				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 7;
+				this.ref = 0;
+				this.reload = Categorys.Reload[this.category] - 30;
+				this.distance = Categorys.Distances[this.category] + 100;
+			}else if(percent < 0.5){
+				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
+				this.fireLate = Categorys.FireLate[this.category] + 3;
+				this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
+				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 4;
+				this.distance = Categorys.Distances[this.category] + 50;
+			}else if(percent < 0.75){
+				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 			}
 		}
 	});
@@ -9249,7 +9238,7 @@ window.onload = function(){
 
 			let listCnt = 0;
 			let margin = 0;
-			let selCnt = -1;
+			let selCnt = playerType;
 
 			for (let i = 0; i < 7; i++) {
 				for (let j = 0; j < 2; j++) {
