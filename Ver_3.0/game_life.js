@@ -8985,19 +8985,19 @@ window.onload = function(){
 						nomal.text.color = 'red';
 						hard.text.color = 'black';
 						survival.text.color = 'black';
-						dsc.text = 'ノーマルモード<br>初心者におすすめの難易度。';
+						dsc.text = 'ノーマルモード<br>初心者におすすめのモード。<br>慣れないうちはこのモードで練習してみましょう。';
 						break;
 					case 1:
 						nomal.text.color = 'black';
 						hard.text.color = 'red';
 						survival.text.color = 'black';
-						dsc.text = 'ハードモード<br>敵のステータスが強化され、より難しいモード。';
+						dsc.text = 'ハードモード<br>敵のステータスが強化される難易度の高いモード。<br>デフォルト以外の戦車を自機として選択している場合、<br>ステータス強化の恩恵を受けられる。';
 						break;
 					case 2:
 						nomal.text.color = 'black';
 						hard.text.color = 'black';
 						survival.text.color = 'red';
-						dsc.text = 'サバイバルモード<br>敵の攻撃を受けると撃破されるかわりに残機が消費されるモード。<br>敵の強化はあり。';
+						dsc.text = 'サバイバルモード<br>自機の耐久値が残機×戦車の耐久値にまで増えるモード。<br>耐久値が戦車一機分減るたびに残機が1消費されます。<br>また、ハードモードと同様に敵が強化されます。';
 						break;
 				}
 			}
@@ -10243,6 +10243,9 @@ if (navigator.userAgent.match(/iPhone/)) {
 	window.addEventListener('orientationchange',function(){
 		stageScreen = document.getElementById('enchant-stage');
 		let vh = (window.innerHeight / ((PixelSize * Stage_H) + 32));
+		if(window.innerWidth < game.width * vh){
+			vh = (window.innerWidth / ((PixelSize * Stage_W) + 128));
+		}
 		//console.log(vh);
 		game.scale = vh;
 		ScreenMargin = ((window.innerWidth-stageScreen.clientWidth)/2);
@@ -10254,6 +10257,9 @@ if (navigator.userAgent.match(/iPhone/)) {
 window.onresize = function(){
 	stageScreen = document.getElementById('enchant-stage');
 	let vh = (window.innerHeight / ((PixelSize * Stage_H) + 32));
+	if(window.innerWidth < game.width * vh){
+		vh = (window.innerWidth / ((PixelSize * Stage_W) + 128));
+	}
 	//console.log(vh);
 	game.scale = vh;
 	ScreenMargin = ((window.innerWidth-stageScreen.clientWidth)/2);
