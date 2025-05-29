@@ -175,7 +175,7 @@ const Categorys = {
         10, //Player
         8,  //brown
         8,  //gray
-        14, //green
+        16, //green
         10, //red
 		11,	//lightgreen
 		10,  //elitegray
@@ -394,6 +394,135 @@ const stagePath = [
 	'./stage/stage39.js',
 ];
 
+class Vector2 {
+    constructor(x = 0, y = 0) {
+        this.x = x;
+        this.y = y;
+    }
+    get Length() {
+        return Math.sqrt( this.x * this.x + this.y * this.y );
+    }
+    get LengthSquared() {
+        return this.x * this.x + this.y * this.y;
+    }
+    Set(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+	Clone() {
+        return new Vector2(this.x, this.y);
+    }
+	Copy(v){
+		this.x = v.x;
+		this.y = v.y;
+		return this;
+	}
+    Add(v) {
+        this.x = this.x + v.x;
+        this.y = this.y + v.y;
+        return this;
+    }
+    Subtract(v) {
+        this.x = this.x - v.x;
+        this.y = this.y - v.y;
+        return this;
+    }
+    Multiply(v) {
+        this.x = this.x * v.x;
+        this.y = this.y * v.y;
+        return this;
+    }
+    Divide(v) {
+        this.x = this.x / v.x;
+        this.y = this.y / v.y;
+        return this;
+    }
+	Negate() {
+		this.x = -this.x;
+		this.y = -this.y;
+		return this;
+	}
+    Dot(v) {
+        return this.x * v.x + this.y * v.y;
+    }
+    Cross(v) {
+        return this.x * v.x - this.y * v.y;
+    }
+    Length() {
+        let ls = this.x * this.x + this.y * this.y;
+        return Math.sqrt(ls);
+    }
+    LengthSquared() {
+        return this.x * this.x + this.y * this.y;
+    }
+    Distance(left, right) {
+        let dx = left.x - right.x;
+        let dy = left.y - right.y;
+        let ls = dx * dx + dy * dy;
+        return Math.sqrt(ls);
+    }
+    DistanceSquared(left, right) {
+        let dx = left.x - right.x;
+        let dy = left.y - right.y;
+        return dx * dx + dy * dy;
+    }
+	Normal(a, b){
+		return b
+			.Clone()
+			.Subtract(a);
+	}
+    Normalize(){
+        let ls = this.x * this.x + this.y + this.y;
+        let invNorm = 1.0 / Math.sqrt(ls);
+        return new Vector2(this.x * invNorm, this.y * invNorm);
+    }
+    Reflect(vector, normal){
+        let dot = vector.x * normal.x + vector.y * normal.y;
+        return new Vector2(vector.x - 2.0 * dot * normal.x, vector.y - 2.0 * dot * normal.y);
+    }
+	Equals(v){
+		if(v !== Vector2){
+			return false;
+		}
+		return this == v;
+	}
+    static Add(left, right) {
+        return left + right;
+    }
+    static Subtract(left, right) {
+        return left - right;
+    }
+    static Multiply(left, right) {
+        return left * right;
+    }
+    static Divide(left, right) {
+        return left / right;
+    }
+    static Negate(value) {
+        return -value;
+    }
+    static Dot(left, right) {
+        return left.x * right.x + left.y * right.y;
+    }
+    static Cross(left, right) {
+        return left.x * right.x - left.y * right.y;
+    }
+    static Distance(left, right) {
+        let difference = left - right;
+        let ls = Vector2.Dot(difference, difference);
+        return Math.sqrt(ls);
+    }
+    static DistanceSquared(left, right) {
+        let difference = left - right;
+        return Vector2.Dot(difference, difference);
+    }
+    /*static Normalize(value) {
+        let length = value.Length();
+        return value / length;
+    }*/
+}
+
 /*class Vector2 {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -600,7 +729,93 @@ var Rad_to_Tan = function(rad){
 	return Math.tan(rad);
 }
 
-/*var Hit_Reflection = function(from, to){
+var Get_RefPoint = function(from, to){
+	let t2 = Get_Center(to);
+	let v2 = Rot_to_Vec(to.rotation, 315);
+	let rad2 = Math.atan2(-v2.x, -v2.y);
+
+	let rect = from.getOrientedBoundingRect(),
+	lt = {x: rect.leftTop[0], y: rect.leftTop[1]}, rt = {x: rect.rightTop[0], y: rect.rightTop[1]},
+	lb = {x: rect.leftBottom[0], y: rect.leftBottom[1]}, rb = {x: rect.rightBottom[0], y: rect.rightBottom[1]},
+
+	top = {x: rt.x - lt.x, y: rt.y - lt.y},
+    right = {x: rb.x - rt.x, y: rb.y - rt.y},
+	bottom = {x: lb.x - rb.x, y: lb.y - rb.y},
+    left = {x: lt.x - lb.x, y: lt.y - lb.y};
+
+	/*let lines = [
+		[rt, lt],
+		[lt, lb],
+		[lb, rb],
+		[rb, rt]
+	];*/
+
+	let lines = [
+		top, right, bottom, left
+	]
+
+	let close = 9999;
+	let closeNum = -1;
+
+	for(let i = 0; i < 4; i++){
+		let a = new Vector2().Distance(t2, lines[i]);
+		if(close > a){
+			close = a;
+			closeNum = i;
+		}
+		/*let a = Vec_Distance(lines[i][0], t2);
+		let b = Vec_Distance(lines[i][1], t2);
+		let c = Math.abs(a) + Math.abs(b);
+		if(c < close){
+			close = c;
+			closeNum = i;
+		}*/
+		/*let a = new Vector2(lines[i][0].x, lines[i][0].y);
+		let b = new Vector2(lines[i][1].x, lines[i][1].y);
+		let cross = Vector2.Cross(a, b);
+		console.log(cross);
+		if(cross < 0)*/
+	}
+
+	console.log(closeNum)
+
+	var p1 = new Vector2(lines[closeNum].x, lines[closeNum].y);
+    var p2 = new Vector2(t2.x, t2.y);
+
+	var n = new Vector2().Normal(p1, p2).Normalize();
+
+	var point = Nearest(p1, p2, new Vector2(t2.x, t2.y));
+
+	if (point.Equals(p1) || point.Equals(p2)) {
+        return to;
+    }
+    else {
+        // めり込まないように補正
+		return {x: point.x + n.x * 1, y: point.y + n.y * 1};
+        to.x = point.x + n.x * 1;
+        to.y = point.y + n.y * 1;
+        // 反射ベクトル適用
+        var r = Vector2.Reflect({x: to.dx, y: to.dy}, n);
+        to.dx = r.x;
+		to.dy = r.y;
+
+    }
+};
+
+var Nearest = function(A, B, P){
+	var a = new Vector2().Subtract(B, A);
+    var b = new Vector2().Subtract(P, A);
+    // 内積 ÷ |a|^2
+    var r = Vector2.Dot(a, b) / a.LengthSquared();
+	//var r = Vector2.Dot(a, b) / (a.x * a.x + a.y * a.y);
+
+    if (r <= 0) return A;
+    if (r >= 1) return B;
+
+    return new Vector2(A.x + r * a.x, A.y + r * a.y);
+}
+
+var Hit_Reflection = function(from, to){
 	let t1 = Get_Center(from);
 	let t2 = Get_Center(to);
 
@@ -620,10 +835,6 @@ var Rad_to_Tan = function(rad){
 	bottom2 = {x: lb2.x - rb2.x, y: lb2.y - rb2.y},
     left2 = {x: lt2.x - lb2.x, y: lt2.y - lb2.y};
 
-
-	const dx = t1.x - t2.x;
-	const dy = t1.y - t2.y;
-
 	let boundWidth = 0, boundHeight = 0;
 	if (dx < 0) { boundWidth = right1.x - left2.x; } //dx = 負の値ならこのアクターが左側。自分の右端から、相手の左端を引いた値が重なりの幅。
     else if (dx > 0) { boundWidth = right2.x - left1.x; } //dx = 正の値ならこのアクターが右側。相手の右端から、自分の左端を引いた値が重なりの幅。
@@ -639,7 +850,7 @@ var Rad_to_Tan = function(rad){
         else if (dy > 0) { this._velocityY += speed; } // dy = 正の値ならこのアクターが下側、下にバウンス
     }
     return;
-}*/
+}
 
 /*var Hit_Reflection = function(from, to, addRot){
 
@@ -680,19 +891,6 @@ var Rad_to_Tan = function(rad){
 	return;
 					
 
-}
-
-var Nearest = function(A, B, P){
-	var a = Vector2.sub(B, A);
-    var b = Vector2.sub(P, A);
-    // 内積 ÷ |a|^2
-    //var r = Vector2.dot(a, b) / a.lengthSquared();
-	var r = Vector2.dot(a, b) / (a.x * a.x + a.y * a.y);
-
-    if (r <= 0) return A;
-    if (r >= 1) return B;
-
-    return new Vector2(A.x + r * a.x, A.y + r * a.y);
 }*/
 
 var Vec_to_Rot = function(from, to){
@@ -2530,6 +2728,13 @@ window.onload = function(){
 					this.x += this.dx;
 					this.y += this.dy;
 
+					/*Wall.intersectStrict(this).forEach(elem => {
+						let point = new Point(Get_RefPoint(elem, this));
+					})
+					Block.intersectStrict(this).forEach(elem => {
+						let point = new Point(Get_RefPoint(elem, this));
+					})*/
+
 					RefObstracle.intersectStrict(this).forEach(elem => {
 						//let point = new Point(Get_HitPoint(elem, this));
 						
@@ -2829,6 +3034,7 @@ window.onload = function(){
 			this.num = num;
 			this.id = id;
 			this.bombFlg = false;
+			this.name = 'Bom';
 
 			let f = Get_Center(from);
 
@@ -2973,9 +3179,9 @@ window.onload = function(){
 							now_scene.removeChild(this);
 						}
 					}
-					if(this.time < 2){
+					if(this.time < 4){
 						Block.collection.forEach(elem => {
-							if(this.within(elem,125)){
+							if(elem.within(this,125)){
 								elem._Destroy();
 							}
 						})
@@ -2983,14 +3189,15 @@ window.onload = function(){
 							elem._Destroy();
 							return;
 						})
-						TankBase.collection.forEach(elem => {
-							if(!deadFlgs[elem.num]){
-								if (this.within(elem.weak,125)) {
-									elem.life = 0;
+						if(this.time < 1){
+							TankBase.collection.forEach(elem => {
+								if(!deadFlgs[elem.num]){
+									if (elem.weak.within(this,125)) {
+										elem.life = 0;
+									}
 								}
-							}
-						})
-						
+							})
+						}
 					}
 					
 					this.time++;
@@ -3418,7 +3625,7 @@ window.onload = function(){
 			this.time = 0;
 			this.num = num;
 			this.x = x * PixelSize + 2;
-			this.y = y * PixelSize - 14;
+			this.y = y * PixelSize - 18;
 			this.category = category;
 
 			this.life = Categorys.Life[this.category];
@@ -4019,6 +4226,7 @@ window.onload = function(){
 			var grid = scene.grid;
 			var root;
 			var moveCnt = 0 //  移動距離
+			var moveCmp = 64;
 			var returnFlg = false;
 
 			var rot = 0;
@@ -4029,6 +4237,7 @@ window.onload = function(){
 					case 2:
 						this.shotSpeed += 1;
 						this.bulMax += 1;
+						this.moveSpeed += 0.5;
 						break;
 					case 4:
 						this.shotSpeed += 1;
@@ -4127,13 +4336,22 @@ window.onload = function(){
 										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
 										if (root[0] == "East") {
 											rot = 90;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 										} else if (root[0] == "West") {
 											rot = 270;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 										} else if (root[0] == "North") {
 											rot = 0;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14}));
 										} else if (root[0] == "South") {
 											rot = 180;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14}));
 										}
+										//console.log(moveCmp)
 									}
 									
 								}
@@ -4177,15 +4395,23 @@ window.onload = function(){
 								if(!returnFlg){
 									if (root[0] == "East") {
 										rot = 270;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 									} else if (root[0] == "West") {
 										rot = 90;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 									} else if (root[0] == "North") {
 										rot = 180;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14}));
 									} else if (root[0] == "South") {
 										rot = 0;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14}));
 									}
 									//console.log(rot);
-									moveCnt = 64 - Math.abs(moveCnt);
+									//moveCnt = moveCmp - Math.abs(moveCnt);
 									returnFlg = true;
 								}
 								this.stopTime++;
@@ -4217,14 +4443,24 @@ window.onload = function(){
 								root = findShortestPath([myPath[0], myPath[1]], grid, scene);
 								if (root[0] == "East") {
 									rot = 90;
+									let center = Get_Center(this);
+									moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 								} else if (root[0] == "West") {
 									rot = 270;
+									let center = Get_Center(this);
+									moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 								} else if (root[0] == "North") {
 									rot = 0;
+									let center = Get_Center(this);
+									moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14}));
 								} else if (root[0] == "South") {
 									rot = 180;
+									let center = Get_Center(this);
+									moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14}));
 								}
-								moveCnt = 0
+								//console.log(moveCmp)
+								//moveCnt = 0
+								moveCnt = moveCmp - Math.abs(moveCnt);
 							}
 
 							if (this.shotStopFlg) {
@@ -4321,7 +4557,13 @@ window.onload = function(){
 								if(returnFlg){
 									cflg = this._Move(rot);
 									if(cflg) moveCnt += this.moveSpeed;
-									if(moveCnt == PixelSize){
+									if(moveCnt >= moveCmp){
+										if(moveCnt > moveCmp){
+											let rad = Rot_to_Rad(rot - 270);
+											let dx = Math.cos(rad) * (moveCnt - moveCmp);
+											let dy = Math.sin(rad) * (moveCnt - moveCmp);
+											this.moveBy(dx, dy);
+										}
 										returnFlg = false;
 										myPath = [parseInt((this.y + this.height/2) / PixelSize), parseInt((this.x + this.width/2) / PixelSize)];
 										if (root[0] == "East") {
@@ -4350,12 +4592,20 @@ window.onload = function(){
 										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
 										if (root[0] == "East") {
 											rot = 90;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 										} else if (root[0] == "West") {
 											rot = 270;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 										} else if (root[0] == "North") {
 											rot = 0;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14}));
 										} else if (root[0] == "South") {
 											rot = 180;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14}));
 										}
 										moveCnt = 0
 									}
@@ -4366,17 +4616,34 @@ window.onload = function(){
 										if(cflg) moveCnt += this.moveSpeed;	
 									}
 									//console.log(moveCnt);
-									if (moveCnt == PixelSize) {
+									if (moveCnt >= moveCmp) {
+										if(moveCnt > moveCmp){
+											let rad = Rot_to_Rad(this.rotation - 270);
+											let dx = Math.cos(rad) * (moveCnt - moveCmp);
+											let dy = Math.sin(rad) * (moveCnt - moveCmp);
+											this.moveBy(dx, dy);
+											//console.log(dx + ' ' + dy)
+										}
+										myPath = [parseInt((this.y + this.height/2) / PixelSize), parseInt((this.x + this.width/2) / PixelSize)];
 										root = findShortestPath([myPath[0], myPath[1]], grid, scene)
 										if (root[0] == "East") {
 											rot = 90;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 										} else if (root[0] == "West") {
 											rot = 270;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 										} else if (root[0] == "North") {
 											rot = 0;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14}));
 										} else if (root[0] == "South") {
 											rot = 180;
+											let center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14}));
 										}
+										
 										moveCnt = 0
 									}
 								}
@@ -4384,12 +4651,20 @@ window.onload = function(){
 									root = findShortestPath([myPath[0], myPath[1]], grid, scene);
 									if (root[0] == "East") {
 										rot = 90;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 									} else if (root[0] == "West") {
 										rot = 270;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 									} else if (root[0] == "North") {
 										rot = 0;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14}));
 									} else if (root[0] == "South") {
 										rot = 180;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14}));
 									}
 									moveCnt = 0
 								}
@@ -4451,30 +4726,40 @@ window.onload = function(){
 										this.moveTo(elem.x + (elem.width), this.y)
 										break;
 								}
+								//if(cflg)this.tankStopFlg = true;
 								if(cflg){
+									myPath = [parseInt((this.y + this.height/2) / PixelSize), parseInt((this.x + this.width/2) / PixelSize)];
 									switch(rot){
-									case 0:
-										grid[myPath[0]-1][myPath[1]] = 'Obstacle';
-										break;
-									case 90:
-										grid[myPath[0]][myPath[1]+1] = 'Obstacle';
-										break;
-									case 180:
-										grid[myPath[0]+1][myPath[1]] = 'Obstacle';
-										break;
-									case 270:
-										grid[myPath[0]][myPath[1]-1] = 'Obstacle';
-										break;
+										case 0:
+											grid[myPath[0]-1][myPath[1]] = 'Obstacle';
+											break;
+										case 90:
+											grid[myPath[0]][myPath[1]+1] = 'Obstacle';
+											break;
+										case 180:
+											grid[myPath[0]+1][myPath[1]] = 'Obstacle';
+											break;
+										case 270:
+											grid[myPath[0]][myPath[1]-1] = 'Obstacle';
+											break;
 									}
 									root = findShortestPath([myPath[0], myPath[1]], grid, scene);
 									if (root[0] == "East") {
 										rot = 90;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 									} else if (root[0] == "West") {
 										rot = 270;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14}));
 									} else if (root[0] == "North") {
 										rot = 0;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14}));
 									} else if (root[0] == "South") {
 										rot = 180;
+										let center = Get_Center(this);
+										moveCmp = Math.round(Vec_Distance(center, {x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14}));
 									}
 									moveCnt = 0
 								}
@@ -4542,9 +4827,11 @@ window.onload = function(){
 						this.moveSpeed += 0.5;
 						this.bulMax += 1;
 						this.ref = 1;
+						this.reload += 90;
 						break;
 					case 8:
 						this.moveSpeed += 0.5;
+						this.reload -= 240;
 						break;
 				}
 			}
@@ -5893,6 +6180,7 @@ window.onload = function(){
 			var hittingTime = 0;
 
 			var rot = 0;
+			this.cflg = true;
 
 			if(gameMode > 0){
 				this.moveSpeed += 0.5;
@@ -5960,11 +6248,13 @@ window.onload = function(){
 					}
 				}
 
-				if(boms[that.num] != 0){
+				//if(boms[that.num] != 0){
+				if(target2.name == 'Bom'){
 					
 					let rem = [];
 					var myPath = [parseInt((that.y + that.height/2) / PixelSize), parseInt((that.x + that.width/2) / PixelSize)];
 					var grid = scene.grid;
+					let bk = arr;
 					
 					if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
 					if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
@@ -5978,8 +6268,7 @@ window.onload = function(){
 					arr = arr.filter(i => rem.indexOf(i) == -1);
 
 					if(arr.length == 0){
-						arr = [0,1,2,3,4,5,6,7];
-						arr = arr.filter(i => rem.indexOf(i) == -1);
+						arr = bk;
 					}
 				}
 
@@ -6111,6 +6400,13 @@ window.onload = function(){
 								return;
 							})
 
+							if(this.fireFlg){
+								EnemyAim.intersectStrict(Bom).forEach(elem => {
+									this.fireFlg = false;
+								})
+							}
+							
+
 							if (this.time % 5 == 0) {
 								if (this.attackTarget != tankEntity[0] && escapeFlg == false) this.attackTarget = tankEntity[0];
 								escapeFlg = false;
@@ -6215,6 +6511,7 @@ window.onload = function(){
 												new Bom(this, this.num, boms[this.num])._SetBom();
 												this.bomReload = 0;
 												this.bomSetFlg = true;
+												this.bulReloadFlg = true;
 												break;
 											}
 										}
@@ -6224,7 +6521,7 @@ window.onload = function(){
 							}
 
 							if (this.moveSpeed > 0) {
-								if (this.time % 5 == 0) {
+								if (this.time % 5 == 0 && this.cflg) {
 									if(escapeFlg){
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this.weak, this.escapeTarget, dirValue);
@@ -6233,6 +6530,7 @@ window.onload = function(){
 											new Bom(this, this.num, boms[this.num])._SetBom();
 											this.bomReload = 0;
 											this.bomSetFlg = true;
+											this.bulReloadFlg = true;
 										}
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
 											SelDirection(this.weak, this.attackTarget, 0);
@@ -6291,7 +6589,7 @@ window.onload = function(){
 											break;
 									}
 									
-									this._Move(rot);
+									this.cflg = this._Move(rot);
 								}
 							}
 
@@ -6358,10 +6656,12 @@ window.onload = function(){
 		},
 		_ResetAim: function() {
 			if(this.attackTarget.name == "Entity"){
+				let random = 20 + (15 * Math.floor(Math.random() * 4));
+				console.log(random)
 				let t1 = Get_Center(this);
 				let t2 = Get_Center(this.attackTarget);
 				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
-				let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
+				let dis = Math.trunc(Vec_Distance(t1, t2) / random);
 				let val = dis * this.shotSpeed;
 				v.x = v.x * val + t2.x;
 				v.y = v.y * val + t2.y;
@@ -8778,12 +9078,12 @@ window.onload = function(){
 					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車。<br>　高性能かつ汎用性が高いため<br>　初心者におすすめ。"],
 					[colorsName[1], "　耐久　：" + Categorys.Life[1], "　弾数　：" + (Categorys.MaxBullet[1] + 2), "　弾速　：普通(" + (Categorys.ShotSpeed[1] + 2) + ")", "跳弾回数：" + Categorys.MaxRef[1], "移動速度：動かない(" + Categorys.MoveSpeed[1] + ")", "・弾道予測型<br>　最も弱い戦車。<br>　よく狙って攻撃するため命中率は高い。"],
 					[colorsName[2], "　耐久　：" + Categorys.Life[2], "　弾数　：" + (Categorys.MaxBullet[2] + 1), "　弾速　：普通(" + (Categorys.ShotSpeed[2] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[2], "移動速度：遅い(" + Categorys.MoveSpeed[2] + ")", "・最短追尾型<br>　最短経路を計算して移動する。<br>　配置によっては脅威になりうる。"],
-					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.5) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。"],
+					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.5) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。<br>【弱化】装填にかかる時間の延長"],
 					[colorsName[4], "　耐久　：" + Categorys.Life[4], "　弾数　：" + (Categorys.MaxBullet[4] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[4] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[4], "移動速度：やや速い(" + Categorys.MoveSpeed[4] + ")", "・最短追尾型<br>　弾数が多く、発射頻度も高いため<br>　物量で攻める突撃をしてくる。"],
 					[colorsName[5], "　耐久　：" + Categorys.Life[5], "　弾数　：" + (Categorys.MaxBullet[5] + 1), "　弾速　：やや速い(" + Categorys.ShotSpeed[5] + ")", "跳弾回数：" + Categorys.MaxRef[5], "移動速度：普通(" + (Categorys.MoveSpeed[5] + 0.5) + ")", "・生存特化型<br>　跳弾回数の多さが特徴の戦車。<br>　反射した弾に要注意。"],
 					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[6] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：速い(" + (Categorys.MoveSpeed[6] + 0.5) + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。"],
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + (Categorys.MaxBullet[7] + 1), "　弾速　：とても速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：動かない(" + Categorys.MoveSpeed[7] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
-					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。"],
+					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。<br>【強化】装填にかかる時間の短縮"],
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + (Categorys.MaxBullet[9] + 1), "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>【強化】砲撃間隔の短縮"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が3個に増加"],
 					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>【弱化】砲撃間隔の延長"],
@@ -8799,7 +9099,7 @@ window.onload = function(){
 
 			let listCnt = 0;
 			let margin = 0;
-			let selCnt = -1;
+			let selCnt = playerType;
 
 			for (let i = 0; i < 7; i++) {
 				for (let j = 0; j < 2; j++) {
@@ -8898,6 +9198,7 @@ window.onload = function(){
 							tankBulCnt.color = 'red';
 							tankBulRef.color = 'red';
 							tankSpd.color = 'red';
+							tankDsc.color = 'red';
 							break;
 						case 4:
 							tankBulCnt.color = 'red';
@@ -8917,6 +9218,7 @@ window.onload = function(){
 							break;
 						case 8:
 							tankSpd.color = 'red';
+							tankDsc.color = 'red';
 							break;
 						case 9:
 							tankBulCnt.color = 'red';
