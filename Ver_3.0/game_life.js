@@ -151,7 +151,7 @@ const Categorys = {
 		3, //elitegreen
 		2, //snow
 		6, //pink
-		3, //sand
+		2, //sand
 		1, //random
 		5, //dazzle
 		4	//abysal
@@ -346,7 +346,7 @@ const Categorys = {
 		150, //sand
 		320, //random
 		250, //dazzle
-		300	//abysal
+		200	//abysal
     ]
 };
 
@@ -1118,9 +1118,36 @@ var Escape_Rot8 = function(from, to, value){
 		rem = [-1];
 	}
 
-	for(i = 0; i < rem.length; i++){
+	let bk = arr;
+
+	arr = arr.filter(i => rem.indexOf(i) == -1);
+	/*for(i = 0; i < rem.length; i++){
 		if(arr.indexOf(rem[i]) != -1){
 			arr.splice(arr.indexOf(rem[i]), 1);
+		}
+	}*/
+	if(arr.length == 0){
+		arr = bk;
+	}
+
+	if(from.category == 11){
+		bk = arr;
+		rem = [];
+		var myPath = [parseInt(t1.y / PixelSize), parseInt(t1.x / PixelSize)];
+		var grid = now_scene.grid;
+						
+		if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
+		if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
+		if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
+		if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);
+		if(grid[myPath[0]-1][myPath[1]+1] == 'Obstacle') rem.push(4);
+		if(grid[myPath[0]+1][myPath[1]+1] == 'Obstacle') rem.push(5);
+		if(grid[myPath[0]+1][myPath[1]-1] == 'Obstacle') rem.push(6);
+		if(grid[myPath[0]-1][myPath[1]-1] == 'Obstacle') rem.push(7);
+		
+		arr = arr.filter(i => rem.indexOf(i) == -1);
+		if(arr.length == 0){
+			arr = bk;
 		}
 	}
 
@@ -3038,6 +3065,7 @@ window.onload = function(){
 		initialize: function(from, num, id) {
 			Sprite.call(this, PixelSize / 2, PixelSize / 2);
 			this.time = 0;
+			this.name = 'Bom';
 			this.from = from;
 			this.num = num;
 			this.id = id;
@@ -6389,6 +6417,7 @@ window.onload = function(){
 			var hittingTime = 0;
 
 			var rot = 0;
+			this.cflg = true;
 
 			if(gameMode > 0){
 				this.moveSpeed += 0.5;
@@ -6456,11 +6485,12 @@ window.onload = function(){
 					}
 				}
 
-				if(boms[that.num] != 0){
+				if(target2.name == 'Bom'){
 					
 					let rem = [];
 					var myPath = [parseInt((that.y + that.height/2) / PixelSize), parseInt((that.x + that.width/2) / PixelSize)];
 					var grid = scene.grid;
+					let bk = arr;
 					
 					if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
 					if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
@@ -6474,8 +6504,7 @@ window.onload = function(){
 					arr = arr.filter(i => rem.indexOf(i) == -1);
 
 					if(arr.length == 0){
-						arr = [0,1,2,3,4,5,6,7];
-						arr = arr.filter(i => rem.indexOf(i) == -1);
+						arr = bk;
 					}
 				}
 
@@ -6623,6 +6652,12 @@ window.onload = function(){
 								return;
 							})
 
+							if(this.fireFlg){
+								EnemyAim.intersectStrict(Bom).forEach(elem => {
+									this.fireFlg = false;
+								})
+							}
+
 							if (this.time % 5 == 0) {
 								if (this.attackTarget != tankEntity[0] && escapeFlg == false) this.attackTarget = tankEntity[0];
 								escapeFlg = false;
@@ -6727,6 +6762,7 @@ window.onload = function(){
 												new Bom(this, this.num, boms[this.num])._SetBom();
 												this.bomReload = 0;
 												this.bomSetFlg = true;
+												this.bulReloadFlg = true;
 												break;
 											}
 										}
@@ -6736,15 +6772,16 @@ window.onload = function(){
 							}
 
 							if (this.moveSpeed > 0) {
-								if (this.time % 5 == 0) {
+								if (this.time % 5 == 0 && this.cflg) {
 									if(escapeFlg){
 										//SelDirection(this.weak, this.escapeTarget, 0);
-										dirValue = Escape_Rot8(this.weak, this.escapeTarget, dirValue);
+										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
 									}else{
 										if(this.within(target, 160) == true && !this.bomSetFlg && boms[this.num] < this.bomMax){
 											new Bom(this, this.num, boms[this.num])._SetBom();
 											this.bomReload = 0;
 											this.bomSetFlg = true;
+											this.bulReloadFlg = true;
 										}
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
 											SelDirection(this.weak, this.attackTarget, 0);
@@ -6803,7 +6840,7 @@ window.onload = function(){
 											break;
 									}
 									
-									this._Move(rot);
+									this.cflg = this._Move(rot);
 								}
 							}
 
@@ -6870,10 +6907,12 @@ window.onload = function(){
 		},
 		_ResetAim: function() {
 			if(this.attackTarget.name == "Entity"){
+				let random = 20 + (15 * Math.floor(Math.random() * 4));
+				//console.log(random)
 				let t1 = Get_Center(this);
 				let t2 = Get_Center(this.attackTarget);
 				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
-				let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
+				let dis = Math.trunc(Vec_Distance(t1, t2) / random);
 				let val = dis * this.shotSpeed;
 				v.x = v.x * val + t2.x;
 				v.y = v.y * val + t2.y;
@@ -6987,6 +7026,26 @@ window.onload = function(){
 					}
 				}
 
+				let rem = [];
+				var myPath = [parseInt((target1.y + target1.height/2) / PixelSize), parseInt((target1.x + target1.width/2) / PixelSize)];
+				var grid = scene.grid;
+				let bk = arr;
+						
+				if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
+				if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
+				if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
+				if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);
+				if(grid[myPath[0]-1][myPath[1]+1] == 'Obstacle') rem.push(4);
+				if(grid[myPath[0]+1][myPath[1]+1] == 'Obstacle') rem.push(5);
+				if(grid[myPath[0]+1][myPath[1]-1] == 'Obstacle') rem.push(6);
+				if(grid[myPath[0]-1][myPath[1]-1] == 'Obstacle') rem.push(7);
+		
+				arr = arr.filter(i => rem.indexOf(i) == -1);
+
+				if(arr.length == 0){
+					arr = bk;
+				}
+
 				if(arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
@@ -7075,6 +7134,27 @@ window.onload = function(){
 									case 7:
 										arr = [4,6];
 								}
+
+								let rem = [];
+								var myPath = [parseInt((this.y + this.height/2) / PixelSize), parseInt((this.x + this.width/2) / PixelSize)];
+								var grid = scene.grid;
+								let bk = arr;
+									
+								if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
+								if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
+								if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
+								if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);
+								if(grid[myPath[0]-1][myPath[1]+1] == 'Obstacle') rem.push(4);
+								if(grid[myPath[0]+1][myPath[1]+1] == 'Obstacle') rem.push(5);
+								if(grid[myPath[0]+1][myPath[1]-1] == 'Obstacle') rem.push(6);
+								if(grid[myPath[0]-1][myPath[1]-1] == 'Obstacle') rem.push(7);
+					
+								arr = arr.filter(i => rem.indexOf(i) == -1);
+
+								if(arr.length == 0){
+									arr = bk;
+								}
+								
 								if(arr.indexOf(dirValue) == -1){
 									dirValue = arr[Math.floor(Math.random() * arr.length)];
 								}
@@ -7136,7 +7216,7 @@ window.onload = function(){
 															this.escapeTarget = c;
 															escapeFlg = true;
 														}else{
-															if(Search(c, this, 25, Categorys.EscapeRange[this.category][1])){
+															if(Search(c, this, 45, Categorys.EscapeRange[this.category][1])){
 																this.escapeTarget = c;
 																escapeFlg = true;
 															}
@@ -7245,7 +7325,7 @@ window.onload = function(){
 								if (this.time % 3 == 0) {
 									if(escapeFlg){
 										//SelDirection(this.weak, this.escapeTarget, 0);
-										dirValue = Escape_Rot8(this.weak, this.escapeTarget, dirValue);
+										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
 									}else{
 										/*if(this.within(target, 200) == true && !this.bomSetFlg && boms[this.num] < this.bomMax){
 											new Bom(this, this.num, boms[this.num])._SetBom();
@@ -8016,6 +8096,26 @@ window.onload = function(){
 					}
 				}
 
+				let rem = [];
+				var myPath = [parseInt((target1.y + target1.height/2) / PixelSize), parseInt((target1.x + target1.width/2) / PixelSize)];
+				var grid = scene.grid;
+				let bk = arr;
+						
+				if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
+				if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
+				if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
+				if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);
+				if(grid[myPath[0]-1][myPath[1]+1] == 'Obstacle') rem.push(4);
+				if(grid[myPath[0]+1][myPath[1]+1] == 'Obstacle') rem.push(5);
+				if(grid[myPath[0]+1][myPath[1]-1] == 'Obstacle') rem.push(6);
+				if(grid[myPath[0]-1][myPath[1]-1] == 'Obstacle') rem.push(7);
+		
+				arr = arr.filter(i => rem.indexOf(i) == -1);
+
+				if(arr.length == 0){
+					arr = bk;
+				}
+
 				if(arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
@@ -8108,17 +8208,21 @@ window.onload = function(){
 								let rem = [];
 								var myPath = [parseInt((this.y + this.height/2) / PixelSize), parseInt((this.x + this.width/2) / PixelSize)];
 								var grid = scene.grid;
-								
+								let bk = arr;
+									
 								if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
 								if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
 								if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
 								if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);
-				
+								if(grid[myPath[0]-1][myPath[1]+1] == 'Obstacle') rem.push(4);
+								if(grid[myPath[0]+1][myPath[1]+1] == 'Obstacle') rem.push(5);
+								if(grid[myPath[0]+1][myPath[1]-1] == 'Obstacle') rem.push(6);
+								if(grid[myPath[0]-1][myPath[1]-1] == 'Obstacle') rem.push(7);
+					
 								arr = arr.filter(i => rem.indexOf(i) == -1);
 
 								if(arr.length == 0){
-									arr = [0,1,2,3];
-									arr = arr.filter(i => rem.indexOf(i) == -1);
+									arr = bk;
 								}
 								
 								if(arr.indexOf(dirValue) == -1){
@@ -8280,8 +8384,7 @@ window.onload = function(){
 									if(escapeFlg){
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
-									}else{
-										if(!this.cflg) return;
+									}else if(this.cflg){
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										}else{
@@ -8441,13 +8544,13 @@ window.onload = function(){
 				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 7;
 				this.ref = 0;
 				this.reload = Categorys.Reload[this.category] - 30;
-				this.distance = Categorys.Distances[this.category] + 100;
+				this.distance = Categorys.Distances[this.category] + 200;
 			}else if(percent < 0.5){
 				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
 				this.fireLate = Categorys.FireLate[this.category] + 3;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
 				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 4;
-				this.distance = Categorys.Distances[this.category] + 50;
+				this.distance = Categorys.Distances[this.category] + 100;
 			}else if(percent < 0.75){
 				if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 			}
@@ -9361,7 +9464,7 @@ window.onload = function(){
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：やや遅い(" + Categorys.MoveSpeed[8] + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。"],
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>　クリティカル発生率がとても高い。"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：速い(" + Categorys.MoveSpeed[10] + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。"],
-					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + Categorys.MaxBullet[11], "　弾速　：最速(" + Categorys.ShotSpeed[11] + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。"],
+					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + Categorys.MaxBullet[11], "　弾速　：最速(" + Categorys.ShotSpeed[11] + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。"],
 					[colorsName[13], "　耐久　：" + Categorys.Life[13], "　弾数　：" + Categorys.MaxBullet[13], "　弾速　：速い(" + Categorys.ShotSpeed[13] + ")", "跳弾回数：" + Categorys.MaxRef[13], "移動速度：とても速い(" + Categorys.MoveSpeed[13] + ")", "・精鋭型<br>　最上位の戦闘力を誇るボス戦車。<br>　優秀なプレイヤーしか対峙できない。<br>　耐久が1になると殲滅モードに移行する。"]
 				];
@@ -9378,7 +9481,7 @@ window.onload = function(){
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。<br>【強化】装填にかかる時間の短縮"],
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + (Categorys.MaxBullet[9] + 1), "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>　クリティカル発生率がとても高い。<br>【強化】砲撃間隔の短縮"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が3個に増加"],
-					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>【弱化】砲撃間隔の延長"],
+					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。<br>【弱化】砲撃間隔の延長"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。"],
 					[colorsName[13], "　耐久　：" + Categorys.Life[13], "　弾数　：" + Categorys.MaxBullet[13], "　弾速　：速い(" + Categorys.ShotSpeed[13] + ")", "跳弾回数：" + Categorys.MaxRef[13], "移動速度：とても速い(" + Categorys.MoveSpeed[13] + ")", "・精鋭型<br>　最上位の戦闘力を誇るボス戦車。<br>　優秀なプレイヤーしか対峙できない。<br>　耐久が1になると殲滅モードに移行する。"]
 				];
