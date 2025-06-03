@@ -178,7 +178,7 @@ const Categorys = {
         16, //green
         10, //red
 		11,	//lightgreen
-		10,  //elitegray
+		12,  //elitegray
 		18, //elitegreen
 		14, //snow
 		11, //pink
@@ -194,7 +194,7 @@ const Categorys = {
         25, //green
         20, //red
 		30,	//lightgreen
-		24,  //elitegray
+		32,  //elitegray
 		10, //elitegreen
 		30, //snow
 		6, //pink
@@ -999,10 +999,12 @@ var Escape_Rot4 = function(from, to, value){
 		rem = [-1];
 	}
 
-	for(i = 0; i < rem.length; i++){
-		if(arr.indexOf(rem[i]) != -1){
-			arr.splice(arr.indexOf(rem[i]), 1);
-		}
+	let bk = arr;
+
+	arr = arr.filter(i => rem.indexOf(i) == -1);
+
+	if(arr.length == 0){
+		arr = bk;
 	}
 
 	if(arr.indexOf(value) == -1){
@@ -3915,8 +3917,6 @@ window.onload = function(){
 				this.bomMax = 1;
 			}
 
-			
-
 			if(gameMode > 0){
 				if(gameMode == 2){
 					this.life = zanki;
@@ -4800,6 +4800,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -5193,6 +5194,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -5926,6 +5928,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -6156,6 +6159,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -6667,6 +6671,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -6732,6 +6737,8 @@ window.onload = function(){
 			var hittingTime = 0;
 
 			var rot = 0;
+
+			this.cflg = true;
 
 			if(gameMode > 0){
 				this.shotSpeed += 1;
@@ -7078,6 +7085,7 @@ window.onload = function(){
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
 									}else{
+										if(!this.cflg) return;
 										/*if(this.within(target, 200) == true && !this.bomSetFlg && boms[this.num] < this.bomMax){
 											new Bom(this, this.num, boms[this.num])._SetBom();
 											this.bomReload = 0;
@@ -7140,7 +7148,7 @@ window.onload = function(){
 											break;
 									}
 									
-									this._Move(rot);
+									this.cflg = this._Move(rot);
 								}
 							}
 
@@ -7191,6 +7199,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -7669,6 +7678,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -7838,6 +7848,26 @@ window.onload = function(){
 					}
 				}
 
+				let rem = [];
+				var myPath = [parseInt((target1.y + target1.height/2) / PixelSize), parseInt((target1.x + target1.width/2) / PixelSize)];
+				var grid = scene.grid;
+				let bk = arr;
+						
+				if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
+				if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
+				if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
+				if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);
+				if(grid[myPath[0]-1][myPath[1]+1] == 'Obstacle') rem.push(4);
+				if(grid[myPath[0]+1][myPath[1]+1] == 'Obstacle') rem.push(5);
+				if(grid[myPath[0]+1][myPath[1]-1] == 'Obstacle') rem.push(6);
+				if(grid[myPath[0]-1][myPath[1]-1] == 'Obstacle') rem.push(7);
+		
+				arr = arr.filter(i => rem.indexOf(i) == -1);
+
+				if(arr.length == 0){
+					arr = bk;
+				}
+
 				if(arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
@@ -7990,14 +8020,9 @@ window.onload = function(){
 												})
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][1]) {
-														if(this.escapeTarget == null){
+														if(Search(c, this, 45, Categorys.EscapeRange[this.category][1])){
 															this.escapeTarget = c;
 															escapeFlg = true;
-														}else{
-															if(Search(c, this, 25, Categorys.EscapeRange[this.category][1])){
-																this.escapeTarget = c;
-																escapeFlg = true;
-															}
 														}
 														
 													}
@@ -8193,6 +8218,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -8246,25 +8272,23 @@ window.onload = function(){
 		_ResetStatus: function(){
 			switch(this.life){
 				case 3:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed + 0.4;
+					if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 					break;
 				case 2:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.3;
-					this.fireLate = this.fireLate + 3;
-					this.shotSpeed = this.shotSpeed - 1;
-					this.bodyRotSpeed = this.bodyRotSpeed + 4;
-					//disRange = 300;
-					this.distance = this.distance + 50;
+					if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
+					this.fireLate = Categorys.FireLate[this.category] + 3;
+					this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
+					this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 4;
+					this.distance = Categorys.Distances[this.category] + 100;
 					break;
 				case 1:
-					if(this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.2;
-					this.fireLate = this.fireLate - 12;
-					this.shotSpeed = this.shotSpeed + 4;
-					this.bodyRotSpeed = this.bodyRotSpeed + 3;
-					//disRange = 150;
+					if(this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
+					this.fireLate = Categorys.FireLate[this.category] - 12;
+					this.shotSpeed = Categorys.ShotSpeed[this.category] + 3;
+					this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 7;
 					this.ref = 0;
-					this.reload = this.reload - 30;
-					this.distance = this.distance + 50;
+					this.reload = Categorys.Reload[this.category] - 30;
+					this.distance = Categorys.Distances[this.category] + 200;
 					break;
 				default:
 					break;
@@ -8751,10 +8775,11 @@ window.onload = function(){
 			/*var nomal = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 8, y: 128}, 'ノーマル', '48px sans-serif', 'black', 'center', true);
 			var hard = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 300, y: 128}, 'ハード', '48px sans-serif', 'black', 'center', true);
 			var survival = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 600, y: 128}, 'サバイバル', '48px sans-serif', 'black', 'center', true);*/
-
-			var nomal = new ViewButton(this.head, 'Mode', {width: 264, height: 48}, {x: 32, y: 128}, 'ノーマル', '48px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
-			var hard = new ViewButton(this.head, 'Mode', {width: 264, height: 48}, {x: 344, y: 128}, 'ハード', '48px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
-			var survival = new ViewButton(this.head, 'Mode', {width: 264, height: 48}, {x: 664, y: 128}, 'サバイバル', '48px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			
+			var easy = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 32, y: 128}, 'イージー', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var nomal = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 264, y: 128}, 'ノーマル', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var hard = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 496, y: 128}, 'ハード', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var survival = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 728, y: 128}, 'サバイバル', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
 
 			//var toList = new ViewButton(area.head, 'Mode', {width: 48 * 8, height: 48}, {x: PixelSize * 5, y: PixelSize * 8.25}, '➡　戦車一覧へ', '48px sans-serif', '#ebe799', 'left', 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)');
 
@@ -8763,23 +8788,33 @@ window.onload = function(){
 
 			function changeMode() {
 				switch(gameMode){
+					case -1:
+						easy.text.color = 'red';
+						nomal.text.color = 'black';
+						hard.text.color = 'black';
+						survival.text.color = 'black';
+						dsc.text = 'イージーモード<br>初心者におすすめのモード。<br>敵の攻撃頻度が抑えられているため遊びやすい。<br>慣れないうちはこのモードで練習してみましょう。';
+						break;
 					case 0:
+						easy.text.color = 'black';
 						nomal.text.color = 'red';
 						hard.text.color = 'black';
 						survival.text.color = 'black';
-						dsc.text = 'ノーマルモード<br>初心者におすすめの難易度。';
+						dsc.text = 'ノーマルモード<br>中級者向けのモード。<br>敵味方ともに100%のステータスで戦う。<br>イージーモードでは足りなくなってきた方におすすめ。';
 						break;
 					case 1:
+						easy.text.color = 'black';
 						nomal.text.color = 'black';
 						hard.text.color = 'red';
 						survival.text.color = 'black';
-						dsc.text = 'ハードモード<br>敵のステータスが強化され、より難しいモード。';
+						dsc.text = 'ハードモード<br>敵のステータスが強化される難易度の高いモード。<br>デフォルト以外の戦車を自機として選択している場合、<br>ステータス強化の恩恵を受けられる。';
 						break;
 					case 2:
+						easy.text.color = 'black';
 						nomal.text.color = 'black';
 						hard.text.color = 'black';
 						survival.text.color = 'red';
-						dsc.text = 'サバイバルモード<br>敵の攻撃を受けると撃破されるかわりに残機が消費されるモード。<br>敵の強化はあり。';
+						dsc.text = 'サバイバルモード<br>敵の攻撃を受けると撃破されるかわりに残機を消費して戦闘を続けられるモード。<br>また、ハードモードと同様に敵が強化されます。';
 						break;
 				}
 			}
@@ -8788,6 +8823,11 @@ window.onload = function(){
 			this.back.backgroundColor = 'red';
 
 			changeMode();
+
+			easy.addEventListener(Event.TOUCH_START, function() {
+				gameMode = -1;
+				changeMode();
+			})
 
 			nomal.addEventListener(Event.TOUCH_START, function() {
 				gameMode = 0;
@@ -9047,6 +9087,10 @@ window.onload = function(){
 
 			function Mode_Change(label){
 				switch(gameMode){
+					case -1:
+						label.text = 'イージー';
+						label.color = '#ebe799';
+						break;
 					case 0:
 						label.text = 'ノーマル';
 						label.color = '#ebe799';
@@ -9130,7 +9174,7 @@ window.onload = function(){
 			let dispTanks = [];
 			let performance = [];
 
-			if(gameMode == 0){
+			if(gameMode <= 0){
 				performance = [
 					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車。<br>　高性能かつ汎用性が高いため<br>　初心者におすすめ。"],
 					[colorsName[1], "　耐久　：" + Categorys.Life[1], "　弾数　：" + Categorys.MaxBullet[1], "　弾速　：遅い(" + Categorys.ShotSpeed[1] + ")", "跳弾回数：" + Categorys.MaxRef[1], "移動速度：動かない(" + Categorys.MoveSpeed[1] + ")", "・弾道予測型<br>　最も弱い戦車。<br>　よく狙って攻撃するため命中率は高い。"],
@@ -9151,7 +9195,7 @@ window.onload = function(){
 				performance = [
 					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車。<br>　高性能かつ汎用性が高いため<br>　初心者におすすめ。"],
 					[colorsName[1], "　耐久　：" + Categorys.Life[1], "　弾数　：" + (Categorys.MaxBullet[1] + 2), "　弾速　：普通(" + (Categorys.ShotSpeed[1] + 2) + ")", "跳弾回数：" + Categorys.MaxRef[1], "移動速度：動かない(" + Categorys.MoveSpeed[1] + ")", "・弾道予測型<br>　最も弱い戦車。<br>　よく狙って攻撃するため命中率は高い。"],
-					[colorsName[2], "　耐久　：" + Categorys.Life[2], "　弾数　：" + (Categorys.MaxBullet[2] + 1), "　弾速　：普通(" + (Categorys.ShotSpeed[2] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[2], "移動速度：遅い(" + Categorys.MoveSpeed[2] + ")", "・最短追尾型<br>　最短経路を計算して移動する。<br>　配置によっては脅威になりうる。"],
+					[colorsName[2], "　耐久　：" + Categorys.Life[2], "　弾数　：" + (Categorys.MaxBullet[2] + 1), "　弾速　：普通(" + (Categorys.ShotSpeed[2] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[2], "移動速度：普通(" + (Categorys.MoveSpeed[2] + 0.5) + ")", "・最短追尾型<br>　最短経路を計算して移動する。<br>　配置によっては脅威になりうる。"],
 					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.5) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。<br>【弱化】装填にかかる時間の延長"],
 					[colorsName[4], "　耐久　：" + Categorys.Life[4], "　弾数　：" + (Categorys.MaxBullet[4] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[4] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[4], "移動速度：やや速い(" + Categorys.MoveSpeed[4] + ")", "・最短追尾型<br>　弾数が多く、発射頻度も高いため<br>　物量で攻める突撃をしてくる。"],
 					[colorsName[5], "　耐久　：" + Categorys.Life[5], "　弾数　：" + (Categorys.MaxBullet[5] + 1), "　弾速　：やや速い(" + Categorys.ShotSpeed[5] + ")", "跳弾回数：" + Categorys.MaxRef[5], "移動速度：普通(" + (Categorys.MoveSpeed[5] + 0.5) + ")", "・生存特化型<br>　跳弾回数の多さが特徴の戦車。<br>　反射した弾に要注意。"],
@@ -9253,7 +9297,7 @@ window.onload = function(){
 				tankBulRef.text = performance[selCnt][4];
 				tankSpd.text = performance[selCnt][5];
 				tankDsc.text = performance[selCnt][6];
-				if(gameMode != 0){
+				if(gameMode > 0){
 					tankBulCnt.color = 'black';
 					tankBulSpd.color = 'black';
 					tankBulRef.color = 'black';
@@ -9267,6 +9311,7 @@ window.onload = function(){
 						case 2:
 							tankBulCnt.color = 'red';
 							tankBulSpd.color = 'red';
+							tankSpd.color = 'red';
 							break;
 						case 3:
 							tankBulCnt.color = 'red';

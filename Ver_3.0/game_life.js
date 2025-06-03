@@ -195,7 +195,7 @@ const Categorys = {
         25, //green
         20, //red
 		30,	//lightgreen
-		24,  //elitegray
+		32,  //elitegray
 		10, //elitegreen
 		30, //snow
 		6, //pink
@@ -4939,6 +4939,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -5357,6 +5358,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -5925,6 +5927,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -6121,6 +6124,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -6366,6 +6370,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -6891,6 +6896,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -7441,6 +7447,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -7934,6 +7941,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -8283,16 +8291,10 @@ window.onload = function(){
 												})
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][1]) {
-														if(this.escapeTarget == null){
+														if(Search(c, this, 45, Categorys.EscapeRange[this.category][1])){
 															this.escapeTarget = c;
 															escapeFlg = true;
-														}else{
-															if(Search(c, this, 25, Categorys.EscapeRange[this.category][1])){
-																this.escapeTarget = c;
-																escapeFlg = true;
-															}
 														}
-														
 													}
 												}
 											}
@@ -8485,6 +8487,7 @@ window.onload = function(){
 			}
 		},
 		_Attack: function(){
+			if(!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -9073,9 +9076,10 @@ window.onload = function(){
 			var hard = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 300, y: 128}, 'ハード', '48px sans-serif', 'black', 'center', true);
 			var survival = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 600, y: 128}, 'サバイバル', '48px sans-serif', 'black', 'center', true);*/
 
-			var nomal = new ViewButton(this.head, 'Mode', {width: 264, height: 48}, {x: 32, y: 128}, 'ノーマル', '48px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
-			var hard = new ViewButton(this.head, 'Mode', {width: 264, height: 48}, {x: 344, y: 128}, 'ハード', '48px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
-			var survival = new ViewButton(this.head, 'Mode', {width: 264, height: 48}, {x: 664, y: 128}, 'サバイバル', '48px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var easy = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 32, y: 128}, 'イージー', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var nomal = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 264, y: 128}, 'ノーマル', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var hard = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 496, y: 128}, 'ハード', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
+			var survival = new ViewButton(this.head, 'Mode', {width: 200, height: 48}, {x: 728, y: 128}, 'サバイバル', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
 
 			//var toList = new ViewButton(area.head, 'Mode', {width: 48 * 8, height: 48}, {x: PixelSize * 5, y: PixelSize * 8.25}, '➡　戦車一覧へ', '48px sans-serif', '#ebe799', 'left', 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)');
 
@@ -9084,11 +9088,19 @@ window.onload = function(){
 
 			function changeMode() {
 				switch(gameMode){
+					case -1:
+						easy.text.color = 'red';
+						nomal.text.color = 'black';
+						hard.text.color = 'black';
+						survival.text.color = 'black';
+						dsc.text = 'イージーモード<br>初心者におすすめのモード。<br>敵の攻撃頻度が抑えられているため遊びやすい。<br>慣れないうちはこのモードで練習してみましょう。';
+						break;
 					case 0:
+						easy.text.color = 'black';
 						nomal.text.color = 'red';
 						hard.text.color = 'black';
 						survival.text.color = 'black';
-						dsc.text = 'ノーマルモード<br>初心者におすすめのモード。<br>慣れないうちはこのモードで練習してみましょう。';
+						dsc.text = 'ノーマルモード<br>中級者向けのモード。<br>敵味方ともに100%のステータスで戦う。<br>イージーモードでは足りなくなってきた方におすすめ。';
 						break;
 					case 1:
 						nomal.text.color = 'black';
@@ -9097,6 +9109,7 @@ window.onload = function(){
 						dsc.text = 'ハードモード<br>敵のステータスが強化される難易度の高いモード。<br>デフォルト以外の戦車を自機として選択している場合、<br>ステータス強化の恩恵を受けられる。';
 						break;
 					case 2:
+						easy.text.color = 'black';
 						nomal.text.color = 'black';
 						hard.text.color = 'black';
 						survival.text.color = 'red';
@@ -9109,6 +9122,11 @@ window.onload = function(){
 			this.back.backgroundColor = 'red';
 
 			changeMode();
+
+			easy.addEventListener(Event.TOUCH_START, function() {
+				gameMode = -1;
+				changeMode();
+			})
 
 			nomal.addEventListener(Event.TOUCH_START, function() {
 				gameMode = 0;
@@ -9368,6 +9386,10 @@ window.onload = function(){
 
 			function Mode_Change(label){
 				switch(gameMode){
+					case -1:
+						label.text = 'イージー';
+						label.color = '#ebe799';
+						break;
 					case 0:
 						label.text = 'ノーマル';
 						label.color = '#ebe799';
@@ -9451,7 +9473,7 @@ window.onload = function(){
 			let dispTanks = [];
 			let performance = [];
 
-			if(gameMode == 0){
+			if(gameMode <= 0){
 				performance = [
 					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車。<br>　高性能かつ汎用性が高いため<br>　初心者におすすめ。<br>　クリティカル発生率が高い。"],
 					[colorsName[1], "　耐久　：" + Categorys.Life[1], "　弾数　：" + Categorys.MaxBullet[1], "　弾速　：遅い(" + Categorys.ShotSpeed[1] + ")", "跳弾回数：" + Categorys.MaxRef[1], "移動速度：動かない(" + Categorys.MoveSpeed[1] + ")", "・弾道予測型<br>　最も弱い戦車。<br>　よく狙って攻撃するため命中率は高い。"],
@@ -9574,7 +9596,7 @@ window.onload = function(){
 				tankBulRef.text = performance[selCnt][4];
 				tankSpd.text = performance[selCnt][5];
 				tankDsc.text = performance[selCnt][6];
-				if(gameMode != 0){
+				if(gameMode > 0){
 					tankBulCnt.color = 'black';
 					tankBulSpd.color = 'black';
 					tankBulRef.color = 'black';
@@ -10230,9 +10252,9 @@ window.onload = function(){
 
 				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11}, '※補足説明', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11.75}, '・ステージ上にある茶色の壁は爆弾でしか壊せません。', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 12.5}, '・爆弾の爆発は、戦車の耐久を無視して撃破が可能。', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 13.25}, '　サバイバルモードでは爆発に巻き込まれると即', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 14}, '　ゲームオーバーになるため注意してください。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 12.5}, '・爆弾は一定範囲内の戦車に100ダメージを与えます。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 13.25}, '・砲弾が当たった際、クリティカルが発生すると', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 14}, '　2倍のダメージを与えることが出来ます。', '28px sans-serif', 'white', 'left', true);
 			} else {
 				new ViewFrame(this, 'Pause', {width: PixelSize * 20,height: PixelSize * 4.5}, {x: 0, y: PixelSize * 10.5}, '#000000aa');
 				new ViewText(this, 'Move', {width: PixelSize * 8, height: PixelSize * 0.5}, {x: PixelSize * 0.5, y: PixelSize * 11}, '　移動　：WASDキー　（斜め移動可）', '28px sans-serif', 'white', 'left', true);
@@ -10243,9 +10265,9 @@ window.onload = function(){
 
 				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11}, '※補足説明', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 11.75}, '・ステージ上にある茶色の壁は爆弾でしか壊せません。', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 12.5}, '・爆弾の爆発は、戦車の耐久を無視して撃破が可能。', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 13.25}, '　サバイバルモードでは爆発に巻き込まれると即', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 14}, '　ゲームオーバーになるため注意してください。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 12.5}, '・爆弾は一定範囲内の戦車に100ダメージを与えます。', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 13.25}, '・砲弾が当たった際、クリティカルが発生すると', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', {width: PixelSize * 11, height: PixelSize * 0.5}, {x: PixelSize * 9, y: PixelSize * 14}, '　2倍のダメージを与えることが出来ます。', '28px sans-serif', 'white', 'left', true);
 			}
 
 			save.addEventListener(Event.TOUCH_START, function() {
