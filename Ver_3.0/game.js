@@ -472,21 +472,31 @@ class Vector2 {
 			.Clone()
 			.Subtract(a);
 	}
-    Normalize(){
+    /*Normalize(){
         let ls = this.x * this.x + this.y + this.y;
         let invNorm = 1.0 / Math.sqrt(ls);
         return new Vector2(this.x * invNorm, this.y * invNorm);
+    }*/
+   	Normalize() {
+        const length = Math.sqrt(this.x * this.x + this.y * this.y);
+        if (length > 0) {
+            return new Vector2(this.x / length, this.y / length);
+        }
+        return new Vector2(0, 0);
     }
     Reflect(vector, normal){
         let dot = vector.x * normal.x + vector.y * normal.y;
         return new Vector2(vector.x - 2.0 * dot * normal.x, vector.y - 2.0 * dot * normal.y);
     }
-	Equals(v){
+	Equals(other) {
+        return other instanceof Vector2 && this.x === other.x && this.y === other.y;
+    }
+	/*Equals(v){
 		if(v !== Vector2){
 			return false;
 		}
 		return this == v;
-	}
+	}*/
     static Add(left, right) {
         return left + right;
     }
@@ -9420,7 +9430,7 @@ window.onload = function(){
 			walls = [];
 			holes = [];
 			blocks = [];
-			tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+			tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 			destruction = 0;
 			gameStatus = 0;
 			victory = false;
