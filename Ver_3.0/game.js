@@ -285,7 +285,7 @@ const Categorys = {
 	DefenceFlg: [
 		[true, true, true], //Player
 		[false, false, false], //brown
-		[true, false, false], //gray
+		[true, true, false], //gray
 		[true, true, true], //green
 		[true, false, false], //red
 		[true, true, true], //lightgreen
@@ -299,9 +299,9 @@ const Categorys = {
 		[true, true, true] //abysal
 	],
 	DefenceRange: [
-		[300, 300, 300], //Player
+		[400, 300, 300], //Player
 		[0, 0, 0], //brown
-		[300, 200, 0], //gray
+		[300, 200, 200], //gray
 		[400, 200, 150], //green
 		[220, 0, 0], //red
 		[300, 200, 200], //lightgreen
@@ -315,7 +315,7 @@ const Categorys = {
 		[300, 300, 300] //abysal
 	],
 	EscapeRange: [
-		[true, 300, 300, 250], //Player
+		[true, 400, 300, 250], //Player
 		[false, 0, 0, 0], //brown
 		[true, 200, 0, 0], //gray
 		[true, 300, 180, 120], //green
@@ -391,6 +391,26 @@ const stagePath = [
 	'./stage/stage37.js',
 	'./stage/stage38.js',
 	'./stage/stage39.js',
+	'./stage/stage40.js',
+	'./stage/stage41.js',
+	'./stage/stage42.js',
+	'./stage/stage43.js',
+	'./stage/stage44.js',
+	'./stage/stage45.js',
+	'./stage/stage46.js',
+	'./stage/stage47.js',
+	'./stage/stage48.js',
+	'./stage/stage49.js',
+	'./stage/stage50.js',
+	'./stage/stage51.js',
+	'./stage/stage52.js',
+	'./stage/stage53.js',
+	'./stage/stage54.js',
+	'./stage/stage55.js',
+	'./stage/stage56.js',
+	'./stage/stage57.js',
+	'./stage/stage58.js',
+	'./stage/stage59.js',
 ];
 
 class Vector2 {
@@ -466,10 +486,10 @@ class Vector2 {
 		let dy = left.y - right.y;
 		return dx * dx + dy * dy;
 	}
-	Normal(a, b) {
-		return b
-			.Clone()
-			.Subtract(a);
+	Normal(p1, p2) {
+		const dx = p2.x - p1.x;
+		const dy = p2.y - p1.y;
+		return new Vector2(-dy, dx); // 90度回転（時計回り）
 	}
 	/*Normalize(){
 	    let ls = this.x * this.x + this.y + this.y;
@@ -1782,6 +1802,7 @@ window.onload = function() {
 			PhyBoxSprite.call(this, PixelSize, PixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
 			//this.backgroundColor = "#ddd4";
 			//this.image = game.assets['./image/ObjectImage/block.png'];
+			this.name = 'block';
 			this.x = x * PixelSize;
 			this.y = y * PixelSize - Quarter;
 			this.tilePath = { x: x, y: y };
@@ -2824,6 +2845,7 @@ window.onload = function() {
 			this.time = 0;
 			this.id = id;
 			this.num = num;
+			this.category = category;
 			this.from = from;
 			this.shotSpeed = shotSpeed;
 			this.ref = ref;
@@ -2995,7 +3017,7 @@ window.onload = function() {
 			let vec = Rot_to_Vec(from.rotation, -90);
 			let rad = Math.atan2(vec.y, vec.x);
 
-			this.moveTo(f.x + Math.cos(rad) * (5) - this.width / 2, f.y + Math.sin(rad) * (5) - this.height / 2);
+			this.moveTo(f.x + Math.cos(rad) * (10) - this.width / 2, f.y + Math.sin(rad) * (10) - this.height / 2);
 
 			var n_color = new Surface(PixelSize / 2, PixelSize / 2);
 			n_color.context.beginPath();
@@ -3730,6 +3752,7 @@ window.onload = function() {
 									damage.volume = 0.5;
 									damFlg = true;
 								}
+								return;
 							});
 
 							new EnemyAim(this.cannon, this.cursor, this.category, this.num);
@@ -3755,7 +3778,7 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
@@ -3885,7 +3908,6 @@ window.onload = function() {
 						this.moveSpeed += 0.5;
 						break;
 					case 9:
-						this.bulMax += 1;
 						this.fireLate -= 2;
 						break;
 					case 10:
@@ -3900,10 +3922,11 @@ window.onload = function() {
 			}
 
 
-			this.weak.scale(0.8, 0.8);
+			this.weak.scale(0.6, 0.6);
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 90;
 			let damCng = false;
 
 			this.shotStopFlg = false;
@@ -3919,7 +3942,7 @@ window.onload = function() {
 
 			if (!navigator.userAgent.match(/iPhone|iPad|Android/)) {
 				scene.addEventListener('touchstart', function() {
-					if (my.category == 9 && (my.fullFireFlg || my.firecnt > 0) || my.shotNGflg) return;
+					if (my.category == 9 && (my.fullFireFlg || my.firecnt > 0 || bullets[num] > 0) || my.shotNGflg) return;
 					my._Attack();
 				})
 			}
@@ -3935,12 +3958,16 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									if (gameMode == 2) zanki--;
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -3960,17 +3987,18 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 90) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 90;
 								}
 							}
 
 							if ((inputManager.checkButton("A") == inputManager.keyStatus.DOWN)) {
-								if (this.category == 9 && (this.fullFireFlg || this.firecnt > 0) || this.shotNGflg) return;
+								if (this.category == 9 && (this.fullFireFlg || this.firecnt > 0 || bullets[num] > 0) || this.shotNGflg) return;
 								this._Attack();
 							}
 
@@ -4000,7 +4028,7 @@ window.onload = function() {
 								new PlayerRefAim(this.ref, this.cannon, this.cursor, this.category, this.num);
 							} else {
 								let aim = new Aim(this.cannon, this.cursor, this.category, this.num);
-								if (this.category == 9 && this.bulReloadFlg) {
+								if (this.category == 9 && (this.bulReloadFlg || bullets[this.num] > 0)) {
 									let n_color = new Surface(aim.width, aim.height);
 									n_color.context.beginPath();
 									n_color.context.fillStyle = 'rgba(255, 0, 0, 0.4)';
@@ -4168,6 +4196,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -4232,11 +4261,15 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -4256,12 +4289,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -4762,6 +4796,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -4869,11 +4904,15 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -4893,12 +4932,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -5167,6 +5207,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -5278,11 +5319,15 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -5302,12 +5347,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -5711,6 +5757,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 
 			this.fullFireFlg = false;
@@ -5719,7 +5766,6 @@ window.onload = function() {
 			this.shotStopTime = 0;
 
 			if (gameMode > 0) {
-				this.bulMax += 1;
 				this.fireLate -= 2;
 			}
 
@@ -5742,11 +5788,15 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -5766,12 +5816,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -5817,7 +5868,7 @@ window.onload = function() {
 							}
 
 							if (!this.shotNGflg) {
-								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
+								if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] == 0) || this.fullFireFlg)) {
 									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 										this._Attack();
 									}
@@ -5888,6 +5939,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 
 			this.aimingTime = 0;
@@ -5929,11 +5981,15 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -5953,12 +6009,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -6125,6 +6182,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -6240,11 +6298,15 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -6264,12 +6326,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -6462,7 +6525,7 @@ window.onload = function() {
 									if (Math.floor(Math.random() * 2)) {
 										for (var i = 0, l = Block.collection.length; i < l; i++) {
 											let c = Block.collection[i];
-											if (this.within(c, 120) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
+											if (this.within(c, 68) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
 												new Bom(this, this.num, boms[this.num])._SetBom();
 												this.bomReload = 0;
 												this.bomSetFlg = true;
@@ -6505,13 +6568,16 @@ window.onload = function() {
 											}
 										}
 										if (Bom.collection.length > 0) {
+											let dis = 200;
+											let tgt = null;
 											for (var i = 0, l = Bom.collection.length; i < l; i++) {
 												let c = Bom.collection[i];
-												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 200) {
-													SelDirection(this.weak, c, 0);
-													break;
+												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < dis) {
+													tgt = c;
+													dis = Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2));
 												}
 											}
+											if(tgt != null)SelDirection(this.weak, tgt, 0);
 										}
 									}
 								}
@@ -6651,6 +6717,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -6764,11 +6831,15 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 									}
+									return;
 								})
 							}
 
@@ -6788,12 +6859,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -7200,6 +7272,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -7290,12 +7363,16 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 										this._ResetStatus();
 									}
+									return;
 								})
 							}
 
@@ -7315,12 +7392,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -7687,6 +7765,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -7807,12 +7886,16 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 										this._ResetStatus();
 									}
+									return;
 								})
 							}
 
@@ -7832,12 +7915,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -8242,6 +8326,7 @@ window.onload = function() {
 
 			let damFlg = false;
 			let damTime = 0;
+			let damTimeMax = 60;
 			let damCng = false;
 			let escapeFlg = false;
 
@@ -8361,12 +8446,16 @@ window.onload = function() {
 									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
 									damage.play();
 									this.life--;
+									if (elem.from.category == 9) {
+										damTimeMax = 20;
+									}
 									elem.from._Destroy();
 									if (this.life > 0) {
 										damage.volume = 0.5;
 										damFlg = true;
 										this._ResetStatus();
 									}
+									return;
 								})
 							}
 
@@ -8386,12 +8475,13 @@ window.onload = function() {
 									}
 								}
 								damTime++;
-								if (damTime > 60) {
+								if (damTime > damTimeMax) {
 									damFlg = false;
 									damCng = false;
 									damTime = 0;
 									this.tank.opacity = 1.0;
 									this.cannon.opacity = 1.0;
+									damTimeMax = 60;
 								}
 							}
 
@@ -9772,7 +9862,7 @@ window.onload = function() {
 					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + Categorys.MaxBullet[6], "　弾速　：普通(" + Categorys.ShotSpeed[6] + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：普通(" + Categorys.MoveSpeed[6] + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。"],
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + Categorys.MaxBullet[7], "　弾速　：とても速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：動かない(" + Categorys.MoveSpeed[7] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：やや遅い(" + Categorys.MoveSpeed[8] + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。"],
-					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。"],
+					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>　弾は小さいが多段ヒットするため要注意"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：速い(" + Categorys.MoveSpeed[10] + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。"],
 					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + Categorys.MaxBullet[11], "　弾速　：最速(" + Categorys.ShotSpeed[11] + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。"],
@@ -9789,7 +9879,7 @@ window.onload = function() {
 					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[6] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：速い(" + (Categorys.MoveSpeed[6] + 0.5) + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。"],
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + (Categorys.MaxBullet[7] + 1), "　弾速　：とても速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：動かない(" + Categorys.MoveSpeed[7] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。<br>【強化】装填にかかる時間の短縮"],
-					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + (Categorys.MaxBullet[9] + 1), "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>【強化】砲撃間隔の短縮"],
+					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>　弾は小さいが多段ヒットするため要注意<br>【強化】砲撃間隔の短縮"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が3個に増加"],
 					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。<br>【弱化】砲撃間隔の延長"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。"],
@@ -9927,7 +10017,6 @@ window.onload = function() {
 							tankDsc.color = 'red';
 							break;
 						case 9:
-							tankBulCnt.color = 'red';
 							tankDsc.color = 'red';
 							break;
 						case 10:
@@ -10301,6 +10390,12 @@ window.onload = function() {
 			var dcnt = 1;
 
 			var remaining = new ViewRemaining();
+			var pauseText = new ViewText(this, 'Pause', {width: 28*13.5, height: 28}, {x: 32, y: 16}, '', 'bold 28px sans-serif', 'white', 'left', false);
+			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+				pauseText.text = 'PAUSEボタンで一時停止';
+			}else{
+				pauseText.text = 'Escキーで一時停止';
+			}
 
 			BGM = game.assets['./sound/start.mp3'];
 			BGM.play();
@@ -10332,12 +10427,13 @@ window.onload = function() {
 					WorldFlg = true;
 					remaining._Add();
 					new ViewMessage(this, 'Message', { width: 640, height: 64 }, { x: PixelSize * 5, y: PixelSize * 6 }, 'S T A R T', 'bold 64px "Arial"', 'yellow', 'center', 60);
-					var pauseText = new ViewText(this, 'Pause', { width: 28 * 13.5, height: 28 }, { x: 32, y: 16 }, '', 'bold 28px sans-serif', 'white', 'left', true);
+					/*var pauseText = new ViewText(this, 'Pause', { width: 28 * 13.5, height: 28 }, { x: 32, y: 16 }, '', 'bold 28px sans-serif', 'white', 'left', true);
 					if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
 						pauseText.text = 'PAUSEボタンで一時停止';
 					} else {
 						pauseText.text = 'Escキーで一時停止';
-					}
+					}*/
+					pauseText._Output();
 				}
 
 				if (gameStatus == 0) {
@@ -10371,6 +10467,7 @@ window.onload = function() {
 								gameStatus = 1;
 								if (stageNum % 20 == 19) {
 									this.removeChild(remaining);
+									this.removeChild(pauseText);
 									complete = true;
 
 									resultFlg = true;
@@ -10390,6 +10487,7 @@ window.onload = function() {
 								gameStatus = 2;
 								if (zanki <= 0) {
 									this.removeChild(remaining);
+									this.removeChild(pauseText);
 									for (var i = 4; i < Object.keys(stageData).length; i++) {
 										if (deadFlgs[i - 3]) {
 											colors[stageData[i][2]] += 1;
