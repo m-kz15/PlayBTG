@@ -1903,7 +1903,7 @@ window.onload = function() {
 					Sprite.call(this, 4, 60);
 					break;
 			}
-			this.debugColor = 'blue';
+			if(DebugFlg) this.debugColor= 'blue';
 			this.name = name;
 			scene.addChild(this);
 		}
@@ -2051,7 +2051,7 @@ window.onload = function() {
 					Sprite.call(this, 8, 56);
 					break;
 			}
-			this.debugColor = 'orange';
+			if(DebugFlg) this.debugColor= 'orange';
 			this.name = name;
 			scene.addChild(this);
 		}
@@ -2219,12 +2219,17 @@ window.onload = function() {
 								this.x = from.x + 4;
 								this.y = from.y - 1;
 								if (this.scaleY != 2) this.scaleY = 2;
-								if (this.debugColor != "yellow") this.debugColor = "yellow";
+								if(DebugFlg){
+									if (this.debugColor != "yellow") this.debugColor = "yellow";
+								}
+								
 							} else {
 								this.x = from.x + 4;
 								this.y = from.y;
 								if (this.scaleY != 1) this.scaleY = 1;
-								if (this.debugColor != "white") this.debugColor = "white";
+								if(DebugFlg){
+									if (this.debugColor != "white") this.debugColor = "white";
+								}
 							}
 							break;
 						case 'TankBottom':
@@ -2232,12 +2237,16 @@ window.onload = function() {
 								this.x = from.x + 4;
 								this.y = from.y + 60 - 1;
 								if (this.scaleY != 2) this.scaleY = 2;
-								if (this.debugColor != "yellow") this.debugColor = "yellow";
+								if(DebugFlg){
+									if (this.debugColor != "yellow") this.debugColor = "yellow";
+								}
 							} else {
 								this.x = from.x + 4;
 								this.y = from.y + 60 - 2;
 								if (this.scaleY != 1) this.scaleY = 1;
-								if (this.debugColor != "blue") this.debugColor = "blue";
+								if(DebugFlg){
+									if (this.debugColor != "blue") this.debugColor = "blue";
+								}
 							}
 							break;
 						case 'TankRight':
@@ -2245,12 +2254,16 @@ window.onload = function() {
 								this.x = from.x + 60;
 								this.y = from.y + 4;
 								if (this.scaleX != 2) this.scaleX = 2;
-								if (this.debugColor != "yellow") this.debugColor = "yellow";
+								if(DebugFlg){
+									if (this.debugColor != "yellow") this.debugColor = "yellow";
+								}
 							} else {
 								this.x = from.x + 60 - 1;
 								this.y = from.y + 4;
 								if (this.scaleX != 1) this.scaleX = 1;
-								if (this.debugColor != "red") this.debugColor = "red";
+								if(DebugFlg){
+									if (this.debugColor != "red") this.debugColor = "red";
+								}
 							}
 							break;
 						case 'TankLeft':
@@ -2258,12 +2271,16 @@ window.onload = function() {
 								this.x = from.x - 2;
 								this.y = from.y + 4;
 								if (this.scaleX != 2) this.scaleX = 2;
-								if (this.debugColor != "yellow") this.debugColor = "yellow";
+								if(DebugFlg){
+									if (this.debugColor != "yellow") this.debugColor = "yellow";
+								}
 							} else {
 								this.x = from.x - 1;
 								this.y = from.y + 4;
 								if (this.scaleX != 1) this.scaleX = 1;
-								if (this.debugColor != "green") this.debugColor = "green";
+								if(DebugFlg){
+									if (this.debugColor != "green") this.debugColor = "green";
+								}
 							}
 							break;
 					}
@@ -2407,7 +2424,7 @@ window.onload = function() {
 			this.num = num;
 			this.rotation = 0;
 			//this.opacity = 0;
-			this.debugColor = 'orange';
+			if(DebugFlg) this.debugColor= 'orange';
 
 			//this.vector = Pos_to_Vec(from, to);
 			//this.rad = Vec_to_Rad(this.vector);
@@ -2545,7 +2562,7 @@ window.onload = function() {
 			this.num = num;
 			this.ref = ref;
 			this.hitTime = 0;
-			this.debugColor = 'orange';
+			if(DebugFlg) this.debugColor= 'orange';
 			//this.backgroundColor = 'orange'
 
 			this.originX = 4;
@@ -2637,7 +2654,7 @@ window.onload = function() {
 			this.num = num;
 			this.ref = ref;
 			this.hitTime = 0;
-			this.debugColor = 'orange';
+			if(DebugFlg) this.debugColor= 'orange';
 			//this.backgroundColor = 'ffa500';
 
 
@@ -3184,7 +3201,7 @@ window.onload = function() {
 		initialize: function(from, scene) {
 			Sprite.call(this, 40, 40);
 			//this.backgroundColor = "#0f0a"
-			this.debugColor = "yellow"
+			if(DebugFlg) this.debugColor= "yellow"
 			let speed = 32;
 			this.num = from.num;
 			this.rotation = 0;
@@ -3884,7 +3901,6 @@ window.onload = function() {
 						this.bulMax += 1;
 						break;
 					case 3:
-						this.moveSpeed += 0.5;
 						this.bulMax += 1;
 						this.ref = 1;
 						break;
@@ -3893,11 +3909,10 @@ window.onload = function() {
 						this.bulMax += 1;
 						break;
 					case 5:
-						this.moveSpeed += 0.5;
 						this.bulMax += 1;
 						break;
 					case 6:
-						this.moveSpeed += 0.5;
+						this.moveSpeed += 0.1;
 						this.shotSpeed += 1;
 						this.bulMax += 1;
 						break;
@@ -3905,7 +3920,6 @@ window.onload = function() {
 						this.bulMax += 1;
 						break;
 					case 8:
-						this.moveSpeed += 0.5;
 						break;
 					case 9:
 						this.fireLate -= 2;
@@ -6655,6 +6669,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						if (this.within(target, 240) == true && !this.bomSetFlg && boms[this.num] < this.bomMax)  new Bom(this, this.num, boms[this.num])._SetBom();
 						this._Dead();
 					}
 				}
@@ -7689,7 +7704,7 @@ window.onload = function() {
 					for (let i = 0; i < this.bulMax; i++) {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
-							if (Math.floor(Math.random() * 3) == 0) this._ResetAim();
+							if (Math.floor(Math.random() * 3) == 0 && gameMode > 0) this._ResetAim();
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							if (this.life == 1) {
 								this.fullFireFlg = true;
@@ -8235,7 +8250,7 @@ window.onload = function() {
 					for (let i = 0; i < this.bulMax; i++) {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
-							if (Math.floor(Math.random() * 2) == 0) this._ResetAim();
+							if (Math.floor(Math.random() * 2) == 0 && gameMode > 0) this._ResetAim();
 
 							if (this.life == 1) {
 								/*this.fullFireFlg = true;
@@ -9882,8 +9897,8 @@ window.onload = function() {
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>　弾は小さいが多段ヒットするため要注意<br>【強化】砲撃間隔の短縮"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が3個に増加"],
 					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。<br>【弱化】砲撃間隔の延長"],
-					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。"],
-					[colorsName[13], "　耐久　：" + Categorys.Life[13], "　弾数　：" + Categorys.MaxBullet[13], "　弾速　：速い(" + Categorys.ShotSpeed[13] + ")", "跳弾回数：" + Categorys.MaxRef[13], "移動速度：とても速い(" + Categorys.MoveSpeed[13] + ")", "・精鋭型<br>　最上位の戦闘力を誇るボス戦車。<br>　優秀なプレイヤーしか対峙できない。<br>　耐久が1になると殲滅モードに移行する。"]
+					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。<br>【強化】自機狙いの偏差射撃追加"],
+					[colorsName[13], "　耐久　：" + Categorys.Life[13], "　弾数　：" + Categorys.MaxBullet[13], "　弾速　：速い(" + Categorys.ShotSpeed[13] + ")", "跳弾回数：" + Categorys.MaxRef[13], "移動速度：とても速い(" + Categorys.MoveSpeed[13] + ")", "・精鋭型<br>　最上位の戦闘力を誇るボス戦車。<br>　優秀なプレイヤーしか対峙できない。<br>　耐久が1になると殲滅モードに移行する。<br>【強化】自機狙いの偏差射撃追加"]
 				];
 			}
 
@@ -10026,6 +10041,10 @@ window.onload = function() {
 						case 11:
 							tankBulCnt.color = 'red';
 							tankBulSpd.color = 'red';
+							tankDsc.color = 'red';
+							break;
+						case 12:
+						case 13:
 							tankDsc.color = 'red';
 							break;
 					}
@@ -10737,13 +10756,7 @@ window.onload = function() {
 		}
 	}
 
-	if (DebugFlg) {
-		game.debug(); //	ゲームをデバッグモードで実行させる。
-	} else {
-		game.start(); // ゲームをスタートさせます
-	}
-
-	/*if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
 		if (Math.abs(window.orientation) == 90) {
 			if(DebugFlg){
 				game.debug();	//	ゲームをデバッグモードで実行させる。
@@ -10751,7 +10764,7 @@ window.onload = function() {
 				game.start(); // ゲームをスタートさせます
 			}
 		}else{
-			
+			alert("このゲームは横向きで遊んで下さい\r\n※画面を横向きにしないとゲームは始まりません。");
 		}
 	}else{
 		if(DebugFlg){
@@ -10759,7 +10772,7 @@ window.onload = function() {
 		}else{
 			game.start(); // ゲームをスタートさせます
 		}
-	}*/
+	}
 };
 if (navigator.userAgent.match(/iPhone/)) {
 	window.addEventListener('orientationchange', function() {
