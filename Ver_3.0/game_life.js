@@ -2811,6 +2811,9 @@ window.onload = function() {
 				Block.intersectStrict(this).forEach(elem => {
 					now_scene.removeChild(this);
 				})
+				TankBase.intersectStrict(this).forEach(elem => {
+					now_scene.removeChild(this);
+				})
 			}
 			now_scene.addChild(this);
 		}
@@ -2840,6 +2843,9 @@ window.onload = function() {
 					now_scene.removeChild(this);
 				});
 				Block.intersectStrict(this).forEach(elem => {
+					now_scene.removeChild(this);
+				})
+				TankBase.intersectStrict(this).forEach(elem => {
 					now_scene.removeChild(this);
 				})
 			}
@@ -2922,6 +2928,10 @@ window.onload = function() {
 					break;
 				case 11:
 					this.bullet.scale(0.6, 1.0);
+					break;
+				case 13:
+					random0 = (Math.floor(Math.random() * 8) - 4) / 2;
+					random1 = (Math.floor(Math.random() * 8) - 4) / 2;
 					break;
 			};
 
@@ -3020,18 +3030,22 @@ window.onload = function() {
 			this.moveTo(from.centerX - (this.width / 2) - (this.force.x), from.centerY - (from.height / 2 + this.height / 3) - (this.force.y))
 			this.onenterframe = function() {
 				if (WorldFlg) {
+					this.time++;
 					this.rotation = (180 + (Math.atan2(Math.cos(from.rad), Math.sin(from.rad)) * 180) / Math.PI) * -1;
 					this.moveTo(from.centerX - (this.width / 2) - (this.force.x), from.centerY - (from.height / 2 + this.height / 3) - (this.force.y));
 
-					if (this.from.time % 2 == 0) {
+					if (this.time % 2 == 0) {
 						if (this.from.shotSpeed >= 14) {
 							new Fire(this);
 						}
-						if (this.num == 0) {
-							new PlayerBulAim(this);
-						} else {
-							new BulAim(this);
+						if(this.time % 4 == 0){
+							if (this.num == 0) {
+								new PlayerBulAim(this);
+							} else {
+								new BulAim(this);
+							}
 						}
+
 					}
 				}
 			}
@@ -3725,6 +3739,7 @@ window.onload = function() {
 			this.bulReloadFlg = false;
 			this.bulReloadTime = 0;
 			this.shotNGflg = false;
+			this.moveFlg = true;
 
 			this.fireFlg = false;
 
@@ -3795,9 +3810,11 @@ window.onload = function() {
 				let dx = Math.cos(rad) * speed;
 				let dy = Math.sin(rad) * speed;
 				this.moveBy(dx, dy);
-				return true;
+				this.moveFlg = true;
+			}else{
+				this.moveFlg = false;
 			}
-			return false;
+			return this.moveFlg;
 		}
 	})
 
@@ -5388,6 +5405,7 @@ window.onload = function() {
 			var rootFlg = false;
 
 			var rot = 0;
+			var h = {x: 0, y: 0};
 
 			if (gameMode > 0) {
 				switch (category) {
@@ -5586,7 +5604,7 @@ window.onload = function() {
 
 							this.time++;
 
-							if (hittingTime >= 35) {
+							/*if (hittingTime >= 35) {
 								let arr = [];
 								switch (dirValue) {
 									case 0:
@@ -5612,7 +5630,7 @@ window.onload = function() {
 								}
 
 								hittingTime = 0;
-							}
+							}*/
 
 							if (this.ref > 0) {
 								Front.intersect(Wall).forEach(function() {
@@ -5772,6 +5790,54 @@ window.onload = function() {
 
 
 											}
+											if (hittingTime >= 35) {
+												var arr = [];
+												myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
+												switch (dirValue) {
+													case 0:
+														this.y += this.moveSpeed;
+														if(h.x > myPath[1]){
+															arr.push(3);
+														}else{
+															arr.push(1);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize) + 1, parseInt((this.x + this.width / 2) / PixelSize)];
+														break;
+													case 1:
+														this.x -= this.moveSpeed;
+														if(h.y > myPath[0]){
+															arr.push(0);
+														}else{
+															arr.push(2);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize) - 1];
+														break;
+													case 2:
+														this.y -= this.moveSpeed;
+														if(h.x > myPath[1]){
+															arr.push(3);
+														}else{
+															arr.push(1);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize) - 1, parseInt((this.x + this.width / 2) / PixelSize)];
+														break;
+													case 3:
+														this.x += this.moveSpeed;
+														if(h.y > myPath[0]){
+															arr.push(0);
+														}else{
+															arr.push(2);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize) + 1];
+														break;
+												}
+												
+												if (arr.indexOf(dirValue) == -1) {
+													dirValue = arr[Math.floor(Math.random() * arr.length)];
+												}
+												
+												hittingTime = 0;
+											}
 											/*if(this.time % 30 == 0){
 												if((tankEntity.length - destruction) - 1 > 2){
 													for (var i = 0; i < tankEntity.length; i++) {
@@ -5807,27 +5873,9 @@ window.onload = function() {
 										rot = 270;
 									}
 									this._Move(rot);
-									/*if(!rootFlg){
-										if(myPath[0] != parseInt((this.y + this.height/2) / PixelSize) || myPath[1] != parseInt((this.x + this.width/2) / PixelSize)){
-											root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-											//if(this.time % 60 == 0) console.log(myPath);
-											if (root[0] == "East") {
-												dirValue = 1;
-											} else if (root[0] == "West") {
-												dirValue = 3;
-											} else if (root[0] == "North") {
-												dirValue = 0;
-											} else if (root[0] == "South") {
-												dirValue = 2;
-											} else {
-												rootFlg = true;
-											}
-										}
-									}*/
-
 								}
 							}
-
+							h = {x: 0, y: 0};
 							TankObstracle.intersect(this).forEach(elem => {
 								if (!deadFlgs[elem.num] && elem.num != this.num) {
 									switch (elem.name) {
@@ -5844,6 +5892,7 @@ window.onload = function() {
 											this.moveTo(elem.x + (elem.width), this.y);
 											break;
 									}
+									h = Get_Center(elem);
 									hittingTime++;
 									rootFlg = true;
 								}
@@ -5865,6 +5914,7 @@ window.onload = function() {
 										this.moveTo(elem.x + (elem.width), this.y)
 										break;
 								}
+								h = Get_Center(elem);
 								hittingTime++;
 								rootFlg = true;
 							})
@@ -5897,7 +5947,7 @@ window.onload = function() {
 				let t1 = Get_Center(this);
 				let t2 = Get_Center(this.attackTarget);
 				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
-				let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
+				let dis = Math.trunc(Vec_Distance(t1, t2) / (this.attackTarget.from.shotSpeed + this.shotSpeed * 2));
 				let val = dis * this.attackTarget.from.shotSpeed + this.shotSpeed;
 				v.x = v.x * val + t2.x;
 				v.y = v.y * val + t2.y;
@@ -6254,22 +6304,7 @@ window.onload = function() {
 									this.aimRot *= -1;
 								}
 							}
-							/*if(this.category == 7){
-								if(this.aimingTime > 0){
-									if(this.aimRot<0){
-										this.aimRot = -Categorys.CannonRotSpeed[this.category] / 2;
-									}else{
-										this.aimRot = Categorys.CannonRotSpeed[this.category] / 2;
-									}
-								}else{
-									if(this.aimRot<0){
-										this.aimRot = -Categorys.CannonRotSpeed[this.category];
-									}else{
-										this.aimRot = Categorys.CannonRotSpeed[this.category];
-									}
-								}
-							}*/
-
+							
 							if (this.aimingTime < this.aimCmpTime) {
 								if (!this.fireFlg) {
 									if (this.cannon.rotation != this.cannon2.rotation) {
@@ -6405,7 +6440,6 @@ window.onload = function() {
 			var hittingTime = 0;
 
 			var rot = 0;
-			this.cflg = true;
 
 			if (gameMode > 0) {
 				this.moveSpeed += 0.5;
@@ -6765,7 +6799,7 @@ window.onload = function() {
 							}
 
 							if (this.moveSpeed > 0) {
-								if (this.time % 5 == 0 && this.cflg) {
+								if (this.time % 5 == 0 && this.moveFlg) {
 									if (escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
@@ -6836,7 +6870,7 @@ window.onload = function() {
 											break;
 									}
 
-									this.cflg = this._Move(rot);
+									this._Move(rot);
 								}
 							}
 
@@ -6955,8 +6989,6 @@ window.onload = function() {
 			var hittingTime = 0;
 
 			var rot = 0;
-
-			this.cflg = true;
 
 			if (gameMode > 0) {
 				this.shotSpeed += 1;
@@ -7336,7 +7368,7 @@ window.onload = function() {
 											this.bomReload = 0;
 											this.bomSetFlg = true;
 										}*/
-										if (!this.cflg) return;
+										if (!this.moveFlg) return;
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
@@ -7394,7 +7426,7 @@ window.onload = function() {
 											break;
 									}
 
-									this.cflg = this._Move(rot);
+									this._Move(rot);
 								}
 							}
 
@@ -8037,7 +8069,6 @@ window.onload = function() {
 			this.firecnt = 0;
 
 			this.distance = Categorys.Distances[this.category];
-			this.cflg = true;
 
 			/*var map = scene.backgroundMap;
 			var grid = scene.grid;
@@ -8396,7 +8427,7 @@ window.onload = function() {
 									if (escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
-									} else if (this.cflg) {
+									} else if (this.moveFlg) {
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
@@ -8444,7 +8475,7 @@ window.onload = function() {
 											rot = 315;
 											break;
 									}
-									this.cflg = this._Move(rot);
+									this._Move(rot);
 
 								}
 							}
@@ -8513,7 +8544,7 @@ window.onload = function() {
 										this.fullFireFlg = true;
 										this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
 										this.firecnt++;
-										this.fireLate = 10;
+										this.fireLate = 9;
 									}
 
 								} else {

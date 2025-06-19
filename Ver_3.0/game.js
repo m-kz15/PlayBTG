@@ -2901,6 +2901,13 @@ window.onload = function() {
 
 					this.bullet.scale(0.7, 0.7);
 					break;
+				case 11:
+					this.bullet.scale(0.6, 1.0);
+					break;
+				case 13:
+					random0 = (Math.floor(Math.random() * 8) - 4) / 2;
+					random1 = (Math.floor(Math.random() * 8) - 4) / 2;
+					break;
 			};
 
 			this.vec = Rot_to_Vec(from.rotation + (random0 + random1), -90);
@@ -2998,18 +3005,22 @@ window.onload = function() {
 			this.moveTo(from.centerX - (this.width / 2) - (this.force.x), from.centerY - (from.height / 2 + this.height / 3) - (this.force.y))
 			this.onenterframe = function() {
 				if (WorldFlg) {
+					this.time++;
 					this.rotation = (180 + (Math.atan2(Math.cos(from.rad), Math.sin(from.rad)) * 180) / Math.PI) * -1;
 					this.moveTo(from.centerX - (this.width / 2) - (this.force.x), from.centerY - (from.height / 2 + this.height / 3) - (this.force.y));
 
-					if (this.from.time % 2 == 0) {
+					if (this.time % 2 == 0) {
 						if (this.from.shotSpeed >= 14) {
 							new Fire(this);
 						}
-						if (this.num == 0) {
-							new PlayerBulAim(this);
-						} else {
-							new BulAim(this);
+						if(this.time % 4 == 0){
+							if (this.num == 0) {
+								new PlayerBulAim(this);
+							} else {
+								new BulAim(this);
+							}
 						}
+						
 					}
 				}
 			}
@@ -5242,6 +5253,7 @@ window.onload = function() {
 			var rootFlg = false;
 
 			var rot = 0;
+			var h = {x: 0, y: 0};
 
 			if (gameMode > 0) {
 				switch (category) {
@@ -5426,7 +5438,7 @@ window.onload = function() {
 
 							this.time++;
 
-							if (hittingTime >= 35) {
+							/*if (hittingTime >= 35) {
 								let arr = [];
 								switch (dirValue) {
 									case 0:
@@ -5452,7 +5464,7 @@ window.onload = function() {
 								}
 
 								hittingTime = 0;
-							}
+							}*/
 
 							if (this.ref > 0) {
 								Front.intersect(Wall).forEach(function() {
@@ -5613,6 +5625,54 @@ window.onload = function() {
 
 
 											}
+											if (hittingTime >= 35) {
+												var arr = [];
+												myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
+												switch (dirValue) {
+													case 0:
+														this.y += this.moveSpeed;
+														if(h.x > myPath[1]){
+															arr.push(3);
+														}else{
+															arr.push(1);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize) + 1, parseInt((this.x + this.width / 2) / PixelSize)];
+														break;
+													case 1:
+														this.x -= this.moveSpeed;
+														if(h.y > myPath[0]){
+															arr.push(0);
+														}else{
+															arr.push(2);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize) - 1];
+														break;
+													case 2:
+														this.y -= this.moveSpeed;
+														if(h.x > myPath[1]){
+															arr.push(3);
+														}else{
+															arr.push(1);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize) - 1, parseInt((this.x + this.width / 2) / PixelSize)];
+														break;
+													case 3:
+														this.x += this.moveSpeed;
+														if(h.y > myPath[0]){
+															arr.push(0);
+														}else{
+															arr.push(2);
+														}
+														//myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize) + 1];
+														break;
+												}
+												
+												if (arr.indexOf(dirValue) == -1) {
+													dirValue = arr[Math.floor(Math.random() * arr.length)];
+												}
+												
+												hittingTime = 0;
+											}
 											/*if(this.time % 30 == 0){
 												if((tankEntity.length - destruction) - 1 > 2){
 													for (var i = 0; i < tankEntity.length; i++) {
@@ -5668,7 +5728,7 @@ window.onload = function() {
 
 								}
 							}
-
+							h = {x: 0, y: 0};
 							TankObstracle.intersect(this).forEach(elem => {
 								if (!deadFlgs[elem.num] && elem.num != this.num) {
 									switch (elem.name) {
@@ -5685,6 +5745,7 @@ window.onload = function() {
 											this.moveTo(elem.x + (elem.width), this.y);
 											break;
 									}
+									h = Get_Center(elem);
 									hittingTime++;
 									rootFlg = true;
 								}
@@ -5706,6 +5767,7 @@ window.onload = function() {
 										this.moveTo(elem.x + (elem.width), this.y)
 										break;
 								}
+								h = Get_Center(elem);
 								hittingTime++;
 								rootFlg = true;
 							})
@@ -5738,7 +5800,7 @@ window.onload = function() {
 				let t1 = Get_Center(this);
 				let t2 = Get_Center(this.attackTarget);
 				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
-				let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
+				let dis = Math.trunc(Vec_Distance(t1, t2) / (this.attackTarget.from.shotSpeed + this.shotSpeed * 2));
 				let val = dis * this.attackTarget.from.shotSpeed + this.shotSpeed;
 				v.x = v.x * val + t2.x;
 				v.y = v.y * val + t2.y;
@@ -8260,7 +8322,7 @@ window.onload = function() {
 										this.fullFireFlg = true;
 										this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
 										this.firecnt++;
-										this.fireLate = 10;
+										this.fireLate = 9;
 									}
 
 								} else {
