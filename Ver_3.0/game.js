@@ -149,7 +149,7 @@ const Categorys = {
 		3, //elitegreen
 		2, //snow
 		6, //pink
-		2, //sand
+		3, //sand
 		1, //random
 		5, //dazzle
 		4 //abysal
@@ -6837,7 +6837,7 @@ window.onload = function() {
 		},
 		_ResetAim: function() {
 			if (this.attackTarget.name == "Entity") {
-				let random = 20 + (15 * Math.floor(Math.random() * 4));
+				let random = 35 + (15 * Math.floor(Math.random() * 3));
 				//console.log(random)
 				let t1 = Get_Center(this);
 				let t2 = Get_Center(this.attackTarget);
