@@ -302,7 +302,7 @@ const Categorys = {
 		[0, 0, 0], //brown
 		[300, 200, 200], //gray
 		[400, 200, 150], //green
-		[220, 0, 0], //red
+		[200, 0, 0], //red
 		[300, 200, 200], //lightgreen
 		[360, 250, 200], //elitegray
 		[0, 0, 0], //elitegreen
@@ -560,8 +560,7 @@ var Get_Distance = function(from, to) {
 };
 
 var Get_Magnitude = function(vector) {
-	let magnitude = Math.sqrt(vector.x ** 2 + vector.y ** 2);
-	return magnitude;
+	return Math.sqrt(vector.x ** 2 + vector.y ** 2);
 };
 
 var Pos_to_Vec = function(from, to) {
@@ -575,12 +574,9 @@ var Pos_to_Vec = function(from, to) {
 };
 
 var Vec_Distance = function(from, to) {
-	let vector = {
-		x: Math.pow(from.x - to.x, 2),
-		y: Math.pow(from.y - to.y, 2)
-	};
-
-	return Math.sqrt(vector.x + vector.y);
+	const dx = from.x - to.x;
+    const dy = from.y - to.y;
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 var Vec_to_Rad = function(vector) {
@@ -5582,10 +5578,8 @@ window.onload = function() {
 											}
 										}
 									}
-									if (this.time % 20 == 0) {
-										//if(this.time == 0){
+									if (this.time % 30 == 0) {
 										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-										//if(this.time % 60 == 0) console.log(myPath);
 										if (root[0] == "East") {
 											dirValue = 1;
 										} else if (root[0] == "West") {
@@ -5595,10 +5589,11 @@ window.onload = function() {
 										} else if (root[0] == "South") {
 											dirValue = 2;
 										}
+										if (root == false) {
+											rootFlg = true;
+										}
 									}
-									if (root == false) {
-										rootFlg = true;
-									}
+									
 								}
 							}
 
@@ -5692,10 +5687,6 @@ window.onload = function() {
 												if (!tgtFlg && category == 6) {
 													this.attackTarget = target;
 												}
-												/*if(this.attackTarget != c){
-													if(Search(c, this.weak, 3, dist)) this.attackTarget = c; //  迎撃のためにターゲット変更
-													//if(this.time % 6 == 0) dirValue = Escape_Rot4(this, this.attackTarget, dirValue);
-												}*/
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][1]) {
 														this.escapeTarget = c;
@@ -5717,9 +5708,11 @@ window.onload = function() {
 																escapeFlg = true;
 															}
 														}
-														this.attackTarget = c; //  迎撃のためにターゲット変更
 													}
 												})
+												if(Search(this.cannon, c, 25, Categorys.DefenceRange[this.category][1])){
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+												}
 											}
 											break;
 
@@ -5796,6 +5789,10 @@ window.onload = function() {
 												switch (dirValue) {
 													case 0:
 														this.y += this.moveSpeed;
+														if(h.x == 0){
+															arr = [1, 3];
+															break;
+														}
 														if(h.x > myPath[1]){
 															arr.push(3);
 														}else{
@@ -5805,6 +5802,10 @@ window.onload = function() {
 														break;
 													case 1:
 														this.x -= this.moveSpeed;
+														if(h.y == 0){
+															arr = [0, 2];
+															break;
+														}
 														if(h.y > myPath[0]){
 															arr.push(0);
 														}else{
@@ -5814,6 +5815,10 @@ window.onload = function() {
 														break;
 													case 2:
 														this.y -= this.moveSpeed;
+														if(h.x == 0){
+															arr = [1, 3];
+															break;
+														}
 														if(h.x > myPath[1]){
 															arr.push(3);
 														}else{
@@ -5823,6 +5828,10 @@ window.onload = function() {
 														break;
 													case 3:
 														this.x += this.moveSpeed;
+														if(h.y == 0){
+															arr = [0, 2];
+															break;
+														}
 														if(h.y > myPath[0]){
 															arr.push(0);
 														}else{
@@ -5861,6 +5870,7 @@ window.onload = function() {
 											}
 										}
 									}
+									h = {x: 0, y: 0};
 								}
 								if (!this.shotStopFlg) {
 									if (dirValue == 0) {
@@ -5875,7 +5885,7 @@ window.onload = function() {
 									this._Move(rot);
 								}
 							}
-							h = {x: 0, y: 0};
+							
 							TankObstracle.intersect(this).forEach(elem => {
 								if (!deadFlgs[elem.num] && elem.num != this.num) {
 									switch (elem.name) {
@@ -5942,7 +5952,7 @@ window.onload = function() {
 				}
 			}
 		},
-		_ResetAim: function() {
+		/*_ResetAim: function() {
 			if (this.attackTarget.name == 'Bullet') {
 				let t1 = Get_Center(this);
 				let t2 = Get_Center(this.attackTarget);
@@ -5951,17 +5961,53 @@ window.onload = function() {
 				let val = dis * this.attackTarget.from.shotSpeed + this.shotSpeed;
 				v.x = v.x * val + t2.x;
 				v.y = v.y * val + t2.y;
-				//new Point(v);
-				//console.log(v);
 				let p = {
 					x: t1.x - v.x,
 					y: t1.y - v.y
 				};
-				//console.log({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) });
-				//console.log(p);
 				let rad = Math.atan2(p.y, p.x);
-				//from.cannon.rotation = (90 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
 				this.cannon.rotation = Rad_to_Rot(rad);
+			}
+		},*/
+		_ResetAim: function () {
+			if (this.attackTarget.name == 'Bullet') {
+				const shooterPos = Get_Center(this);
+				const bullet = this.attackTarget;
+				const bulletPos = Get_Center(bullet);
+				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
+				const targetSpeed = bullet.from.shotSpeed;
+				const shotSpeed = this.shotSpeed;
+
+				// 相対位置と速度ベクトル
+				const dx = bulletPos.x - shooterPos.x;
+				const dy = bulletPos.y - shooterPos.y;
+				const dvx = bulletVec.x * targetSpeed;
+				const dvy = bulletVec.y * targetSpeed;
+
+				// 二次方程式を解いて迎撃時間を推定
+				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
+				const b = 2 * (dx * dvx + dy * dvy);
+				const c = dx * dx + dy * dy;
+
+				const discriminant = b * b - 4 * a * c;
+				if (discriminant >= 0){
+					const sqrtDisc = Math.sqrt(discriminant);
+					let t1 = (-b - sqrtDisc) / (2 * a);
+					let t2 = (-b + sqrtDisc) / (2 * a);
+
+					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+					if (time >= 0){
+						// 少し手前を狙うための係数（例：90%の位置を狙う）
+						var biasFactor = 0.75;
+
+						// 予測位置
+						const futureX = bulletPos.x + dvx * time * biasFactor;
+						const futureY = bulletPos.y + dvy * time * biasFactor;
+
+						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					}
+				}
 			}
 		}
 	})
