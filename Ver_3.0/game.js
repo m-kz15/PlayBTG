@@ -3233,6 +3233,202 @@ window.onload = function() {
 		}
 	})
 
+	var TankBoom = Class.create(Sprite,{
+		initialize: function(from){
+			Sprite.call(this, 128, 128);
+			this.image = createExplosionFrames(from.category);
+			this.frame = 0;
+			this.moveTo((from.x + from.width / 2) - this.width / 2, (from.y + from.height / 2) - this.height / 2);
+
+			this.tl
+				.then(function() {
+					this.frame = 0;
+				})
+				.repeat(function() {
+					this.frame++;
+				}, 60)
+				.then(function() {
+					this.remove();
+				});
+
+			now_scene.addChild(this);
+		}
+	})
+
+	function createExplosionFrames(category) {
+		const size = 128;
+		const frames = 60;
+		const surface = new Surface(size * frames, size);
+		const ctx = surface.context;
+
+		const debrisCount = 40;
+		const debris = [];
+
+		const debrisCount2 = 10;
+		const debris2 = [];
+
+		// 初期位置・速度（破片）をセット
+		for (let i = 0; i < debrisCount; i++) {
+			const angle = Math.random() * Math.PI * 2;
+			const speed = 30 + Math.random() * 60;
+			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 5) - 2) * 7);
+			const vy = Math.sin(angle) * speed - 60; // 上向き初速
+			const rotation = angle;
+			const sizeW = 2 + Math.random() * 10;
+			const sizeH = 2 + Math.random() * 10;
+			const color = `rgba(${150 + Math.random() * 100}, ${20 + Math.random() * 80}, 0,`;
+			debris.push({ vx, vy, sizeW, sizeH, rotation, color });
+		}
+
+		// 初期位置・速度（破片）をセット
+		for (let i = 0; i < debrisCount2; i++) {
+			const angle = Math.random() * Math.PI * 2;
+			const speed = 30 + Math.random() * 30;
+			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 7) - 3) * 3);
+			const vy = Math.sin(angle) * speed - 45; // 上向き初速
+			const rotation = angle;
+			const sizeW = 10 + Math.random() * 10;
+			const sizeH = 10 + Math.random() * 10;
+			var color = `rgba(${Math.random() * 60}, ${Math.random() * 30}, 0,`;
+			if(Math.floor(Math.random() * 3)){
+				color = `rgba(${Math.random() * 60}, ${Math.random() * 30}, 0,`
+			}else{
+				switch(category){
+					case 0:
+						color = `rgba(${10 + Math.random() * 40}, ${147 + Math.random() * 60}, 250,`;
+						break;
+					case 1:
+						color = `rgba(250, ${100 + Math.random() * 40}, 0,`;
+						break;
+					case 2:
+						color = `rgba(${Math.random() * 60}, ${Math.random() * 60}, ${Math.random() * 60},`;
+						break;
+					case 3:
+						color = `rgba(0, ${150 + Math.random() * 40}, 20,`;
+						break;
+					case 4:
+						color = `rgba(${155 + Math.random() * 100}, 0, 0,`;
+						break;
+					case 5:
+						color = `rgba(${160 + Math.random() * 40}, 250, ${120 + Math.random() * 60},`;
+						break;
+					case 6:
+						color = `rgba(${60 + Math.random() * 60}, ${30 + Math.random() * 30}, 30,`;
+						break;
+					case 7:
+						color = `rgba(0, ${70 + Math.random() * 60}, 30,`;
+						break;
+					case 8:
+						color = `rgba(${64 + Math.random() * 80}, 250, 250,`;
+						break;
+					case 9:
+						color = `rgba(250, ${150 + Math.random() * 30}, ${150 + Math.random() * 30},`;
+						break;
+					case 10:
+						color = `rgba(250, 250, ${100 + Math.random() * 60},`;
+						break;
+					case 11:
+						color = `rgba(${Math.random() * 60}, ${Math.random() * 30}, 0,`;
+						break;
+					case 12:
+						color = `rgba(150, ${40 + Math.random() * 40}, 0,`;
+						break;
+					case 13:
+						color = `rgba(0, 0, ${60 + Math.random() * 60},`;
+						break;
+				}
+			}
+			
+			debris2.push({ vx, vy, sizeW, sizeH, rotation, color });
+		}
+
+		for (let frame = 0; frame < frames; frame++) {
+			const t = frame / (frames - 1);
+			const alpha = 1.0 - t;
+			const x = frame * size;
+			const cx = x + size / 2;
+			const cy = size / 2;
+			ctx.save();
+
+			// 爆心の光球
+			if (frame < 15) {
+				ctx.beginPath();
+				ctx.fillStyle = `rgba(255,220,180,${0.7 * (1 - (t * 4.5))})`;
+				ctx.arc(cx, cy, 25 + frame * 2, 0, Math.PI * 2);
+				ctx.fill();
+			}
+			
+			if (frame < 40) {
+				// 放射スパイク（爆風）
+				const rays = 28;
+				for (let r = 0; r < rays; r++) {
+					const a = (Math.PI * 2 / rays) * r + Math.random() * 0.15;
+					const dist = t * 55 + Math.random() * 5;
+					const px = cx + Math.cos(a) * dist;
+					const py = cy + Math.sin(a) * dist;
+					ctx.save();
+					ctx.translate(px, py);
+					ctx.rotate(a);
+					const len = 18 + Math.random() * 10;
+					const wid = 3 + Math.random();
+					ctx.beginPath();
+					ctx.fillStyle = `rgba(255, ${80 + Math.random()*100}, 0, ${0.7 * (alpha - 0.3)})`;
+					ctx.ellipse(0, 0, wid, len, 0, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.restore();
+				}
+			}
+			
+
+			// 重力付き破片の描画
+			for (let i = 0; i < debrisCount; i++) {
+				const d = debris[i];
+				const dx = cx + d.vx * t;
+				const dy = cy + (d.vy + 80 * t) * t; // 80px/sec^2の重力
+
+				ctx.save();
+				ctx.translate(dx, dy);
+				ctx.rotate(d.rotation);
+				ctx.fillStyle = `${d.color} ${0.6 * alpha})`;
+				ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
+				ctx.restore();
+			}
+
+			// 重力付き破片の描画
+			for (let i = 0; i < debrisCount2; i++) {
+				const d = debris2[i];
+				const dx = cx + d.vx * t;
+				const dy = cy + (d.vy + 60 * t) * t; // 80px/sec^2の重力
+
+				ctx.save();
+				ctx.translate(dx, dy);
+				ctx.rotate(d.rotation);
+				ctx.fillStyle = `${d.color} ${0.6 * alpha})`;
+				ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
+				ctx.restore();
+			}
+
+			// 煙（重力と関係なくランダム拡散）
+			if (frame > 10) {
+				for (let i = 0; i < 5; i++) {
+					const a = Math.random() * Math.PI * 2;
+					const d = 30 + t * 40 + Math.random() * 10;
+					const px = cx + Math.cos(a) * d;
+					const py = cy + Math.sin(a) * d;
+					const r = 8 + Math.random() * 4;
+					ctx.beginPath();
+					ctx.fillStyle = `rgba(60,60,60,${0.06 * alpha})`;
+					ctx.arc(px, py, r, 0, Math.PI * 2);
+					ctx.fill();
+				}
+			}
+
+			ctx.restore();
+		}
+
+		return surface;
+	}
+
 	var Target = Class.create(Sprite, {
 		initialize: function(from, scene) {
 			Sprite.call(this, 40, 40);
@@ -3690,7 +3886,8 @@ window.onload = function() {
 			deadFlgs[this.num] = true;
 			deadTank[this.num] = true;
 			new Mark(this);
-			new Explosion(this); //  車体の爆破エフェクト生成
+			//new Explosion(this); //  車体の爆破エフェクト生成
+			new TankBoom(this);
 			this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1)); //  戦車を移動
 			//console.log(this.x)
 		},
