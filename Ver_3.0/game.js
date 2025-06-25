@@ -864,248 +864,126 @@ var Vec_to_Rot = function(from, to) {
 	//return Math.atan2((from.x - to.x), (from.y - to.y)) * (180 / Math.PI);
 }
 
-var Escape_Rot4 = function(from, to, value) {
-	let t1 = Get_Center(from);
-	let t2 = Get_Center(to);
-	let arr = [0, 1, 2, 3];
-	let rem = [-1];
+function Escape_Rot4(from, to, value) {
+    const t1 = Get_Center(from);
+    const t2 = Get_Center(to);
 
-	if (t1.x > t2.x) {
-		if (t1.y > t2.y) {
-			arr = [1, 2];
-		} else {
-			arr = [0, 1];
-		}
-	} else {
-		if (t1.y > t2.y) {
-			arr = [2, 3];
-		} else {
-			arr = [0, 3];
-		}
-	}
+    let arr;
+    if (t1.x > t2.x) {
+        arr = (t1.y > t2.y) ? [1, 2] : [0, 1];
+    } else {
+        arr = (t1.y > t2.y) ? [2, 3] : [0, 3];
+    }
 
-	let v = Rot_to_Vec(to.rotation, -90);
-	v.x = v.x * 96 + t2.x;
-	v.y = v.y * 96 + t2.y;
-	let p = {
-		x: t1.x - v.x,
-		y: t1.y - v.y
-	};
-	let rad = Math.atan2(p.y, p.x);
-	let r = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
-	if (from.time % 60 == 0) {
-		value = Math.floor(Math.random() * 4);
-	}
-	if (r < 0) {
-		r = 359 + r;
-	} else if (r > 359) {
-		r = r - 360;
-	}
-	if (r > 338 || r <= 23) {
-		//arr = [1,2,3];
-		rem = [0];
-	} else if (r > 23 && r <= 68) {
-		if (r > 46) {
-			//arr = [0,2,3];
-			rem = [1];
-		} else {
-			//arr = [1,2,3];
-			rem = [0];
-		}
-	} else if (r > 68 && r <= 113) {
-		//arr = [0,2,3];
-		rem = [1];
-	} else if (r > 113 && r <= 158) {
-		if (r > 136) {
-			//arr = [0,1,3];
-			rem = [2];
-		} else {
-			//arr = [0,2,3];
-			rem = [1];
-		}
-	} else if (r > 158 && r <= 203) {
-		//arr = [0,1,3];
-		rem = [2];
-	} else if (r > 203 && r <= 248) {
-		if (r > 226) {
-			//arr = [0,1,2];
-			rem = [3];
-		} else {
-			//arr = [0,1,3];
-			rem = [2];
-		}
-	} else if (r > 248 && r <= 293) {
-		//arr = [0,1,2];
-		rem = [3];
-	} else if (r > 293 && r <= 338) {
-		if (r > 316) {
-			//arr = [1,2,3];
-			rem = [0];
-		} else {
-			//arr = [0,1,2];
-			rem = [3];
-		}
-	} else {
-		rem = [-1];
-	}
+    const v = Rot_to_Vec(to.rotation, -90);
+    v.x = v.x * 96 + t2.x;
+    v.y = v.y * 96 + t2.y;
 
-	let bk = arr;
+    const dx = t1.x - v.x;
+    const dy = t1.y - v.y;
+    let r = -Math.atan2(dy, dx) * (180 / Math.PI);
+    r = (r + 360) % 360;
 
-	arr = arr.filter(i => rem.indexOf(i) == -1);
+    if (from.time % 60 === 0) {
+        value = Math.floor(Math.random() * 4);
+    }
 
-	if (arr.length == 0) {
-		arr = bk;
-	}
+    const getRemovable = function(angle) {
+        if (angle > 338 || angle <= 23) return 0;
+        if (angle <= 68) return angle > 46 ? 1 : 0;
+        if (angle <= 113) return 1;
+        if (angle <= 158) return angle > 136 ? 2 : 1;
+        if (angle <= 203) return 2;
+        if (angle <= 248) return angle > 226 ? 3 : 2;
+        if (angle <= 293) return 3;
+        if (angle <= 338) return angle > 316 ? 0 : 3;
+        return -1;
+    };
 
-	if (arr.indexOf(value) == -1) {
-		value = arr[Math.floor(Math.random() * arr.length)];
-	}
-	return value;
+    const rem = getRemovable(r);
+    if (arr.includes(rem)) {
+        arr = arr.filter(dir => dir !== rem);
+    }
+
+    if (!arr.includes(value)) {
+        value = arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    return value;
 }
 
-var Escape_Rot8 = function(from, to, value) {
-	let t1 = Get_Center(from);
-	let t2 = Get_Center(to);
-	let arr = [0, 1, 2, 3, 4, 5, 6, 7];
-	let rem = [-1];
+function Escape_Rot8(from, to, value) {
+    const t1 = Get_Center(from);
+    const t2 = Get_Center(to);
 
-	if (t1.x > t2.x) {
-		if (t1.y > t2.y) {
-			arr = [1, 2, 4, 6];
-		} else {
-			arr = [0, 1, 5, 7];
-		}
-	} else {
-		if (t1.y > t2.y) {
-			arr = [2, 3, 5, 7];
-		} else {
-			arr = [0, 3, 4, 6];
-		}
-	}
+    // 初期候補方向の決定
+    let arr;
+    if (t1.x > t2.x) {
+        arr = (t1.y > t2.y) ? [1, 2, 4, 6] : [0, 1, 5, 7];
+    } else {
+        arr = (t1.y > t2.y) ? [2, 3, 5, 7] : [0, 3, 4, 6];
+    }
 
-	let v = Rot_to_Vec(to.rotation, -90);
-	v.x = v.x * 96 + t2.x;
-	v.y = v.y * 96 + t2.y;
+    // 回転角から相対方向を計算
+    const v = Rot_to_Vec(to.rotation, -90);
+    v.x = v.x * 96 + t2.x;
+    v.y = v.y * 96 + t2.y;
 
-	let p = {
-		x: t1.x - v.x,
-		y: t1.y - v.y
-	};
-	let rad = Math.atan2(p.y, p.x);
-	let r = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
-	if (from.time % 60 == 0) {
-		value = Math.floor(Math.random() * 4);
-	}
-	if (r < 0) {
-		r = 359 + r;
-	} else if (r > 359) {
-		r = r - 360;
-	}
-	if (r > 338 || r <= 23) {
-		if (r <= 23) {
-			rem = [0, 4];
-		} else {
-			rem = [0, 7];
-		}
-		//arr = [1,2,3];
-		//rem = [0];
-	} else if (r > 23 && r <= 68) {
-		if (r > 46) {
-			//arr = [0,2,3];
-			rem = [1, 4];
-		} else {
-			//arr = [1,2,3];
-			rem = [0, 4];
-		}
-	} else if (r > 68 && r <= 113) {
-		if (r > 90) {
-			rem = [1, 5];
-		} else {
-			rem = [1, 4];
-		}
-		//arr = [0,2,3];
-		//rem = [1];
-	} else if (r > 113 && r <= 158) {
-		if (r > 136) {
-			//arr = [0,1,3];
-			rem = [2, 5];
-		} else {
-			//arr = [0,2,3];
-			rem = [1, 5];
-		}
-	} else if (r > 158 && r <= 203) {
-		if (r > 180) {
-			rem = [2, 6];
-		} else {
-			rem = [2, 5];
-		}
-		//arr = [0,1,3];
-		//rem = [2];
-	} else if (r > 203 && r <= 248) {
-		if (r > 226) {
-			//arr = [0,1,2];
-			rem = [3, 6];
-		} else {
-			//arr = [0,1,3];
-			rem = [2, 6];
-		}
-	} else if (r > 248 && r <= 293) {
-		if (r > 270) {
-			rem = [3, 7];
-		} else {
-			rem = [3, 6];
-		}
-		//arr = [0,1,2];
-		//rem = [3];
-	} else if (r > 293 && r <= 338) {
-		if (r > 316) {
-			//arr = [1,2,3];
-			rem = [0, 7];
-		} else {
-			//arr = [0,1,2];
-			rem = [3, 7];
-		}
-	} else {
-		rem = [-1];
-	}
+    const dx = t1.x - v.x;
+    const dy = t1.y - v.y;
+    let r = -Math.atan2(dy, dx) * (180 / Math.PI);
+    r = (r + 360) % 360;
 
-	let bk = arr;
+    // 指定時間でvalueをランダム初期化
+    if (from.time % 60 === 0) {
+        value = Math.floor(Math.random() * 4);
+    }
 
-	arr = arr.filter(i => rem.indexOf(i) == -1);
-	/*for(i = 0; i < rem.length; i++){
-		if(arr.indexOf(rem[i]) != -1){
-			arr.splice(arr.indexOf(rem[i]), 1);
-		}
-	}*/
-	if (arr.length == 0) {
-		arr = bk;
-	}
+    // 除外方向を計算する関数
+    function getRemovals(angle) {
+        if (angle > 338 || angle <= 23) return angle <= 23 ? [0, 4] : [0, 7];
+        if (angle <= 68) return angle > 46 ? [1, 4] : [0, 4];
+        if (angle <= 113) return angle > 90 ? [1, 5] : [1, 4];
+        if (angle <= 158) return angle > 136 ? [2, 5] : [1, 5];
+        if (angle <= 203) return angle > 180 ? [2, 6] : [2, 5];
+        if (angle <= 248) return angle > 226 ? [3, 6] : [2, 6];
+        if (angle <= 293) return angle > 270 ? [3, 7] : [3, 6];
+        if (angle <= 338) return angle > 316 ? [0, 7] : [3, 7];
+        return [];
+    }
 
-	if (from.category == 11) {
-		bk = arr;
-		rem = [];
-		var myPath = [parseInt(t1.y / PixelSize), parseInt(t1.x / PixelSize)];
-		var grid = now_scene.grid;
+    // 除外処理の適用
+    const rem = getRemovals(r);
+    const backup = arr.slice();
+    arr = arr.filter(i => !rem.includes(i));
+    if (arr.length === 0) arr = backup;
 
-		if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-		if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-		if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-		if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
-		if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-		if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-		if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-		if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
+    // カテゴリ11（たとえばユニットが障害物を避けるAI）処理
+    if (from.category == 11) {
+        const grid = now_scene.grid;
+        const y = Math.floor(t1.y / PixelSize);
+        const x = Math.floor(t1.x / PixelSize);
+        const obstacles = [];
 
-		arr = arr.filter(i => rem.indexOf(i) == -1);
-		if (arr.length == 0) {
-			arr = bk;
-		}
-	}
+        if (grid[y - 1]?.[x] === 'Obstacle') obstacles.push(0);     // 上
+        if (grid[y]?.[x + 1] === 'Obstacle') obstacles.push(1);     // 右
+        if (grid[y + 1]?.[x] === 'Obstacle') obstacles.push(2);     // 下
+        if (grid[y]?.[x - 1] === 'Obstacle') obstacles.push(3);     // 左
+        if (grid[y - 1]?.[x + 1] === 'Obstacle') obstacles.push(4); // 右上
+        if (grid[y + 1]?.[x + 1] === 'Obstacle') obstacles.push(5); // 右下
+        if (grid[y + 1]?.[x - 1] === 'Obstacle') obstacles.push(6); // 左下
+        if (grid[y - 1]?.[x - 1] === 'Obstacle') obstacles.push(7); // 左上
 
-	if (arr.indexOf(value) == -1) {
-		value = arr[Math.floor(Math.random() * arr.length)];
-	}
-	return value;
+        const bk = arr.slice();
+        arr = arr.filter(i => !obstacles.includes(i));
+        if (arr.length === 0) arr = bk;
+    }
+
+    // value が arr にない場合、ランダムで選び直し
+    if (!arr.includes(value)) {
+        value = arr[Math.floor(Math.random() * arr.length)];
+    }
+    return value;
 }
 
 function getOrientation(screen, window) {
@@ -2419,137 +2297,86 @@ window.onload = function() {
 			this.time = 0;
 			this.category = category;
 			this.num = num;
-			this.rotation = 0;
-			//this.opacity = 0;
-			if(DebugFlg) this.debugColor= 'orange';
+			if (DebugFlg) this.debugColor = 'orange';
 
-			//this.vector = Pos_to_Vec(from, to);
-			//this.rad = Vec_to_Rad(this.vector);
-
-			let angle = Vec_to_Rot(Get_Center(from), Get_Center(to)) + 90;
-			if (Math.abs(angle) >= 360) {
-				angle = angle % 360;
-			}
-			if (angle < 0) {
-				angle = 360 + angle;
-			}
-
+			let angle = normalizeRotation(Vec_to_Rot(Get_Center(from), Get_Center(to)) + 90);
 			this.rad = Rot_to_Rad(angle);
 
-			if (num == 0) {
-				let n_color = new Surface(this.width, this.height);
-				n_color.context.beginPath();
-				n_color.context.fillStyle = 'rgba(170, 255, 255, 0.3)';
-				n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
-				n_color.context.fill();
-				this.image = n_color;
-			} else if (Categorys.MaxRef[category] == 0) {
+			// ビジュアル設定
+			if (num === 0) {
+				const surface = new Surface(this.width, this.height);
+				const ctx = surface.context;
+				ctx.beginPath();
+				ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
+				ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
+				ctx.fill();
+				this.image = surface;
+			} else if (Categorys.MaxRef[category] === 0) {
 				this.scale(2.0, 2.0);
 			}
 
-			var rot = Rad_to_Rot(this.rad);
-			if (Math.abs(rot) >= 360) {
-				rot = rot % 360;
-			}
-			if (rot < 0) {
-				rot = 360 + rot;
-			}
-
-			let sa = from.rotation - (rot);
-			if (Math.abs(sa) >= 180) {
-				sa = sa * -1;
-			}
-
-			let resultRot = 0;
-
+			// 大砲回転処理
+			let rot = normalizeRotation(Rad_to_Rot(this.rad));
+			let diff = normalizeAngle(from.rotation - rot);
 			let speed = Categorys.CannonRotSpeed[category];
-			if (Math.abs(sa) >= speed) {
-				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
-				if (rotmove != 0) {
-					resultRot = from.rotation + rotmove;
-					//from.rotation += rotmove;
-				}
+			if (Math.abs(diff) >= speed) {
+				from.rotation = normalizeRotation(from.rotation + (diff > 0 ? -speed : speed));
 			} else {
-				resultRot = rot;
-				//from.rotation = rot;
+				from.rotation = rot;
 			}
 
-			/*if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
-			if(from.rotation < 0) from.rotation = 359 + from.rotation;*/
-
-			if (Math.abs(resultRot) >= 360) resultRot %= 360;
-			if (resultRot < 0) resultRot = 360 + resultRot;
-
-			from.rotation = resultRot;
-
-			/*if (num == 0 && gameMode == 0) {
-				//from.rotation = ((Math.atan2(Math.cos(this.rad), Math.sin(this.rad)) * 180) / Math.PI) * -1;
-				//from.rotation = Rad_to_Rot(this.rad);
-			}else{
-				var rot = Rad_to_Rot(this.rad);
-				if(rot < 0){
-					rot = 360 + rot;
-				}
-				if(rot >= 360){
-					rot = rot % 360;
-				}
-				let sa = from.rotation - (rot);
-				if(Math.abs(sa) >= 180){
-					sa = sa * -1; 
-				}
-				
-
-				let speed = Categorys.CannonRotSpeed[category];
-				if(Math.abs(sa) >= speed){
-					let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
-					if(rotmove != 0){
-						from.rotation += rotmove;
-					}
-				}else{
-					from.rotation = rot;
-				}
-				
-				if(Math.abs(from.rotation) >= 360) from.rotation %= 360;
-				if(from.rotation < 0) from.rotation = 360 - Math.abs(from.rotation);
-			}*/
+			// 発射角度と座標
 			this.rad = Rot_to_Rad(from.rotation - 90);
-			let f = Get_Center(from);
-			this.moveTo((f.x - 3.45) + Math.cos(this.rad) * (56), (f.y - 4.5) + Math.sin(this.rad) * (56));
+			const pos = Get_Center(from);
+			this.moveTo(
+				pos.x - 3.45 + Math.cos(this.rad) * 56,
+				pos.y - 4.5 + Math.sin(this.rad) * 56
+			);
+
 			this.dx = Math.cos(this.rad) * 28;
 			this.dy = Math.sin(this.rad) * 28;
 
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
 
-
-			now_scene.addChild(this);
-		},
-		onenterframe: function() {
-
-			if (WorldFlg) {
 				this.time++;
-				if (this.time % 360 == 0) {
+				if (this.time % 360 === 0) {
 					now_scene.removeChild(this);
+					return;
 				}
+
 				this.x += this.dx;
 				this.y += this.dy;
 
-				//this.tl.moveTo(this.x + this.dx, this.y + this.dy, 1, enchant.Easing.QUAD_EASEINOUT);
-			}
-			Wall.intersectStrict(this).forEach(elem => {
-				now_scene.removeChild(this);
-			});
-			Block.intersectStrict(this).forEach(elem => {
+				// 壁 or ブロックヒット時に削除
+				if (
+					Wall.intersectStrict(this).length > 0 ||
+					Block.intersectStrict(this).length > 0
+				) {
+					now_scene.removeChild(this);
+					return;
+				}
 
-				now_scene.removeChild(this);
-			})
-			if (this.num != 0) {
-				TankBase.intersectStrict(this).forEach(elem => {
-					if (elem.num != 0) {
-						now_scene.removeChild(this);
-					}
-				})
-			}
+				if (this.num !== 0) {
+					TankBase.intersectStrict(this).forEach(elem => {
+						if (elem.num !== 0) now_scene.removeChild(this);
+					});
+				}
+			};
+
+			now_scene.addChild(this);
 		}
 	});
+
+	// 🔧 角度関連の補助関数
+	function normalizeRotation(angle) {
+		return (angle % 360 + 360) % 360;
+	}
+
+	function normalizeAngle(diff) {
+		return Math.abs(diff) >= 180 ? -diff : diff;
+	}
+
 
 	var RefAim = Class.create(Sprite, {
 		initialize: function(ref, from, category, num) {
@@ -2559,89 +2386,103 @@ window.onload = function() {
 			this.num = num;
 			this.ref = ref;
 			this.hitTime = 0;
-			if(DebugFlg) this.debugColor= 'orange';
-			//this.backgroundColor = 'orange'
+			if (DebugFlg) this.debugColor = 'orange';
 
 			this.originX = 4;
 			this.originY = 4;
 
-			let fc = Get_Center(from);
+			const fc = Get_Center(from);
 			this.rad = Rot_to_Rad(from.rotation - 90);
 			this.dx = Math.cos(this.rad) * 20;
 			this.dy = Math.sin(this.rad) * 20;
 			this.agl = from.rotation;
-			this.tgt = [fc.x + (this.dx * 3), fc.y + (this.dy * 3)];
-			this.rotation = (315 + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
-			this.v;
-			this.f;
-			this.moveTo(fc.x + (36 * Math.cos(this.rad)) - (this.width / 2), fc.y + (36 * Math.sin(this.rad)) - (this.height / 2));
+			this.tgt = [fc.x + this.dx * 3, fc.y + this.dy * 3];
+			this.rotation = (315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1;
 
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.time++;
+			this.moveTo(fc.x + 36 * Math.cos(this.rad) - this.width / 2, fc.y + 36 * Math.sin(this.rad) - this.height / 2);
 
-					this.x += this.dx;
-					this.y += this.dy;
+			const self = this;
 
-					RefObstracle.intersectStrict(this).forEach(elem => {
-						//let point = new Point(Get_RefPoint(elem, this));
-						this.v = Rot_to_Vec(this.rotation, 315);
-						this.f = Math.atan2(this.v.x, this.v.y);
-						switch (elem.name) {
-							case 'RefTop':
-								if (this.ref == Categorys.MaxRef[category]) {
-									this.tgt[0] = (this.x + this.width / 2) - (Math.cos(this.f) * ((elem.y) - (this.y + this.height)))
-									this.tgt[1] = elem.y - 2.5;
-								}
-								this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y + this.height)));
-								this.y = elem.y - (this.height);
-								this.dy = this.dy * -1;
-								break;
-							case 'RefBottom':
-								if (this.ref == Categorys.MaxRef[category]) {
-									this.tgt[0] = (this.x + this.width / 2) - (Math.cos(this.f) * ((this.y - this.height / 2) - (elem.y + elem.height)));
-									this.tgt[1] = elem.y + elem.height + 2.5;
-								}
-								this.x = (this.x) - (Math.cos(this.f) * ((this.y - this.height / 2) - (elem.y + elem.height)));
-								this.y = elem.y + elem.height;
-								this.dy = this.dy * -1;
-								break;
-							case 'RefLeft':
-								if (this.ref == Categorys.MaxRef[category]) {
-									this.tgt[0] = elem.x - 2.5;
-									this.tgt[1] = (this.y + this.height / 2) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
-								};
-								this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
-								this.x = elem.x - (this.width);
-								this.dx = this.dx * -1;
-								break;
-							case 'RefRight':
-								if (this.ref == Categorys.MaxRef[category]) {
-									this.tgt[0] = elem.x + elem.width + 2.5;
-									this.tgt[1] = (this.y + this.height / 2) - (Math.sin(this.f) * ((elem.x + elem.width) - (this.x + this.width)));
-								};
-								this.y = (this.y) - (Math.sin(this.f) * ((elem.x + elem.width) - (this.x + this.width)));
-								this.x = elem.x + elem.width;
-								this.dx = this.dx * -1;
-								break;
-						}
-						this.ref--;
-						this.rotation = (315 + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
-						return;
-					})
-					TankBase.intersectStrict(this).forEach(elem => {
-						if (elem.num != 0) {
-							now_scene.removeChild(this);
-						}
-					})
-					if (this.time > 150) now_scene.removeChild(this);
-					if (this.ref < 0) now_scene.removeChild(this)
+			this.onenterframe = function () {
+				if (!WorldFlg) return;
+
+				self.time++;
+				self.x += self.dx;
+				self.y += self.dy;
+
+				// 衝突チェック：RefObstracle
+				RefObstracle.intersectStrict(self).some(elem => {
+					self.handleCollision(elem);
+					return true;
+				});
+
+				// 衝突チェック：TankBase
+				TankBase.intersectStrict(self).forEach(elem => {
+					if (elem.num !== 0) {
+						now_scene.removeChild(self);
+					}
+				});
+
+				// 生存時間と反射回数のチェック
+				if (self.time > 150 || self.ref < 0) {
+					now_scene.removeChild(self);
 				}
+			};
+
+			this.handleCollision = function (elem) {
+				const v = Rot_to_Vec(self.rotation, 315);
+				const f = Math.atan2(v.x, v.y);
+				const midX = self.x + self.width / 2;
+				const midY = self.y + self.height / 2;
+
+				const isMaxRef = self.ref === Categorys.MaxRef[category];
+
+				switch (elem.name) {
+					case 'RefTop':
+						if (isMaxRef) {
+							self.tgt = [midX - Math.cos(f) * (elem.y - (self.y + self.height)), elem.y - 2.5];
+						}
+						self.x -= Math.cos(f) * (elem.y - (self.y + self.height));
+						self.y = elem.y - self.height;
+						self.dy *= -1;
+						break;
+
+					case 'RefBottom':
+						if (isMaxRef) {
+							self.tgt = [midX - Math.cos(f) * ((self.y - self.height / 2) - (elem.y + elem.height)), elem.y + elem.height + 2.5];
+						}
+						self.x -= Math.cos(f) * ((self.y - self.height / 2) - (elem.y + elem.height));
+						self.y = elem.y + elem.height;
+						self.dy *= -1;
+						break;
+
+					case 'RefLeft':
+						if (isMaxRef) {
+							self.tgt = [elem.x - 2.5, midY - Math.sin(f) * ((self.x + self.width) - elem.x)];
+						}
+						self.y -= Math.sin(f) * ((self.x + self.width) - elem.x);
+						self.x = elem.x - self.width;
+						self.dx *= -1;
+						break;
+
+					case 'RefRight':
+						if (isMaxRef) {
+							self.tgt = [elem.x + elem.width + 2.5, midY - Math.sin(f) * ((elem.x + elem.width) - (self.x + self.width))];
+						}
+						self.y -= Math.sin(f) * ((elem.x + elem.width) - (self.x + self.width));
+						self.x = elem.x + elem.width;
+						self.dx *= -1;
+						break;
+				}
+
+				self.ref--;
+				self.rotation = (315 + Math.atan2(self.dx, self.dy) * 180 / Math.PI) * -1;
 			};
 
 			now_scene.addChild(this);
 		}
 	});
+
 
 	var PlayerRefAim = Class.create(Sprite, {
 		initialize: function(ref, from, to, category, num) {
@@ -2651,131 +2492,118 @@ window.onload = function() {
 			this.num = num;
 			this.ref = ref;
 			this.hitTime = 0;
-			if(DebugFlg) this.debugColor= 'orange';
-			//this.backgroundColor = 'ffa500';
+			if (DebugFlg) this.debugColor = 'orange';
 
+			// 可視エフェクト設定
+			const surface = new Surface(this.width, this.height);
+			const ctx = surface.context;
+			ctx.beginPath();
+			ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
+			ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
+			ctx.fill();
+			this.image = surface;
 
-			if (this.num == 0) {
-				let n_color = new Surface(this.width, this.height);
-				n_color.context.beginPath();
-				n_color.context.fillStyle = 'rgba(170, 255, 255, 0.3)';
-				n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
-				n_color.context.fill();
-				this.image = n_color;
-			}
+			this.originX = this.originY = 4;
 
-
-			this.originX = 4;
-			this.originY = 4;
-
-			let fc = Get_Center(from);
+			const fc = Get_Center(from);
 			this.vector = Pos_to_Vec(from, to);
 			this.rad = Vec_to_Rad(this.vector);
 
-			var rot = Rad_to_Rot(this.rad);
-			if (rot < 0) {
-				rot = 360 + rot;
-			}
-			if (rot >= 360) {
-				rot = rot % 360;
-			}
-			let sa = from.rotation - (rot);
-			if (Math.abs(sa) >= 180) {
-				sa = sa * -1;
-			}
+			// 回転方向補正
+			const targetRot = normalizeRotation(this.rad);
+			const sa = adjustAngle(from.rotation - targetRot);
+			const speed = Categorys.CannonRotSpeed[category];
 
-			let resultRot = 0;
-
-			let speed = Categorys.CannonRotSpeed[category];
+			let resultRot = from.rotation;
 			if (Math.abs(sa) >= speed) {
-				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
-				if (rotmove != 0) {
-					resultRot = from.rotation + rotmove;
-				}
+				resultRot += (sa > 0 ? -speed : speed);
 			} else {
-				resultRot = rot;
+				resultRot = targetRot;
 			}
+			from.rotation = normalizeRotationBy360(resultRot);
 
-			if (Math.abs(resultRot) >= 360) resultRot %= 360;
-			if (resultRot < 0) resultRot = 360 + resultRot;
-
-			from.rotation = resultRot;
-
-
-			//from.rotation = Rad_to_Rot(this.rad);
 			this.rad = Rot_to_Rad(from.rotation - 90);
 			this.dx = Math.cos(this.rad) * 20;
 			this.dy = Math.sin(this.rad) * 20;
-			this.rotation = (315 + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
+			this.rotation = (315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1;
 
-			this.v;
-			this.f;
-			this.moveTo(fc.x + (36 * Math.cos(this.rad)) - (this.width / 2), fc.y + (36 * Math.sin(this.rad)) - (this.height / 2));
+			this.moveTo(
+				fc.x + 36 * Math.cos(this.rad) - this.width / 2,
+				fc.y + 36 * Math.sin(this.rad) - this.height / 2
+			);
 
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.time++;
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
+				this.time++;
+				this.x += this.dx;
+				this.y += this.dy;
 
-					this.x += this.dx;
-					this.y += this.dy;
+				RefObstracle.intersectStrict(this).some(elem => {
+					handleReflection.call(this, elem);
+					return true;
+				});
 
-					/*Wall.intersectStrict(this).forEach(elem => {
-						let point = new Point(Get_RefPoint(elem, this));
-					})
-					Block.intersectStrict(this).forEach(elem => {
-						let point = new Point(Get_RefPoint(elem, this));
-					})*/
+				if (tankEntity[this.num]?.intersectStrict(this)) {
+					now_scene.removeChild(this);
+				}
 
-					RefObstracle.intersectStrict(this).forEach(elem => {
-						//let point = new Point(Get_RefPoint(elem, this));
+				TankBase.intersectStrict(this).forEach(elem => {
+					if (elem.num !== 0) now_scene.removeChild(this);
+				});
 
-						this.v = Rot_to_Vec(this.rotation, 315);
-						this.f = Math.atan2(this.v.x, this.v.y);
-						switch (elem.name) {
-							case 'RefTop':
-								this.x = (this.x) - (Math.cos(this.f) * ((elem.y) - (this.y + this.height)));
-								this.y = elem.y - (this.height);
-								this.dy = this.dy * -1;
-								break;
-							case 'RefBottom':
-
-								this.x = (this.x) - (Math.cos(this.f) * ((this.y - this.height / 2) - (elem.y + elem.height)));
-								this.y = elem.y + elem.height;
-								this.dy = this.dy * -1;
-								break;
-							case 'RefLeft':
-
-								this.y = (this.y) - (Math.sin(this.f) * ((this.x + this.width) - (elem.x)));
-								this.x = elem.x - (this.width);
-
-								this.dx = this.dx * -1;
-								break;
-							case 'RefRight':
-								this.y = (this.y) - (Math.sin(this.f) * ((elem.x + elem.width) - (this.x + this.width)));
-								this.x = elem.x + elem.width;
-
-
-								this.dx = this.dx * -1;
-								break;
-						}
-						this.ref--;
-						this.rotation = (315 + (Math.atan2(this.dx, this.dy) * 180) / Math.PI) * -1;
-						return;
-					})
-					if (tankEntity[this.num].intersectStrict(this)) {
-						now_scene.removeChild(this);
-					};
-					TankBase.intersectStrict(this).forEach(elem => {
-						if (elem.num != 0) {
-							now_scene.removeChild(this);
-						}
-					})
-					if (this.time > 150) now_scene.removeChild(this);
-					if (this.ref < 0) now_scene.removeChild(this)
+				if (this.time > 150 || this.ref < 0) {
+					now_scene.removeChild(this);
 				}
 			};
 
 			now_scene.addChild(this);
+
+			// 🔧 内部補助関数
+
+			function normalizeRotation(rad) {
+				let deg = Rad_to_Rot(rad);
+				return normalizeRotationBy360(deg);
+			}
+
+			function normalizeRotationBy360(rot) {
+				rot %= 360;
+				return (rot < 0) ? rot + 360 : rot;
+			}
+
+			function adjustAngle(diff) {
+				return (Math.abs(diff) >= 180) ? -diff : diff;
+			}
+
+			function handleReflection(elem) {
+				const v = Rot_to_Vec(this.rotation, 315);
+				const f = Math.atan2(v.x, v.y);
+				const hw = this.width, hh = this.height;
+
+				switch (elem.name) {
+					case 'RefTop':
+						this.x -= Math.cos(f) * (elem.y - (this.y + hh));
+						this.y = elem.y - hh;
+						this.dy *= -1;
+						break;
+					case 'RefBottom':
+						this.x -= Math.cos(f) * ((this.y - hh / 2) - (elem.y + elem.height));
+						this.y = elem.y + elem.height;
+						this.dy *= -1;
+						break;
+					case 'RefLeft':
+						this.y -= Math.sin(f) * ((this.x + hw) - elem.x);
+						this.x = elem.x - hw;
+						this.dx *= -1;
+						break;
+					case 'RefRight':
+						this.y -= Math.sin(f) * ((elem.x + elem.width) - (this.x + hw));
+						this.x = elem.x + elem.width;
+						this.dx *= -1;
+						break;
+				}
+				this.ref--;
+				this.rotation = (315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1;
+			}
 		}
 	});
 
@@ -2857,33 +2685,17 @@ window.onload = function() {
 	})
 
 	function Search(from, to, angle, length) {
-		const SightAngle = angle;
-		const SightLength = length;
+		const inRange = from.within(to, length);
+		if (!inRange) return false;
 
-		if (from.within(to, SightLength)) {
-
-			let target_angle = (Vec_to_Rot(from, to)) - from.rotation;
-			if (Math.abs(target_angle) >= 360) {
-				target_angle = target_angle % 360;
-			}
-			if (target_angle < 0) {
-				target_angle = 360 + target_angle;
-			}
-			//console.log(target_angle + ' ' + from.rotation)
-			//console.log(target_angle < SightAngle || target_angle > (360 - SightAngle));
-			if (target_angle < SightAngle || target_angle > (360 - SightAngle)) {
-				return true;
-			} else {
-				return false;
-			}
-
-		}
-		return false;
+		let relativeAngle = (Vec_to_Rot(from, to) - from.rotation + 360) % 360;
+		return relativeAngle < angle || relativeAngle > (360 - angle);
 	}
 
 	var BulletCol = Class.create(PhyCircleSprite, {
 		initialize: function(shotSpeed, ref, from, category, num, id) {
-			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0.0, 0.0, 1.0, true);
+			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0, 0, 1, true);
+
 			this.time = 0;
 			this.id = id;
 			this.num = num;
@@ -2893,104 +2705,63 @@ window.onload = function() {
 			this.ref = ref;
 			this.bullet = new Bullet(this, num, id);
 			this.rotation = 0;
-			let random0 = 0;
-			let random1 = 0;
+
 			let refFlg = false;
-			let cnt = 0;
 			let hitTime = 0;
 
-			switch (category) {
-				case 0:
-					break;
-				case 1:
-					this.bullet.scale(0.8, 1.0);
-					break;
-				case 2:
-					break;
-				case 3:
-					break;
-				case 4:
-					random0 = (Math.floor(Math.random() * 20) - 10) / 2;
-					random1 = (Math.floor(Math.random() * 20) - 10) / 2;
-					break;
-				case 5:
-					random0 = (Math.floor(Math.random() * 12) - 6) / 2;
-					random1 = (Math.floor(Math.random() * 12) - 6) / 2;
-					break;
-				case 7:
-					this.bullet.scale(0.8, 0.8);
-					break;
-				case 9:
-					random0 = (Math.floor(Math.random() * 16) - 8) / 2;
-					random1 = (Math.floor(Math.random() * 16) - 8) / 2;
+			// 射角にブレを与える
+			const [random0, random1] = this.getRandomOffset(category);
+			this.applyBulletScaling(category);
 
-					this.bullet.scale(0.7, 0.7);
-					break;
-				case 11:
-					this.bullet.scale(0.6, 1.0);
-					break;
-				case 13:
-					random0 = (Math.floor(Math.random() * 8) - 4) / 2;
-					random1 = (Math.floor(Math.random() * 8) - 4) / 2;
-					break;
-			};
-
-			this.vec = Rot_to_Vec(from.rotation + (random0 + random1), -90);
+			this.vec = Rot_to_Vec(from.rotation + random0 + random1, -90);
 			this.rad = Math.atan2(this.vec.y, this.vec.x);
 
-			this.moveTo(Get_Center(from).x + Math.cos(this.rad) * (60) - 2.25, Get_Center(from).y + Math.sin(this.rad) * (60) - 3);
-			this.applyImpulse(new b2Vec2(Math.cos(this.rad) * (this.shotSpeed), Math.sin(this.rad) * (this.shotSpeed)));
+			const pos = Get_Center(from);
+			this.moveTo(pos.x + Math.cos(this.rad) * 60 - 2.25, pos.y + Math.sin(this.rad) * 60 - 3);
+			this.applyImpulse(new b2Vec2(Math.cos(this.rad) * shotSpeed, Math.sin(this.rad) * shotSpeed));
 
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.vec = { x: this.vx, y: this.vy };
-					this.rad = Math.atan2(this.vec.y, this.vec.x);
-					this.time++
-					if (this.time % 10 == 0) new Smoke(this)
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
 
-					if (cnt > 0) cnt = 0;
-					Wall.intersectStrict(this.bullet).forEach(elem => {
-						//cnt++;
-						elem.contact(function() {
-							cnt++;
-						})
-					});
-					Block.intersectStrict(this.bullet).forEach(elem => {
-						//cnt++;
-						elem.contact(function() {
-							cnt++;
-						})
-					})
-					if (cnt > 0) {
-						hitTime++;
-						if (!refFlg) {
-							this.ref--;
-							refFlg = true;
-							if (gameStatus == 0) game.assets['./sound/s_car_trunk_O.wav'].clone().play();
-						}
-						if (hitTime >= 30) {
-							hitTime = 0;
-							this.ref--;
-							refFlg = true;
-						}
-					} else {
-						refFlg = false;
+				this.vec = { x: this.vx, y: this.vy };
+				this.rad = Math.atan2(this.vec.y, this.vec.x);
+				this.time++;
+
+				if (this.time % 10 === 0) new Smoke(this);
+
+				// 衝突判定
+				let hit = this.checkCollision(Wall) + this.checkCollision(Block);
+				if (hit > 0) {
+					hitTime++;
+					if (!refFlg) {
+						this.ref--;
+						refFlg = true;
+						if (gameStatus === 0) game.assets['./sound/s_car_trunk_O.wav'].clone().play();
 					}
-
-					if (this.ref < 0) this._Destroy();
-
-					Bullet.intersectStrict(this.bullet).forEach(elem => {
-						if (!(this.bullet.num == elem.num && this.bullet.id == elem.id)) {
-							elem.from._Destroy();
-							this._Destroy();
-						}
-					})
+					if (hitTime >= 30) {
+						hitTime = 0;
+						this.ref--;
+					}
+				} else {
+					refFlg = false;
 				}
-			}
+
+				// 弾反射限界
+				if (this.ref < 0) this._Destroy();
+
+				// 他の弾と接触
+				Bullet.intersectStrict(this.bullet).forEach(elem => {
+					if (this.bullet.num !== elem.num || this.bullet.id !== elem.id) {
+						elem.from._Destroy();
+						this._Destroy();
+					}
+				});
+			};
 		},
+
 		_Shot: function() {
-			bullets[this.num]++; //  弾の発射済み個数を増やす
-			bulStack[this.num][this.id] = true; //  弾の状態をonにする
+			bullets[this.num]++;
+			bulStack[this.num][this.id] = true;
 			now_scene.BulletGroup.addChild(this);
 			now_scene.BulletGroup.addChild(this.bullet);
 			new OpenFire(this.from);
@@ -2999,17 +2770,50 @@ window.onload = function() {
 				game.assets['./sound/Sample_0003.wav'].clone().play();
 			}
 		},
+
 		_Destroy: function() {
 			bullets[this.num]--;
-			bulStack[this.num][this.id] = false; //  弾の状態をoffにする
+			bulStack[this.num][this.id] = false;
 			new TouchFire(this.bullet);
 			Spark_Effect(this.bullet);
 			this.destroy();
 			now_scene.BulletGroup.removeChild(this);
 			now_scene.BulletGroup.removeChild(this.bullet);
-			if (gameStatus == 0) game.assets['./sound/Sample_0000.wav'].clone().play();
+			if (gameStatus === 0) game.assets['./sound/Sample_0000.wav'].clone().play();
+		},
+
+		getRandomOffset: function(category) {
+			const ranges = {
+				4: 10, 5: 6, 9: 8, 13: 4
+			};
+			const r = ranges[category];
+			if (!r) return [0, 0];
+			return [
+				(Math.floor(Math.random() * (r * 2)) - r) / 2,
+				(Math.floor(Math.random() * (r * 2)) - r) / 2
+			];
+		},
+
+		applyBulletScaling: function(category) {
+			const scaleMap = {
+				1: [0.8, 1.0],
+				7: [0.8, 0.8],
+				9: [0.7, 0.7],
+				11: [0.6, 1.0]
+			};
+			const s = scaleMap[category];
+			if (s) this.bullet.scale(...s);
+		},
+
+		checkCollision: function(group) {
+			let count = 0;
+			group.intersectStrict(this.bullet).forEach(elem => {
+				elem.contact(() => count++);
+			});
+			return count;
 		}
 	});
+
 
 	var Bullet = Class.create(Sprite, {
 		initialize: function(from, num, id) {
@@ -3020,41 +2824,57 @@ window.onload = function() {
 			this.num = num;
 			this.from = from;
 			this.name = 'Bullet';
-			this.rotation = 0;
-			//this.opacity = 0.2;
-			this.force = { x: 0, y: 0 };
-			if (from.shotSpeed >= 14) {
-				this.force = { x: from.vx / (from.shotSpeed * ((from.shotSpeed / 3) * 2)), y: from.vy / (from.shotSpeed * ((from.shotSpeed / 3) * 2)) };
-			}
-			this.rotation = (180 + (Math.atan2(Math.cos(from.rad), Math.sin(from.rad)) * 180) / Math.PI) * -1;
-			this.moveTo(from.centerX - (this.width / 2) - (this.force.x), from.centerY - (from.height / 2 + this.height / 3) - (this.force.y))
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.time++;
-					this.rotation = (180 + (Math.atan2(Math.cos(from.rad), Math.sin(from.rad)) * 180) / Math.PI) * -1;
-					this.moveTo(from.centerX - (this.width / 2) - (this.force.x), from.centerY - (from.height / 2 + this.height / 3) - (this.force.y));
 
-					if (this.time % 2 == 0) {
-						if (this.from.shotSpeed >= 14) {
-							new Fire(this);
-						}
-						if(this.time % 4 == 0){
-							if (this.num == 0) {
-								new PlayerBulAim(this);
-							} else {
-								new BulAim(this);
-							}
-						}
-						
+			this.force = this.computeForce(from);
+			this.updateRotation(from.rad);
+			this.updatePosition();
+
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
+
+				this.time++;
+				this.updateRotation(from.rad);
+				this.updatePosition();
+
+				if (this.time % 2 === 0) {
+					if (this.from.shotSpeed >= 14) {
+						new Fire(this);
+					}
+					if (this.time % 4 === 0) {
+						this.num === 0 ? new PlayerBulAim(this) : new BulAim(this);
 					}
 				}
+			};
+		},
+
+		// 🔧 力の補正を速度に応じて算出
+		computeForce: function(from) {
+			if (from.shotSpeed >= 14) {
+				let f = from.shotSpeed * (from.shotSpeed / 3) * 2;
+				return { x: from.vx / f, y: from.vy / f };
 			}
+			return { x: 0, y: 0 };
+		},
+
+		// 🔧 弾丸の表示角度を更新
+		updateRotation: function(rad) {
+			this.rotation = -1 * (180 + Math.atan2(Math.cos(rad), Math.sin(rad)) * 180 / Math.PI);
+		},
+
+		// 🔧 弾丸の位置を発射元から補正付きで更新
+		updatePosition: function() {
+			const { centerX, centerY, height } = this.from;
+			this.moveTo(
+				centerX - this.width / 2 - this.force.x,
+				centerY - (height / 2 + this.height / 3) - this.force.y
+			);
 		}
 	});
 
 	var Bom = Class.create(Sprite, {
 		initialize: function(from, num, id) {
 			Sprite.call(this, PixelSize / 2, PixelSize / 2);
+
 			this.time = 0;
 			this.from = from;
 			this.num = num;
@@ -3062,92 +2882,83 @@ window.onload = function() {
 			this.bombFlg = false;
 			this.name = 'Bom';
 
-			let f = Get_Center(from);
+			const center = Get_Center(from);
+			const vec = Rot_to_Vec(from.rotation, -90);
+			const rad = Math.atan2(vec.y, vec.x);
+			this.moveTo(
+				center.x + Math.cos(rad) * 10 - this.width / 2,
+				center.y + Math.sin(rad) * 10 - this.height / 2
+			);
 
-			//this.moveTo(from.x - Quarter + 33.5, from.y - Quarter + 32);
-			//this.moveTo(f.x - this.width/2, f.y - this.height/2);
+			this.imageYellow = this.createCircleImage('rgba(255, 255, 0, 1)');
+			this.imageRed = this.createCircleImage('rgba(255, 0, 0, 1)');
+			this.image = this.imageYellow;
 
-			let vec = Rot_to_Vec(from.rotation, -90);
-			let rad = Math.atan2(vec.y, vec.x);
-
-			this.moveTo(f.x + Math.cos(rad) * (10) - this.width / 2, f.y + Math.sin(rad) * (10) - this.height / 2);
-
-			var n_color = new Surface(PixelSize / 2, PixelSize / 2);
-			n_color.context.beginPath();
-			n_color.context.fillStyle = 'rgba(255, 255, 0, 1)';
-			n_color.context.arc(Quarter, Quarter, Quarter, 0, Math.PI * 2, true);
-			n_color.context.fill();
-
-			var a_color = new Surface(PixelSize / 2, PixelSize / 2);
-			a_color.context.beginPath();
-			a_color.context.fillStyle = 'rgba(255, 0, 0, 1)';
-			a_color.context.arc(Quarter, Quarter, Quarter, 0, Math.PI * 2, true);
-			a_color.context.fill();
-
-			this.image = n_color;
 			this.scaleY = 0.9;
 
-			this.onenterframe = function() {
+			this.onenterframe = () => {
 				this.time++;
+
+				// 爆発準備中の点滅と音
 				if (this.bombFlg) {
-					if (this.time % 4 == 0) {
-						this.image = a_color;
-						//this.backgroundColor = "red"
-					} else if (this.time % 2 == 0) {
-						this.image = n_color;
-						//this.backgroundColor = "yellow"
-					}
-					if (this.time % 6 == 0 && gameStatus == 0) {
+					this.image = (this.time % 4 === 0) ? this.imageRed :
+								(this.time % 2 === 0) ? this.imageYellow : this.image;
+
+					if (this.time % 6 === 0 && gameStatus === 0) {
 						game.assets['./sound/Sample_0010.wav'].clone().play();
 					}
-					if (gameStatus == 0 && this.time == 45) {
+					if (gameStatus === 0 && this.time === 45) {
 						this._Destroy();
 					}
 				}
+
+				// 弾との接触処理
 				if (WorldFlg) {
-					/*BombExplosion.intersectStrict(this).forEach(elem => {
-						if (victory == false && defeat == false) {
-							this._Destroy();
-						}
-					});*/
-
-
-					Bullet.intersectStrict(this).forEach(elem => {
-						if (bulStack[elem.num][elem.id]) {
+					Bullet.intersectStrict(this).some(elem => {
+						if (bulStack[elem.num]?.[elem.id]) {
 							elem.from._Destroy();
 							this._Destroy();
+							return true;
 						}
-						return;
-					})
+						return false;
+					});
+
+					// 一定時間または戦車接近で爆発準備状態へ
 					if (this.time > 180 && !this.bombFlg) {
-
-						tankEntity.forEach(elem => {
-							if (this.within(elem, 120) || this.time > 555) {
-								this.bombFlg = true;
-								this.time = 0;
-							}
-						})
+						if (this.time > 555 || tankEntity.some(e => this.within(e, 120))) {
+							this.bombFlg = true;
+							this.time = 0;
+						}
 					}
-
 				}
-			}
+			};
 		},
+
 		_SetBom: function() {
-			boms[this.num]++; //  弾の発射済み個数を増やす
+			boms[this.num]++;
 			now_scene.BomGroup.addChild(this);
 			game.assets['./sound/Sample_0009.wav'].clone().play();
 		},
+
 		_Destroy: function() {
-			boms[this.num]--;
-			if (boms[this.num] < 0) {
-				boms[this.num] = 0;
-			}
+			if (--boms[this.num] < 0) boms[this.num] = 0;
 			new BombExplosion(this);
 			this.moveTo(-900, -900);
 			now_scene.BomGroup.removeChild(this);
 			game.assets['./sound/mini_bomb2.mp3'].play();
+		},
+
+		createCircleImage: function(color) {
+			const surface = new Surface(this.width, this.height);
+			const ctx = surface.context;
+			ctx.beginPath();
+			ctx.fillStyle = color;
+			ctx.arc(Quarter, Quarter, Quarter, 0, Math.PI * 2, true);
+			ctx.fill();
+			return surface;
 		}
 	});
+
 
 	var Explosion = Class.create(Sprite, {
 		initialize: function(from) {
@@ -3177,61 +2988,56 @@ window.onload = function() {
 	var BombExplosion = Class.create(Sprite, {
 		initialize: function(from) {
 			Sprite.call(this, 200, 200);
-			this.backgroundColor = "red";
+
+			this.name = 'BombExplosion';
 			this.time = 0;
-			var value = 1.0;
-			this.opacity = value;
-			let f = Get_Center(from);
-			this.moveTo(f.x - (this.width / 2), f.y - (this.height / 2));
+			this.opacity = 1.0;
+			this.backgroundColor = 'red';
 
-			/*var a_color = new Surface(this.width, this.height);
-			a_color.context.beginPath();
-			a_color.context.fillStyle = 'rgba(255, 0, 0, 1)';
-			a_color.context.arc(this.width/2, this.width/2, this.width/2, 0, Math.PI * 2, true);
-			a_color.context.fill();
+			const center = Get_Center(from);
+			this.moveTo(center.x - this.width / 2, center.y - this.height / 2);
 
-			this.image = a_color;*/
-
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.rotation += 45;
-					if (this.time % 2 == 0) {
-						value -= 0.1;
-						this.opacity = value;
-					}
-					if (value < 0) {
-						this.moveTo(-1000, -1000)
-						if (this.time > 20) {
-							now_scene.removeChild(this);
-						}
-					}
-					if (this.time < 4) {
-						Block.collection.forEach(elem => {
-							if (elem.within(this, 125)) {
-								elem._Destroy();
-							}
-						})
-						this.intersectStrict(Bom).forEach(elem => {
-							elem._Destroy();
-							return;
-						})
-						if (this.time < 1) {
-							TankBase.collection.forEach(elem => {
-								if (!deadFlgs[elem.num]) {
-									if (elem.weak.within(this, 125)) {
-										elem.life = 0;
-									}
-								}
-							})
-						}
-					}
-
-					this.time++;
-				}
-			}
 			now_scene.addChild(this);
+
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
+
+				this.rotation += 45;
+
+				if (this.time % 2 === 0) {
+					this.opacity = Math.max(0, this.opacity - 0.1);
+				}
+
+				if (this.opacity <= 0 && this.time > 20) {
+					this.moveTo(-1000, -1000);
+					now_scene.removeChild(this);
+					return;
+				}
+
+				if (this.time < 4) this.applyExplosionEffects();
+				this.time++;
+			};
+		},
+
+		applyExplosionEffects: function() {
+			const range = 125;
+
+			Block.collection.forEach(block => {
+				if (block.within(this, range)) block._Destroy();
+			});
+
+			this.intersectStrict(Bom).forEach(bom => bom._Destroy());
+
+			if (this.time === 0) {
+				TankBase.collection.forEach(tank => {
+					if (!deadFlgs[tank.num] && tank.weak.within(this, range)) {
+						tank.life = 0;
+					}
+				});
+			}
 		}
-	})
+	});
+
 
 	var TankBoom = Class.create(Sprite,{
 		initialize: function(from){
@@ -3261,7 +3067,7 @@ window.onload = function() {
 		const surface = new Surface(size * frames, size);
 		const ctx = surface.context;
 
-		const debrisCount = 40;
+		const debrisCount = 20;
 		const debris = [];
 
 		const debrisCount2 = 10;
@@ -3271,28 +3077,26 @@ window.onload = function() {
 		for (let i = 0; i < debrisCount; i++) {
 			const angle = Math.random() * Math.PI * 2;
 			const speed = 30 + Math.random() * 60;
-			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 5) - 2) * 7);
+			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 9) - 4) * 5);
 			const vy = Math.sin(angle) * speed - 60; // 上向き初速
 			const rotation = angle;
 			const sizeW = 2 + Math.random() * 10;
 			const sizeH = 2 + Math.random() * 10;
-			const color = `rgba(${150 + Math.random() * 100}, ${20 + Math.random() * 80}, 0,`;
+			const color = `rgba(${150 + Math.random() * 100}, ${Math.random() * 80}, 0,`;
 			debris.push({ vx, vy, sizeW, sizeH, rotation, color });
 		}
 
 		// 初期位置・速度（破片）をセット
 		for (let i = 0; i < debrisCount2; i++) {
 			const angle = Math.random() * Math.PI * 2;
-			const speed = 30 + Math.random() * 30;
-			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 7) - 3) * 3);
-			const vy = Math.sin(angle) * speed - 45; // 上向き初速
+			const speed = 50 + Math.random() * 30;
+			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 3) - 1) * 3);
+			const vy = Math.sin(angle) * speed - 75; // 上向き初速
 			const rotation = angle;
 			const sizeW = 10 + Math.random() * 10;
 			const sizeH = 10 + Math.random() * 10;
 			var color = `rgba(${Math.random() * 60}, ${Math.random() * 30}, 0,`;
-			if(Math.floor(Math.random() * 3)){
-				color = `rgba(${Math.random() * 60}, ${Math.random() * 30}, 0,`
-			}else{
+			if(Math.floor(Math.random() * 2)){
 				switch(category){
 					case 0:
 						color = `rgba(${10 + Math.random() * 40}, ${147 + Math.random() * 60}, 250,`;
@@ -3360,7 +3164,7 @@ window.onload = function() {
 			
 			if (frame < 40) {
 				// 放射スパイク（爆風）
-				const rays = 28;
+				const rays = 14;
 				for (let r = 0; r < rays; r++) {
 					const a = (Math.PI * 2 / rays) * r + Math.random() * 0.15;
 					const dist = t * 55 + Math.random() * 5;
@@ -3372,7 +3176,7 @@ window.onload = function() {
 					const len = 18 + Math.random() * 10;
 					const wid = 3 + Math.random();
 					ctx.beginPath();
-					ctx.fillStyle = `rgba(255, ${80 + Math.random()*100}, 0, ${0.7 * (alpha - 0.3)})`;
+					ctx.fillStyle = `rgba(255, ${80 + Math.random()*100}, 0, ${1.0 * (alpha - 0.3)})`;
 					ctx.ellipse(0, 0, wid, len, 0, 0, Math.PI * 2);
 					ctx.fill();
 					ctx.restore();
@@ -3381,29 +3185,31 @@ window.onload = function() {
 			
 
 			// 重力付き破片の描画
-			for (let i = 0; i < debrisCount; i++) {
-				const d = debris[i];
-				const dx = cx + d.vx * t;
-				const dy = cy + (d.vy + 80 * t) * t; // 80px/sec^2の重力
+			if (frame > 10) {
+				for (let i = 0; i < debrisCount; i++) {
+					const d = debris[i];
+					const dx = cx + d.vx * t;
+					const dy = cy + (d.vy + 120 * t) * t; // 80px/sec^2の重力
 
-				ctx.save();
-				ctx.translate(dx, dy);
-				ctx.rotate(d.rotation);
-				ctx.fillStyle = `${d.color} ${0.6 * alpha})`;
-				ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
-				ctx.restore();
+					ctx.save();
+					ctx.translate(dx, dy);
+					ctx.rotate(d.rotation);
+					ctx.fillStyle = `${d.color} ${1.0 * alpha})`;
+					ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
+					ctx.restore();
+				}
 			}
 
 			// 重力付き破片の描画
 			for (let i = 0; i < debrisCount2; i++) {
 				const d = debris2[i];
 				const dx = cx + d.vx * t;
-				const dy = cy + (d.vy + 60 * t) * t; // 80px/sec^2の重力
+				const dy = cy + (d.vy + 120 * t) * t; // 80px/sec^2の重力
 
 				ctx.save();
 				ctx.translate(dx, dy);
 				ctx.rotate(d.rotation);
-				ctx.fillStyle = `${d.color} ${0.6 * alpha})`;
+				ctx.fillStyle = `${d.color} ${0.8 * alpha})`;
 				ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
 				ctx.restore();
 			}
@@ -3412,12 +3218,12 @@ window.onload = function() {
 			if (frame > 10) {
 				for (let i = 0; i < 5; i++) {
 					const a = Math.random() * Math.PI * 2;
-					const d = 30 + t * 40 + Math.random() * 10;
+					const d = 20 + t * 40 + Math.random() * 10;
 					const px = cx + Math.cos(a) * d;
 					const py = cy + Math.sin(a) * d;
 					const r = 8 + Math.random() * 4;
 					ctx.beginPath();
-					ctx.fillStyle = `rgba(60,60,60,${0.06 * alpha})`;
+					ctx.fillStyle = `rgba(60,60,60,${0.5 * alpha})`;
 					ctx.arc(px, py, r, 0, Math.PI * 2);
 					ctx.fill();
 				}
@@ -3432,60 +3238,49 @@ window.onload = function() {
 	var Target = Class.create(Sprite, {
 		initialize: function(from, scene) {
 			Sprite.call(this, 40, 40);
-			//this.backgroundColor = "#0f0a"
-			if(DebugFlg) this.debugColor= "yellow"
-			let speed = 32;
+
+			const speed = 32;
 			this.num = from.num;
-			this.rotation = 0;
 			this.originX = 20;
 			this.originY = 20;
-			let rad, dx, dy;
-			let prediction = [0, 0];
-			this.moveTo(from.x, from.y)
+			this.rotation = 0;
 
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					if (!deadFlgs[this.num]) {
-						switch (from.attackTarget.name) {
-							case 'Entity':
-								rad = (from.attackTarget.rotation - 90) * (Math.PI / 180.0);
-								dx = Math.cos(rad) * (from.attackTarget.width / 4);
-								dy = Math.sin(rad) * (from.attackTarget.height / 4);
-								this.rotation = (45 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
-								break;
-							case 'Bullet':
-								rad = (from.attackTarget.rotation - 90) * (Math.PI / 180.0);
-								dx = Math.cos(rad) * (from.attackTarget.width * 0.8);
-								dy = Math.sin(rad) * (from.attackTarget.height * 0.8);
-								this.rotation = (45 + (Math.atan2(dx, dy) * 180) / Math.PI) * -1;
-								break;
-						}
-						if (this.intersectStrict(from.attackTarget)) {
-							switch (from.attackTarget.name) {
-								case 'Entity':
-									prediction = [(from.attackTarget.x + from.attackTarget.width / 2) + (dx - (this.width / 2)), (from.attackTarget.y + from.attackTarget.height / 2) + (dy - (this.height / 2))];
-									break;
-								case 'Bullet':
-									prediction = [(from.attackTarget.x + from.attackTarget.width / 2) + (dx - (this.width / 2)), (from.attackTarget.y + from.attackTarget.height / 2) + (dy - (this.height / 2))];
-									break;
-							}
-							this.moveTo(prediction[0], prediction[1]);
-						} else {
-							var vector = {
-								x: (from.attackTarget.x + from.attackTarget.width / 2) - (this.x + this.width / 2),
-								y: (from.attackTarget.y + from.attackTarget.height / 2) - (this.y + this.height / 2)
-							};
-							this.rad = Math.atan2(vector.y, vector.x);
-							this.moveTo(this.x + Math.cos(this.rad) * speed, this.y + Math.sin(this.rad) * speed)
-						}
-					}
+			if (DebugFlg) this.debugColor = "yellow";
 
+			this.moveTo(from.x, from.y);
+
+			this.onenterframe = () => {
+				if (!WorldFlg || deadFlgs[this.num]) return;
+
+				const target = from.attackTarget;
+				const rad = (target.rotation - 90) * Math.PI / 180;
+				const scale = target.name === 'Entity' ? 0.25 : 0.8;
+				const dx = Math.cos(rad) * (target.width * scale);
+				const dy = Math.sin(rad) * (target.height * scale);
+
+				// 追尾の見た目回転
+				this.rotation = -1 * (45 + Math.atan2(dx, dy) * 180 / Math.PI);
+
+				// ターゲットと接触していれば予測位置に移動
+				if (this.intersectStrict(target)) {
+					const px = target.x + target.width / 2 + dx - this.width / 2;
+					const py = target.y + target.height / 2 + dy - this.height / 2;
+					this.moveTo(px, py);
+				} else {
+					// 徐々に近づく追尾処理
+					const tx = target.x + target.width / 2;
+					const ty = target.y + target.height / 2;
+					const cx = this.x + this.width / 2;
+					const cy = this.y + this.height / 2;
+					const vecRad = Math.atan2(ty - cy, tx - cx);
+					this.moveTo(this.x + Math.cos(vecRad) * speed, this.y + Math.sin(vecRad) * speed);
 				}
+			};
 
-			}
 			scene.addChild(this);
 		}
 	});
+
 
 	var Smoke = Class.create(Sprite, {
 		initialize: function(from) {
@@ -8078,21 +7873,19 @@ window.onload = function() {
 		_ResetStatus: function() {
 			switch (this.life) {
 				case 3:
-					if (this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed + 0.4;
+					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 					break;
 				case 2:
-					if (this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.3;
-					this.fireLate = this.fireLate + 5;
-					this.shotSpeed = this.shotSpeed - 1;
-					//disRange = 300;
+					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
+					this.fireLate = Categorys.FireLate[this.category] + 5;
+					this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
 					break;
 				case 1:
-					if (this.MoveSpeed > 1) this.MoveSpeed = this.MoveSpeed - 0.2;
-					this.fireLate = this.fireLate - 15;
-					this.shotSpeed = this.shotSpeed + 4;
-					//disRange = 150;
+					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
+					this.fireLate = Categorys.FireLate[this.category] - 10;
+					this.shotSpeed = Categorys.ShotSpeed[this.category] + 5;
 					this.ref = 0;
-					this.reload = this.reload - 30;
+					this.reload = Categorys.Reload[this.category] - 30;
 					break;
 				default:
 					break;
