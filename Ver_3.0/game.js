@@ -2988,6 +2988,142 @@ window.onload = function() {
 	var BombExplosion = Class.create(Sprite, {
 		initialize: function(from) {
 			Sprite.call(this, 200, 200);
+			this.name = 'BombExplosion';
+			this.time = 0;
+
+			const pos = Get_Center(from);
+			this.moveTo(pos.x - 100, pos.y - 100);
+			this.scaleX = this.scaleY = 0.2;
+
+			// 爆風サークル描画（グラデーション）
+			const surface = new Surface(200, 200);
+			const ctx = surface.context;
+			const grad = ctx.createRadialGradient(100, 100, 0, 100, 100, 100);
+			grad.addColorStop(0, 'rgba(255, 255, 0, 1)');
+			grad.addColorStop(0.5, 'rgba(255, 120, 0, 0.5)');
+			grad.addColorStop(0.85, 'rgba(180, 0, 0, 0.4)');
+			grad.addColorStop(1, 'rgba(180, 0, 0, 0.1)');
+			ctx.fillStyle = grad;
+			ctx.beginPath();
+			ctx.arc(100, 100, 100, 0, Math.PI * 2);
+			ctx.fill();
+			this.image = surface;
+
+			// アニメーション
+			this.tl
+			.scaleTo(1.3, 1.2, 4, enchant.Easing.EXP_EASEOUT)  // 急速拡大
+				.scaleTo(1.5, 1.3, 21, enchant.Easing.SIN_EASEOUT)  // 減速拡大
+				.and()
+				.fadeOut(35)
+				.then(() => now_scene.removeChild(this));
+
+			// 火の粉を周囲に生成
+			for (let i = 0; i < 7; i++) {
+				setTimeout(() => this.spawnFireParticle(pos), i * 80);
+			}
+
+			// 煙を残す
+			setTimeout(() => this.spawnSmoke(pos), 300);
+
+			this.onenterframe = function(){
+				if(WorldFlg){
+					
+					if(this.time < 3){
+						this.processDamage();
+					}
+					this.time++;
+				}
+			}
+			now_scene.addChild(this);
+		},
+
+		spawnFireParticle: function(centerPos) {
+			var size = Math.floor(Math.random() * 25) + 15;
+			var half = size / 2;
+			const flame = new Sprite(size, size);
+			const s = new Surface(size, size);
+			const ctx = s.context;
+			const grad = ctx.createRadialGradient(half, half, 0, half, half, half);
+			grad.addColorStop(0, 'rgba(255, 120, 0, 0.4)');
+			grad.addColorStop(0.7, 'rgba(255, 100, 0, 0.3)');
+			grad.addColorStop(1, 'rgba(180, 0, 0, 0.2)');
+			ctx.fillStyle = grad;
+			//ctx.fillStyle = 'rgba(255, 100, 0, 0.6)';
+			ctx.beginPath();
+			ctx.arc(half, half, half, 0, Math.PI * 2);
+			ctx.fill();
+			flame.image = s;
+
+			const angle = Math.random() * Math.PI * 2;
+			const dist = 40 + Math.random() * 60;
+			const dx = Math.cos(angle) * dist;
+			const dy = Math.sin(angle) * dist;
+
+			flame.moveTo(centerPos.x + dx - half, centerPos.y + dy - size);
+			flame.scaleX = flame.scaleY = 0.5;
+
+			flame.tl
+			.scaleTo(1.4, 1.4, 10, enchant.Easing.SIN_EASEOUT)
+			.fadeOut(20)
+			.then(() => now_scene.removeChild(flame));
+
+			now_scene.addChild(flame);
+		},
+
+		spawnSmoke: function(centerPos) {
+			const smoke = new Sprite(240, 240);
+			const s = new Surface(240, 240);
+			const ctx = s.context;
+			const grad = ctx.createRadialGradient(120, 120, 0, 120, 120, 120);
+			grad.addColorStop(0, 'rgba(60,60,60,0.8)');
+			grad.addColorStop(1, 'rgba(0,0,0,0)');
+			ctx.fillStyle = grad;
+			ctx.beginPath();
+			ctx.arc(120, 120, 120, 0, Math.PI * 2);
+			ctx.fill();
+
+			smoke.image = s;
+			smoke.moveTo(centerPos.x - 120, centerPos.y - 120);
+			smoke.scaleX = smoke.scaleY = 0.8;
+
+			smoke.tl
+			.scaleTo(1.0, 0.8, 40, enchant.Easing.SIN_EASEOUT)
+			.fadeOut(60)
+			.then(() => now_scene.MarkGroup.removeChild(smoke));
+
+			now_scene.MarkGroup.addChild(smoke);
+		},
+
+		processDamage: function() {
+			this.damageNearbyTanks();
+			this.destroyNearbyBlocks();
+			this.destroyNearbyBombs();
+		},
+
+		destroyNearbyBlocks: function() {
+			Block.collection.forEach(elem => {
+			if (elem.within(this, 125)) elem._Destroy();
+			});
+		},
+
+		destroyNearbyBombs: function() {
+			Bom.collection.forEach(elem => {
+			if (elem.within(this, 125)) elem._Destroy();
+			});
+		},
+
+		damageNearbyTanks: function() {
+			TankBase.collection.forEach(elem => {
+			if (!deadFlgs[elem.num] && elem.weak.within(this, 125)) {
+				elem.life = 0;
+			}
+			});
+		}
+	});
+
+	/*var BombExplosion = Class.create(Sprite, {
+		initialize: function(from) {
+			Sprite.call(this, 200, 200);
 
 			this.name = 'BombExplosion';
 			this.time = 0;
@@ -3036,7 +3172,7 @@ window.onload = function() {
 				});
 			}
 		}
-	});
+	});*/
 
 
 	var TankBoom = Class.create(Sprite,{
