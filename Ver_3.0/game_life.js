@@ -598,7 +598,6 @@ var Rot_to_Rad = function(rot) {
 };
 
 var Rad_to_Rot = function(rad) {
-	//var rot = rad / (Math.PI / 180);
 	var rot = ((Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
 
 	if (Math.abs(rot) >= 360) {
@@ -1683,10 +1682,63 @@ window.onload = function() {
 			});
 			this.frontimage._Destroy();
 			this.topimage._Destroy();
+			new BlockDestroyEffect(this.tilePath.x, this.tilePath.y);
 			this.destroy();
+			
 			//now_scene.removeChild(this);
 		}
 	})
+
+	var BlockFragment  = Class.create(Sprite, {
+		initialize: function(x, y, size) {
+			Sprite.call(this, size, size);
+			this.x = x + ((Math.floor(Math.random() * 3) - 1) * 8) + 32;
+			this.y = y + ((Math.floor(Math.random() * 3) - 1) * 8) + 32;
+			this.vx = (Math.random() - 0.5) * 4; // 横方向速度
+			this.vy = (Math.random() - 0.5) * 4 - 2; // 縦方向初速（重力上向き）
+
+			this.rotationSpeed = (Math.random() - 0.5) * 20;
+
+			this.image = new Surface(size, size);
+			this.image.context.fillStyle = `rgba(${55 + Math.floor(Math.random() * 80) }, ${20 + Math.floor(Math.random() * 30) }, ${Math.floor(Math.random() * 20) }, ${(5 + Math.floor(Math.random() * 6)) / 10})`;
+			this.image.context.fillRect(0, 0, size, size);
+
+			this.life = 30; // 寿命フレーム数
+			this.addEventListener("enterframe", function() {
+				this.vy += 0.1; // 擬似重力
+				this.x += this.vx;
+				this.y += this.vy;
+				this.rotation += this.rotationSpeed;
+				this.opacity -= 1 / this.life;
+
+				if (this.opacity <= 0) {
+					this.parentNode.removeChild(this);
+				}
+			});
+		}
+	});
+
+	var BlockDestroyEffect = Class.create(Group, {
+		initialize: function(x, y) {
+			Group.call(this);
+			this.x = x * PixelSize;
+			this.y = y * PixelSize - Quarter;
+
+			for (let i = 0; i < 10; i++) {
+				let frag = new BlockFragment(0, 0, (2 + Math.floor(Math.random() * 5)) * 4);
+				this.addChild(frag);
+			}
+
+			// 全体の削除（保険）
+			this.life = 30;
+			this.addEventListener("enterframe", function() {
+				if (--this.life <= 0) {
+					if (this.parentNode) this.parentNode.removeChild(this);
+				}
+			});
+			now_scene.addChild(this);
+		}
+	});
 
 	var Block_Imgage = Class.create(Sprite, {
 		initialize: function(from) {
@@ -2859,7 +2911,7 @@ window.onload = function() {
 		}
 	});
 
-var Bom = Class.create(Sprite, {
+	var Bom = Class.create(Sprite, {
 		initialize: function(from, num, id) {
 			Sprite.call(this, PixelSize / 2, PixelSize / 2);
 
@@ -2916,6 +2968,7 @@ var Bom = Class.create(Sprite, {
 						if (this.time > 555 || tankEntity.some(e => this.within(e, 120))) {
 							this.bombFlg = true;
 							this.time = 0;
+							this.explosionRange.setTarget(this); // 自分に追従させる
 						}
 					}
 				}
@@ -2926,6 +2979,9 @@ var Bom = Class.create(Sprite, {
 			boms[this.num]++;
 			now_scene.BomGroup.addChild(this);
 			game.assets['./sound/Sample_0009.wav'].clone().play();
+			this.explosionRange = new ExplosionRange(125);
+			now_scene.MarkGroup.addChild(this.explosionRange);
+			//this.explosionRange.setTarget(this); // 自分に追従させる
 		},
 
 		_Destroy: function() {
@@ -2934,6 +2990,7 @@ var Bom = Class.create(Sprite, {
 			this.moveTo(-900, -900);
 			now_scene.BomGroup.removeChild(this);
 			game.assets['./sound/mini_bomb2.mp3'].play();
+			now_scene.MarkGroup.removeChild(this.explosionRange);
 		},
 
 		createCircleImage: function(color) {
@@ -2944,6 +3001,50 @@ var Bom = Class.create(Sprite, {
 			ctx.arc(Quarter, Quarter, Quarter, 0, Math.PI * 2, true);
 			ctx.fill();
 			return surface;
+		}
+	});
+
+	var ExplosionRange = Class.create(Sprite, {
+		initialize: function(radius, color = "rgba(255, 0, 0, 0.3)") {
+			Sprite.call(this, radius * 2, radius * 2);
+			this.radius = radius;
+			this.image = this._createRangeImage(color);
+			this.visible = false; // デフォルトは非表示
+			this.target = null;   // 追従する対象Sprite
+			this.opacity = 0.0;
+			this.opaVal = 0.1;
+			this.time = 0;
+			this.scaleY = 0.9;
+		},
+
+		_createRangeImage: function(color) {
+			const surface = new Surface(this.width, this.height);
+			const ctx = surface.context;
+			ctx.beginPath();
+			ctx.arc(this.radius, this.radius, this.radius, 0, Math.PI * 2, true);
+			ctx.strokeStyle = color;
+			ctx.lineWidth = 4;
+			ctx.stroke();
+			ctx.fillStyle = 'rgba(180, 0, 0, 0.3)';
+			ctx.fill();
+			return surface;
+		},
+
+		setTarget: function(target) {
+			this.target = target;
+			this.visible = true;
+		},
+
+		onenterframe: function() {
+			if (this.target) {
+				this.x = this.target.x + this.target.width / 2 - this.radius;
+				this.y = this.target.y + this.target.height / 2 - this.radius;
+				if(this.time % 2 == 0){
+					this.opacity += this.opaVal;
+					if(this.time % 10 == 0 && this.time > 0) this.opaVal *= -1;
+				}
+				this.time++;
+			}
 		}
 	});
 
@@ -3050,6 +3151,8 @@ var Bom = Class.create(Sprite, {
 			flame.scaleX = flame.scaleY = 0.5;
 
 			flame.tl
+			.moveBy(dx / 10, dy / 20, 10)
+			.and()
 			.scaleTo(1.4, 1.4, 10, enchant.Easing.SIN_EASEOUT)
 			.fadeOut(20)
 			.then(() => now_scene.removeChild(flame));
@@ -3071,34 +3174,31 @@ var Bom = Class.create(Sprite, {
 
 			smoke.image = s;
 			smoke.moveTo(centerPos.x - 120, centerPos.y - 120);
-			smoke.scaleX = smoke.scaleY = 0.8;
+			smoke.scaleX = smoke.scaleY = 0.7;
 
 			smoke.tl
 			.scaleTo(1.0, 0.8, 40, enchant.Easing.SIN_EASEOUT)
-			.fadeOut(60)
+			.fadeOut(120)
 			.then(() => now_scene.MarkGroup.removeChild(smoke));
 
 			now_scene.MarkGroup.addChild(smoke);
 		},
-
+		
 		processDamage: function() {
-			this.damageNearbyTanks();
+			if(this.time == 0) this.damageNearbyTanks();
 			this.destroyNearbyBlocks();
 			this.destroyNearbyBombs();
 		},
 
 		destroyNearbyBlocks: function() {
 			Block.collection.forEach(elem => {
-			if (elem.within(this, 125)) elem._Destroy();
+				if (elem.within(this, 125)) elem._Destroy();
 			});
 		},
 
 		destroyNearbyBombs: function() {
-			/*Bom.intersectStrict(this).forEach(elem => {
-			elem._Destroy();
-			});*/
 			Bom.collection.forEach(elem => {
-			if (elem.within(this, 125)) elem._Destroy();
+				if (elem.within(this, 125)) elem._Destroy();
 			});
 		},
 
@@ -3109,7 +3209,7 @@ var Bom = Class.create(Sprite, {
 				elem.life -= 100;
 				elem.lifeBar.Change(elem.life);
 				if (gameMode === 2 && elem.num === 0) {
-				zanki = Math.floor((elem.life - 1) / Categorys.Life[elem.category]) + 1;
+					zanki = Math.floor((elem.life - 1) / Categorys.Life[elem.category]) + 1;
 				}
 			}
 			});
@@ -3245,7 +3345,7 @@ var Bom = Class.create(Sprite, {
 			
 			if (frame < 40) {
 				// 放射スパイク（爆風）
-				const rays = 14;
+				const rays = 10;
 				for (let r = 0; r < rays; r++) {
 					const a = (Math.PI * 2 / rays) * r + Math.random() * 0.15;
 					const dist = t * 55 + Math.random() * 5;
@@ -7028,7 +7128,7 @@ var Bom = Class.create(Sprite, {
 						}
 					} else {
 						destruction++;
-						if (this.within(target, 240) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) new Bom(this, this.num, boms[this.num])._SetBom();
+						if (this.within(target, 256) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) new Bom(this, this.num, boms[this.num])._SetBom();
 						this._Dead();
 					}
 				}
