@@ -3214,10 +3214,16 @@ window.onload = function() {
 		},
 
 		damageNearbyTanks: function() {
-			TankBase.collection.forEach(elem => {
-			if (!deadFlgs[elem.num] && elem.weak.within(this, 125)) {
+			// まず条件を満たす戦車をフィルタし、num降順にソート
+			const targets = TankBase.collection
+				.filter(elem => !deadFlgs[elem.num] && elem.weak.within(this, 125))
+				.sort((a, b) => b.num - a.num);
+
+			let cnt = 0;
+			targets.forEach(elem => {
+				if(elem.num != 0) cnt++;
+				if(elem.num == 0 && destruction + cnt == tankEntity.length - 1) return;
 				elem.life = 0;
-			}
 			});
 		}
 	});
@@ -3898,6 +3904,11 @@ window.onload = function() {
 			this.bulReloadTime = 0;
 			this.shotNGflg = false;
 
+			this.damFlg = false;
+			this.damTime = 0;
+			this.damTimeMax = this.num == 0 || this.category == 0 ? 90 : 60;
+			this.damCng = false;
+
 			this.fireFlg = false;
 
 			this.tank = new Tank(this, this.category);
@@ -3977,164 +3988,60 @@ window.onload = function() {
 				return true;
 			}
 			return false;
+		},
+		_Damage: function(){
+			let cnt = 0;
+			if (!this.damFlg) {
+				const hits = Bullet.intersectStrict(this.weak);
+				for (const elem of hits) {
+					const from = elem.from;
+					const damageSound = game.assets['./sound/mini_bomb2.mp3'].clone();
+					damageSound.play();
+
+					if (from.category == 9){
+						this.damTimeMax = 20;
+					} 
+
+					this.life--;
+					if (this.num == 0 && gameMode == 2) zanki--;
+					from._Destroy();
+
+					if (this.life > 0) {
+						damageSound.volume = 0.5;
+						this.damFlg = true;
+						cnt++;
+					}
+					break; // 最初の1発のみ処理
+				}
+			}
+			this._DamageEffect();
+			return cnt > 0;
+		},
+		_DamageEffect: function(){
+			if (this.damFlg) {
+				this.tank.opacity = this.damCng ? 0.0 : 1.0;
+				this.cannon.opacity = this.damCng ? 0.0 : 1.0;
+
+				if (this.damTime % 5 === 0) this.damCng = !this.damCng;
+
+				if (++this.damTime > this.damTimeMax) {
+					this.damFlg = false;
+					this.damCng = false;
+					this.damTime = 0;
+					if(this.num == 0 || this.category == 0) this.damTimeMax = 90;
+					else this.damTimeMax = 60;
+					if (this.category == 8 && this.num > 0) {
+						new Flash(this);
+						this.tank.opacity = 0.0;
+						this.cannon.opacity = 0.0;
+					} else {
+						this.tank.opacity = 1.0;
+						this.cannon.opacity = 1.0;
+					}					
+				}
+			}
 		}
 	})
-
-
-	var Entity_TypeTest = Class.create(TankBase, {
-		initialize: function(x, y, category, num, scene) {
-			TankBase.call(this, x, y, category, num, scene);
-
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
-
-			this.attackTarget = tankEntity[0];
-			this.escapeTarget = null;
-
-			this.cursor = new Target(this, scene);
-			//this.bulMax = Categorys.MaxBullet[category];
-
-			let damFlg = false;
-			let damTime = 0;
-			let damCng = false;
-			let escapeFlg = false;
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			})
-
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			}
-
-			this.onenterframe = function() {
-
-				if (!deadFlgs[this.num]) {
-					if (this.life > 0) {
-						if (WorldFlg) {
-							this.time++;
-							Bullet.intersectStrict(this.weak).forEach(elem => {
-								let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-								damage.play();
-								this.life--;
-								elem.from._Destroy();
-								if (this.life > 0) {
-									damage.volume = 0.5;
-									damFlg = true;
-								}
-								return;
-							});
-
-							new EnemyAim(this.cannon, this.cursor, this.category, this.num);
-
-							if (this.time % 5 == 0) {
-								if (this.attackTarget != tankEntity[0] && escapeFlg == false) this.attackTarget = tankEntity[0];
-								escapeFlg = false;
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-							}
-
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									if (bulStack[Bullet.collection[i].num][Bullet.collection[i].id]) {
-										if (this.within(Bullet.collection[i], 300)) {
-											this.attackTarget = Bullet.collection[i];
-										}
-									}
-								}
-							}
-
-							TankObstracle.intersect(this).forEach(elem => {
-								if (!deadFlgs[elem.num] && elem.num != this.num) {
-									switch (elem.name) {
-										case 'TankTop':
-											this.moveTo(this.x, elem.y - 60);
-											break;
-										case 'TankBottom':
-											this.moveTo(this.x, elem.y + (elem.height));
-											break;
-										case 'TankLeft':
-											this.moveTo(elem.x - 60, this.y);
-											break;
-										case 'TankRight':
-											this.moveTo(elem.x + (elem.width), this.y);
-											break;
-									}
-								}
-							})
-							Obstracle.intersect(this).forEach(elem => {
-								switch (elem.name) {
-									case 'ObsTop':
-										this.moveTo(this.x, elem.y - 60);
-										break;
-									case 'ObsBottom':
-										this.moveTo(this.x, elem.y + (elem.height))
-										break;
-									case 'ObsLeft':
-										this.moveTo(elem.x - 60, this.y)
-										break;
-									case 'ObsRight':
-										this.moveTo(elem.x + (elem.width), this.y)
-										break;
-								}
-							})
-						}
-					} else {
-						this._Dead();
-					}
-				}
-
-			}
-		},
-		_Attack: function() {
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							break;
-						}
-					}
-
-				}
-			}
-		}
-	});
 
 	//	自機型
 	var Entity_Type0 = Class.create(TankBase, {
@@ -4203,11 +4110,6 @@ window.onload = function() {
 
 			this.weak.scale(0.6, 0.6);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 90;
-			let damCng = false;
-
 			this.shotStopFlg = false;
 			this.shotStopTime = 0;
 
@@ -4232,49 +4134,8 @@ window.onload = function() {
 					if (this.life > 0) {
 						if (WorldFlg) {
 							this.time++;
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									if (gameMode == 2) zanki--;
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 90;
-								}
-							}
+							
+							this._Damage();
 
 							if ((inputManager.checkButton("A") == inputManager.keyStatus.DOWN)) {
 								if (this.category == 9 && (this.fullFireFlg || this.firecnt > 0 || bullets[num] > 0) || this.shotNGflg) return;
@@ -4473,10 +4334,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -4535,48 +4393,8 @@ window.onload = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
 						if (WorldFlg) {
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							
+							this._Damage();
 
 							if (this.time % 2 == 0) {
 								this.fireFlg = false; //  発射状態をリセット
@@ -5073,10 +4891,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -5178,48 +4993,7 @@ window.onload = function() {
 								this.image = shadow;
 							}
 
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							this._Damage();
 
 							this.time++;
 
@@ -5484,10 +5258,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -5594,48 +5365,8 @@ window.onload = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
 						if (WorldFlg) {
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							
+							this._Damage();
 
 							if (this.time % 60 == 0) {
 								grid = scene.grid;
@@ -6142,10 +5873,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 
 			this.fullFireFlg = false;
 			this.firecnt = 0;
@@ -6170,48 +5898,8 @@ window.onload = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
 						if (WorldFlg) {
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							
+							this._Damage();
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -6324,10 +6012,7 @@ window.onload = function() {
 
 			this.cursor = new RefCursor(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 
 			this.aimingTime = 0;
 			this.aimCmpTime = 60;
@@ -6363,48 +6048,8 @@ window.onload = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
 						if (WorldFlg) {
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							
+							this._Damage();
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -6567,10 +6212,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -6680,48 +6322,7 @@ window.onload = function() {
 					if (this.life > 0) {
 						if (WorldFlg) {
 
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							this._Damage();
 
 							this.time++;
 
@@ -7103,10 +6704,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -7214,48 +6812,7 @@ window.onload = function() {
 					if (this.life > 0) {
 						if (WorldFlg) {
 
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							this._Damage();
 
 							this.time++;
 
@@ -7658,10 +7215,6 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -7746,49 +7299,8 @@ window.onload = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
 						if (WorldFlg) {
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-										this._ResetStatus();
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							
+							if(this._Damage()) this._ResetStatus();
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -8149,10 +7661,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -8267,49 +7776,8 @@ window.onload = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
 						if (WorldFlg) {
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-										this._ResetStatus();
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							
+							if(this._Damage()) this._ResetStatus();
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -8710,10 +8178,7 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
-			let damFlg = false;
-			let damTime = 0;
-			let damTimeMax = 60;
-			let damCng = false;
+			
 			let escapeFlg = false;
 
 			this.shotStopFlg = false;
@@ -8827,49 +8292,8 @@ window.onload = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
 						if (WorldFlg) {
-							if (!damFlg) {
-								Bullet.intersectStrict(this.weak).forEach(elem => {
-									let damage = game.assets['./sound/mini_bomb2.mp3'].clone();
-									damage.play();
-									this.life--;
-									if (elem.from.category == 9) {
-										damTimeMax = 20;
-									}
-									elem.from._Destroy();
-									if (this.life > 0) {
-										damage.volume = 0.5;
-										damFlg = true;
-										this._ResetStatus();
-									}
-									return;
-								})
-							}
-
-							if (damFlg) {
-								if (damCng) {
-									this.tank.opacity = 0.0;
-									this.cannon.opacity = 0.0;
-								} else {
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-								}
-								if (damTime % 5 == 0) {
-									if (damCng) {
-										damCng = false;
-									} else {
-										damCng = true;
-									}
-								}
-								damTime++;
-								if (damTime > damTimeMax) {
-									damFlg = false;
-									damCng = false;
-									damTime = 0;
-									this.tank.opacity = 1.0;
-									this.cannon.opacity = 1.0;
-									damTimeMax = 60;
-								}
-							}
+							
+							this._Damage();
 
 							if (this.time % 60 == 0) {
 								grid = scene.grid;
