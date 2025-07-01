@@ -409,7 +409,7 @@ const stagePath = [
 	'./stage/stage56.js',
 	'./stage/stage57.js',
 	'./stage/stage58.js',
-	'./stage/stage59.js',
+	'./stage/stage59.js'
 ];
 
 class Vector2 {
@@ -852,43 +852,60 @@ function Escape_Rot4(from, to, value) {
     const t1 = Get_Center(from);
     const t2 = Get_Center(to);
 
-    let arr;
-    if (t1.x > t2.x) {
-        arr = (t1.y > t2.y) ? [1, 2] : [0, 1];
-    } else {
-        arr = (t1.y > t2.y) ? [2, 3] : [0, 3];
-    }
+    // 初期候補方向の決定
+    const arrMap = {
+        'left-up': [1, 2],
+        'left-down': [0, 1],
+        'right-up': [2, 3],
+        'right-down': [0, 3]
+    };
+    const key = t1.x > t2.x
+        ? (t1.y > t2.y ? 'left-up' : 'left-down')
+        : (t1.y > t2.y ? 'right-up' : 'right-down');
+    let arr = arrMap[key].slice();
 
+    // 回転角から相対方向を計算
     const v = Rot_to_Vec(to.rotation, -90);
     v.x = v.x * 96 + t2.x;
     v.y = v.y * 96 + t2.y;
 
     const dx = t1.x - v.x;
     const dy = t1.y - v.y;
-    let r = -Math.atan2(dy, dx) * (180 / Math.PI);
-    r = (r + 360) % 360;
+    let angle = (Math.atan2(-dy, -dx) * 180 / Math.PI + 360) % 360;
 
+    // ランダム初期化
     if (from.time % 60 === 0) {
         value = Math.floor(Math.random() * 4);
     }
 
-    const getRemovable = function(angle) {
-        if (angle > 338 || angle <= 23) return 0;
-        if (angle <= 68) return angle > 46 ? 1 : 0;
-        if (angle <= 113) return 1;
-        if (angle <= 158) return angle > 136 ? 2 : 1;
-        if (angle <= 203) return 2;
-        if (angle <= 248) return angle > 226 ? 3 : 2;
-        if (angle <= 293) return 3;
-        if (angle <= 338) return angle > 316 ? 0 : 3;
-        return -1;
-    };
+    // 除外方向の計算
+    const angleRemovals = [
+        { range: [0, 23], remove: 0 },
+        { range: [24, 46], remove: 0 },
+        { range: [47, 68], remove: 1 },
+        { range: [69, 90], remove: 1 },
+        { range: [91, 113], remove: 1 },
+        { range: [114, 136], remove: 2 },
+        { range: [137, 158], remove: 2 },
+        { range: [159, 180], remove: 2 },
+        { range: [181, 203], remove: 2 },
+        { range: [204, 226], remove: 3 },
+        { range: [227, 248], remove: 3 },
+        { range: [249, 270], remove: 3 },
+        { range: [271, 293], remove: 3 },
+        { range: [294, 316], remove: 3 },
+        { range: [317, 338], remove: 0 },
+        { range: [339, 360], remove: 0 }
+    ];
 
-    const rem = getRemovable(r);
-    if (arr.includes(rem)) {
-        arr = arr.filter(dir => dir !== rem);
+    for (const { range, remove } of angleRemovals) {
+        if (angle >= range[0] && angle <= range[1]) {
+            arr = arr.filter(dir => dir !== remove);
+            break;
+        }
     }
 
+    // 候補に value がなければランダム選択
     if (!arr.includes(value)) {
         value = arr[Math.floor(Math.random() * arr.length)];
     }
@@ -901,12 +918,16 @@ function Escape_Rot8(from, to, value) {
     const t2 = Get_Center(to);
 
     // 初期候補方向の決定
-    let arr;
-    if (t1.x > t2.x) {
-        arr = (t1.y > t2.y) ? [1, 2, 4, 6] : [0, 1, 5, 7];
-    } else {
-        arr = (t1.y > t2.y) ? [2, 3, 5, 7] : [0, 3, 4, 6];
-    }
+    const arrMap = {
+        'left-up': [1, 2, 4, 5, 6],
+        'left-down': [0, 1, 4, 5, 7],
+        'right-up': [2, 3, 5, 6, 7],
+        'right-down': [0, 3, 4, 6, 7]
+    };
+    const key = t1.x > t2.x
+        ? (t1.y > t2.y ? 'left-up' : 'left-down')
+        : (t1.y > t2.y ? 'right-up' : 'right-down');
+    let arr = arrMap[key].slice();
 
     // 回転角から相対方向を計算
     const v = Rot_to_Vec(to.rotation, -90);
@@ -915,61 +936,78 @@ function Escape_Rot8(from, to, value) {
 
     const dx = t1.x - v.x;
     const dy = t1.y - v.y;
-    let r = -Math.atan2(dy, dx) * (180 / Math.PI);
-    r = (r + 360) % 360;
+    let angle = (Math.atan2(-dy, -dx) * 180 / Math.PI + 360) % 360;
 
-    // 指定時間でvalueをランダム初期化
+    // ランダム初期化
     if (from.time % 60 === 0) {
         value = Math.floor(Math.random() * 4);
     }
 
-    // 除外方向を計算する関数
-    function getRemovals(angle) {
-        if (angle > 338 || angle <= 23) return angle <= 23 ? [0, 4] : [0, 7];
-        if (angle <= 68) return angle > 46 ? [1, 4] : [0, 4];
-        if (angle <= 113) return angle > 90 ? [1, 5] : [1, 4];
-        if (angle <= 158) return angle > 136 ? [2, 5] : [1, 5];
-        if (angle <= 203) return angle > 180 ? [2, 6] : [2, 5];
-        if (angle <= 248) return angle > 226 ? [3, 6] : [2, 6];
-        if (angle <= 293) return angle > 270 ? [3, 7] : [3, 6];
-        if (angle <= 338) return angle > 316 ? [0, 7] : [3, 7];
-        return [];
+    // 除外方向の計算
+    const angleRemovals = [
+        { range: [0, 23], remove: [0, 4] },
+        { range: [24, 46], remove: [0, 4] },
+        { range: [47, 68], remove: [1, 4] },
+        { range: [69, 90], remove: [1, 4] },
+        { range: [91, 113], remove: [1, 5] },
+        { range: [114, 136], remove: [1, 5] },
+        { range: [137, 158], remove: [2, 5] },
+        { range: [159, 180], remove: [2, 5] },
+        { range: [181, 203], remove: [2, 6] },
+        { range: [204, 226], remove: [2, 6] },
+        { range: [227, 248], remove: [3, 6] },
+        { range: [249, 270], remove: [3, 6] },
+        { range: [271, 293], remove: [3, 7] },
+        { range: [294, 316], remove: [3, 7] },
+        { range: [317, 338], remove: [0, 7] },
+        { range: [339, 360], remove: [0, 7] }
+    ];
+
+    for (const { range, remove } of angleRemovals) {
+        if (angle >= range[0] && angle <= range[1]) {
+            const backup = arr.slice();
+            arr = arr.filter(i => !remove.includes(i));
+            if (arr.length === 0) arr = backup;
+            break;
+        }
     }
 
-    // 除外処理の適用
-    const rem = getRemovals(r);
-    const backup = arr.slice();
-    arr = arr.filter(i => !rem.includes(i));
-    if (arr.length === 0) arr = backup;
-
-    // カテゴリ11（たとえばユニットが障害物を避けるAI）処理
-    if (from.category == 11) {
+    // カテゴリ11の障害物チェック
+    if (from.category === 11) {
         const grid = now_scene.grid;
-        const y = Math.floor(t1.y / PixelSize);
-        const x = Math.floor(t1.x / PixelSize);
-        const obstacles = [];
+        const rad = (from.rotation - 90) * Math.PI / 180;
+        const tx = t1.x - Math.cos(rad) * from.width;
+        const ty = t1.y - Math.sin(rad) * from.height;
+        const y = Math.floor(ty / PixelSize);
+        const x = Math.floor(tx / PixelSize);
 
-        if (grid[y - 1]?.[x] === 'Obstacle') obstacles.push(0);     // 上
-        if (grid[y]?.[x + 1] === 'Obstacle') obstacles.push(1);     // 右
-        if (grid[y + 1]?.[x] === 'Obstacle') obstacles.push(2);     // 下
-        if (grid[y]?.[x - 1] === 'Obstacle') obstacles.push(3);     // 左
-        if (grid[y - 1]?.[x + 1] === 'Obstacle') obstacles.push(4); // 右上
-        if (grid[y + 1]?.[x + 1] === 'Obstacle') obstacles.push(5); // 右下
-        if (grid[y + 1]?.[x - 1] === 'Obstacle') obstacles.push(6); // 左下
-        if (grid[y - 1]?.[x - 1] === 'Obstacle') obstacles.push(7); // 左上
+        const obstacleDirs = [
+            [y - 1, x, 0],     // 上
+            [y, x + 1, 1],     // 右
+            [y + 1, x, 2],     // 下
+            [y, x - 1, 3],     // 左
+            [y - 1, x + 1, 4], // 右上
+            [y + 1, x + 1, 5], // 右下
+            [y + 1, x - 1, 6], // 左下
+            [y - 1, x - 1, 7]  // 左上
+        ];
 
-        const bk = arr.slice();
+        const obstacles = obstacleDirs
+            .filter(([yy, xx]) => grid[yy]?.[xx] === 'Obstacle')
+            .map(([, , dir]) => dir);
+
+        const backup = arr.slice();
         arr = arr.filter(i => !obstacles.includes(i));
-        if (arr.length === 0) arr = bk;
+        if (arr.length === 0) arr = backup;
     }
 
-    // value が arr にない場合、ランダムで選び直し
+    // 候補に value がなければランダム選択
     if (!arr.includes(value)) {
         value = arr[Math.floor(Math.random() * arr.length)];
     }
+
     return value;
 }
-
 
 function getOrientation(screen, window) {
 	// 新しいAPIが利用可能な場合は、screen.orientationを使用
@@ -3789,7 +3827,7 @@ window.onload = function() {
 	});
 
 	/* 経路探索アルゴリズム */
-	const findShortestPath = (startCoordinates, grid, scene) => {
+	/*const findShortestPath = (startCoordinates, grid, scene) => {
 		const [startTop, startLeft] = startCoordinates;
 		const queue = [{
 			distanceFromTop: startTop,
@@ -3850,7 +3888,98 @@ window.onload = function() {
 		}
 
 		return newLocation;
+	};*/
+	const deltas = {
+		North: [-1, 0],
+		East: [0, 1],
+		South: [1, 0],
+		West: [0, -1]
 	};
+
+	const findShortestPath = (startCoordinates, grid, scene) => {
+		const [startTop, startLeft] = startCoordinates;
+		const queue = [{
+			distanceFromTop: startTop,
+			distanceFromLeft: startLeft,
+			parent: null,
+			move: null,
+			status: 'Start'
+		}];
+
+		const visited = new Set();
+		const key = (r, c) => `${r},${c}`;
+		visited.add(key(startTop, startLeft));
+
+		const directions = ['North', 'East', 'South', 'West'];
+
+		while (queue.length > 0) {
+			const currentLocation = queue.shift();
+
+			for (const direction of directions) {
+			const newLocation = exploreInDirection(currentLocation, direction, grid, scene, visited);
+			if (!newLocation) continue;
+
+			if (newLocation.status === 'Goal') {
+				return reconstructPath(newLocation);
+			}
+
+			if (newLocation.status === 'Valid') {
+				queue.push(newLocation);
+			}
+			}
+		}
+
+		return false; // 経路が見つからなかった
+	};
+
+	const locationStatus = (location, grid) => {
+		const { distanceFromTop: dft, distanceFromLeft: dfl } = location;
+		const rows = grid.length;
+		const cols = grid[0].length;
+
+		if (dft < 0 || dft >= rows || dfl < 0 || dfl >= cols) return 'Invalid';
+		if (grid[dft][dfl] === 'Goal') return 'Goal';
+		if (grid[dft][dfl] === 'Empty') return 'Valid';
+		return 'Blocked';
+	};
+
+	const exploreInDirection = (currentLocation, direction, grid, scene, visited) => {
+		const { distanceFromTop: dft, distanceFromLeft: dfl } = currentLocation;
+		const [deltaT, deltaL] = deltas[direction];
+		const newTop = dft + deltaT;
+		const newLeft = dfl + deltaL;
+		const locKey = `${newTop},${newLeft}`;
+
+		if (visited.has(locKey)) return null;
+
+		const newLocation = {
+			distanceFromTop: newTop,
+			distanceFromLeft: newLeft,
+			parent: currentLocation,
+			move: direction,
+			status: 'Unknown'
+		};
+
+		newLocation.status = locationStatus(newLocation, grid);
+
+		if (newLocation.status === 'Valid' || newLocation.status === 'Goal') {
+			visited.add(locKey);
+			return newLocation;
+		}
+
+		return null;
+		};
+
+		const reconstructPath = (node) => {
+		const path = [];
+		while (node.parent) {
+			path.unshift(node.move);
+			node = node.parent;
+		}
+		return path;
+	};
+
+
 
 	//	戦車の親クラス
 	var TankBase = Class.create(Sprite, {
@@ -4375,6 +4504,50 @@ window.onload = function() {
 				}
 			}
 
+			function updateRotationAndDistance(direction, myPath, self){
+				const center = Get_Center(self);
+				let target = { x: 0, y: 0 };
+				switch (direction) {
+					case "East":
+						rot = 90;
+						target = { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * myPath[0] + 14 };
+						break;
+					case "West":
+						rot = 270;
+						target = { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * myPath[0] + 14 };
+						break;
+					case "North":
+						rot = 0;
+						target = { x: PixelSize * myPath[1] + 32, y: PixelSize * (myPath[0] - 1) + 14 };
+						break;
+					case "South":
+						rot = 180;
+						target = { x: PixelSize * myPath[1] + 32, y: PixelSize * (myPath[0] + 1) + 14 };
+						break;
+				}
+				moveCmp = Math.round(Vec_Distance(center, target));
+			}
+			function updatePathAndRotation(self, grid, scene){
+				myPath = [
+					parseInt((self.y + self.height / 2) / PixelSize),
+					parseInt((self.x + self.width / 2) / PixelSize)
+				];
+				root = findShortestPath([myPath[0], myPath[1]], grid, scene);
+				if (root && root.length > 0) {
+					updateRotationAndDistance(root[0], myPath, self);
+				}
+				moveCnt = 0;
+			}
+
+			function markObstacle(rot, myPath, grid){
+				switch (rot) {
+					case 0: grid[myPath[0] - 1][myPath[1]] = 'Obstacle'; break;
+					case 90: grid[myPath[0]][myPath[1] + 1] = 'Obstacle'; break;
+					case 180: grid[myPath[0] + 1][myPath[1]] = 'Obstacle'; break;
+					case 270: grid[myPath[0]][myPath[1] - 1] = 'Obstacle'; break;
+   			 	}
+			}
+
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
@@ -4382,53 +4555,55 @@ window.onload = function() {
 							
 							this._Damage();
 
-							if (this.time % 2 == 0) {
-								this.fireFlg = false; //  発射状態をリセット
+							if (this.time % 2 === 0) {
+								this.fireFlg = false;
 								this.shotNGflg = false;
+
 								if (this.moveSpeed > 0 && !this.tankStopFlg) {
-									//  自身の位置とターゲットの位置をざっくり算出
-									myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)]
-									targetPath = [parseInt((target.y + target.height / 2) / PixelSize), parseInt((target.x + target.width / 2) / PixelSize)]
-									//  マップの障害物情報に自身とターゲットの位置設定
-									for (var i = 0; i < grid.length; i++) {
-										for (var j = 0; j < grid[i].length; j++) {
-											if (i == myPath[0] && j == myPath[1]) {
+									const getGridCoord = (entity) => [
+										Math.floor((entity.y + entity.height / 2) / PixelSize),
+										Math.floor((entity.x + entity.width / 2) / PixelSize)
+									];
+
+									myPath = getGridCoord(this);
+									targetPath = getGridCoord(target);
+
+									// grid 更新処理
+									for (let i = 0; i < grid.length; i++) {
+										for (let j = 0; j < grid[i].length; j++) {
+											if (i === myPath[0] && j === myPath[1]) {
 												grid[i][j] = 'Start';
-											} else if (i == targetPath[0] && j == targetPath[1]) {
+											} else if (i === targetPath[0] && j === targetPath[1]) {
 												grid[i][j] = 'Goal';
 											} else {
-												//  StartやGoalの位置が更新されている場合の処理
-												if (map.collisionData[i][j] == 0) {
-													grid[i][j] = 'Empty';
-												} else {
-													grid[i][j] = 'Obstacle';
-												}
+												grid[i][j] = map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
 											}
 										}
 									}
-									if (this.time == 0) {
-										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-										if (root[0] == "East") {
-											rot = 90;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-										} else if (root[0] == "West") {
-											rot = 270;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-										} else if (root[0] == "North") {
-											rot = 0;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14 }));
-										} else if (root[0] == "South") {
-											rot = 180;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14 }));
-										}
-										//console.log(moveCmp)
-									}
 
+									if (this.time === 0) {
+										root = findShortestPath(myPath, grid, scene);
+
+										const directionMap = {
+											East: { rot: 90, dx: 1, dy: 0 },
+											West: { rot: 270, dx: -1, dy: 0 },
+											North: { rot: 0, dx: 0, dy: -1 },
+											South: { rot: 180, dx: 0, dy: 1 }
+										};
+
+										const dir = root?.[0];
+										if (dir && directionMap[dir]) {
+											const { rot: newRot, dx, dy } = directionMap[dir];
+											rot = newRot;
+											const center = Get_Center(this);
+											moveCmp = Math.round(Vec_Distance(center, {
+												x: PixelSize * (myPath[1] + dx) + 32,
+												y: PixelSize * (myPath[0] + dy) + 14
+											}));
+										}
+									}
 								}
+
 								if (this.tankStopFlg) this.tankStopFlg = false;
 							}
 
@@ -4638,210 +4813,43 @@ window.onload = function() {
 									if (moveCnt >= moveCmp) {
 										if (moveCnt > moveCmp) {
 											let rad = Rot_to_Rad(rot - 270);
-											let dx = Math.cos(rad) * (moveCnt - moveCmp);
-											let dy = Math.sin(rad) * (moveCnt - moveCmp);
-											this.moveBy(dx, dy);
+											this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
 										}
 										returnFlg = false;
-										myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-										if (root[0] == "East") {
-											rot = 90;
-										} else if (root[0] == "West") {
-											rot = 270;
-										} else if (root[0] == "North") {
-											rot = 0;
-										} else if (root[0] == "South") {
-											rot = 180;
-										}
-										switch (rot) {
-											case 0:
-												grid[myPath[0] - 1][myPath[1]] = 'Obstacle';
-												break;
-											case 90:
-												grid[myPath[0]][myPath[1] + 1] = 'Obstacle';
-												break;
-											case 180:
-												grid[myPath[0] + 1][myPath[1]] = 'Obstacle';
-												break;
-											case 270:
-												grid[myPath[0]][myPath[1] - 1] = 'Obstacle';
-												break;
-										}
-										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-										if (root[0] == "East") {
-											rot = 90;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-										} else if (root[0] == "West") {
-											rot = 270;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-										} else if (root[0] == "North") {
-											rot = 0;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14 }));
-										} else if (root[0] == "South") {
-											rot = 180;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14 }));
-										}
-										moveCnt = 0
+										updatePathAndRotation(this, grid, scene);
+										markObstacle(rot, myPath, grid);
 									}
 								} else if (!this.shotStopFlg && !this.tankStopFlg) {
-									//  移動処理
-									if (root != false && !Around.intersect(target)) {
+									if (root && !Around.intersect(target)) {
 										cflg = this._Move(rot);
 										if (cflg) moveCnt += this.moveSpeed;
 									}
-									//console.log(moveCnt);
 									if (moveCnt >= moveCmp) {
 										if (moveCnt > moveCmp) {
 											let rad = Rot_to_Rad(this.rotation - 270);
-											let dx = Math.cos(rad) * (moveCnt - moveCmp);
-											let dy = Math.sin(rad) * (moveCnt - moveCmp);
-											this.moveBy(dx, dy);
-											//console.log(dx + ' ' + dy)
+											this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
 										}
-										myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-										root = findShortestPath([myPath[0], myPath[1]], grid, scene)
-										if (root[0] == "East") {
-											rot = 90;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-										} else if (root[0] == "West") {
-											rot = 270;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-										} else if (root[0] == "North") {
-											rot = 0;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14 }));
-										} else if (root[0] == "South") {
-											rot = 180;
-											let center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14 }));
-										}
+										updatePathAndRotation(this, grid, scene);
+									}
+								}
 
-										moveCnt = 0
-									}
+								if (!root) {
+									updatePathAndRotation(this, grid, scene);
 								}
-								if (root == false) {
-									root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-									if (root[0] == "East") {
-										rot = 90;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-									} else if (root[0] == "West") {
-										rot = 270;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-									} else if (root[0] == "North") {
-										rot = 0;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14 }));
-									} else if (root[0] == "South") {
-										rot = 180;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14 }));
+
+								Obstracle.intersect(this).forEach(elem => {
+									switch (elem.name) {
+										case 'ObsTop': this.moveTo(this.x, elem.y - 60); break;
+										case 'ObsBottom': this.moveTo(this.x, elem.y + elem.height); break;
+										case 'ObsLeft': this.moveTo(elem.x - 60, this.y); break;
+										case 'ObsRight': this.moveTo(elem.x + elem.width, this.y); break;
 									}
-									moveCnt = 0
-								}
+									if (cflg) {
+										updatePathAndRotation(this, grid, scene);
+										markObstacle(rot, myPath, grid);
+									}
+								});
 							}
-
-
-							/*TankObstracle.intersect(this).forEach(elem => {
-								if(!deadFlgs[elem.num] && elem.num != this.num){
-									switch(elem.name){
-										case 'TankTop':
-											if(this.rotation == 180){
-												tankStopFlg = true;
-												if (!this.shotStopFlg) {
-													this.y -= this.moveSpeed;
-												}
-											}
-											break;
-										case 'TankBottom':
-											if(this.rotation == 0){
-												tankStopFlg = true;
-												if (!this.shotStopFlg){
-													this.y += this.moveSpeed;
-												}
-											}
-											break;
-										case 'TankLeft':
-											if(this.rotation == 90){
-												tankStopFlg = true;
-												if (!this.shotStopFlg){
-													this.x += this.moveSpeed;
-												}
-											}
-											break;
-										case 'TankRight':
-											if(this.rotation == 270){
-												tankStopFlg = true;
-												if (!this.shotStopFlg){
-													this.x -= this.moveSpeed;
-												}
-											}
-											break;
-									}
-									root = false;
-								}
-							})*/
-
-							Obstracle.intersect(this).forEach(elem => {
-								switch (elem.name) {
-									case 'ObsTop':
-										this.moveTo(this.x, elem.y - 60);
-										break;
-									case 'ObsBottom':
-										this.moveTo(this.x, elem.y + (elem.height))
-										break;
-									case 'ObsLeft':
-										this.moveTo(elem.x - 60, this.y)
-										break;
-									case 'ObsRight':
-										this.moveTo(elem.x + (elem.width), this.y)
-										break;
-								}
-								//if(cflg)this.tankStopFlg = true;
-								if (cflg) {
-									myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-									switch (rot) {
-										case 0:
-											grid[myPath[0] - 1][myPath[1]] = 'Obstacle';
-											break;
-										case 90:
-											grid[myPath[0]][myPath[1] + 1] = 'Obstacle';
-											break;
-										case 180:
-											grid[myPath[0] + 1][myPath[1]] = 'Obstacle';
-											break;
-										case 270:
-											grid[myPath[0]][myPath[1] - 1] = 'Obstacle';
-											break;
-									}
-									root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-									if (root[0] == "East") {
-										rot = 90;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-									} else if (root[0] == "West") {
-										rot = 270;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-									} else if (root[0] == "North") {
-										rot = 0;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14 }));
-									} else if (root[0] == "South") {
-										rot = 180;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14 }));
-									}
-									moveCnt = 0
-								}
-							})
 						}
 					} else {
 						destruction++;
@@ -4864,7 +4872,7 @@ window.onload = function() {
 
 				}
 			}
-		}
+		},
 	});
 
 	//	攻守両立型
@@ -5323,6 +5331,36 @@ window.onload = function() {
 				}
 			}
 
+			function getDistanceSq(a, b){
+				const dx = a.x - b.x;
+				const dy = a.y - b.y;
+				return dx * dx + dy * dy;
+			}
+
+			function updateDirection(entity, target, mode = 0){
+				SelDirection(entity, target, mode);
+			}
+
+			function resolveCollision(entity, elem, isTank = false){
+				switch (elem.name) {
+					case isTank ? 'TankTop' : 'ObsTop':
+						entity.moveTo(entity.x, elem.y - 60);
+						break;
+					case isTank ? 'TankBottom' : 'ObsBottom':
+						entity.moveTo(entity.x, elem.y + elem.height);
+						break;
+					case isTank ? 'TankLeft' : 'ObsLeft':
+						entity.moveTo(elem.x - 60, entity.y);
+						break;
+					case isTank ? 'TankRight' : 'ObsRight':
+						entity.moveTo(elem.x + elem.width, entity.y);
+						break;
+				}
+				h = Get_Center(elem);
+				hittingTime++;
+				rootFlg = true;
+			}
+
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
@@ -5335,82 +5373,55 @@ window.onload = function() {
 								map = scene.backgroundMap;
 							}
 
-							if (this.time % 2 == 0) {
+							if (this.time % 2 === 0) {
 								if (!this.escapeFlg) rootFlg = false;
-								if (this.attackTarget != target) rootFlg = true;
+								if (this.attackTarget !== target) rootFlg = true;
 
 								this.shotNGflg = false;
 								this.fireFlg = false;
 
 								if (this.moveSpeed > 0 && !rootFlg) {
-									//  自身の位置とターゲットの位置をざっくり算出
-									myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)]
-									targetPath = [parseInt((target.y + target.height / 2) / PixelSize), parseInt((target.x + target.width / 2) / PixelSize)]
-									//  マップの障害物情報に自身とターゲットの位置設定
-									for (var i = 0; i < grid.length; i++) {
-										for (var j = 0; j < grid[i].length; j++) {
-											if (i == myPath[0] && j == myPath[1]) {
+									const getGridCoord = (entity) => [
+										Math.floor((entity.y + entity.height / 2) / PixelSize),
+										Math.floor((entity.x + entity.width / 2) / PixelSize)
+									];
+
+									myPath = getGridCoord(this);
+									targetPath = getGridCoord(target);
+
+									// grid 更新処理を簡潔に
+									for (let i = 0; i < grid.length; i++) {
+										for (let j = 0; j < grid[i].length; j++) {
+											if (i === myPath[0] && j === myPath[1]) {
 												grid[i][j] = 'Start';
-											} else if (i == targetPath[0] && j == targetPath[1]) {
+											} else if (i === targetPath[0] && j === targetPath[1]) {
 												grid[i][j] = 'Goal';
 											} else {
-												//  StartやGoalの位置が更新されている場合の処理
-												if (map.collisionData[i][j] == 0) {
-													grid[i][j] = 'Empty';
-												} else {
-													grid[i][j] = 'Obstacle';
-												}
+												grid[i][j] = map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
 											}
 										}
 									}
-									if (this.time % 30 == 0) {
-										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-										if (root[0] == "East") {
-											dirValue = 1;
-										} else if (root[0] == "West") {
-											dirValue = 3;
-										} else if (root[0] == "North") {
-											dirValue = 0;
-										} else if (root[0] == "South") {
-											dirValue = 2;
-										}
-										if (root == false) {
+
+									if (this.time % 30 === 0) {
+										root = findShortestPath(myPath, grid, scene);
+
+										const directionMap = {
+											East: 1,
+											West: 3,
+											North: 0,
+											South: 2
+										};
+
+										if (root && root.length > 0) {
+											dirValue = directionMap[root[0]] ?? dirValue;
+										} else {
 											rootFlg = true;
 										}
 									}
-									
 								}
 							}
 
 							this.time++;
-
-							/*if (hittingTime >= 35) {
-								let arr = [];
-								switch (dirValue) {
-									case 0:
-										this.y += this.moveSpeed;
-										arr = [1, 3];
-										break;
-									case 1:
-										this.x -= this.moveSpeed;
-										arr = [0, 2];
-										break;
-									case 2:
-										this.y -= this.moveSpeed;
-										arr = [1, 3];
-										break;
-									case 3:
-										this.x += this.moveSpeed;
-										arr = [0, 2];
-										break;
-								}
-
-								if (arr.indexOf(dirValue) == -1) {
-									dirValue = arr[Math.floor(Math.random() * arr.length)];
-								}
-
-								hittingTime = 0;
-							}*/
 
 							if (this.ref > 0) {
 								Front.intersect(Wall).forEach(function() {
@@ -5547,168 +5558,78 @@ window.onload = function() {
 								}
 							}
 
-							if (this.moveSpeed > 0) {
-								if (this.time % 5 == 0) {
-									if (this.escapeFlg) {
-										//SelDirection(this.weak, this.escapeTarget, 0);
-										dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
+							if (this.moveSpeed > 0 && this.time % 5 === 0) {
+								if (this.escapeFlg) {
+									dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
+								} else {
+									const distSq = getDistanceSq(this.weak, this.attackTarget);
+									const thresholdSq = Categorys.Distances[category] ** 2;
+
+									if (distSq < thresholdSq) {
+										updateDirection(this.weak, this.attackTarget);
 									} else {
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
-											SelDirection(this.weak, this.attackTarget, 0);
-										} else {
-											if (rootFlg) {
-												if (this.time % 10 == 0) {
-													SelDirection(this.weak, target, 1);
-												}
+										if (rootFlg && this.time % 10 === 0) {
+											updateDirection(this.weak, target, 1);
+										}
+										if (hittingTime >= 35) {
+											myPath = [
+												parseInt((this.y + this.height / 2) / PixelSize),
+												parseInt((this.x + this.width / 2) / PixelSize)
+											];
+
+											let arr = [];
+											switch (dirValue) {
+												case 0: this.y += this.moveSpeed; break;
+												case 1: this.x -= this.moveSpeed; break;
+												case 2: this.y -= this.moveSpeed; break;
+												case 3: this.x += this.moveSpeed; break;
+											}
+
+											if (h.x === 0 || h.y === 0) {
+												arr = dirValue % 2 === 0 ? [1, 3] : [0, 2];
 											} else {
+												if (dirValue % 2 === 0) {
+													arr.push(h.x > myPath[1] ? 3 : 1);
+												} else {
+													arr.push(h.y > myPath[0] ? 0 : 2);
+												}
+											}
 
-
+											if (!arr.includes(dirValue)) {
+												dirValue = arr[Math.floor(Math.random() * arr.length)];
 											}
-											if (hittingTime >= 35) {
-												var arr = [];
-												myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-												switch (dirValue) {
-													case 0:
-														this.y += this.moveSpeed;
-														if(h.x == 0){
-															arr = [1, 3];
-															break;
-														}
-														if(h.x > myPath[1]){
-															arr.push(3);
-														}else{
-															arr.push(1);
-														}
-														//myPath = [parseInt((this.y + this.height / 2) / PixelSize) + 1, parseInt((this.x + this.width / 2) / PixelSize)];
-														break;
-													case 1:
-														this.x -= this.moveSpeed;
-														if(h.y == 0){
-															arr = [0, 2];
-															break;
-														}
-														if(h.y > myPath[0]){
-															arr.push(0);
-														}else{
-															arr.push(2);
-														}
-														//myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize) - 1];
-														break;
-													case 2:
-														this.y -= this.moveSpeed;
-														if(h.x == 0){
-															arr = [1, 3];
-															break;
-														}
-														if(h.x > myPath[1]){
-															arr.push(3);
-														}else{
-															arr.push(1);
-														}
-														//myPath = [parseInt((this.y + this.height / 2) / PixelSize) - 1, parseInt((this.x + this.width / 2) / PixelSize)];
-														break;
-													case 3:
-														this.x += this.moveSpeed;
-														if(h.y == 0){
-															arr = [0, 2];
-															break;
-														}
-														if(h.y > myPath[0]){
-															arr.push(0);
-														}else{
-															arr.push(2);
-														}
-														//myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize) + 1];
-														break;
-												}
-												
-												if (arr.indexOf(dirValue) == -1) {
-													dirValue = arr[Math.floor(Math.random() * arr.length)];
-												}
-												
-												hittingTime = 0;
-											}
-											/*if(this.time % 30 == 0){
-												if((tankEntity.length - destruction) - 1 > 2){
-													for (var i = 0; i < tankEntity.length; i++) {
-														if (i != this.num && deadFlgs[i] == false) {
-															if (tankEntity[i].intersectStrict(Around)) {
-																SelDirection(this.weak, tankEntity[i], 0);
-																break;
-															}
-														}
-													}
-												}
-											}*/
-										}
-										if (Bom.collection.length > 0) {
-											for (var i = 0, l = Bom.collection.length; i < l; i++) {
-												let c = Bom.collection[i];
-												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 150) {
-													SelDirection(this.weak, c, 0);
-													break;
-												}
-											}
+											hittingTime = 0;
 										}
 									}
-									h = {x: 0, y: 0};
-								}
-								if (!this.shotStopFlg) {
-									if (dirValue == 0) {
-										rot = 0;
-									} else if (dirValue == 1) {
-										rot = 90;
-									} else if (dirValue == 2) {
-										rot = 180;
-									} else if (dirValue == 3) {
-										rot = 270;
+
+									// 爆弾回避
+									for (let c of Bom.collection) {
+										if (getDistanceSq(this.weak, c) < 150 * 150) {
+											updateDirection(this.weak, c);
+											break;
+										}
 									}
-									this._Move(rot);
 								}
+
+								h = { x: 0, y: 0 };
 							}
-							
+
+							if (!this.shotStopFlg) {
+								rot = [0, 90, 180, 270][dirValue];
+								this._Move(rot);
+							}
+
+							// タンクとの衝突処理
 							TankObstracle.intersect(this).forEach(elem => {
-								if (!deadFlgs[elem.num] && elem.num != this.num) {
-									switch (elem.name) {
-										case 'TankTop':
-											this.moveTo(this.x, elem.y - 60);
-											break;
-										case 'TankBottom':
-											this.moveTo(this.x, elem.y + (elem.height));
-											break;
-										case 'TankLeft':
-											this.moveTo(elem.x - 60, this.y);
-											break;
-										case 'TankRight':
-											this.moveTo(elem.x + (elem.width), this.y);
-											break;
-									}
-									h = Get_Center(elem);
-									hittingTime++;
-									rootFlg = true;
+								if (!deadFlgs[elem.num] && elem.num !== this.num) {
+									resolveCollision(this, elem, true);
 								}
+							});
 
-							})
-
+							// 障害物との衝突処理
 							Obstracle.intersect(this).forEach(elem => {
-								switch (elem.name) {
-									case 'ObsTop':
-										this.moveTo(this.x, elem.y - 60);
-										break;
-									case 'ObsBottom':
-										this.moveTo(this.x, elem.y + (elem.height))
-										break;
-									case 'ObsLeft':
-										this.moveTo(elem.x - 60, this.y)
-										break;
-									case 'ObsRight':
-										this.moveTo(elem.x + (elem.width), this.y)
-										break;
-								}
-								h = Get_Center(elem);
-								hittingTime++;
-								rootFlg = true;
-							})
+								resolveCollision(this, elem, false);
+							});
 						}
 					} else {
 						destruction++;
@@ -5733,23 +5654,6 @@ window.onload = function() {
 				}
 			}
 		},
-		/*_ResetAim: function() {
-			if (this.attackTarget.name == 'Bullet') {
-				let t1 = Get_Center(this);
-				let t2 = Get_Center(this.attackTarget);
-				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
-				let dis = Math.trunc(Vec_Distance(t1, t2) / (this.attackTarget.from.shotSpeed + this.shotSpeed * 2));
-				let val = dis * this.attackTarget.from.shotSpeed + this.shotSpeed;
-				v.x = v.x * val + t2.x;
-				v.y = v.y * val + t2.y;
-				let p = {
-					x: t1.x - v.x,
-					y: t1.y - v.y
-				};
-				let rad = Math.atan2(p.y, p.x);
-				this.cannon.rotation = Rad_to_Rot(rad);
-			}
-		},*/
 		_ResetAim: function () {
 			if (this.attackTarget.name == 'Bullet') {
 				const shooterPos = Get_Center(this);
@@ -6217,6 +6121,24 @@ window.onload = function() {
 				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
+			function resolveCollision(entity, elem, isTank = false){
+				switch (elem.name) {
+					case isTank ? 'TankTop' : 'ObsTop':
+						entity.moveTo(entity.x, elem.y - 60);
+						break;
+					case isTank ? 'TankBottom' : 'ObsBottom':
+						entity.moveTo(entity.x, elem.y + elem.height);
+						break;
+					case isTank ? 'TankLeft' : 'ObsLeft':
+						entity.moveTo(elem.x - 60, entity.y);
+						break;
+					case isTank ? 'TankRight' : 'ObsRight':
+						entity.moveTo(elem.x + elem.width, entity.y);
+						break;
+				}
+				hittingTime++;
+			}
+
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
@@ -6229,58 +6151,6 @@ window.onload = function() {
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
 								this.fireFlg = false;
-							}
-
-							if (hittingTime > 15) {
-								let arr = [];
-								switch (dirValue) {
-									case 0:
-									case 2:
-										arr = [1, 3];
-										break;
-									case 1:
-									case 3:
-										arr = [0, 2];
-										break;
-									case 4:
-										arr = [2, 3, 5, 6, 7];
-										break;
-									case 5:
-										arr = [0, 3, 4, 6, 7];
-										break;
-									case 6:
-										arr = [0, 1, 4, 5, 7];
-										break;
-									case 7:
-										arr = [1, 2, 4, 5, 6];
-										break;
-								}
-								//let arr = [0,1,2,3,4,5,6,7];
-								let rem = [];
-								var myPath = [parseInt((that.y + that.height / 2) / PixelSize), parseInt((that.x + that.width / 2) / PixelSize)];
-								var grid = scene.grid;
-
-								/*if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
-								if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
-								if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
-								if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);*/
-								if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-								if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-								if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-								if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
-
-								arr = arr.filter(i => rem.indexOf(i) == -1);
-
-								if (arr.length == 0) {
-									arr = [0, 1, 2, 3, 4, 5, 6, 7];
-									arr = arr.filter(i => rem.indexOf(i) == -1);
-								}
-
-								if (arr.indexOf(dirValue) == -1) {
-									dirValue = arr[Math.floor(Math.random() * arr.length)];
-								}
-
-								hittingTime = 0;
 							}
 
 							//  爆弾が設置された場合の処理
@@ -6435,119 +6305,122 @@ window.onload = function() {
 							}
 
 							if (this.moveSpeed > 0) {
-								if (this.time % 5 == 0 && this.moveFlg) {
+								if (this.time % 5 === 0 && this.moveFlg) {
 									if (this.escapeFlg) {
-										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
 									} else {
-										if (this.within(target, 160) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
+										// 爆弾設置条件
+										if (this.within(target, 160) && !this.bomSetFlg && boms[this.num] < this.bomMax) {
 											new Bom(this, this.num, boms[this.num])._SetBom();
 											this.bomReload = 0;
 											this.bomSetFlg = true;
 											this.bulReloadFlg = true;
 										}
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+
+										// 攻撃対象との距離チェック
+										const dx = this.weak.x - this.attackTarget.x;
+										const dy = this.weak.y - this.attackTarget.y;
+										const distSq = dx * dx + dy * dy;
+										const thresholdSq = Categorys.Distances[category] ** 2;
+
+										if (distSq < thresholdSq) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
-											if (this.time % 10 == 0) {
-												SelDirection(this.weak, this.attackTarget, 1);
-											}
+											if (hittingTime > 15) {
+												const diagonalObstacleMap = {
+													4: [-1, 1],
+													5: [1, 1],
+													6: [1, -1],
+													7: [-1, -1]
+												};
+
+												const directionCandidates = {
+													0: [1, 3],
+													1: [0, 2],
+													2: [1, 3],
+													3: [0, 2],
+													4: [2, 3, 5, 6, 7],
+													5: [0, 3, 4, 6, 7],
+													6: [0, 1, 4, 5, 7],
+													7: [1, 2, 4, 5, 6]
+												};
+
+												let arr = directionCandidates[dirValue] || [];
+
+												const myPath = [
+													Math.floor((that.y + that.height / 2) / PixelSize),
+													Math.floor((that.x + that.width / 2) / PixelSize)
+												];
+
+												const rem = new Set();
+												const grid = scene.grid;
+
+												for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
+													const y = myPath[0] + dy;
+													const x = myPath[1] + dx;
+													if (grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
+												}
+
+												arr = arr.filter(i => !rem.has(i));
+
+												if (arr.length === 0) {
+													arr = Array.from({ length: 8 }, (_, i) => i).filter(i => !rem.has(i));
+												}
+
+												if (!arr.includes(dirValue)) {
+													dirValue = arr[Math.floor(Math.random() * arr.length)];
+												}
+												hittingTime = 0;
+											} else if (this.time % 10 === 0) SelDirection(this.weak, this.attackTarget, 1);
 										}
+										
+
+										// 他のタンクとの接近チェック
 										if ((tankEntity.length - destruction) - 1 > 2) {
-											for (var i = 0; i < tankEntity.length; i++) {
-												if (i != this.num && deadFlgs[i] == false) {
-													if (tankEntity[i].intersectStrict(Around)) {
-														SelDirection(this.weak, tankEntity[i], 0);
-														break;
-													}
+											for (let i = 0; i < tankEntity.length; i++) {
+												if (i !== this.num && !deadFlgs[i] && tankEntity[i].intersectStrict(Around)) {
+													SelDirection(this.weak, tankEntity[i], 0);
+													break;
 												}
 											}
 										}
+
+										// 爆弾との距離チェック
 										if (Bom.collection.length > 0) {
-											let dis = 200;
-											let tgt = null;
-											for (var i = 0, l = Bom.collection.length; i < l; i++) {
-												let c = Bom.collection[i];
-												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < dis) {
-													tgt = c;
-													dis = Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2));
+											let closest = null;
+											let minDistSq = 200 * 200;
+											for (const c of Bom.collection) {
+												const dx = this.weak.x - c.x;
+												const dy = this.weak.y - c.y;
+												const dSq = dx * dx + dy * dy;
+												if (dSq < minDistSq) {
+													minDistSq = dSq;
+													closest = c;
 												}
 											}
-											if(tgt != null)SelDirection(this.weak, tgt, 0);
+											if (closest) SelDirection(this.weak, closest, 0);
 										}
 									}
 								}
 
+								// 移動処理
 								if (!this.shotStopFlg) {
-									switch (dirValue) {
-										case 0:
-											rot = 0;
-											break;
-										case 1:
-											rot = 90;
-											break;
-										case 2:
-											rot = 180;
-											break;
-										case 3:
-											rot = 270;
-											break;
-										case 4:
-											rot = 45;
-											break;
-										case 5:
-											rot = 135;
-											break;
-										case 6:
-											rot = 225;
-											break;
-										case 7:
-											rot = 315;
-											break;
-									}
-
+									const rotationMap = [0, 90, 180, 270, 45, 135, 225, 315];
+									rot = rotationMap[dirValue] ?? rot;
 									this._Move(rot);
 								}
 							}
-
+							// タンクとの衝突処理
 							TankObstracle.intersect(this).forEach(elem => {
-								if (!deadFlgs[elem.num] && elem.num != this.num) {
-									switch (elem.name) {
-										case 'TankTop':
-											this.moveTo(this.x, elem.y - 60);
-											break;
-										case 'TankBottom':
-											this.moveTo(this.x, elem.y + (elem.height));
-											break;
-										case 'TankLeft':
-											this.moveTo(elem.x - 60, this.y);
-											break;
-										case 'TankRight':
-											this.moveTo(elem.x + (elem.width), this.y);
-											break;
-									}
-									hittingTime++;
+								if (!deadFlgs[elem.num] && elem.num !== this.num) {
+									resolveCollision(this, elem, true);
 								}
+							});
 
-							})
-
+							// 障害物との衝突処理
 							Obstracle.intersect(this).forEach(elem => {
-								switch (elem.name) {
-									case 'ObsTop':
-										this.moveTo(this.x, elem.y - 60);
-										break;
-									case 'ObsBottom':
-										this.moveTo(this.x, elem.y + (elem.height))
-										break;
-									case 'ObsLeft':
-										this.moveTo(elem.x - 60, this.y)
-										break;
-									case 'ObsRight':
-										this.moveTo(elem.x + (elem.width), this.y)
-										break;
-								}
-								hittingTime++;
-							})
+								resolveCollision(this, elem, false);
+							});
 						}
 					} else {
 						destruction++;
@@ -6605,7 +6478,7 @@ window.onload = function() {
 			const Front = new InterceptFront(this.cannon);
 			const target = tankEntity[0];
 
-			Around.scale(1.5, 1.5);
+			Around.scale(1.4, 1.4);
 
 			this.attackTarget = tankEntity[0];
 			this.escapeTarget = null;
@@ -6702,6 +6575,24 @@ window.onload = function() {
 				}
 
 				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+			}
+
+			function resolveCollision(entity, elem, isTank = false){
+				switch (elem.name) {
+					case isTank ? 'TankTop' : 'ObsTop':
+						entity.moveTo(entity.x, elem.y - 60);
+						break;
+					case isTank ? 'TankBottom' : 'ObsBottom':
+						entity.moveTo(entity.x, elem.y + elem.height);
+						break;
+					case isTank ? 'TankLeft' : 'ObsLeft':
+						entity.moveTo(elem.x - 60, entity.y);
+						break;
+					case isTank ? 'TankRight' : 'ObsRight':
+						entity.moveTo(elem.x + elem.width, entity.y);
+						break;
+				}
+				hittingTime++;
 			}
 
 			this.onenterframe = function() {
@@ -6903,34 +6794,20 @@ window.onload = function() {
 									if (this.escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
-									} else {
-										/*if(this.within(target, 200) == true && !this.bomSetFlg && boms[this.num] < this.bomMax){
-											new Bom(this, this.num, boms[this.num])._SetBom();
-											this.bomReload = 0;
-											this.bomSetFlg = true;
-										}*/
-										if (!this.moveFlg) return;
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+									} else if (this.moveFlg) {
+										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
-											if (this.time % 10 == 0) {
+
+											if (this.time % 9 == 0) {
 												SelDirection(this.weak, target, 1);
 											}
-										}
-										if ((tankEntity.length - destruction) - 1 > 2) {
-											for (var i = 0; i < tankEntity.length; i++) {
-												if (i != this.num && deadFlgs[i] == false) {
-													if (tankEntity[i].intersectStrict(Around)) {
-														SelDirection(this.weak, tankEntity[i], 0);
-														break;
-													}
-												}
-											}
+
 										}
 										if (Bom.collection.length > 0) {
 											for (var i = 0, l = Bom.collection.length; i < l; i++) {
 												let c = Bom.collection[i];
-												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 150) {
+												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 200) {
 													SelDirection(this.weak, c, 0);
 													break;
 												}
@@ -6938,77 +6815,24 @@ window.onload = function() {
 										}
 									}
 								}
-
 								if (!this.shotStopFlg) {
-									switch (dirValue) {
-										case 0:
-											rot = 0;
-											break;
-										case 1:
-											rot = 90;
-											break;
-										case 2:
-											rot = 180;
-											break;
-										case 3:
-											rot = 270;
-											break;
-										case 4:
-											rot = 45;
-											break;
-										case 5:
-											rot = 135;
-											break;
-										case 6:
-											rot = 225;
-											break;
-										case 7:
-											rot = 315;
-											break;
-									}
-
+									const rotationMap = [0, 90, 180, 270, 45, 135, 225, 315];
+									rot = rotationMap[dirValue] ?? rot;
 									this._Move(rot);
 								}
 							}
 
+							// タンクとの衝突処理
 							TankObstracle.intersect(this).forEach(elem => {
-								if (!deadFlgs[elem.num] && elem.num != this.num) {
-									switch (elem.name) {
-										case 'TankTop':
-											this.moveTo(this.x, elem.y - 60);
-											break;
-										case 'TankBottom':
-											this.moveTo(this.x, elem.y + (elem.height));
-											break;
-										case 'TankLeft':
-											this.moveTo(elem.x - 60, this.y);
-											break;
-										case 'TankRight':
-											this.moveTo(elem.x + (elem.width), this.y);
-											break;
-									}
-									hittingTime++;
+								if (!deadFlgs[elem.num] && elem.num !== this.num) {
+									resolveCollision(this, elem, true);
 								}
+							});
 
-							})
-
+							// 障害物との衝突処理
 							Obstracle.intersect(this).forEach(elem => {
-								switch (elem.name) {
-									case 'ObsTop':
-										this.moveTo(this.x, elem.y - 60);
-										break;
-									case 'ObsBottom':
-										this.moveTo(this.x, elem.y + (elem.height))
-										break;
-									case 'ObsLeft':
-										this.moveTo(elem.x - 60, this.y)
-										break;
-									case 'ObsRight':
-										this.moveTo(elem.x + (elem.width), this.y)
-										break;
-								}
-								hittingTime++;
-							})
+								resolveCollision(this, elem, false);
+							});
 						}
 					} else {
 						destruction++;
@@ -7033,26 +6857,45 @@ window.onload = function() {
 				}
 			}
 		},
-		_ResetAim: function() {
+		_ResetAim: function () {
 			if (this.attackTarget.name == 'Bullet') {
-				let t1 = Get_Center(this);
-				let t2 = Get_Center(this.attackTarget);
-				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
-				let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
-				let val = dis * this.attackTarget.from.shotSpeed;
-				v.x = v.x * val + t2.x;
-				v.y = v.y * val + t2.y;
-				//new Point(v);
-				//console.log(v);
-				let p = {
-					x: t1.x - v.x,
-					y: t1.y - v.y
-				};
-				//console.log({ x: from.x + (from.width / 2), y: from.y + (from.height / 2) });
-				//console.log(p);
-				let rad = Math.atan2(p.y, p.x);
-				//from.cannon.rotation = (90 + (Math.atan2(Math.cos(rad), Math.sin(rad)) * 180) / Math.PI) * -1;
-				this.cannon.rotation = Rad_to_Rot(rad);
+				const shooterPos = Get_Center(this);
+				const bullet = this.attackTarget;
+				const bulletPos = Get_Center(bullet);
+				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
+				const targetSpeed = bullet.from.shotSpeed;
+				const shotSpeed = this.shotSpeed;
+
+				// 相対位置と速度ベクトル
+				const dx = bulletPos.x - shooterPos.x;
+				const dy = bulletPos.y - shooterPos.y;
+				const dvx = bulletVec.x * targetSpeed;
+				const dvy = bulletVec.y * targetSpeed;
+
+				// 二次方程式を解いて迎撃時間を推定
+				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
+				const b = 2 * (dx * dvx + dy * dvy);
+				const c = dx * dx + dy * dy;
+
+				const discriminant = b * b - 4 * a * c;
+				if (discriminant >= 0){
+					const sqrtDisc = Math.sqrt(discriminant);
+					let t1 = (-b - sqrtDisc) / (2 * a);
+					let t2 = (-b + sqrtDisc) / (2 * a);
+
+					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+					if (time >= 0){
+						// 少し手前を狙うための係数（例：90%の位置を狙う）
+						var biasFactor = 0.75;
+
+						// 予測位置
+						const futureX = bulletPos.x + dvx * time * biasFactor;
+						const futureY = bulletPos.y + dvy * time * biasFactor;
+
+						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					}
+				}
 			}
 		}
 	})
