@@ -2726,33 +2726,43 @@ window.onload = function() {
 	var BulAim = Class.create(Sprite, {
 		initialize: function(from) {
 			Sprite.call(this, 8, 8);
-			//this.backgroundColor = "#aff8";
+
 			this.time = 0;
-			var rad = Rot_to_Rad(from.rotation - 90);
-			var dx = Math.cos(rad) * 24;
-			var dy = Math.sin(rad) * 24;
 			this.target = from;
 			this.num = from.num;
 			this.id = from.id;
 
-			this.moveTo(((from.x + from.width / 2) - this.width / 2) + Math.cos(rad) * (1), ((from.y + from.height / 2) - this.height / 2) + Math.sin(rad) * (1));
+			const rad = Rot_to_Rad(from.rotation - 90);
+			const dx = Math.cos(rad) * 24;
+			const dy = Math.sin(rad) * 24;
 
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.x += dx;
-					this.y += dy;
-					if (bulStack[this.num][this.id] == false) now_scene.removeChild(this);
+			const centerX = from.x + from.width / 2;
+			const centerY = from.y + from.height / 2;
+
+			this.moveTo(centerX - this.width / 2 + Math.cos(rad), centerY - this.height / 2 + Math.sin(rad));
+
+			const self = this;
+
+			this.onenterframe = function () {
+				if (!WorldFlg) return;
+
+				self.x += dx;
+				self.y += dy;
+
+				if (!bulStack[self.num][self.id]) {
+					now_scene.removeChild(self);
+					return;
 				}
-				Wall.intersectStrict(this).forEach(elem => {
-					now_scene.removeChild(this);
-				});
-				Block.intersectStrict(this).forEach(elem => {
-					now_scene.removeChild(this);
-				})
-				TankBase.intersectStrict(this).forEach(elem => {
-					now_scene.removeChild(this);
-				})
-			}
+
+				const groups = [Wall, Block, TankBase];
+				for (const group of groups) {
+					if (group.intersectStrict(self).length > 0) {
+						now_scene.removeChild(self);
+						break;
+					}
+				}
+			};
+
 			now_scene.addChild(this);
 		}
 	});
@@ -2760,36 +2770,46 @@ window.onload = function() {
 	var PlayerBulAim = Class.create(Sprite, {
 		initialize: function(from) {
 			Sprite.call(this, 8, 8);
-			//this.backgroundColor = "#aff8";
+
 			this.time = 0;
-			var rad = Rot_to_Rad(from.rotation - 90);
-			var dx = Math.cos(rad) * 24;
-			var dy = Math.sin(rad) * 24;
 			this.target = from;
 			this.num = from.num;
 			this.id = from.id;
 
-			this.moveTo(((from.x + from.width / 2) - this.width / 2) + Math.cos(rad) * (1), ((from.y + from.height / 2) - this.height / 2) + Math.sin(rad) * (1));
+			const rad = Rot_to_Rad(from.rotation - 90);
+			const dx = Math.cos(rad) * 24;
+			const dy = Math.sin(rad) * 24;
 
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.x += dx;
-					this.y += dy;
-					if (bulStack[this.num][this.id] == false) now_scene.removeChild(this);
+			const centerX = from.x + from.width / 2;
+			const centerY = from.y + from.height / 2;
+
+			this.moveTo(centerX - this.width / 2 + Math.cos(rad), centerY - this.height / 2 + Math.sin(rad));
+
+			const self = this;
+
+			this.onenterframe = function () {
+				if (!WorldFlg) return;
+
+				self.x += dx;
+				self.y += dy;
+
+				if (!bulStack[self.num][self.id]) {
+					now_scene.removeChild(self);
+					return;
 				}
-				Wall.intersectStrict(this).forEach(elem => {
-					now_scene.removeChild(this);
-				});
-				Block.intersectStrict(this).forEach(elem => {
-					now_scene.removeChild(this);
-				})
-				TankBase.intersectStrict(this).forEach(elem => {
-					now_scene.removeChild(this);
-				})
-			}
+
+				const groups = [Wall, Block, TankBase];
+				for (const group of groups) {
+					if (group.intersectStrict(self).length > 0) {
+						now_scene.removeChild(self);
+						break;
+					}
+				}
+			};
+
 			now_scene.addChild(this);
 		}
-	})
+	});
 
 	function Search(from, to, angle, length) {
 		const inRange = from.within(to, length);
@@ -3190,7 +3210,18 @@ window.onload = function() {
 					this.time++;
 				}
 			}
+			function sortBombExplosionsByY(scene) {
+				const explosions = scene.childNodes.filter(child => child.name === 'BombExplosion');
+				explosions.sort((a, b) => a.y - b.y); // y座標が小さい順にソート
+
+				// 一度すべて削除して、順番に再追加
+				explosions.forEach(explosion => {
+					scene.removeChild(explosion);
+					scene.addChild(explosion);
+				});
+			}
 			now_scene.addChild(this);
+			sortBombExplosionsByY(now_scene); // ← これを追加
 		},
 
 		spawnFireParticle: function(centerPos) {
@@ -3826,69 +3857,6 @@ window.onload = function() {
 		}
 	});
 
-	/* 経路探索アルゴリズム */
-	/*const findShortestPath = (startCoordinates, grid, scene) => {
-		const [startTop, startLeft] = startCoordinates;
-		const queue = [{
-			distanceFromTop: startTop,
-			distanceFromLeft: startLeft,
-			path: [],
-			status: 'Start'
-		}];
-
-		const directions = ['North', 'East', 'South', 'West'];
-
-		while (queue.length > 0) {
-			const currentLocation = queue.shift();
-
-			for (const direction of directions) {
-				const newLocation = exploreInDirection(currentLocation, direction, grid, scene);
-				if (newLocation.status === 'Goal') return newLocation.path;
-				if (newLocation.status === 'Valid') queue.push(newLocation);
-			}
-		}
-
-		return false; // 経路が見つからなかった
-	};
-
-	const locationStatus = (location, grid) => {
-		const { distanceFromTop: dft, distanceFromLeft: dfl } = location;
-		const rows = grid.length;
-		const cols = grid[0].length;
-
-		if (dft < 0 || dft >= rows || dfl < 0 || dfl >= cols) return 'Invalid';
-		if (grid[dft][dfl] === 'Goal') return 'Goal';
-		if (grid[dft][dfl] === 'Empty') return 'Valid';
-		return 'Blocked';
-	};
-
-	const exploreInDirection = (currentLocation, direction, grid, scene) => {
-		const { distanceFromTop: dft, distanceFromLeft: dfl, path } = currentLocation;
-		const newPath = [...path, direction];
-
-		const deltas = {
-			North: [-1, 0],
-			East: [0, 1],
-			South: [1, 0],
-			West: [0, -1]
-		};
-
-		const [deltaT, deltaL] = deltas[direction];
-		const newLocation = {
-			distanceFromTop: dft + deltaT,
-			distanceFromLeft: dfl + deltaL,
-			path: newPath,
-			status: 'Unknown'
-		};
-
-		newLocation.status = locationStatus(newLocation, grid);
-
-		if (newLocation.status === 'Valid') {
-			grid[newLocation.distanceFromTop][newLocation.distanceFromLeft] = 'Visited';
-		}
-
-		return newLocation;
-	};*/
 	const deltas = {
 		North: [-1, 0],
 		East: [0, 1],
@@ -4168,6 +4136,9 @@ window.onload = function() {
 
 					this.life -= damValue;
 					new ViewDamage(this, damValue, isCritical);
+					if(this.num == 0 && gameMode == 2){
+						zanki = Math.floor((this.life-1) / Categorys.Life[this.category]) + 1;
+					}
 
 					from._Destroy();
 
@@ -4799,8 +4770,8 @@ window.onload = function() {
 
 							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
-									//if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false) {
-									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
+									if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false && Math.floor(Math.random() * this.bulMax) > bullets[this.num]) {
+									//if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
 										this._Attack();
 									}
 								}
@@ -6713,7 +6684,7 @@ window.onload = function() {
 												}
 												if (escRange[0] && escRange[1] != 0) {
 													if (dist < escRange[1]) {
-														if (Search(c, this, 60, escRange[1])) {
+														if (Search(c, this, 75, escRange[1])) {
 															this.escapeTarget = c;
 															this.escapeFlg = true;
 														}
@@ -6729,8 +6700,10 @@ window.onload = function() {
 												if (match) {
 													if (escRange[0] && escRange[2] != 0) {
 														if (dist < escRange[2]) {
-															this.escapeTarget = c;
-															this.escapeFlg = true;
+															if (Search(c, this, 60, escRange[2])) {
+																this.escapeTarget = c;
+																this.escapeFlg = true;
+															}
 														}
 													}
 													this.attackTarget = c; //  迎撃のためにターゲット変更
@@ -6748,8 +6721,10 @@ window.onload = function() {
 												}
 												if (escRange[0] && escRange[3] != 0) {
 													if (dist < escRange[3]) {
-														this.escapeTarget = c;
-														this.escapeFlg = true;
+														if (Search(c, this, 60, escRange[3])) {
+															this.escapeTarget = c;
+															this.escapeFlg = true;
+														}
 													}
 												}
 											}
@@ -6798,11 +6773,64 @@ window.onload = function() {
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
-
 											if (this.time % 9 == 0) {
 												SelDirection(this.weak, target, 1);
-											}
+												// 他のタンクとの接近チェック
+												if ((tankEntity.length - destruction) - 1 > 2) {
+													for (let i = 0; i < tankEntity.length; i++) {
+														if (i !== this.num && !deadFlgs[i] && tankEntity[i].intersectStrict(Around)) {
+															SelDirection(this.weak, tankEntity[i], 0);
+															break;
+														}
+													}
+												}
+												if (hittingTime > 20) {
+													const diagonalObstacleMap = {
+														4: [-1, 1],
+														5: [1, 1],
+														6: [1, -1],
+														7: [-1, -1]
+													};
 
+													const directionCandidates = {
+														0: [1, 3],
+														1: [0, 2],
+														2: [1, 3],
+														3: [0, 2],
+														4: [2, 3, 5, 6, 7],
+														5: [0, 3, 4, 6, 7],
+														6: [0, 1, 4, 5, 7],
+														7: [1, 2, 4, 5, 6]
+													};
+
+													let arr = directionCandidates[dirValue] || [];
+
+													const myPath = [
+														Math.floor((that.y + that.height / 2) / PixelSize),
+														Math.floor((that.x + that.width / 2) / PixelSize)
+													];
+
+													const rem = new Set();
+													const grid = scene.grid;
+
+													for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
+														const y = myPath[0] + dy;
+														const x = myPath[1] + dx;
+														if (grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
+													}
+
+													arr = arr.filter(i => !rem.has(i));
+
+													if (arr.length === 0) {
+														arr = Array.from({ length: 8 }, (_, i) => i).filter(i => !rem.has(i));
+													}
+
+													if (!arr.includes(dirValue)) {
+														dirValue = arr[Math.floor(Math.random() * arr.length)];
+													}
+													hittingTime = 0;
+												}
+											}
 										}
 										if (Bom.collection.length > 0) {
 											for (var i = 0, l = Bom.collection.length; i < l; i++) {
@@ -8835,33 +8863,41 @@ window.onload = function() {
 			this.from = from;
 			this.width = 64;
 			this.height = 32;
-			this.moveTo(from.x, from.y - 32);
+
+			const offsetX = ((Math.floor(Math.random() * 5) - 2) * 3);
+			const offsetY = ((Math.floor(Math.random() * 5) - 2) * 2);
+			const startX = from.x + offsetX;
+			const startY = from.y - 32 + offsetY;
+
+			this.moveTo(startX, startY);
 			this.text = damage;
 			this.font = '32px sans-serif';
-			this.color = 'white';
+			this.color = critical ? 'yellow' : 'white';
 			this.textAlign = 'center';
 
-			if (critical) {
-				this.color = 'yellow';
-				this.scale(1.5, 1.5)
-			}
+			if (critical) this.scale(1.5, 1.5);
 
-			this.onenterframe = function() {
-				this.time++;
-				if (this.time == 15) {
-					this.color = 'red';
-				}
-				if (this.time > 20) {
-					this.opacity -= 0.1;
-				}
-				if (this.opacity <= 0) {
+			// 跳ねるようなアニメーション（上に移動 → 下に落ちる）
+			this.tl
+				.moveBy(0, -10, 6, enchant.Easing.SIN_EASEOUT)  // 上に跳ねる
+				.moveBy(0, 5, 40, enchant.Easing.EXP_EASEOUT)    // 少し戻る
+				.and()
+				.fadeOut(40)         // フェードアウト
+				.then(() => {
 					now_scene.removeChild(this);
+				});
+			
+			this.onenterframe = function(){
+				this.time++;
+				if(this.time == 15){
+					this.color = 'red';
 				}
 			}
 
 			now_scene.addChild(this);
 		}
-	})
+	});
+
 
 	var ViewFrame = Class.create(Sprite, {
 		initialize: function(from, type, size, position, color) {
@@ -9926,6 +9962,7 @@ window.onload = function() {
 			new FadeIn(this);
 			new ViewCountDown();
 			var dcnt = 1;
+			var skipcnt = 0;
 
 			var remaining = new ViewRemaining();
 			var pauseText = new ViewText(this, 'Pause', { width: 28 * 13.5, height: 28 }, { x: 32, y: 16 }, '', 'bold 28px sans-serif', 'white', 'left', false);
@@ -10097,14 +10134,17 @@ window.onload = function() {
 							new ViewFrame(area.body, 'Result', area.type.Body.size, { x: 0, y: 0 }, area.type.Body.color);
 							new ViewFrame(area.body, 'Back', { width: 460, height: 56 * 13.5 }, { x: 0, y: 0 }, '#dd9');
 						}
-						if (this.time >= 120 && this.time % 15 == 0 && dcnt < colors.length) {
-							if (colors[dcnt] > 0) {
-								new ViewText(area.body, 'Name', { width: 280, height: 48 }, { x: 44, y: 56 * (dcnt) - 32 }, colorsName[dcnt], '48px "Arial"', fontColor[dcnt], 'left', true);
-								new ViewText(area.body, 'Score', { width: 180, height: 48 }, { x: 324, y: 56 * (dcnt) - 32 }, '：' + colors[dcnt], '48px "Arial"', '#400', 'left', true);
+						if (this.time >= 120 && this.time % 15 == 0 && dcnt + skipcnt < colors.length) {
+							while(colors[dcnt + skipcnt] == 0 && dcnt + skipcnt < colors.length-1){
+								skipcnt++;
+							}
+							if (colors[dcnt + skipcnt] > 0) {
+								new ViewText(area.body, 'Name', { width: 280, height: 48 }, { x: 44, y: 56 * (dcnt) - 32 }, colorsName[dcnt + skipcnt], '48px "Arial"', fontColor[dcnt + skipcnt], 'left', true);
+								new ViewText(area.body, 'Score', { width: 180, height: 48 }, { x: 324, y: 56 * (dcnt) - 32 }, '：' + colors[dcnt + skipcnt], '48px "Arial"', '#400', 'left', true);
 							}
 							dcnt++;
 						}
-						if (this.time == 315) {
+						if (this.time == 120 + 15 * (dcnt + 3)) {
 							if (defeat) {
 								new ViewText(area.body, 'Score', { width: 570, height: 64 }, { x: 520, y: 220 }, '撃破数：' + (score), 'bold 64px "Arial"', '#622', 'left', true);
 							} else {
@@ -10112,13 +10152,13 @@ window.onload = function() {
 							}
 
 						}
-						if (this.time >= 345) {
+						if (this.time >= 120 + 15 * (dcnt + 5)) {
 							retryFlg = false;
 							deadTank = [false];
 							var toTitle = new ViewText(area.body, 'toTitle', { width: 520, height: 48 }, { x: 620, y: 570 }, '➡タイトル画面へ', '40px "Arial"', '#400', 'center', false);
 							var toProceed = new ViewText(area.body, 'toProceed', { width: 520, height: 48 }, { x: 620, y: 670 }, '➡さらなるステージへ...', '40px "Arial"', 'red', 'center', false);
 
-							if (this.time == 345) {
+							if (this.time == 120 + 15 * (dcnt + 5)) {
 								this.addChild(toTitle)
 								if (stageNum != (stagePath.length - 1) && defeat == false) {
 									this.addChild(toProceed)
