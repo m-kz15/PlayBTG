@@ -2522,7 +2522,7 @@ window.onload = function() {
 
 				// 衝突チェック：TankBase
 				TankBase.intersectStrict(self).forEach(elem => {
-					if (elem.num !== 0) {
+					if (elem.num !== 0 && elem.num !== allyNum) {
 						now_scene.removeChild(self);
 					}
 				});
@@ -5957,6 +5957,7 @@ const getPathToGoalOrVisibleTile = (start, goal, grid, scene) => {
 						if (WorldFlg) {
 							if(this.time % 6 == 0){
 								target = ResetTarget(this);
+								this.attackTarget = target;
 							} 
 							this._Damage();
 
@@ -6110,6 +6111,7 @@ const getPathToGoalOrVisibleTile = (start, goal, grid, scene) => {
 						if (WorldFlg) {
 							if(this.time % 6 == 0){
 								target = ResetTarget(this);
+								this.attackTarget = target;
 							} 
 							this._Damage();
 
@@ -11358,7 +11360,7 @@ const getPathToGoalOrVisibleTile = (start, goal, grid, scene) => {
 							toTitle.addEventListener(Event.TOUCH_START, function() {
 
 								game.stop();
-								location.href = "./game_life.html";
+								location.href = "./game_auto.html";
 							});
 							toProceed.addEventListener(Event.TOUCH_START, function() {
 								complete = false;
