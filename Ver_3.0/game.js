@@ -8023,7 +8023,7 @@ window.onload = function() {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
-									this.fireLate = 15;
+									if(this.life == 1)this.fireLate = 15;
 								}
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -9216,6 +9216,134 @@ window.onload = function() {
 		}
 	})
 
+	function createSlidingStripeBar(isTop) {
+		const screenWidth = game.width;
+		const barHeight = 120;
+
+		// 表示用のバー（固定サイズ）
+		const bar = new Sprite(screenWidth, barHeight);
+
+		// 斜線を描いた大きな Surface
+		const patternWidth = screenWidth * 2;
+		const patternSurface = new Surface(patternWidth, barHeight);
+		const ctx = patternSurface.context;
+
+		// 赤背景
+		ctx.fillStyle = 'rgba(255,255,255,0.0)';
+		ctx.fillRect(0, 0, patternWidth, barHeight);
+
+		// 白い斜線
+		ctx.fillStyle = 'rgba(255,0,0,1)';
+		const stripeWidth = 40;
+		const stripeHeight = barHeight;
+		const stripeSkew = 40;
+
+		for (let x = -patternWidth; x < patternWidth * 2; x += stripeWidth + 10) {
+			ctx.beginPath();
+			ctx.moveTo(x, isTop ? 0 : 25);
+			ctx.lineTo(x + stripeSkew, isTop ? 0 : 25);
+			ctx.lineTo(x + stripeSkew + stripeWidth, isTop ? stripeHeight - 25 : stripeHeight);
+			ctx.lineTo(x + stripeWidth, isTop ? stripeHeight - 25 : stripeHeight);
+			ctx.closePath();
+			ctx.fill();
+		}
+
+		ctx.strokeStyle = 'rgba(255,0,0,1)';
+		ctx.lineWidth = 30;
+		ctx.beginPath();
+		ctx.moveTo(0, isTop ? barHeight : 0);
+		ctx.lineTo(patternWidth, isTop ? barHeight : 0);
+		ctx.stroke();
+
+		// パターンを描画するための内部スプライト
+		const patternSprite = new Sprite(patternWidth, barHeight);
+		patternSprite.image = patternSurface;
+		patternSprite.x = 0;
+		patternSprite.y = 0;
+		patternSprite.opacity = 0;
+		patternSprite.time = 0;
+		patternSprite.time2 = 0;
+
+		let opaVal = 0.1;
+
+		patternSprite.tl
+			.fadeTo(1.0,30,enchant.Easing.EXP_EASEOUT)
+			.delay(120)
+			.fadeOut(30,enchant.Easing.SIN_EASEOUT);
+
+		// パターンをスライドさせる
+		patternSprite.onenterframe = function () {
+			const t = patternSprite.time / (180 - 1);
+			const alpha = 1.0 - t;
+			patternSprite.time++;
+			/*if(patternSprite.time % 2 == 0){
+				if(patternSprite.time2 == 0)patternSprite.opacity += opaVal;
+				if(patternSprite.opacity >= 1){
+					patternSprite.time2++;
+					if(patternSprite.time2 == 3){
+						patternSprite.time2 = 0;
+ 						opaVal = -0.05;
+					}
+				}
+				if(patternSprite.opacity < 0.05) opaVal = 0.1;
+			}*/
+			patternSprite.x -= isTop ? (12 * alpha + 1) : -(12 * alpha + 1);
+			if(isTop){
+				if (patternSprite.x <= -screenWidth) patternSprite.x = -(16 * alpha + 1);
+			}else{
+				if (patternSprite.x >= screenWidth) patternSprite.x = (16 * alpha + 1);
+			}
+		};
+
+		// グループとしてまとめる
+		const group = new Group();
+		group.addChild(patternSprite);
+		group.addChild(bar); // 表示枠として使う（透明）
+
+		group.y = isTop ? 0 : game.height - barHeight;
+		group.x = isTop ? 0 : game.width - patternWidth;
+		return group;
+	}
+
+
+	function showEmergencyAlert(scene) {
+		const screenWidth = game.width;
+		const screenHeight = game.height;
+
+		// 中央の「EMERGENCY」テキスト
+		const label = new Label('EMERGENCY');
+		label.font = '128px Arial Black';
+		label.color = 'yellow';
+		label.textAlign = 'center';
+		label.width = screenWidth;
+		label.y = screenHeight / 2 - 64;
+		label.opacity = 0;
+
+		label.tl
+			.delay(5)
+			.fadeIn(15, enchant.Easing.EXP_EASEOUT)
+			.delay(20)
+			.fadeOut(15,enchant.Easing.SIN_EASEOUT)
+			.fadeIn(15, enchant.Easing.EXP_EASEOUT)
+			.delay(20)
+			.fadeOut(15,enchant.Easing.SIN_EASEOUT)
+			.fadeIn(15, enchant.Easing.EXP_EASEOUT)
+			.delay(20)
+			.fadeOut(15,enchant.Easing.SIN_EASEOUT)
+			.then(() => {
+				scene.removeChild(label);
+				scene.removeChild(topBar);
+				scene.removeChild(bottomBar);
+			});
+
+		const topBar = createSlidingStripeBar(true);
+    	const bottomBar = createSlidingStripeBar(false);
+
+		scene.addChild(label);
+		scene.addChild(topBar);
+		scene.addChild(bottomBar);
+	}
+
 	var ViewFrame = Class.create(Sprite, {
 		initialize: function(from, type, size, position, color) {
 			Sprite.call(this, size.width, size.height);
@@ -10022,7 +10150,12 @@ window.onload = function() {
 
 			this.onenterframe = function() {
 				this.time++
-				if (this.time == 15) game.assets['./sound/RoundStart.mp3'].play();
+				if (this.time == 15){
+					game.assets['./sound/RoundStart.mp3'].play();
+					if((stageNum+1) % 20 == 0){
+						showEmergencyAlert(this);
+					}
+				}
 				//if ((stageNum % 20 == 0 && stageNum > 0) && this.time == 15) new Warning(scene)
 				if (this.time == 150) {
 					new FadeOut(this)

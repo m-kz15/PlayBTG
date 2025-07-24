@@ -1687,6 +1687,7 @@ window.onload = function() {
 		initialize: function(width, height, x, y, name, scene) {
 			PhyBoxSprite.call(this, width * PixelSize, height * PixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
 			//this.backgroundColor = "#ddd4";
+			this.debugColor = "#000"
 			this.x = x * PixelSize;
 			this.y = y * PixelSize - Quarter;
 			this.name = name;
@@ -2468,17 +2469,17 @@ window.onload = function() {
 			};
 
 			now_scene.addChild(this);
+
+			// 🔧 角度関連の補助関数
+			function normalizeRotation(angle) {
+				return (angle % 360 + 360) % 360;
+			}
+
+			function normalizeAngle(diff) {
+				return Math.abs(diff) >= 180 ? -diff : diff;
+			}
 		}
 	});
-
-	// 🔧 角度関連の補助関数
-	function normalizeRotation(angle) {
-		return (angle % 360 + 360) % 360;
-	}
-
-	function normalizeAngle(diff) {
-		return Math.abs(diff) >= 180 ? -diff : diff;
-	}
 
 	var RefAim = Class.create(Sprite, {
 		initialize: function(ref, from, category, num) {
@@ -2657,6 +2658,14 @@ window.onload = function() {
 					handleReflection.call(this, elem);
 					return true;
 				});
+				/*Wall.intersectStrict(this).some(elem => {
+					handleReflection.call(this, elem);
+					return true;
+				});
+				Block.intersectStrict(this).some(elem => {
+					handleReflection.call(this, elem);
+					return true;
+				});*/
 
 				if (tankEntity[this.num]?.intersectStrict(this)) {
 					now_scene.removeChild(this);
@@ -2689,7 +2698,92 @@ window.onload = function() {
 				return (Math.abs(diff) >= 180) ? -diff : diff;
 			}
 
+			function getCollisionSide(ray, wall) {
+				const rayCenterX = ray.x + ray.width / 2;
+				const rayCenterY = ray.y + ray.height / 2;
+				const wallCenterX = wall.x + wall.width / 2;
+				const wallCenterY = wall.y + wall.height / 2;
+
+				const dx = rayCenterX - wallCenterX;
+				const dy = rayCenterY - wallCenterY;
+
+				const absDX = Math.abs(dx);
+				const absDY = Math.abs(dy);
+				const overlapX = (ray.width + wall.width) / 2;
+				const overlapY = (ray.height + wall.height) / 2;
+
+				if (absDX < overlapX && absDY < overlapY) {
+					// 進行方向ベースの優先判定
+					const vx = ray.dx;
+					const vy = ray.dy;
+
+					if (absDX > absDY) {
+						if (dx > 0) {
+							return (vx < 0) ? 'right' : 'left';
+						} else {
+							return (vx > 0) ? 'left' : 'right';
+						}
+					} else {
+						if (dy > 0) {
+							return (vy < 0) ? 'bottom' : 'top';
+						} else {
+							return (vy > 0) ? 'top' : 'bottom';
+						}
+					}
+				}
+				return null;
+			}
+
+			function getPreContactPosition(ray, wall, side, margin = 1) {
+				const rx = ray.x;
+				const ry = ray.y;
+				const rw = ray.width;
+				const rh = ray.height;
+
+				const wx = wall.x;
+				const wy = wall.y;
+				const ww = wall.width;
+				const wh = wall.height;
+
+				switch (side) {
+					case 'top':
+						return {
+							x: rx,
+							y: wy - rh - margin
+						};
+					case 'bottom':
+						return {
+							x: rx,
+							y: wy + wh + margin
+						};
+					case 'left':
+						return {
+							x: wx - rw - margin,
+							y: ry
+						};
+					case 'right':
+						return {
+							x: wx + ww + margin,
+							y: ry
+						};
+					default:
+						return { x: rx, y: ry }; // fallback: 現在位置
+				}
+			}
+
+
 			function handleReflection(elem) {
+				/*const side = getCollisionSide(this, elem);
+				if(side){
+					if(side == 'top' || side == 'bottom'){
+						this.dy *= -1;
+					}else if(side == 'left' || side == 'right'){
+						this.dx *= -1;
+					}
+					const safePos = getPreContactPosition(this, elem, side, 1);
+    				this.moveTo(safePos.x, safePos.y);
+				}*/
+				
 				const v = Rot_to_Vec(this.rotation, 315);
 				const f = Math.atan2(v.x, v.y);
 				const hw = this.width, hh = this.height;
@@ -2766,13 +2860,17 @@ window.onload = function() {
 					return;
 				}
 
-				const groups = [Wall, Block, TankBase];
+				if(Wall.intersectStrict(self).length + Block.intersectStrict(self).length > 0){
+					now_scene.removeChild(self);
+					return;
+				}
+				/*const groups = [Wall, Block, TankBase];
 				for (const group of groups) {
 					if (group.intersectStrict(self).length > 0) {
 						now_scene.removeChild(self);
 						break;
 					}
-				}
+				}*/
 			};
 
 			now_scene.addChild(this);
@@ -2810,12 +2908,9 @@ window.onload = function() {
 					return;
 				}
 
-				const groups = [Wall, Block, TankBase];
-				for (const group of groups) {
-					if (group.intersectStrict(self).length > 0) {
-						now_scene.removeChild(self);
-						break;
-					}
+				if(Wall.intersectStrict(self).length + Block.intersectStrict(self).length > 0){
+					now_scene.removeChild(self);
+					return;
 				}
 			};
 
@@ -5935,6 +6030,15 @@ window.onload = function() {
 				}
 			})
 
+			// 🔧 角度関連の補助関数
+			function normalizeRotation(angle) {
+				return (angle % 360 + 360) % 360;
+			}
+
+			function normalizeAngle(diff) {
+				return Math.abs(diff) >= 180 ? -diff : diff;
+			}
+
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
@@ -5957,17 +6061,55 @@ window.onload = function() {
 
 							const hitList = EnemyAim.intersectStrict(target);
 
-							for (let i = 0; i < hitList.length; i++) {
-								const elem = hitList[i];
+							if(hitList.length > 0){
+								const elem = hitList[0];
 
-								// カーソル位置の更新（変更があるときのみ）
-								if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
-									this.cursor.x = elem.tgt[0];
-									this.cursor.y = elem.tgt[1];
+								// 砲台の回転（初回のみ）
+								if (elem.hitTime === 0) {
+									let diff = normalizeAngle(this.cannon.rotation - normalizeRotation(elem.agl));
+									if(diff > 0){
+										this.aimRot = -Categorys.CannonRotSpeed[this.category];
+									}else{
+										this.aimRot = Categorys.CannonRotSpeed[this.category];
+									}
+									this.cannon2.rotation = elem.agl - this.aimRot * (Math.floor(1 + Math.random() * 10) * 2);
+									if(this.cannon.rotation !== elem.agl){
+										// カーソル位置の更新（変更があるときのみ）
+										if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
+											this.cursor.x = elem.tgt[0];
+											this.cursor.y = elem.tgt[1];
+										}
+										this.cannon.rotation = elem.agl;
+									}
 								}
+
+								// 発射フラグの設定（初回のみ）
+								if (elem.hitTime < 5 && !this.fireFlg) {
+									this.fireFlg = true;
+								}
+
+								// エイム時間の加算（上限付き）
+								if (this.aimingTime < this.aimCmpTime + 15) {
+									this.aimingTime += 3;
+								}
+
+								// 命中時間の更新と削除処理
+								elem.hitTime++;
+								if (elem.hitTime >= 5) {
+									now_scene.removeChild(elem);
+								}
+							}
+
+							/*for (let i = 0; i < hitList.length; i++) {
+								const elem = hitList[i];
 
 								// 砲台の回転（初回のみ）
 								if (elem.hitTime === 0 && this.cannon.rotation !== elem.agl) {
+									// カーソル位置の更新（変更があるときのみ）
+									if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
+										this.cursor.x = elem.tgt[0];
+										this.cursor.y = elem.tgt[1];
+									}
 									this.cannon.rotation = elem.agl;
 									this.cannon2.rotation = elem.agl - this.aimRot * (Math.floor(1 + Math.random() * 3) * 2);
 								}
@@ -5989,33 +6131,20 @@ window.onload = function() {
 								}
 
 								break; // 最初のヒットだけ処理して終了
-							}
+							}*/
 
-							/*EnemyAim.intersectStrict(target).forEach(elem => {
-								if (this.cursor.x != elem.tgt[0] || this.cursor.y != elem.tgt[1]) {
-									this.cursor.x = elem.tgt[0];
-									this.cursor.y = elem.tgt[1];
-								}
-								if (elem.hitTime == 0 && this.cannon.rotation != elem.agl) {
-									this.cannon.rotation = elem.agl;
-									this.cannon2.rotation = elem.agl - this.aimRot * 4;
-								}
-								if (elem.hitTime < 5 && !this.fireFlg) this.fireFlg = true;
-								if (this.aimingTime < (this.aimCmpTime + 15)) this.aimingTime += 3;
-								elem.hitTime++;
-								if (elem.hitTime >= 5) {
-									now_scene.removeChild(elem);
-								}
-								return;
-							})*/
-
-							if (this.aimingTime > 0) {
-								if (this.fireFlg && this.aimingTime % 10 == 0) {
+							/*if (this.aimingTime > 0) {
+								//if(Math.abs(this.aimRot) == Categorys.CannonRotSpeed[this.category]) this.aimRot = this.aimRot > 0 ? Categorys.CannonRotSpeed[this.category] / 2 : -Categorys.CannonRotSpeed[this.category] / 2;
+								if (this.fireFlg && this.aimingTime % 15 == 0) {
 									this.aimRot *= -1;
 								}
-							}
+							}else{
+								//if(Math.abs(this.aimRot) == Categorys.CannonRotSpeed[this.category] / 2)this.aimRot = this.aimRot > 0 ? Categorys.CannonRotSpeed[this.category] : -Categorys.CannonRotSpeed[this.category];
+							}*/
+							
 							
 							if (this.aimingTime < this.aimCmpTime) {
+								
 								if (!this.fireFlg) {
 									if (this.cannon.rotation != this.cannon2.rotation) {
 										this.cannon2.rotation -= this.aimRot;
@@ -7804,7 +7933,7 @@ window.onload = function() {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
-									this.fireLate = 15;
+									if((this.life / Categorys.Life[this.category]) < 0.25)this.fireLate = 15;
 								}
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -9035,7 +9164,7 @@ window.onload = function() {
 
 	function createSlidingStripeBar(isTop) {
 		const screenWidth = game.width;
-		const barHeight = 90;
+		const barHeight = 120;
 
 		// 表示用のバー（固定サイズ）
 		const bar = new Sprite(screenWidth, barHeight);
@@ -9083,27 +9212,33 @@ window.onload = function() {
 
 		let opaVal = 0.1;
 
-		/*patternSprite.tl
+		patternSprite.tl
 			.fadeTo(1.0,30,enchant.Easing.EXP_EASEOUT)
 			.delay(120)
-			.fadeOut(30,enchant.Easing.SIN_EASEOUT);*/
+			.fadeOut(30,enchant.Easing.SIN_EASEOUT);
 
 		// パターンをスライドさせる
 		patternSprite.onenterframe = function () {
+			const t = patternSprite.time / (180 - 1);
+			const alpha = 1.0 - t;
 			patternSprite.time++;
-			if(patternSprite.time % 2 == 0){
+			/*if(patternSprite.time % 2 == 0){
 				if(patternSprite.time2 == 0)patternSprite.opacity += opaVal;
-				if(patternSprite.opacity >= 0.8){
+				if(patternSprite.opacity >= 1){
 					patternSprite.time2++;
 					if(patternSprite.time2 == 3){
 						patternSprite.time2 = 0;
  						opaVal = -0.05;
 					}
 				}
-				else if(patternSprite.opacity < 0.05) opaVal = 0.1;
+				if(patternSprite.opacity < 0.05) opaVal = 0.1;
+			}*/
+			patternSprite.x -= isTop ? (12 * alpha + 1) : -(12 * alpha + 1);
+			if(isTop){
+				if (patternSprite.x <= -screenWidth) patternSprite.x = -(16 * alpha + 1);
+			}else{
+				if (patternSprite.x >= screenWidth) patternSprite.x = (16 * alpha + 1);
 			}
-			patternSprite.x -= isTop ? 4 : -4;
-			if (patternSprite.x <= -screenWidth) patternSprite.x = 0;
 		};
 
 		// グループとしてまとめる
@@ -9113,7 +9248,6 @@ window.onload = function() {
 
 		group.y = isTop ? 0 : game.height - barHeight;
 		group.x = isTop ? 0 : game.width - patternWidth;
-
 		return group;
 	}
 
@@ -9124,23 +9258,24 @@ window.onload = function() {
 
 		// 中央の「EMERGENCY」テキスト
 		const label = new Label('EMERGENCY');
-		label.font = 'bold 48px sans-serif';
-		label.color = 'red';
+		label.font = '128px Arial Black';
+		label.color = 'yellow';
 		label.textAlign = 'center';
 		label.width = screenWidth;
-		label.y = screenHeight / 2 - 24;
+		label.y = screenHeight / 2 - 64;
 		label.opacity = 0;
 
 		label.tl
-			.fadeIn(20)
-			.fadeOut(20)
-			.fadeIn(20)
-			.fadeOut(20)
-			.fadeIn(20)
-			.fadeOut(20)
-			.fadeIn(20)
-			.fadeOut(20)
-			.fadeIn(20)
+			.delay(5)
+			.fadeIn(15, enchant.Easing.EXP_EASEOUT)
+			.delay(20)
+			.fadeOut(15,enchant.Easing.SIN_EASEOUT)
+			.fadeIn(15, enchant.Easing.EXP_EASEOUT)
+			.delay(20)
+			.fadeOut(15,enchant.Easing.SIN_EASEOUT)
+			.fadeIn(15, enchant.Easing.EXP_EASEOUT)
+			.delay(20)
+			.fadeOut(15,enchant.Easing.SIN_EASEOUT)
 			.then(() => {
 				scene.removeChild(label);
 				scene.removeChild(topBar);
@@ -9150,9 +9285,9 @@ window.onload = function() {
 		const topBar = createSlidingStripeBar(true);
     	const bottomBar = createSlidingStripeBar(false);
 
+		scene.addChild(label);
 		scene.addChild(topBar);
 		scene.addChild(bottomBar);
-		scene.addChild(label);
 	}
 
 
@@ -9964,9 +10099,9 @@ window.onload = function() {
 				this.time++
 				if (this.time == 15){
 					game.assets['./sound/RoundStart.mp3'].play();
-					/*if((stageNum+1) % 20 == 0){
+					if((stageNum+1) % 20 == 0){
 						showEmergencyAlert(this);
-					}*/
+					}
 				}
 				//if ((stageNum % 20 == 0 && stageNum > 0) && this.time == 15) new Warning(scene)
 				if (this.time == 150) {
@@ -10072,8 +10207,47 @@ window.onload = function() {
 			walls[2] = new Wall(1, 13, 0, 1, 'Left', this);
 			walls[3] = new Wall(1, 13, 19, 1, 'Right', this);
 
+			this.backgroundMap.collisionData.forEach(row => {
+				this.grid[fy] = [];
+				let wallStartX = null;
+				let wallLength = 0;
+
+				row.forEach((col, j) => {
+					this.grid[fy][j] = (col === 0) ? 'Empty' : 'Obstacle';
+
+					if (col === 1) {
+						if (wallStartX === null) {
+							wallStartX = j;
+							wallLength = 1;
+						} else {
+							wallLength++;
+						}
+					} else {
+						if (wallStartX !== null) {
+							// 連続Wall終了 → まとめて生成
+							walls.push(new Wall(wallLength, 1, wallStartX, fy, 'block', this));
+							wallStartX = null;
+							wallLength = 0;
+						}
+
+						// その他障害物処理
+						if (col === 2) avoids.push(new Avoid(j, fy, this));
+						if (col === 3) holes.push(new Hole(j, fy, this));
+						if (col === 5) blocks.push(new Block(j, fy, this));
+					}
+				});
+
+				// 行末の連続Wall処理
+				if (wallStartX !== null) {
+					walls.push(new Wall(wallLength, 1, wallStartX, fy, 'block', this));
+				}
+
+				fy++;
+			});
+
+
 			/* 壁の当たり判定設置 */
-			this.backgroundMap.collisionData.forEach(colI => {
+			/*this.backgroundMap.collisionData.forEach(colI => {
 				this.grid[fy] = []
 				colI.forEach(colJ => {
 					switch (colJ) {
@@ -10104,7 +10278,7 @@ window.onload = function() {
 				});
 				fy++;
 				fx = 0;
-			});
+			});*/
 
 			this.addChild(this.MarkGroup);
 			this.addChild(this.BomGroup);
@@ -10117,7 +10291,7 @@ window.onload = function() {
 
 
 			let filterMap = new FillterMap(this);
-			//if (DebugFlg) filterMap.opacity = 0;
+			if (DebugFlg) filterMap.opacity = 0;
 
 			SetObs(this, this.backgroundMap.collisionData);
 			SetRefs(this, this.backgroundMap.collisionData);
