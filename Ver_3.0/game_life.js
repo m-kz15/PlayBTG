@@ -274,7 +274,7 @@ const Categorys = {
 		300, //lightgreen
 		180, //elitegray
 		90, //elitegreen
-		600, //snow
+		360, //snow
 		180, //pink
 		90, //sand
 		90, //random
@@ -409,7 +409,27 @@ const stagePath = [
 	'./stage/stage56.js',
 	'./stage/stage57.js',
 	'./stage/stage58.js',
-	'./stage/stage59.js'
+	'./stage/stage59.js',
+	'./stage/stage60.js',
+	'./stage/stage61.js',
+	'./stage/stage62.js',
+	'./stage/stage63.js',
+	'./stage/stage64.js',
+	'./stage/stage65.js',
+	'./stage/stage66.js',
+	'./stage/stage67.js',
+	'./stage/stage68.js',
+	'./stage/stage69.js',
+	'./stage/stage70.js',
+	'./stage/stage71.js',
+	'./stage/stage72.js',
+	'./stage/stage73.js',
+	'./stage/stage74.js',
+	'./stage/stage75.js',
+	'./stage/stage76.js',
+	'./stage/stage77.js',
+	'./stage/stage78.js',
+	'./stage/stage79.js',
 ];
 
 class Vector2 {
@@ -3030,6 +3050,7 @@ window.onload = function() {
 
 		applyBulletScaling: function(category) {
 			const scaleMap = {
+				0: [1.0, 1.0],
 				1: [0.8, 1.0],
 				7: [0.8, 0.8],
 				9: [0.7, 0.7],
@@ -4177,6 +4198,7 @@ window.onload = function() {
 						this.moveSpeed += 0.5;
 						this.shotSpeed += 1;
 						this.bulMax += 1;
+						this.fireLate = 24;
 						break;
 					case 7:
 						this.bulMax += 1;
@@ -5024,7 +5046,11 @@ window.onload = function() {
 
 			var shadow = new Surface(this.width, this.height);
 			shadow.context.beginPath();
-			shadow.context.fillStyle = 'rgba(0, 0, 0, 0.1)';
+			if(gameMode > 0){
+				shadow.context.fillStyle = 'rgba(0, 0, 0, 0.05)';
+			}else{
+				shadow.context.fillStyle = 'rgba(0, 0, 0, 0.1)';
+			}
 			shadow.context.arc(30, 30, 24, 0, Math.PI * 2, true);
 			shadow.context.fill();
 
@@ -8765,6 +8791,557 @@ window.onload = function() {
 		}
 	})
 
+	//	攻守両立型
+	var Entity_Type11 = Class.create(TankBase, {
+		initialize: function(x, y, category, num, scene) {
+			TankBase.call(this, x, y, category, num, scene);
+
+			const Around = new InterceptAround(this);
+			const Front = new InterceptFront(this.cannon);
+			const target = tankEntity[0];
+
+			this.shotSpeed = Categorys.ShotSpeed[this.category];
+			this.fireLate = 16;
+			this.ref = 1;
+			this.bulMax = 3;
+			this.bomMax = 0;
+			this.moveSpeed = 3.2;
+			this.reload = 120;
+			//this.bodyRotSpeed = 15;
+			this.bodyRotSpeed = 3.5;
+
+			this.attackTarget = target;
+			this.escapeTarget = null;
+
+			this.cursor = new Target(this, scene);
+
+			this.shotStopFlg = false;
+			this.shotStopTime = 0;
+
+			var dirValue = 0;
+			var hittingTime = 0;
+
+			this.fullFireFlg = false;
+			this.firecnt = 0;
+
+			var rot = 0;
+			var h = {x: 0, y: 0};
+
+			var map = scene.backgroundMap;
+			var grid = scene.grid;
+
+			var myPath = [0, 0];
+			var targetPath = [0, 0];
+			var root = false;
+			var rootFlg = false;
+
+			this.distance = Categorys.Distances[this.category];
+
+			for (var i = 0; i < this.bulMax; i++) {
+				bulStack[this.num].push(false); //  弾の状態をoff
+			}
+
+			var EnemyAim = Class.create(Aim, {
+				initialize: function(cannon, cursor, category, num) {
+					Aim.call(this, cannon, cursor, category, num, scene);
+				}
+			});
+
+			function Instrumentation(weak, target1, target2) {
+				let dist1 = Get_Distance(weak, target1);
+				let dist2 = Get_Distance(weak, target2);
+				if (dist1 >= dist2) {
+					return dist2;
+				} else {
+					return null;
+				}
+			}
+
+			function SelDirection(target1, target2, or) {
+				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
+				//	0:	離れる	1:	近寄る
+				//	0:	上
+				// 	1:	右
+				// 	2:	下
+				// 	3:	左
+				//	4:	右上
+				//	5:	右下
+				//	6:	左下
+				//	7:	左上
+				if (or == 0) {
+					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) { //	相手より右にいる場合
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) { //	相手より下にいる場合
+							arr = [1, 2, 5];
+						} else {
+							arr = [0, 1, 4];
+						}
+					} else {
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+							arr = [2, 3, 6];
+						} else {
+							arr = [0, 3, 7];
+						}
+					}
+				} else if (or == 1) {
+					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+							arr = [0, 3, 7];
+						} else {
+							arr = [2, 3, 6];
+						}
+					} else {
+						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+							arr = [0, 1, 4];
+						} else {
+							arr = [1, 2, 5];
+						}
+					}
+				}
+
+				let rem = [];
+					//myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
+				var grid = scene.grid;
+				let bk = arr;
+				let paths = [270, 0, 90, 180, 315, 45, 135, 225];
+				for(let i = 0; i < 8; i++){
+					var path = Path_Recreate(target1, paths[i]);
+					if (grid[path[0]][path[1]] == 'Obstacle') rem.push(i);
+				}
+				/*if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
+				if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
+				if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
+				if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
+				if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
+				if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
+				if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
+				if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);*/
+
+				arr = arr.filter(i => rem.indexOf(i) == -1);
+
+				if (arr.length == 0) {
+					arr = bk;
+				}
+
+				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+			}
+
+			function Path_Recreate(target, r){
+				let rad = Rot_to_Rad(r);
+				let dx = Math.cos(rad) * Quarter;
+				let dy = Math.sin(rad) * Quarter;
+				let path = [parseInt(((target.y + target.height / 2) - dy) / PixelSize), parseInt(((target.x + target.width / 2) - dx) / PixelSize)];
+				console.log(path)
+				return path;
+			}
+
+			function resolveCollision(entity, elem, isTank = false){
+				switch (elem.name) {
+					case isTank ? 'TankTop' : 'ObsTop':
+						entity.moveTo(entity.x, elem.y - 60);
+						break;
+					case isTank ? 'TankBottom' : 'ObsBottom':
+						entity.moveTo(entity.x, elem.y + elem.height);
+						break;
+					case isTank ? 'TankLeft' : 'ObsLeft':
+						entity.moveTo(elem.x - 60, entity.y);
+						break;
+					case isTank ? 'TankRight' : 'ObsRight':
+						entity.moveTo(elem.x + elem.width, entity.y);
+						break;
+				}
+				if(entity.moveFlg) hittingTime++;
+				h = Get_Center(elem);
+			}
+
+			function getIntersect4(target){
+				let path = [parseInt((target.y + target.height / 2) / PixelSize), parseInt((target.x + target.width / 2) / PixelSize)];
+				let lt = [parseInt(target.y / PixelSize), parseInt(target.x / PixelSize)],
+				rt = [parseInt(target.y / PixelSize), parseInt((target.x + target.width) / PixelSize)],
+				rb = [parseInt((target.y + target.height) / PixelSize), parseInt((target.x + target.width) / PixelSize)],
+				lb = [parseInt((target.y + target.height) / PixelSize), parseInt(target.x / PixelSize)];
+				return path == lt && path == rt && path == rb && path == lb;
+			}
+
+			const getGridCoord = (entity) => [
+				Math.floor((entity.y + entity.height / 2) / PixelSize),
+				Math.floor((entity.x + entity.width / 2) / PixelSize)
+			];
+
+			this.onenterframe = function() {
+				if (!deadFlgs[this.num] && gameStatus == 0) {
+					if (this.life > 0) {
+						if (WorldFlg) {
+							this._Damage();
+
+							this.time++;
+
+							if (this.time % 2 == 0) {
+								this.shotNGflg = false;
+								this.fireFlg = false;
+							}
+
+							if (this.shotStopFlg) {
+								this.shotStopTime++;
+								if (this.shotStopTime > 10) {
+									this.shotStopFlg = false;
+									this.shotStopTime = 0;
+								}
+							} else {
+								if(!this.fullFireFlg) new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+							}
+
+
+							EnemyAim.intersect(this.cursor).forEach(elem => {
+								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
+								return;
+							})
+
+							if (this.ref > 0) {
+								Front.intersectStrict(RefObstracle).forEach(function() {
+									this.shotNGflg = true;
+									return;
+								})
+							}
+
+
+							if (this.time % 5 == 0) {
+								if (this.attackTarget != tankEntity[0] && this.escapeFlg == false) this.attackTarget = tankEntity[0];
+								this.escapeFlg = false;
+							}
+
+							if (Bullet.collection.length > 0) {
+								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
+									const c = Bullet.collection[i];
+									if (!bulStack[c.num][c.id]) continue;
+
+									const defFlg = Categorys.DefenceFlg[this.category];
+									if ((c.num === 0 && !defFlg[0]) ||
+										(c.num === this.num && !defFlg[1]) ||
+										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+									const dist = Instrumentation(this.weak, this.attackTarget, c);
+									if (dist == null) continue;
+
+									const defRange = Categorys.DefenceRange[this.category];
+									const escRange = Categorys.EscapeRange[this.category];
+
+									switch (c.num) {
+										case 0:
+											if (dist < defRange[0]) {
+												if (escRange[0] && escRange[1] != 0) {
+													if (dist < escRange[1]) {
+														if (Search(c, this, 45, escRange[1])) {
+															this.escapeTarget = c;
+															this.escapeFlg = true;
+														}
+													}
+												}
+											}
+											break;
+
+										case this.num:
+											if (this.ref == 0) break;
+											if (dist < defRange[1] && dist > 100) {
+												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
+												if (match) {
+													if (escRange[0] && escRange[2] != 0) {
+														if (dist < escRange[2]) {
+															this.escapeTarget = c;
+															this.escapeFlg = true;
+														}
+													}
+												}
+											}
+											break;
+
+										default:
+											if (dist < defRange[2]) {
+												if (escRange[0] && escRange[3] != 0) {
+													if (dist < escRange[3]) {
+														this.escapeTarget = c;
+														this.escapeFlg = true;
+													}
+												}
+											}
+											break;
+									}
+								}
+							}
+
+							if (this.bulReloadFlg == false) {
+								if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
+									this.bulReloadFlg = true;
+									this.fullFireFlg = false;
+									this.firecnt = 0;
+									this.fireLate = 16;
+								}
+							} else {
+								if (this.bulReloadTime < this.reload) {
+									this.bulReloadTime++;
+									if (this.shotNGflg == false) this.shotNGflg = true;
+								} else {
+									this.shotNGflg = false;
+									this.bulReloadFlg = false;
+									this.bulReloadTime = 0;
+								}
+
+							}
+
+							if (!this.shotNGflg) {
+								if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] == 0) || this.fullFireFlg)) {
+									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
+										this._Attack();
+									}
+								}
+							}
+
+							if (this.moveSpeed > 0) {
+								if (this.time % 3 == 0) {
+									if (this.escapeFlg) {
+										//SelDirection(this.weak, this.escapeTarget, 0);
+										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
+										root = false;
+									} else if (this.moveFlg) {
+										if (hittingTime >= 20) {
+											myPath = getGridCoord(this);
+
+											let arr = [];
+											switch (dirValue) {
+												case 0: this.y += this.moveSpeed; break;
+												case 1: this.x -= this.moveSpeed; break;
+												case 2: this.y -= this.moveSpeed; break;
+												case 3: this.x += this.moveSpeed; break;
+												case 4: this.x -= this.moveSpeed; this.y += this.moveSpeed; break;
+												case 5: this.x -= this.moveSpeed; this.y -= this.moveSpeed; break;
+												case 6: this.x += this.moveSpeed; this.y -= this.moveSpeed; break;
+												case 7: this.x += this.moveSpeed; this.y += this.moveSpeed; break;
+											}
+
+											h = {x: Math.floor(h.x / PixelSize), y: Math.floor(h.y / PixelSize)};
+
+											if (h.x === 0 || h.y === 0) {
+												arr = dirValue % 2 === 0 ? [1, 3] : [0, 2];
+											} else {
+												if(dirValue < 4){
+													if (dirValue % 2 === 0) {
+														if(h.x > myPath[1]){
+															arr.push(3);
+															arr.push(h.y > myPath[0] ? 7 : 6);
+														}else{
+															arr.push(1);
+															arr.push(h.y > myPath[0] ? 4 : 5);
+														}
+													} else {
+														if(h.y > myPath[0]){
+															arr.push(0);
+															arr.push(h.x > myPath[1] ? 7 : 4);
+														}else{
+															arr.push(2);
+															arr.push(h.x > myPath[1] ? 6 : 5);
+														}
+													}
+												}else{
+													switch(dirValue){
+														case 4:
+															arr.push(5, 7);
+															break;
+														case 5:
+															arr.push(4, 6);
+															break;
+														case 6:
+															arr.push(5, 7);
+															break;
+														case 7:
+															arr.push(4, 6);
+															break;
+													}
+												}
+												
+												
+											}
+
+											if (!arr.includes(dirValue)) {
+												dirValue = arr[Math.floor(Math.random() * arr.length)];
+											}
+											hittingTime = 0;
+											root = false;
+										} else if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
+											SelDirection(this, this.attackTarget, 0);
+											root = false;
+										} else {
+											//  自身の位置とターゲットの位置をざっくり算出
+											if(root == false || getIntersect4(this)) myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)]
+											targetPath = [parseInt((target.y + target.height / 2) / PixelSize), parseInt((target.x + target.width / 2) / PixelSize)]
+											//  マップの障害物情報に自身とターゲットの位置設定
+											for (var i = 0; i < grid.length; i++) {
+												for (var j = 0; j < grid[i].length; j++) {
+													if (i == myPath[0] && j == myPath[1]) {
+														grid[i][j] = 'Start';
+													} else if (i == targetPath[0] && j == targetPath[1]) {
+														grid[i][j] = 'Goal';
+													} else {
+														//  StartやGoalの位置が更新されている場合の処理
+														if (map.collisionData[i][j] == 0) {
+															grid[i][j] = 'Empty';
+														} else {
+															grid[i][j] = 'Obstacle';
+														}
+													}
+												}
+											}
+											root = findShortestPath(myPath, grid, scene);
+											//root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, scene)
+											if(root == false){
+												SelDirection(this, this.attackTarget, 1);
+											}else{
+												if (root[0] == "East") {
+													dirValue = 1;
+													if (root[1] == "North") {
+														dirValue = 4;
+													} else if (root[1] == "South") {
+														dirValue = 5;
+													}
+												} else if (root[0] == "West") {
+													dirValue = 3;
+													if (root[1] == "North") {
+														dirValue = 7;
+													} else if (root[1] == "South") {
+														dirValue = 6;
+													}
+												} else if (root[0] == "North") {
+													dirValue = 0;
+													if (root[1] == "East") {
+														dirValue = 4;
+													} else if (root[1] == "West") {
+														dirValue = 7;
+													}
+												} else if (root[0] == "South") {
+													dirValue = 2;
+													if (root[1] == "East") {
+														dirValue = 5;
+													} else if (root[1] == "West") {
+														dirValue = 6;
+													}
+												}
+													/*let paths = [270, 0, 90, 180, 315, 45, 135, 225];
+													var path = Path_Recreate(this, paths[dirValue]);
+													if (grid[path[0]][path[1]] == 'Obstacle') SelDirection(this, this.attackTarget, 1);*/
+												}
+											if (this.time % 6 == 0) {
+												
+												
+											}
+
+										}
+										if (Bom.collection.length > 0) {
+											for (var i = 0, l = Bom.collection.length; i < l; i++) {
+												let c = Bom.collection[i];
+												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 200) {
+													SelDirection(this, c, 0);
+													root = false;
+													break;
+												}
+											}
+										}
+									}
+								}
+								if (!this.shotStopFlg && !this.fullFireFlg) {
+									switch (dirValue) {
+										case 0:
+											rot = 0;
+											break;
+										case 1:
+											rot = 90;
+											break;
+										case 2:
+											rot = 180;
+											break;
+										case 3:
+											rot = 270;
+											break;
+										case 4:
+											rot = 45;
+											break;
+										case 5:
+											rot = 135;
+											break;
+										case 6:
+											rot = 225;
+											break;
+										case 7:
+											rot = 315;
+											break;
+									}
+									this._Move(rot);
+
+								}
+							}
+							h = { x: 0, y: 0 };
+							// タンクとの衝突処理
+							TankObstracle.intersect(this).forEach(elem => {
+								if (!deadFlgs[elem.num] && elem.num !== this.num) {
+									resolveCollision(this, elem, true);
+								}
+							});
+
+							// 障害物との衝突処理
+							Obstracle.intersect(this).forEach(elem => {
+								resolveCollision(this, elem, false);
+							});
+						}
+					} else {
+						destruction++;
+						this._Dead();
+					}
+				}
+			}
+		},
+		_Attack: function() {
+			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
+			if (WorldFlg) { //  処理しても良い状態か
+				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					for (let i = 0; i < this.bulMax; i++) {
+						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+							this.shotStopFlg = true;
+							if (Math.floor(Math.random() * 1) == 0) this._ResetAim();
+							if (!this.fullFireFlg) {
+								this.fullFireFlg = true;
+								this.firecnt++;
+								this.fireLate = 8;
+								//if (Math.floor(Math.random() * 1) == 0) this._ResetAim();
+							} else {
+								this.firecnt++;
+							}
+							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							break;
+						}
+					}
+
+				}
+			}
+		},
+		_ResetAim: function() {
+			if (this.attackTarget.name == "Entity") {
+				//let random = 35 + (15 * Math.floor(Math.random() * 3));
+				let random = 35 + (20 * (bullets[this.num]));
+				//console.log(random)
+				let t1 = Get_Center(this);
+				let t2 = Get_Center(this.attackTarget);
+				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
+				let dis = Math.trunc(Vec_Distance(t1, t2) / random);
+				let val = dis * this.shotSpeed;
+				v.x = v.x * val + t2.x;
+				v.y = v.y * val + t2.y;
+				let p = {
+					x: t1.x - v.x,
+					y: t1.y - v.y
+				};
+				let rad = Math.atan2(p.y, p.x);
+				this.cannon.rotation = Rad_to_Rot(rad);
+			}
+		}
+	})
+
 	var PictureTank = Class.create(Sprite, {
 		initialize: function(x, y, category, scene) {
 			Sprite.call(this, PixelSize + 8, PixelSize);
@@ -9839,7 +10416,7 @@ window.onload = function() {
 					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.5) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。<br>【弱化】装填にかかる時間の延長"],
 					[colorsName[4], "　耐久　：" + Categorys.Life[4], "　弾数　：" + (Categorys.MaxBullet[4] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[4] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[4], "移動速度：やや速い(" + Categorys.MoveSpeed[4] + ")", "・最短追尾型<br>　弾数が多く、発射頻度も高いため<br>　物量で攻める突撃をしてくる。"],
 					[colorsName[5], "　耐久　：" + Categorys.Life[5], "　弾数　：" + (Categorys.MaxBullet[5] + 1), "　弾速　：やや速い(" + Categorys.ShotSpeed[5] + ")", "跳弾回数：" + Categorys.MaxRef[5], "移動速度：普通(" + (Categorys.MoveSpeed[5] + 0.5) + ")", "・生存特化型<br>　跳弾回数の多さが特徴の戦車。<br>　反射した弾に要注意。"],
-					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[6] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：速い(" + (Categorys.MoveSpeed[6] + 0.5) + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。"],
+					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[6] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：速い(" + (Categorys.MoveSpeed[6] + 0.5) + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。　<br>【強化】砲撃間隔の短縮"],
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + (Categorys.MaxBullet[7] + 1), "　弾速　：とても速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：動かない(" + Categorys.MoveSpeed[7] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。<br>【強化】装填にかかる時間の短縮"],
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　クリティカル発生率がとても高い。<br>　弾は小さいが多段ヒットするため要注意<br>【強化】砲撃間隔の短縮"],
@@ -9971,6 +10548,7 @@ window.onload = function() {
 							tankBulCnt.color = 'red';
 							tankBulSpd.color = 'red';
 							tankSpd.color = 'red';
+							tankDsc.color = 'red';
 							break;
 						case 7:
 							tankBulCnt.color = 'red';
@@ -10303,7 +10881,7 @@ window.onload = function() {
 				if (!retryFlg) {
 					switch (stageData[i][2]) {
 						case 0:
-							tankEntity.push(new Entity_Type10(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
+							tankEntity.push(new Entity_Type11(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
 							break;
 						case 1:
 						case 7:
@@ -10342,7 +10920,7 @@ window.onload = function() {
 					if (deadTank[i - 3] == false) {
 						switch (stageData[i][2]) {
 							case 0:
-								tankEntity.push(new Entity_Type10(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
+								tankEntity.push(new Entity_Type11(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
 								break;
 							case 1:
 							case 7:

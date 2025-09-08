@@ -275,7 +275,7 @@ const Categorys = {
 		300, //lightgreen
 		180, //elitegray
 		90, //elitegreen
-		600, //snow
+		360, //snow
 		180, //pink
 		90, //sand
 		90, //random
@@ -411,6 +411,26 @@ const stagePath = [
 	'./stage/stage57.js',
 	'./stage/stage58.js',
 	'./stage/stage59.js',
+	'./stage/stage60.js',
+	'./stage/stage61.js',
+	'./stage/stage62.js',
+	'./stage/stage63.js',
+	'./stage/stage64.js',
+	'./stage/stage65.js',
+	'./stage/stage66.js',
+	'./stage/stage67.js',
+	'./stage/stage68.js',
+	'./stage/stage69.js',
+	'./stage/stage70.js',
+	'./stage/stage71.js',
+	'./stage/stage72.js',
+	'./stage/stage73.js',
+	'./stage/stage74.js',
+	'./stage/stage75.js',
+	'./stage/stage76.js',
+	'./stage/stage77.js',
+	'./stage/stage78.js',
+	'./stage/stage79.js',
 ];
 
 class Vector2 {
@@ -4180,6 +4200,7 @@ window.onload = function() {
 						this.moveSpeed += 0.5;
 						this.shotSpeed += 1;
 						this.bulMax += 1;
+						this.fireLate = 24;
 						break;
 					case 7:
 						this.bulMax += 1;
@@ -9892,7 +9913,7 @@ window.onload = function() {
 					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.5) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。<br>【弱化】装填にかかる時間の延長"],
 					[colorsName[4], "　耐久　：" + Categorys.Life[4], "　弾数　：" + (Categorys.MaxBullet[4] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[4] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[4], "移動速度：やや速い(" + Categorys.MoveSpeed[4] + ")", "・最短追尾型<br>　弾数が多く、発射頻度も高いため<br>　物量で攻める突撃をしてくる。"],
 					[colorsName[5], "　耐久　：" + Categorys.Life[5], "　弾数　：" + (Categorys.MaxBullet[5] + 1), "　弾速　：やや速い(" + Categorys.ShotSpeed[5] + ")", "跳弾回数：" + Categorys.MaxRef[5], "移動速度：普通(" + (Categorys.MoveSpeed[5] + 0.5) + ")", "・生存特化型<br>　跳弾回数の多さが特徴の戦車。<br>　反射した弾に要注意。"],
-					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[6] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：速い(" + (Categorys.MoveSpeed[6] + 0.5) + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。"],
+					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[6] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：速い(" + (Categorys.MoveSpeed[6] + 0.5) + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。<br>【強化】砲撃間隔の短縮"],
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + (Categorys.MaxBullet[7] + 1), "　弾速　：とても速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：動かない(" + Categorys.MoveSpeed[7] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。<br>【強化】装填にかかる時間の短縮"],
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>　弾は小さいが多段ヒットするため要注意<br>【強化】砲撃間隔の短縮"],
@@ -10024,6 +10045,7 @@ window.onload = function() {
 							tankBulCnt.color = 'red';
 							tankBulSpd.color = 'red';
 							tankSpd.color = 'red';
+							tankDsc.color = 'red';
 							break;
 						case 7:
 							tankBulCnt.color = 'red';
