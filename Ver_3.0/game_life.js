@@ -327,7 +327,7 @@ const Categorys = {
 		[true, 280, 0, 0], //sand
 		[true, 400, 0, 280], //random
 		[true, 240, 200, 160], //dazzle
-		[true, 240, 200, 160] //abysal
+		[true, 280, 200, 160] //abysal
 	],
 	Distances: [
 		196, //Player
@@ -341,9 +341,9 @@ const Categorys = {
 		300, //snow
 		0, //pink
 		150, //sand
-		320, //random
+		280, //random
 		250, //dazzle
-		200 //abysal
+		224 //abysal
 	]
 };
 
@@ -965,22 +965,22 @@ function Escape_Rot8(from, to, value) {
 
     // 除外方向の計算
     const angleRemovals = [
-        { range: [0, 23], remove: [0, 4] },
-        { range: [24, 46], remove: [0, 4] },
-        { range: [47, 68], remove: [1, 4] },
-        { range: [69, 90], remove: [1, 4] },
-        { range: [91, 113], remove: [1, 5] },
-        { range: [114, 136], remove: [1, 5] },
-        { range: [137, 158], remove: [2, 5] },
-        { range: [159, 180], remove: [2, 5] },
-        { range: [181, 203], remove: [2, 6] },
-        { range: [204, 226], remove: [2, 6] },
-        { range: [227, 248], remove: [3, 6] },
-        { range: [249, 270], remove: [3, 6] },
-        { range: [271, 293], remove: [3, 7] },
-        { range: [294, 316], remove: [3, 7] },
-        { range: [317, 338], remove: [0, 7] },
-        { range: [339, 360], remove: [0, 7] }
+        { range: [0, 23], remove: [0, 4, 2] },
+        { range: [24, 46], remove: [0, 4, 6] },
+        { range: [47, 68], remove: [1, 4, 6] },
+        { range: [69, 90], remove: [1, 4, 3] },
+        { range: [91, 113], remove: [1, 5, 3] },
+        { range: [114, 136], remove: [1, 5, 7] },
+        { range: [137, 158], remove: [2, 5, 7] },
+        { range: [159, 180], remove: [2, 5, 0] },
+        { range: [181, 203], remove: [2, 6, 0] },
+        { range: [204, 226], remove: [2, 6, 4] },
+        { range: [227, 248], remove: [3, 6, 4] },
+        { range: [249, 270], remove: [3, 6, 1] },
+        { range: [271, 293], remove: [3, 7, 1] },
+        { range: [294, 316], remove: [3, 7, 5] },
+        { range: [317, 338], remove: [0, 7, 5] },
+        { range: [339, 360], remove: [0, 7, 2] }
     ];
 
     for (const { range, remove } of angleRemovals) {
@@ -1028,6 +1028,142 @@ function Escape_Rot8(from, to, value) {
 
     return value;
 }
+
+function Escape_Rot8_Multi(from, toList, value) {
+    const t1 = Get_Center(from);
+    const dangerScores = Array(8).fill(0);
+
+    const directionVectors = [
+        { dir: 0, x: 0, y: -1 },   // 上
+        { dir: 1, x: 1, y: 0 },    // 右
+        { dir: 2, x: 0, y: 1 },    // 下
+        { dir: 3, x: -1, y: 0 },   // 左
+        { dir: 4, x: 1, y: -1 },   // 右上
+        { dir: 5, x: 1, y: 1 },    // 右下
+        { dir: 6, x: -1, y: 1 },   // 左下
+        { dir: 7, x: -1, y: -1 }   // 左上
+    ];
+
+    for (const to of toList) {
+        const t2 = Get_Center(to);
+
+        // 弾の進行方向ベクトル
+        const rotRad = to.rotation * Math.PI / 180;
+        const vx = Math.cos(rotRad);
+        const vy = Math.sin(rotRad);
+
+        // プレイヤーとの相対ベクトル
+        const dx = t1.x - t2.x;
+        const dy = t1.y - t2.y;
+        const len = Math.hypot(dx, dy);
+        const ux = dx / len;
+        const uy = dy / len;
+
+        // 弾の進行方向とプレイヤー位置の一致度
+        const dot = vx * ux + vy * uy;
+        if (dot > 0.7) {
+            const angle = (Math.atan2(-vy, -vx) * 180 / Math.PI + 360) % 360;
+            const dir = Math.round(angle / 45) % 8;
+            dangerScores[dir] += 100;
+        }
+
+        // 弾の進行方向に対して各方向の角度を評価
+        for (const vec of directionVectors) {
+            const len2 = Math.hypot(vec.x, vec.y);
+            const dot2 = (vx * vec.x + vy * vec.y) / len2;
+            const cross = (vx * vec.y - vy * vec.x) / len2;
+            const angle = Math.atan2(cross, dot2) * 180 / Math.PI;
+            const absAngle = (angle + 360) % 360;
+
+			if ((absAngle >= 24 && absAngle <= 68) || (absAngle >= 294 && absAngle <= 338)) {
+				dangerScores[vec.dir] += 5; // 優遇
+			} else if ((absAngle >= 114 && absAngle <= 158) || (absAngle >= 204 && absAngle <= 248)) {
+				dangerScores[vec.dir] -= 5; // 優遇
+			} else if ((absAngle >= 69 && absAngle <= 113) || (absAngle >= 249 && absAngle <= 293)) {
+                dangerScores[vec.dir] -= 15; // 優遇
+            } else {
+                dangerScores[vec.dir] += 10;  // やや危険
+            }
+        }
+
+        // 角度ベースの除外方向（従来ロジック）
+        const v = Rot_to_Vec(to.rotation, -90);
+        v.x = v.x * 96 + t2.x;
+        v.y = v.y * 96 + t2.y;
+
+        const dx2 = t1.x - v.x;
+        const dy2 = t1.y - v.y;
+        const angle2 = (Math.atan2(-dy2, -dx2) * 180 / Math.PI + 360) % 360;
+
+        const angleRemovals = [
+            { range: [0, 23], remove: [0, 4] },
+            { range: [24, 46], remove: [0, 4] },
+            { range: [47, 68], remove: [1, 4] },
+            { range: [69, 90], remove: [1, 4] },
+            { range: [91, 113], remove: [1, 5] },
+            { range: [114, 136], remove: [1, 5] },
+            { range: [137, 158], remove: [2, 5] },
+            { range: [159, 180], remove: [2, 5] },
+            { range: [181, 203], remove: [2, 6] },
+            { range: [204, 226], remove: [2, 6] },
+            { range: [227, 248], remove: [3, 6] },
+            { range: [249, 270], remove: [3, 6] },
+            { range: [271, 293], remove: [3, 7] },
+            { range: [294, 316], remove: [3, 7] },
+            { range: [317, 338], remove: [0, 7] },
+            { range: [339, 360], remove: [0, 7] }
+        ];
+
+        for (const { range, remove } of angleRemovals) {
+            if (angle2 >= range[0] && angle2 <= range[1]) {
+                remove.forEach(dir => dangerScores[dir] += 15);
+                break;
+            }
+        }
+    }
+
+    // 障害物による除外方向
+    const obstacleSet = new Set();
+    if (from.category === 11) {
+        const grid = now_scene.grid;
+        const rad = (from.rotation - 90) * Math.PI / 180;
+        const tx = t1.x - Math.cos(rad) * from.width;
+        const ty = t1.y - Math.sin(rad) * from.height;
+        const y = Math.floor(ty / PixelSize);
+        const x = Math.floor(tx / PixelSize);
+
+        const obstacleDirs = [
+            [y - 1, x, 0], [y, x + 1, 1], [y + 1, x, 2], [y, x - 1, 3],
+            [y - 1, x + 1, 4], [y + 1, x + 1, 5], [y + 1, x - 1, 6], [y - 1, x - 1, 7]
+        ];
+
+        obstacleDirs.forEach(([yy, xx, dir]) => {
+            if (grid[yy]?.[xx] === 'Obstacle') {
+                obstacleSet.add(dir);
+                dangerScores[dir] += 1000;
+            }
+        });
+    }
+
+    // 候補方向の中で最も危険度が低い方向を選択
+    const candidates = [...Array(8).keys()].filter(i => !obstacleSet.has(i));
+    if (candidates.length === 0) return value;
+
+    const sorted = candidates
+        .map(dir => ({ dir, score: dangerScores[dir] }))
+        .sort((a, b) => a.score - b.score);
+
+    const top3 = sorted.slice(0, 2).map(item => item.dir);
+
+	// 現在の回避方向が候補に含まれていれば優先
+    if (top3.includes(value)) return value;
+
+    // 含まれていなければランダム選択
+    return top3[Math.floor(Math.random() * top3.length)];
+}
+
+
+
 
 function getOrientation(screen, window) {
 	// 新しいAPIが利用可能な場合は、screen.orientationを使用
@@ -4153,6 +4289,7 @@ window.onload = function() {
 			this.moveSpeed = Categorys.MoveSpeed[this.category];
 			this.reload = Categorys.Reload[this.category];
 			this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category];
+			this.distance = Categorys.Distances[this.category];
 
 			this.bomSetFlg = false;
 			this.bomReload = 0;
@@ -5308,7 +5445,7 @@ window.onload = function() {
 												dirValue = arr[Math.floor(Math.random() * arr.length)];
 											}
 											hittingTime = 0;
-										} else if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+										} else if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 											if (this.time % 10 == 0) {
@@ -5759,7 +5896,7 @@ window.onload = function() {
 									dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
 								} else {
 									const distSq = getDistanceSq(this.weak, this.attackTarget);
-									const thresholdSq = Categorys.Distances[category] ** 2;
+									const thresholdSq = this.distance ** 2;
 									if (hittingTime >= 35) {
 										myPath = [
 											parseInt((this.y + this.height / 2) / PixelSize),
@@ -6592,7 +6729,7 @@ window.onload = function() {
 										const dx = this.weak.x - this.attackTarget.x;
 										const dy = this.weak.y - this.attackTarget.y;
 										const distSq = dx * dx + dy * dy;
-										const thresholdSq = Categorys.Distances[category] ** 2;
+										const thresholdSq = this.distance ** 2;
 
 										if (distSq < thresholdSq) {
 											SelDirection(this.weak, this.attackTarget, 0);
@@ -6669,7 +6806,11 @@ window.onload = function() {
 													closest = c;
 												}
 											}
-											if (closest) SelDirection(this.weak, closest, 0);
+											if (closest){
+												this.bomReload = 0;
+												this.bomSetFlg = true;
+												SelDirection(this.weak, closest, 0);
+											}
 										}
 									}
 								}
@@ -6749,7 +6890,7 @@ window.onload = function() {
 			const Front = new InterceptFront(this.cannon);
 			const target = tankEntity[0];
 
-			Around.scale(1.4, 1.4);
+			Around.scale(1.6, 1.6);
 
 			this.attackTarget = tankEntity[0];
 			this.escapeTarget = null;
@@ -6758,6 +6899,8 @@ window.onload = function() {
 
 			this.shotStopFlg = false;
 			this.shotStopTime = 0;
+
+			this.escapeTargets = [];
 
 			var dirValue = 0;
 			var hittingTime = 0;
@@ -6957,12 +7100,100 @@ window.onload = function() {
 								})
 							}
 
-							if (this.time % 5 == 0) {
+							if (this.time % 3 == 0) {
 								if (this.attackTarget != tankEntity[0] && this.escapeFlg == false) this.attackTarget = tankEntity[0];
 								this.escapeFlg = false;
 							}
 
+							this.escapeTargets = [];
+
 							if (Bullet.collection.length > 0) {
+								const escapeList = [];
+								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
+									const c = Bullet.collection[i];
+									if (!bulStack[c.num][c.id]) continue;
+
+									const defFlg = Categorys.DefenceFlg[this.category];
+									if ((c.num === 0 && !defFlg[0]) ||
+										(c.num === this.num && !defFlg[1]) ||
+										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+									const dist = Instrumentation(this.weak, this.attackTarget, c);
+									if (dist == null) continue;
+
+									const defRange = Categorys.DefenceRange[this.category];
+									const escRange = Categorys.EscapeRange[this.category];
+
+									let escapeScore = 0;
+
+									switch (c.num) {
+										case 0:
+											if (dist < defRange[0]) {
+												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
+												if (match){
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+												}else{
+													this.attackTarget = target;
+												}
+												if (escRange[0] && escRange[1] != 0 && dist < escRange[1]) {
+													if (Search(c, this, 75, escRange[1])) {
+														escapeScore += 1000 - dist;
+													}
+												}
+											}
+											break;
+
+										case this.num:
+											if (this.ref == 0) break;
+											if (dist < defRange[1] && dist > 100) {
+												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
+												if (match) {
+													if (escRange[0] && escRange[2] != 0 && dist < escRange[2]) {
+														if (Search(c, this, 60, escRange[2])) {
+															escapeScore += 800 - dist;
+														}
+													}
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+												}
+											}
+											
+											break;
+
+										default:
+											if (dist < defRange[2]) {
+												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
+												if (match){
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+												}else{
+													this.attackTarget = target;
+												}
+												if (escRange[0] && escRange[3] != 0 && dist < escRange[3]) {
+													if (Search(c, this, 60, escRange[3])) {
+													escapeScore += 600 - dist;
+													}
+												}
+											}
+											break;
+									}
+
+									if (escapeScore > 0) {
+										escapeList.push({ bullet: c, score: escapeScore });
+									}
+								}
+								// 優先度順にソート
+								escapeList.sort((a, b) => b.score - a.score);
+
+								// 複数の回避対象を保持
+								this.escapeTargets = escapeList.map(item => item.bullet);
+							}
+
+							// 最も危険な弾を主回避対象に設定（従来互換）
+							if (this.escapeTargets.length > 0) {
+								this.escapeTarget = this.escapeTargets[0];
+								this.escapeFlg = true;
+							}
+
+							/*if (Bullet.collection.length > 0) {
 								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
 									const c = Bullet.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -7036,7 +7267,7 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
 							if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
@@ -7064,7 +7295,7 @@ window.onload = function() {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
 									//if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
 									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
-										if (scene.time >= 720) this._Attack();
+										if (scene.time >= 480) this._Attack();
 									}
 								}
 							}
@@ -7074,6 +7305,7 @@ window.onload = function() {
 									if (this.escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
+										//dirValue = Escape_Rot8_Multi(this, this.escapeTargets, dirValue);
 									} else if (this.moveFlg) {
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
@@ -7487,6 +7719,7 @@ window.onload = function() {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
+									if((this.life / Categorys.Life[this.category]) < 0.25)this.fireLate = Categorys.FireLate[this.category] - 10;
 								}
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -7532,7 +7765,7 @@ window.onload = function() {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
 									} else {
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 
@@ -7626,6 +7859,7 @@ window.onload = function() {
 							if ((this.life / Categorys.Life[this.category]) < 0.25) {
 								this.fullFireFlg = true;
 								this.firecnt++;
+								this.fireLate = (Math.floor(Math.random() * 4) + 1) * 10;
 							}
 							break;
 						}
@@ -7959,7 +8193,8 @@ window.onload = function() {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
-									if((this.life / Categorys.Life[this.category]) < 0.25)this.fireLate = 15;
+									if((this.life / Categorys.Life[this.category]) < 0.35)this.fireLate = 16;
+									this.distance = Categorys.Distances[this.category] + 200;
 								}
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -7969,6 +8204,11 @@ window.onload = function() {
 									this.shotNGflg = false;
 									this.bulReloadFlg = false;
 									this.bulReloadTime = 0;
+									let percent = (this.life / Categorys.Life[this.category]);
+									if (percent < 0.35) this.distance = Categorys.Distances[this.category] + 160;
+									else if (percent < 0.6) this.distance = Categorys.Distances[this.category] + 64;
+									else this.distance = Categorys.Distances[this.category];
+									
 								}
 
 							}
@@ -7981,7 +8221,7 @@ window.onload = function() {
 								}
 							})
 
-							if (!this.shotNGflg && !this.damFlg) {
+							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
 									//if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
@@ -8113,15 +8353,13 @@ window.onload = function() {
 							this.shotStopFlg = true;
 							if (Math.floor(Math.random() * 2) == 0 && gameMode > 0) this._ResetAim();
 
-							if ((this.life / Categorys.Life[this.category]) < 0.25) {
-								/*this.fullFireFlg = true;
-								this.firecnt++;*/
+							if ((this.life / Categorys.Life[this.category]) < 0.35) {
 								if (!this.fullFireFlg) {
-									if (Math.floor(Math.random() * 5) == 0) {
+									if (Math.floor(Math.random() * 7) == 0) {
 										this.fullFireFlg = true;
 										this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
 										this.firecnt++;
-										this.fireLate = 10;
+										this.fireLate = 8;
 									}
 
 								} else {
@@ -8155,25 +8393,64 @@ window.onload = function() {
 				let rad = Math.atan2(p.y, p.x);
 				this.cannon.rotation = Rad_to_Rot(rad);
 			}
+			else if (this.attackTarget.name == 'Bullet') {
+				const shooterPos = Get_Center(this);
+				const bullet = this.attackTarget;
+				const bulletPos = Get_Center(bullet);
+				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
+				const targetSpeed = bullet.from.shotSpeed;
+				const shotSpeed = this.shotSpeed;
+
+				// 相対位置と速度ベクトル
+				const dx = bulletPos.x - shooterPos.x;
+				const dy = bulletPos.y - shooterPos.y;
+				const dvx = bulletVec.x * targetSpeed;
+				const dvy = bulletVec.y * targetSpeed;
+
+				// 二次方程式を解いて迎撃時間を推定
+				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
+				const b = 2 * (dx * dvx + dy * dvy);
+				const c = dx * dx + dy * dy;
+
+				const discriminant = b * b - 4 * a * c;
+				if (discriminant >= 0){
+					const sqrtDisc = Math.sqrt(discriminant);
+					let t1 = (-b - sqrtDisc) / (2 * a);
+					let t2 = (-b + sqrtDisc) / (2 * a);
+
+					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+					if (time >= 0){
+						// 少し手前を狙うための係数（例：90%の位置を狙う）
+						var biasFactor = 0.75;
+
+						// 予測位置
+						const futureX = bulletPos.x + dvx * time * biasFactor;
+						const futureY = bulletPos.y + dvy * time * biasFactor;
+
+						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					}
+				}
+			}
 		},
 		_ResetStatus: function() {
 			let percent = (this.life / Categorys.Life[this.category]);
-			if (percent < 0.25) {
-				if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
-				this.fireLate = Categorys.FireLate[this.category] - 9;
+			if (percent < 0.35) {
+				if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.6;
+				this.fireLate = Categorys.FireLate[this.category] - 8;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] + 3;
 				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 7;
 				this.ref = 0;
 				this.reload = Categorys.Reload[this.category] - 30;
-				this.distance = Categorys.Distances[this.category] + 200;
-			} else if (percent < 0.5) {
-				if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
+				this.distance = Categorys.Distances[this.category] + 160;
+			} else if (percent < 0.6) {
+				if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.4;
 				this.fireLate = Categorys.FireLate[this.category] + 3;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
 				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 4;
-				this.distance = Categorys.Distances[this.category] + 100;
-			} else if (percent < 0.75) {
-				if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
+				this.distance = Categorys.Distances[this.category] + 64;
+			} else if (percent < 0.8) {
+				if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.2;
 			}
 		}
 	});
@@ -8632,7 +8909,7 @@ window.onload = function() {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
 									} else {
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this, this.attackTarget, 0);
 										} else {
 											if (rootFlg) {

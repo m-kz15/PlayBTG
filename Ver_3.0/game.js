@@ -342,7 +342,7 @@ const Categorys = {
 		300, //snow
 		0, //pink
 		150, //sand
-		320, //random
+		280, //random
 		250, //dazzle
 		200 //abysal
 	]
@@ -4155,6 +4155,7 @@ window.onload = function() {
 			this.moveSpeed = Categorys.MoveSpeed[this.category];
 			this.reload = Categorys.Reload[this.category];
 			this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category];
+			this.distance = Categorys.Distances[this.category];
 
 			this.bomSetFlg = false;
 			this.bomReload = 0;
@@ -5390,7 +5391,7 @@ window.onload = function() {
 												dirValue = arr[Math.floor(Math.random() * arr.length)];
 											}
 											hittingTime = 0;
-										}else if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+										}else if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 											if (this.time % 10 == 0) {
@@ -5834,7 +5835,7 @@ window.onload = function() {
 									dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
 								} else {
 									const distSq = getDistanceSq(this.weak, this.attackTarget);
-									const thresholdSq = Categorys.Distances[category] ** 2;
+									const thresholdSq = this.distance ** 2;
 									if (hittingTime >= 35) {
 										myPath = [
 											parseInt((this.y + this.height / 2) / PixelSize),
@@ -6713,7 +6714,7 @@ window.onload = function() {
 										const dx = this.weak.x - this.attackTarget.x;
 										const dy = this.weak.y - this.attackTarget.y;
 										const distSq = dx * dx + dy * dy;
-										const thresholdSq = Categorys.Distances[category] ** 2;
+										const thresholdSq = this.distance ** 2;
 
 										if (distSq < thresholdSq) {
 											SelDirection(this.weak, this.attackTarget, 0);
@@ -6790,7 +6791,11 @@ window.onload = function() {
 													closest = c;
 												}
 											}
-											if (closest) SelDirection(this.weak, closest, 0);
+											if (closest){
+												this.bomReload = 0;
+												this.bomSetFlg = true;
+												SelDirection(this.weak, closest, 0);
+											}
 										}
 									}
 								}
@@ -7140,7 +7145,7 @@ window.onload = function() {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
 									//if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
 									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
-										if (scene.time >= 720) this._Attack();
+										if (scene.time >= 480) this._Attack();
 									}
 								}
 							}
@@ -7611,7 +7616,7 @@ window.onload = function() {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
 									} else {
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 
@@ -8066,7 +8071,7 @@ window.onload = function() {
 								}
 							})
 
-							if (!this.shotNGflg && !this.damFlg) {
+							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
 									//if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
@@ -8724,7 +8729,7 @@ window.onload = function() {
 										//SelDirection(this.weak, this.escapeTarget, 0);
 										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
 									} else {
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < Categorys.Distances[category]) {
+										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this, this.attackTarget, 0);
 										} else {
 											if (rootFlg) {
