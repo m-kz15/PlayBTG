@@ -1743,7 +1743,7 @@ window.onload = function() {
 			this.frontimage = new Block_Imgage(this);
 			this.topimage = new Block_Imgage_Top(this, this.tilePath);
 			this.obs = BlockObs(this);
-			this.ref = BlockRef(this);
+			//this.ref = BlockRef(this);
 			scene.addChild(this);
 		},
 		_Destroy: function() {
@@ -1752,9 +1752,9 @@ window.onload = function() {
 			this.obs.forEach(elem => {
 				now_scene.removeChild(elem);
 			});
-			this.ref.forEach(elem => {
-				now_scene.removeChild(elem);
-			});
+			//this.ref.forEach(elem => {
+				//now_scene.removeChild(elem);
+			//});
 			this.frontimage._Destroy();
 			this.topimage._Destroy();
 			new BlockDestroyEffect(this.tilePath.x, this.tilePath.y);
@@ -2087,9 +2087,9 @@ window.onload = function() {
 
 		for (let i = 0; i < g1.length; i++) {
 			for (let j = 0; j < g1[i].length; j++) {
-				if (g1[i][j] == 1 || g1[i][j] == 4) {
+				if (g1[i][j] == 1 || g1[i][j] == 4 || g1[i][j] == 5) {
 					if (wsp1 == null) {
-						if (i > 0 && !(g1[i - 1][j] == 1 || g1[i - 1][j] == 4)) {
+						if (i > 0 && !(g1[i - 1][j] == 1 || g1[i - 1][j] == 4 || g1[i - 1][j] == 5)) {
 							wsp1 = new RefObstracle('RefTop', scene);
 							wsp1.moveTo(PixelSize * j + 4, PixelSize * i - 16);
 							//wsp1.backgroundColor = 'blue'
@@ -2097,7 +2097,7 @@ window.onload = function() {
 						}
 
 					} else {
-						if (i > 0 && !(g1[i - 1][j] == 1 || g1[i - 1][j] == 4)) {
+						if (i > 0 && !(g1[i - 1][j] == 1 || g1[i - 1][j] == 4 || g1[i - 1][j] == 5)) {
 							wsp1.width = PixelSize * (wcnt1 + 1) - 8;
 							wcnt1++;
 						} else {
@@ -2107,7 +2107,7 @@ window.onload = function() {
 
 					}
 					if (wsp2 == null) {
-						if (i < g1.length - 1 && !(g1[i + 1][j] == 1 || g1[i + 1][j] == 4)) {
+						if (i < g1.length - 1 && !(g1[i + 1][j] == 1 || g1[i + 1][j] == 4 || g1[i + 1][j] == 5)) {
 							wsp2 = new RefObstracle('RefBottom', scene);
 							wsp2.moveTo(PixelSize * j + 4, PixelSize * i + 40);
 							//wsp2.backgroundColor = 'white'
@@ -2115,7 +2115,7 @@ window.onload = function() {
 						}
 
 					} else {
-						if (i < g1.length - 1 && !(g1[i + 1][j] == 1 || g1[i + 1][j] == 4)) {
+						if (i < g1.length - 1 && !(g1[i + 1][j] == 1 || g1[i + 1][j] == 4 || g1[i + 1][j] == 5)) {
 							wsp2.width = PixelSize * (wcnt2 + 1) - 8;
 							wcnt2++;
 						} else {
@@ -2139,9 +2139,9 @@ window.onload = function() {
 		for (let i = 0; i < g2.length; i++) {
 			//console.log(g2[i]);
 			for (let j = 0; j < g2[i].length; j++) {
-				if (g2[i][j] == 1 || g2[i][j] == 4) {
+				if (g2[i][j] == 1 || g2[i][j] == 4 || g2[i][j] == 5) {
 					if (hsp1 == null) {
-						if (i > 0 && !(g2[i - 1][j] == 1 || g2[i - 1][j] == 4)) {
+						if (i > 0 && !(g2[i - 1][j] == 1 || g2[i - 1][j] == 4 || g2[i - 1][j] == 5)) {
 							hsp1 = new RefObstracle('RefLeft', scene);
 							hsp1.moveTo(PixelSize * i, PixelSize * j - 12);
 							//hsp1.backgroundColor = 'green'
@@ -2149,7 +2149,7 @@ window.onload = function() {
 						}
 
 					} else {
-						if (i > 0 && !(g2[i - 1][j] == 1 || g2[i - 1][j] == 4)) {
+						if (i > 0 && !(g2[i - 1][j] == 1 || g2[i - 1][j] == 4 || g2[i - 1][j] == 5)) {
 							hsp1.height = PixelSize * (hcnt1 + 1) - 8;
 							hcnt1++;
 						} else {
@@ -2159,7 +2159,7 @@ window.onload = function() {
 
 					}
 					if (hsp2 == null) {
-						if (i < g2.length - 1 && !(g2[i + 1][j] == 1 || g2[i + 1][j] == 4)) {
+						if (i < g2.length - 1 && !(g2[i + 1][j] == 1 || g2[i + 1][j] == 4 || g2[i + 1][j] == 5)) {
 							hsp2 = new RefObstracle('RefRight', scene);
 							hsp2.moveTo(PixelSize * i + 56, PixelSize * j - 12);
 							//hsp2.backgroundColor = 'red'
@@ -2168,7 +2168,7 @@ window.onload = function() {
 
 					} else {
 
-						if (i < g2.length - 1 && !(g2[i + 1][j] == 1 || g2[i + 1][j] == 4)) {
+						if (i < g2.length - 1 && !(g2[i + 1][j] == 1 || g2[i + 1][j] == 4 || g2[i + 1][j] == 5)) {
 							hsp2.height = PixelSize * (hcnt2 + 1) - 8;
 							hcnt2++;
 						} else {
@@ -2233,7 +2233,7 @@ window.onload = function() {
 							if (from.rotation == 0) {
 								this.x = from.x + 4;
 								this.y = from.y - 1;
-								if (this.scaleY != 2) this.scaleY = 2;
+								if (this.scaleY != 2 && from.moveSpeed > 0) this.scaleY = 2;
 								if(DebugFlg){
 									if (this.debugColor != "yellow") this.debugColor = "yellow";
 								}
@@ -2241,7 +2241,7 @@ window.onload = function() {
 							} else {
 								this.x = from.x + 4;
 								this.y = from.y;
-								if (this.scaleY != 1) this.scaleY = 1;
+								if (this.scaleY != 1 && from.moveSpeed > 0) this.scaleY = 1;
 								if(DebugFlg){
 									if (this.debugColor != "white") this.debugColor = "white";
 								}
@@ -2250,15 +2250,15 @@ window.onload = function() {
 						case 'TankBottom':
 							if (from.tank.rotation == 180) {
 								this.x = from.x + 4;
-								this.y = from.y + 60 - 1;
-								if (this.scaleY != 2) this.scaleY = 2;
+								this.y = from.y + 60;
+								if (this.scaleY != 2 && from.moveSpeed > 0) this.scaleY = 2;
 								if(DebugFlg){
 									if (this.debugColor != "yellow") this.debugColor = "yellow";
 								}
 							} else {
 								this.x = from.x + 4;
 								this.y = from.y + 60 - 2;
-								if (this.scaleY != 1) this.scaleY = 1;
+								if (this.scaleY != 1 && from.moveSpeed > 0) this.scaleY = 1;
 								if(DebugFlg){
 									if (this.debugColor != "blue") this.debugColor = "blue";
 								}
@@ -2268,14 +2268,14 @@ window.onload = function() {
 							if (from.tank.rotation == 90) {
 								this.x = from.x + 60;
 								this.y = from.y + 4;
-								if (this.scaleX != 2) this.scaleX = 2;
+								if (this.scaleX != 2 && from.moveSpeed > 0) this.scaleX = 2;
 								if(DebugFlg){
 									if (this.debugColor != "yellow") this.debugColor = "yellow";
 								}
 							} else {
 								this.x = from.x + 60 - 1;
 								this.y = from.y + 4;
-								if (this.scaleX != 1) this.scaleX = 1;
+								if (this.scaleX != 1 && from.moveSpeed > 0) this.scaleX = 1;
 								if(DebugFlg){
 									if (this.debugColor != "red") this.debugColor = "red";
 								}
@@ -2285,14 +2285,14 @@ window.onload = function() {
 							if (from.tank.rotation == 270) {
 								this.x = from.x - 2;
 								this.y = from.y + 4;
-								if (this.scaleX != 2) this.scaleX = 2;
+								if (this.scaleX != 2 && from.moveSpeed > 0) this.scaleX = 2;
 								if(DebugFlg){
 									if (this.debugColor != "yellow") this.debugColor = "yellow";
 								}
 							} else {
 								this.x = from.x - 1;
 								this.y = from.y + 4;
-								if (this.scaleX != 1) this.scaleX = 1;
+								if (this.scaleX != 1 && from.moveSpeed > 0) this.scaleX = 1;
 								if(DebugFlg){
 									if (this.debugColor != "green") this.debugColor = "green";
 								}
@@ -3349,9 +3349,20 @@ window.onload = function() {
 		},
 
 		destroyNearbyBlocks: function() {
+			let cnt = 0;
 			Block.collection.forEach(elem => {
-				if (elem.within(this, 125)) elem._Destroy();
+				if (elem.within(this, 125)){
+					elem._Destroy();
+					cnt++;
+				}
 			});
+			if(cnt > 0){
+				const children = now_scene.childNodes.slice().filter(child => child instanceof RefObstracle); // enchant.jsでは childNodes は配列風
+				children.forEach(child => {
+					now_scene.removeChild(child);
+				});
+				SetRefs(now_scene, now_scene.backgroundMap.collisionData);
+			}
 		},
 
 		destroyNearbyBombs: function() {
@@ -4215,7 +4226,7 @@ window.onload = function() {
 						break;
 					case 10:
 						this.moveSpeed += 0.5;
-						this.bomMax += 2;
+						this.bomMax += 1;
 						break;
 					case 11:
 						this.shotSpeed += 1;
@@ -9922,7 +9933,7 @@ window.onload = function() {
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + (Categorys.MaxBullet[7] + 1), "　弾速　：とても速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：動かない(" + Categorys.MoveSpeed[7] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：速い(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。<br>【強化】装填にかかる時間の短縮"],
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　弾切れを起こすと無防備になる。<br>　弾は小さいが多段ヒットするため要注意<br>【強化】砲撃間隔の短縮"],
-					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が3個に増加"],
+					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が2個に増加"],
 					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。<br>【弱化】砲撃間隔の延長"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。<br>【強化】自機狙いの偏差射撃追加"],
 					[colorsName[13], "　耐久　：" + Categorys.Life[13], "　弾数　：" + Categorys.MaxBullet[13], "　弾速　：速い(" + Categorys.ShotSpeed[13] + ")", "跳弾回数：" + Categorys.MaxRef[13], "移動速度：とても速い(" + Categorys.MoveSpeed[13] + ")", "・精鋭型<br>　最上位の戦闘力を誇るボス戦車。<br>　優秀なプレイヤーしか対峙できない。<br>　耐久が1になると殲滅モードに移行する。<br>【強化】自機狙いの偏差射撃追加"]
