@@ -868,6 +868,15 @@ var Set_Arg = function(from, to, rad, range) {
 	return pos;
 };
 
+// 🔧 角度関連の補助関数
+function normalizeRotation(angle) {
+	return (angle % 360 + 360) % 360;
+}
+
+function normalizeAngle(diff) {
+	return Math.abs(diff) >= 180 ? -diff : diff;
+}
+
 function Escape_Rot4(from, to, value) {
     const t1 = Get_Center(from);
     const t2 = Get_Center(to);
@@ -2586,7 +2595,7 @@ window.onload = function() {
 
 			// 発射角度と座標
 			this.rad = Rot_to_Rad(from.rotation - 90);
-			const pos = Get_Center(from);
+			var pos = Get_Center(from);
 			this.moveTo(
 				pos.x - 3.45 + Math.cos(this.rad) * 56,
 				pos.y - 4.5 + Math.sin(this.rad) * 56
@@ -2604,8 +2613,17 @@ window.onload = function() {
 					return;
 				}
 
-				this.x += this.dx;
-				this.y += this.dy;
+				pos = Get_Center(from);
+				rad = Rot_to_Rad(from.rotation - 90);
+				// 任意：移動ベクトルも更新したい場合
+				this.dx = Math.cos(rad) * 28;
+				this.dy = Math.sin(rad) * 28;
+
+				this.x = pos.x - 3.45 + Math.cos(rad) * 56 + (this.dx * this.time);
+				this.y = pos.y - 4.5 + Math.sin(rad) * 56 + (this.dy * this.time);
+
+				//this.x += this.dx;
+				//this.y += this.dy;
 
 				// 壁 or ブロックヒット時に削除
 				if (
@@ -2624,15 +2642,6 @@ window.onload = function() {
 			};
 
 			now_scene.addChild(this);
-
-			// 🔧 角度関連の補助関数
-			function normalizeRotation(angle) {
-				return (angle % 360 + 360) % 360;
-			}
-
-			function normalizeAngle(diff) {
-				return Math.abs(diff) >= 180 ? -diff : diff;
-			}
 		}
 	});
 
@@ -2659,7 +2668,7 @@ window.onload = function() {
 			this.dy = Math.sin(this.rad) * 20;
 			this.agl = from.rotation;
 			this.tgt = [fc.x + this.dx * 3, fc.y + this.dy * 3];
-			this.rotation = (315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1;
+			this.rotation = normalizeRotation((315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1);
 
 			this.moveTo(fc.x + 36 * Math.cos(this.rad) - this.width / 2, fc.y + 36 * Math.sin(this.rad) - this.height / 2);
 
@@ -2674,14 +2683,16 @@ window.onload = function() {
 				if (!WorldFlg) return;
 
 				self.time++;
-				self.x += self.dx;
-				self.y += self.dy;
+				for(let i = 0; i < 2; i++){
+					self.x += self.dx/2;
+					self.y += self.dy/2;
 
-				// 衝突チェック：RefObstracle
-				RefObstracle.intersectStrict(self).some(elem => {
-					self.handleCollision(elem);
-					return true;
-				});
+					// 衝突チェック：RefObstracle
+					RefObstracle.intersectStrict(self).some(elem => {
+						self.handleCollision(elem);
+						return true;
+					});
+				}
 
 				// 衝突チェック：TankBase
 				TankBase.intersectStrict(self).forEach(elem => {
@@ -2782,7 +2793,7 @@ window.onload = function() {
 
 			// 回転方向補正
 			const targetRot = normalizeRotation(this.rad);
-			const sa = adjustAngle(from.rotation - targetRot);
+			const sa = normalizeAngle(from.rotation - targetRot);
 			const speed = Categorys.CannonRotSpeed[category];
 
 			let resultRot = from.rotation;
@@ -2847,10 +2858,6 @@ window.onload = function() {
 			function normalizeRotationBy360(rot) {
 				rot %= 360;
 				return (rot < 0) ? rot + 360 : rot;
-			}
-
-			function adjustAngle(diff) {
-				return (Math.abs(diff) >= 180) ? -diff : diff;
 			}
 
 			function getCollisionSide(ray, wall) {
@@ -3173,7 +3180,7 @@ window.onload = function() {
 
 		getRandomOffset: function(category) {
 			const ranges = {
-				4: 10, 5: 6, 9: 8, 13: 4
+				4: 10, 5: 6, 9: 6, 13: 4
 			};
 			const r = ranges[category];
 			if (!r) return [0, 0];
@@ -3187,7 +3194,7 @@ window.onload = function() {
 			const scaleMap = {
 				0: [1.0, 1.0],
 				1: [0.8, 1.0],
-				7: [0.8, 0.8],
+				7: [0.6, 1.0],
 				9: [0.7, 0.7],
 				11: [0.6, 1.0]
 			};
@@ -4389,6 +4396,9 @@ window.onload = function() {
 		_Dead: function() {
 			deadFlgs[this.num] = true;
 			deadTank[this.num] = true;
+			if(this.num != 0){
+				tankColorCounts[this.category]--;
+			}
 			new Mark(this);
 			//new Explosion(this); //  車体の爆破エフェクト生成
 			new TankBoom(this);
@@ -4459,8 +4469,9 @@ window.onload = function() {
 					if (from.category === 0 || from.category === 9) {
 						randomPercent = 5;
 						if (from.category == 9){
-							if(this.num == 0) this.damTimeMax = 20;
-							else this.damTimeMax = 10;
+							//if(this.num == 0) this.damTimeMax = 20;
+							//else this.damTimeMax = 10;
+							this.damTimeMax = 8;
 						} 
 					}
 
@@ -6157,7 +6168,7 @@ window.onload = function() {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.fullFireFlg = true;
 							this.shotStopFlg = true;
-							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * (4 - gameMode);
+							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * (4);
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							this.firecnt++;
 							break;
@@ -6203,15 +6214,6 @@ window.onload = function() {
 					RefAim.call(this, ref, from, category, num);
 				}
 			})
-
-			// 🔧 角度関連の補助関数
-			function normalizeRotation(angle) {
-				return (angle % 360 + 360) % 360;
-			}
-
-			function normalizeAngle(diff) {
-				return Math.abs(diff) >= 180 ? -diff : diff;
-			}
 
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
@@ -7766,7 +7768,7 @@ window.onload = function() {
 								}
 							})
 
-							if (!this.shotNGflg && !this.damFlg) {
+							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
 									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 										//if(Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
@@ -7937,6 +7939,7 @@ window.onload = function() {
 			const Front = new InterceptFront(this.cannon);
 
 			Around.scale(1.4, 1.4);
+			this.weak.scale(0.6, 0.6);
 
 			const target = tankEntity[0];
 
@@ -9055,13 +9058,14 @@ window.onload = function() {
 			}
 		},
 		_ResetAim: function() {
-			if (Math.floor(Math.random() * 3)) return;
+			//if (Math.floor(Math.random() * 3)) return;
 			if (this.attackTarget.name == "Entity") {
 				let t1 = Get_Center(this);
 				let t2 = Get_Center(this.attackTarget);
 				let v = Rot_to_Vec(this.attackTarget.rotation, -90);
 				//let dis = Math.trunc(Vec_Distance(t1, t2) / 30);
-				let val = 16 * (Math.floor(Math.random() * 3) + 1) + 24
+				let val = 16 * (Math.floor(Math.random() * 3) + 1) + 24;
+				if (Math.floor(Math.random() * 2)) val += 16 * (-2 + Math.floor(Math.random() * 4));
 				v.x = v.x * val + t2.x;
 				v.y = v.y * val + t2.y;
 				let p = {
@@ -9110,7 +9114,7 @@ window.onload = function() {
 			this.moveSpeed = 3.2;
 			this.reload = 120;
 			//this.bodyRotSpeed = 15;
-			this.bodyRotSpeed = 3.5;
+			this.bodyRotSpeed = 5;
 
 			this.attackTarget = target;
 			this.escapeTarget = null;
@@ -9209,14 +9213,6 @@ window.onload = function() {
 					var path = Path_Recreate(target1, paths[i]);
 					if (grid[path[0]][path[1]] == 'Obstacle') rem.push(i);
 				}
-				/*if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-				if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-				if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-				if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
-				if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-				if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-				if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-				if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);*/
 
 				arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -9465,7 +9461,7 @@ window.onload = function() {
 											if (!arr.includes(dirValue)) {
 												dirValue = arr[Math.floor(Math.random() * arr.length)];
 											}
-											hittingTime = 0;
+											hittingTime = -15;
 											root = false;
 										} else if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this, this.attackTarget, 0);
@@ -9492,6 +9488,7 @@ window.onload = function() {
 												}
 											}
 											root = findShortestPath(myPath, grid, scene);
+											if(hittingTime < 0) root = false;
 											//root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, scene)
 											if(root == false){
 												SelDirection(this, this.attackTarget, 1);
@@ -11148,7 +11145,7 @@ window.onload = function() {
 				if (!retryFlg) {
 					switch (stageData[i][2]) {
 						case 0:
-							tankEntity.push(new Entity_Type11(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
+							tankEntity.push(new Entity_Type10(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
 							break;
 						case 1:
 						case 7:
@@ -11187,7 +11184,7 @@ window.onload = function() {
 					if (deadTank[i - 3] == false) {
 						switch (stageData[i][2]) {
 							case 0:
-								tankEntity.push(new Entity_Type11(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
+								tankEntity.push(new Entity_Type10(stageData[i][0], stageData[i][1], stageData[i][2], i - 3, this));
 								break;
 							case 1:
 							case 7:
@@ -11421,8 +11418,8 @@ window.onload = function() {
 								skipcnt++;
 							}
 							if (colors[dcnt + skipcnt] > 0) {
-								new ViewText(area.body, 'Name', { width: 280, height: 48 }, { x: 44, y: 56 * (dcnt) - 32 }, colorsName[dcnt + skipcnt], '48px "Arial"', fontColor[dcnt + skipcnt], 'left', true);
-								new ViewText(area.body, 'Score', { width: 180, height: 48 }, { x: 324, y: 56 * (dcnt) - 32 }, '：' + colors[dcnt + skipcnt], '48px "Arial"', '#400', 'left', true);
+								new ViewText(area.body, 'Name', { width: 280, height: 48 }, { x: 44, y: 52 * (dcnt) - 32 }, colorsName[dcnt + skipcnt], '48px "Arial"', fontColor[dcnt + skipcnt], 'left', true);
+								new ViewText(area.body, 'Score', { width: 180, height: 48 }, { x: 324, y: 52 * (dcnt) - 32 }, '：' + colors[dcnt + skipcnt], '48px "Arial"', '#400', 'left', true);
 							}
 							dcnt++;
 						}
@@ -11502,7 +11499,7 @@ window.onload = function() {
 				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 11.75 }, '　照準　：画面タップか画面スライド', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 12.5 }, '　砲撃　：Bボタン', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 13.25 }, '爆弾設置：Aボタン', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 14 }, '一時停止：Startボタン', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 14 }, '一時停止：PAUSEボタン', '28px sans-serif', 'white', 'left', true);
 
 				new ViewText(this, 'Move', { width: PixelSize * 11, height: PixelSize * 0.5 }, { x: PixelSize * 9, y: PixelSize * 11 }, '※補足説明', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', { width: PixelSize * 11, height: PixelSize * 0.5 }, { x: PixelSize * 9, y: PixelSize * 11.75 }, '・ステージ上にある茶色の壁は爆弾でしか壊せません。', '28px sans-serif', 'white', 'left', true);

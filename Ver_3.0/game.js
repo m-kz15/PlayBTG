@@ -276,7 +276,7 @@ const Categorys = {
 		180, //elitegray
 		90, //elitegreen
 		360, //snow
-		180, //pink
+		120, //pink
 		90, //sand
 		90, //random
 		210, //dazzle
@@ -2961,7 +2961,7 @@ window.onload = function() {
 
 		getRandomOffset: function(category) {
 			const ranges = {
-				4: 10, 5: 6, 9: 8, 13: 4
+				4: 10, 5: 6, 9: 6, 13: 4
 			};
 			const r = ranges[category];
 			if (!r) return [0, 0];
@@ -2974,7 +2974,7 @@ window.onload = function() {
 		applyBulletScaling: function(category) {
 			const scaleMap = {
 				1: [0.8, 1.0],
-				7: [0.8, 0.8],
+				7: [0.6, 1.0],
 				9: [0.7, 0.7],
 				11: [0.6, 1.0]
 			};
@@ -4253,6 +4253,9 @@ window.onload = function() {
 		_Dead: function() {
 			deadFlgs[this.num] = true;
 			deadTank[this.num] = true;
+			if(this.num != 0){
+				tankColorCounts[this.category]--;
+			}
 			new Mark(this);
 			//new Explosion(this); //  車体の爆破エフェクト生成
 			new TankBoom(this);
@@ -7603,7 +7606,7 @@ window.onload = function() {
 								}
 							})
 
-							if (!this.shotNGflg && !this.damFlg) {
+							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
 									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 										//if(Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
@@ -8587,9 +8590,9 @@ window.onload = function() {
 									this.shotStopFlg = false;
 									this.shotStopTime = 0;
 								}
-							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
+
+							new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 
 							EnemyAim.intersectStrict(this.cursor).forEach(elem => {
 								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
@@ -8613,13 +8616,13 @@ window.onload = function() {
 								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
 									let c = Bullet.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
-									if (c.num == 0 && !Categorys.DefenceFlg[this.category][0]) continue;
+									if (c.num == target.num && !Categorys.DefenceFlg[this.category][0]) continue;
 									if (c.num == this.num && !Categorys.DefenceFlg[this.category][1]) continue;
-									if (!(c.num == 0 || c.num == this.num) && !Categorys.DefenceFlg[this.category][2]) continue;
+									if (!(c.num == target.num || c.num == this.num) && !Categorys.DefenceFlg[this.category][2]) continue;
 									let dist = Instrumentation(this.weak, this.attackTarget, c);
 
 									switch (c.num) {
-										case 0:
+										case target.num:
 											if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
 												let tgtFlg = false;
 
@@ -8636,7 +8639,7 @@ window.onload = function() {
 
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][1]) {
-														if (Search(c, this, 60, Categorys.EscapeRange[this.category][1])) {
+														if (Search(c, this, 90, Categorys.EscapeRange[this.category][1])) {
 															this.escapeTarget = c;
 															this.escapeFlg = true;
 														}
@@ -8699,13 +8702,13 @@ window.onload = function() {
 
 							}
 
-							TankBase.intersectStrict(Front).forEach(elem => {
+							/*TankBase.intersectStrict(Front).forEach(elem => {
 								if (elem.num != this.num && elem.num != 0) {
 									if (!deadFlgs[elem.num]) {
 										this.fireFlg = false;
 									}
 								}
-							})
+							})*/
 
 							if (!this.shotNGflg && !this.bomSetFlg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
@@ -8845,7 +8848,7 @@ window.onload = function() {
 			}
 		},
 		_Attack: function() {
-			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
+			//if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -10626,8 +10629,8 @@ window.onload = function() {
 								skipcnt++;
 							}
 							if (colors[dcnt + skipcnt] > 0) {
-								new ViewText(area.body, 'Name', { width: 280, height: 48 }, { x: 44, y: 56 * (dcnt) - 32 }, colorsName[dcnt + skipcnt], '48px "Arial"', fontColor[dcnt + skipcnt], 'left', true);
-								new ViewText(area.body, 'Score', { width: 180, height: 48 }, { x: 324, y: 56 * (dcnt) - 32 }, '：' + colors[dcnt + skipcnt], '48px "Arial"', '#400', 'left', true);
+								new ViewText(area.body, 'Name', { width: 280, height: 48 }, { x: 44, y: 52 * (dcnt) - 32 }, colorsName[dcnt + skipcnt], '48px "Arial"', fontColor[dcnt + skipcnt], 'left', true);
+								new ViewText(area.body, 'Score', { width: 180, height: 48 }, { x: 324, y: 52 * (dcnt) - 32 }, '：' + colors[dcnt + skipcnt], '48px "Arial"', '#400', 'left', true);
 							}
 							dcnt++;
 						}
@@ -10707,7 +10710,7 @@ window.onload = function() {
 				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 11.75 }, '　照準　：画面タップか画面スライド', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 12.5 }, '　砲撃　：Bボタン', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 13.25 }, '爆弾設置：Aボタン', '28px sans-serif', 'white', 'left', true);
-				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 14 }, '一時停止：Startボタン', '28px sans-serif', 'white', 'left', true);
+				new ViewText(this, 'Move', { width: PixelSize * 8, height: PixelSize * 0.5 }, { x: PixelSize * 0.5, y: PixelSize * 14 }, '一時停止：Pauseボタン', '28px sans-serif', 'white', 'left', true);
 
 				new ViewText(this, 'Move', { width: PixelSize * 11, height: PixelSize * 0.5 }, { x: PixelSize * 9, y: PixelSize * 11 }, '※補足説明', '28px sans-serif', 'white', 'left', true);
 				new ViewText(this, 'Move', { width: PixelSize * 11, height: PixelSize * 0.5 }, { x: PixelSize * 9, y: PixelSize * 11.75 }, '・ステージ上にある茶色の壁は爆弾でしか壊せません。', '28px sans-serif', 'white', 'left', true);
