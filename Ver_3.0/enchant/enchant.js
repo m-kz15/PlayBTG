@@ -1567,7 +1567,7 @@
                 enchant.Core.instance._tick(time);
             },
             _tick: function(time) {
-                var e = new enchant.Event('enterframe');
+                /*var e = new enchant.Event('enterframe');
                 var now = window.getTime();
                 var elapsed = e.elapsed = now - this.currentTime;
                 this.currentTime = now;
@@ -1593,7 +1593,40 @@
                 this.frame++;
                 now = window.getTime();
                 
-                this._requestNextFrame(1000 / this.fps - (now - this._calledTime));
+                this._requestNextFrame(1000 / this.fps - (now - this._calledTime));*/
+                var now = window.getTime();
+                var elapsed = now - this.currentTime;
+                this.currentTime = now;
+
+                this._actualFps = elapsed > 0 ? (1000 / elapsed) : 0;
+
+                var e = new enchant.Event('enterframe');
+                e.elapsed = elapsed;
+
+                var nodes = this.currentScene.childNodes.slice();
+                var push = Array.prototype.push;
+
+                while (nodes.length) {
+                    var node = nodes.pop();
+
+                    // 時間ベースの age 管理（必要なら age を秒単位に変更）
+                    node.elapsedTime = (node.elapsedTime || 0) + elapsed;
+                    node.dispatchEvent(e);
+
+                    if (node.childNodes) {
+                        push.apply(nodes, node.childNodes);
+                    }
+                }
+
+                this.currentScene.age += elapsed;
+                this.currentScene.dispatchEvent(e);
+                this.dispatchEvent(e);
+
+                this.dispatchEvent(new enchant.Event('exitframe'));
+                this.frame++;
+
+                var nextFrameDelay = Math.max(0, 1000 / this.fps - (window.getTime() - this._calledTime));
+                this._requestNextFrame(nextFrameDelay);
             },
             getTime: function() {
                 return window.getTime();
