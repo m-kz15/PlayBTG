@@ -2467,7 +2467,7 @@ window.onload = function() {
 
 			// 発射角度と座標
 			this.rad = Rot_to_Rad(from.rotation - 90);
-			const pos = Get_Center(from);
+			var pos = Get_Center(from);
 			this.moveTo(
 				pos.x - 3.45 + Math.cos(this.rad) * 56,
 				pos.y - 4.5 + Math.sin(this.rad) * 56
@@ -2485,8 +2485,17 @@ window.onload = function() {
 					return;
 				}
 
-				this.x += this.dx;
-				this.y += this.dy;
+				pos = Get_Center(from);
+				rad = Rot_to_Rad(from.rotation - 90);
+				// 任意：移動ベクトルも更新したい場合
+				this.dx = Math.cos(rad) * 28;
+				this.dy = Math.sin(rad) * 28;
+
+				this.x = pos.x - 3.45 + Math.cos(rad) * 56 + (this.dx * this.time);
+				this.y = pos.y - 4.5 + Math.sin(rad) * 56 + (this.dy * this.time);
+
+				//this.x += this.dx;
+				//this.y += this.dy;
 
 				// 壁 or ブロックヒット時に削除
 				if (
@@ -4183,6 +4192,8 @@ window.onload = function() {
 			this.fireFlg = false;
 			this.escapeFlg = false;
 
+			this.waitFrame = 0;
+
 			if (gameMode > 0) {
 				switch (this.category) {
 					case 1:
@@ -4271,6 +4282,22 @@ window.onload = function() {
 				sa = sa * -1;
 			}
 
+			let currentRot = this.rotation % 360;
+			let diff = Math.abs(currentRot - rot);
+
+			// 180度反対の角度も許容
+			if (diff === 0 || diff === 180) {
+				this.rotation = rot;
+				if(diff === 180) this.waitFrame = 5;
+				if(this.waitFrame > 0){
+					this.waitFrame--;
+					return false;
+				}else{
+					this.waitFrame = 0;
+					return true;
+				}
+			}
+
 			let speed = this.bodyRotSpeed;
 
 			if (Math.abs(sa) > speed) {
@@ -4294,7 +4321,13 @@ window.onload = function() {
 		},
 		_Move: function(rot) {
 			if (this._Rotation(rot)) {
-				rot = this.rotation - 90;
+				let currentRot = this.rotation % 360;
+				let targetRot = rot % 360;
+				let diff = Math.abs(currentRot - targetRot);
+
+				// 移動方向を決定
+				rot = diff === 180 ? currentRot + 90 : currentRot - 90;
+				//rot = this.rotation - 90;
 				if (rot < 0) {
 					rot = 360 + rot;
 				} else if (rot > 359) {
@@ -5129,6 +5162,8 @@ window.onload = function() {
 			var rot = 0;
 			var h = {x: 0, y: 0};
 
+			var moveRandom = 1;
+
 			var shadow = new Surface(this.width, this.height);
 			shadow.context.beginPath();
 			shadow.context.fillStyle = 'rgba(0, 0, 0, 0.1)';
@@ -5232,6 +5267,10 @@ window.onload = function() {
 							this._Damage();
 
 							this.time++;
+
+							if (this.time % 60 == 0){
+								moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
+							}
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -5409,7 +5448,7 @@ window.onload = function() {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 											if (this.time % 10 == 0) {
-												SelDirection(this.weak, this.attackTarget, 1);
+												SelDirection(this.weak, this.attackTarget, moveRandom);
 											}
 										}
 										if ((tankEntity.length - destruction) - 1 > 2) {
@@ -6906,6 +6945,8 @@ window.onload = function() {
 
 			this.cflg = true;
 
+			var moveRandom = 1;
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
@@ -7016,6 +7057,10 @@ window.onload = function() {
 							this._Damage();
 
 							this.time++;
+
+							if (this.time % 45 == 0){
+								moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
+							}
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -7175,7 +7220,7 @@ window.onload = function() {
 										} else {
 
 											if (this.time % 9 == 0) {
-												SelDirection(this.weak, target, 1);
+												SelDirection(this.weak, target, moveRandom);
 												// 他のタンクとの接近チェック
 												if ((tankEntity.length - destruction) - 1 > 2) {
 													for (let i = 0; i < tankEntity.length; i++) {

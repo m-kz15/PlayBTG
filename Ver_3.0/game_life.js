@@ -3088,6 +3088,78 @@ window.onload = function() {
 		return relativeAngle < angle || relativeAngle > (360 - angle);
 	}
 
+	// 20251111追加_扇形の爆発関数
+	function removeSpritesInSector(originSprite, radius, angleDeg) {
+		const scene = enchant.Core.instance.currentScene;
+
+		// 扇形描画（赤→こげ茶グラデーション）
+		const sector = new Sprite(radius * 2, radius * 2);
+		const surface = new Surface(radius * 2, radius * 2);
+		const ctx = surface.context;
+
+		const startAngle = -angleDeg / 2 * Math.PI / 180;
+		const endAngle = angleDeg / 2 * Math.PI / 180;
+
+		const gradient = ctx.createRadialGradient(radius, radius, 0, radius, radius, radius);
+		gradient.addColorStop(0, "red");
+		gradient.addColorStop(1, "saddlebrown");
+
+		ctx.fillStyle = gradient;
+		ctx.beginPath();
+		ctx.moveTo(radius, radius);
+		ctx.arc(radius, radius, radius, startAngle, endAngle);
+		ctx.closePath();
+		ctx.fill();
+
+		sector.time = 0;
+		sector.scale(0.1, 0.1);
+		sector.image = surface;
+		sector.x = originSprite.x + originSprite.width / 2 - radius;
+		sector.y = originSprite.y + originSprite.height / 2 - radius;
+		sector.rotation = originSprite.rotation - 90;
+		scene.addChild(sector);
+
+		sector.onenterframe = function(){
+			sector.time++;
+			sector.scaleX += 0.1;
+			sector.scaleY += 0.1;
+			sector.opacity -= 0.1;
+			if(sector.time > 10){
+				scene.removeChild(sector);
+			}
+		}
+
+		// 範囲内のSpriteを削除
+		const originX = originSprite.x + originSprite.width / 2;
+		const originY = originSprite.y + originSprite.height / 2;
+		const angleRad = angleDeg * Math.PI / 180;
+
+		/*allSprites.forEach(sprite => {
+			const targetX = sprite.x + sprite.width / 2;
+			const targetY = sprite.y + sprite.height / 2;
+			const dx = targetX - originX;
+			const dy = targetY - originY;
+			const distance = Math.sqrt(dx * dx + dy * dy);
+
+			if (distance <= radius) {
+				const theta = Math.atan2(dy, dx);
+				const normalizedTheta = (theta + 2 * Math.PI) % (2 * Math.PI);
+				const centerAngle = 0; // 正面方向（右）を基準
+				const minAngle = (centerAngle - angleRad / 2 + 2 * Math.PI) % (2 * Math.PI);
+				const maxAngle = (centerAngle + angleRad / 2 + 2 * Math.PI) % (2 * Math.PI);
+
+				const inSector = minAngle < maxAngle
+					? normalizedTheta >= minAngle && normalizedTheta <= maxAngle
+					: normalizedTheta >= minAngle || normalizedTheta <= maxAngle;
+
+				if (inSector) {
+					sprite.parentNode.removeChild(sprite);
+				}
+			}
+		});*/
+	}
+
+
 	var BulletCol = Class.create(PhyCircleSprite, {
 		initialize: function(shotSpeed, ref, from, category, num, id) {
 			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0, 0, 1, true);
@@ -4324,6 +4396,8 @@ window.onload = function() {
 			this.fireFlg = false;
 			this.escapeFlg = false;
 
+			this.waitFrame = 0;
+
 			if (gameMode > 0) {
 				switch (this.category) {
 					case 1:
@@ -4414,6 +4488,22 @@ window.onload = function() {
 				sa = sa * -1;
 			}
 
+			let currentRot = this.rotation % 360;
+			let diff = Math.abs(currentRot - rot);
+
+			// 180度反対の角度も許容
+			if (diff === 0 || diff === 180) {
+				this.rotation = rot;
+				if(diff === 180) this.waitFrame = 5;
+				if(this.waitFrame > 0){
+					this.waitFrame--;
+					return false;
+				}else{
+					this.waitFrame = 0;
+					return true;
+				}
+			}
+
 			let speed = this.bodyRotSpeed;
 
 			if (Math.abs(sa) > speed) {
@@ -4437,7 +4527,13 @@ window.onload = function() {
 		},
 		_Move: function(rot) {
 			if (this._Rotation(rot)) {
-				rot = this.rotation - 90;
+				let currentRot = this.rotation % 360;
+				let targetRot = rot % 360;
+				let diff = Math.abs(currentRot - targetRot);
+
+				// 移動方向を決定
+				rot = diff === 180 ? currentRot + 90 : currentRot - 90;
+				//rot = this.rotation - 90;
 				if (rot < 0) {
 					rot = 360 + rot;
 				} else if (rot > 359) {
@@ -4758,6 +4854,7 @@ window.onload = function() {
 								this.fullFireFlg = true;
 								this.firecnt++;
 							}
+							//removeSpritesInSector(this.cannon, 100, 45);
 							break;
 						}
 					}
@@ -5203,6 +5300,8 @@ window.onload = function() {
 			var rot = 0;
 			var h = {x: 0, y: 0};
 
+			var moveRandom = 1;
+
 			var shadow = new Surface(this.width, this.height);
 			shadow.context.beginPath();
 			if(gameMode > 0){
@@ -5311,6 +5410,10 @@ window.onload = function() {
 							this._Damage();
 
 							this.time++;
+
+							if (this.time % 60 == 0){
+								moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
+							}
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -5506,7 +5609,7 @@ window.onload = function() {
 												}else{
 													SelDirection(this.weak, this.attackTarget, 1);
 												}*/
-												SelDirection(this.weak, this.attackTarget, 1);
+												SelDirection(this.weak, this.attackTarget, moveRandom);
 											}
 										}
 										
@@ -5858,7 +5961,7 @@ window.onload = function() {
 														}
 													}
 												}
-												if(Search(this.cannon, c, 25, defRange[1])){
+												if(Search(this.cannon, c, 45, defRange[1])){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 											}
@@ -6934,6 +7037,8 @@ window.onload = function() {
 
 			var rot = 0;
 
+			var moveRandom = 1;
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
@@ -7044,6 +7149,10 @@ window.onload = function() {
 							this._Damage();
 
 							this.time++;
+
+							if (this.time % 45 == 0){
+								moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
+							}
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -7338,7 +7447,7 @@ window.onload = function() {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 											if (this.time % 9 == 0) {
-												SelDirection(this.weak, target, 1);
+												SelDirection(this.weak, target, moveRandom);
 												// 他のタンクとの接近チェック
 												if ((tankEntity.length - destruction) - 1 > 2) {
 													for (let i = 0; i < tankEntity.length; i++) {
