@@ -104,6 +104,12 @@ var BGMs = [ //bgm指定用配列
 	'./sound/ELEVENTH.mp3' //abysal
 ];
 
+let collisionUpdates = [];
+
+function scheduleCollisionUpdate(x, y, value) {
+    collisionUpdates.push({ x, y, value });
+}
+
 //---ステータス----------------------------------------------------------------------------
 const Categorys = {
 	Image: [
@@ -1747,7 +1753,7 @@ window.onload = function() {
 			scene.addChild(this);
 		},
 		_Destroy: function() {
-			now_scene.backgroundMap.collisionData[this.tilePath.y][this.tilePath.x] = 0;
+			/*now_scene.backgroundMap.collisionData[this.tilePath.y][this.tilePath.x] = 0;
 			now_scene.grid[this.tilePath.y][this.tilePath.x] = 'Empty';
 			this.obs.forEach(elem => {
 				now_scene.removeChild(elem);
@@ -1759,7 +1765,16 @@ window.onload = function() {
 			this.topimage._Destroy();
 			new BlockDestroyEffect(this.tilePath.x, this.tilePath.y);
 			this.destroy();
-			//now_scene.removeChild(this);
+			//now_scene.removeChild(this);*/
+			scheduleCollisionUpdate(this.tilePath.x, this.tilePath.y, 0);
+			now_scene.grid[this.tilePath.y][this.tilePath.x] = 'Empty';
+
+			this.obs.forEach(elem => now_scene.removeChild(elem));
+			this.frontimage._Destroy();
+			this.topimage._Destroy();
+
+			new BlockDestroyEffect(this.tilePath.x, this.tilePath.y);
+			this.destroy();
 		}
 	})
 
@@ -3358,20 +3373,20 @@ window.onload = function() {
 		},
 
 		destroyNearbyBlocks: function() {
-			let cnt = 0;
+			//let cnt = 0;
 			Block.collection.forEach(elem => {
 				if (elem.within(this, 125)){
 					elem._Destroy();
-					cnt++;
+					//cnt++;
 				}
 			});
-			if(cnt > 0){
+			/*if(cnt > 0){
 				const children = now_scene.childNodes.slice().filter(child => child instanceof RefObstracle); // enchant.jsでは childNodes は配列風
 				children.forEach(child => {
 					now_scene.removeChild(child);
 				});
 				SetRefs(now_scene, now_scene.backgroundMap.collisionData);
-			}
+			}*/
 		},
 
 		destroyNearbyBombs: function() {
@@ -5828,7 +5843,7 @@ window.onload = function() {
 														}
 													}
 												}
-												if(Search(this.cannon, c, 25, defRange[1])){
+												if(Search(this.cannon, c, 45, defRange[1]) && c.time > 30){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 											}
@@ -5972,6 +5987,7 @@ window.onload = function() {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							if (this.category == 6) this._ResetAim();
+							else if (this.category == 5 && Math.floor(Math.random() * 3) == 0) this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * (10);
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							break;
 						}
@@ -6031,7 +6047,7 @@ window.onload = function() {
 					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
 					if (time >= 0){
 						// 少し手前を狙うための係数（例：90%の位置を狙う）
-						var biasFactor = 0.75;
+						var biasFactor = 0.85;
 
 						// 予測位置
 						const futureX = bulletPos.x + dvx * time * biasFactor;
@@ -6379,15 +6395,19 @@ window.onload = function() {
 					for (let i = 0; i < this.bulMax; i++) {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
-							if (this.category == 6) this._ResetAim();
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							this.aimingTime = 0;
 							if (this.category != 1) {
 								this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
-								//this.cannon.rotation += this.aimRot/2;
 							} else {
 								this.aimCmpTime = Math.floor(Math.random() * 30) + 30;
 							}
+							this.cannon.rotation += this.aimRot / 2;
+							this.cannon2.rotation += this.aimRot / 2;
+							const children = now_scene.childNodes.slice().filter(child => child instanceof RefAim && child.num == this.num); // enchant.jsでは childNodes は配列風
+							children.forEach(child => {
+								now_scene.removeChild(child);
+							});
 							break;
 						}
 					}
@@ -10716,6 +10736,19 @@ window.onload = function() {
 								game.replaceScene(new StartScene());
 							});
 						}
+					}
+					if (collisionUpdates.length > 0) {
+						collisionUpdates.forEach(u => {
+							now_scene.backgroundMap.collisionData[u.y][u.x] = u.value;
+						});
+						collisionUpdates = [];
+
+						const children = now_scene.childNodes.slice().filter(child => child instanceof RefObstracle); // enchant.jsでは childNodes は配列風
+						children.forEach(child => {
+							now_scene.removeChild(child);
+						});
+						// まとめて参照更新
+						SetRefs(now_scene, now_scene.backgroundMap.collisionData);
 					}
 				}
 
