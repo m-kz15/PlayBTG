@@ -293,7 +293,7 @@ const Categorys = {
 		[false, false, false], //brown
 		[true, true, false], //gray
 		[true, true, true], //green
-		[true, false, false], //red
+		[true, false, true], //red
 		[true, true, true], //lightgreen
 		[true, true, true], //elitegray
 		[false, false, false], //elitegreen
@@ -309,7 +309,7 @@ const Categorys = {
 		[0, 0, 0], //brown
 		[300, 200, 200], //gray
 		[400, 200, 150], //green
-		[200, 0, 0], //red
+		[200, 0, 300], //red
 		[300, 200, 200], //lightgreen
 		[360, 250, 200], //elitegray
 		[0, 0, 0], //elitegreen
@@ -437,6 +437,26 @@ const stagePath = [
 	'./stage/stage77.js',
 	'./stage/stage78.js',
 	'./stage/stage79.js',
+	'./stage/stage80.js',
+	'./stage/stage81.js',
+	'./stage/stage82.js',
+	'./stage/stage83.js',
+	'./stage/stage84.js',
+	'./stage/stage85.js',
+	'./stage/stage86.js',
+	'./stage/stage87.js',
+	'./stage/stage88.js',
+	'./stage/stage89.js',
+	'./stage/stage90.js',
+	'./stage/stage91.js',
+	'./stage/stage92.js',
+	'./stage/stage93.js',
+	'./stage/stage94.js',
+	'./stage/stage95.js',
+	'./stage/stage96.js',
+	'./stage/stage97.js',
+	'./stage/stage98.js',
+	'./stage/stage99.js',
 ];
 
 class Vector2 {
@@ -4723,7 +4743,8 @@ window.onload = function() {
 					parseInt((self.y + self.height / 2) / PixelSize),
 					parseInt((self.x + self.width / 2) / PixelSize)
 				];
-				root = findShortestPath([myPath[0], myPath[1]], grid, scene);
+				//root = findShortestPath([myPath[0], myPath[1]], grid, scene);
+				root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, scene)
 				if (root && root.length > 0) {
 					updateRotationAndDistance(root[0], myPath, self);
 				}
@@ -7650,6 +7671,7 @@ window.onload = function() {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
+									if(this.life == 1)this.fireLate = Categorys.FireLate[this.category] - 10;
 								}
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -7789,6 +7811,7 @@ window.onload = function() {
 							if (this.life == 1) {
 								this.fullFireFlg = true;
 								this.firecnt++;
+								this.fireLate = (Math.floor(Math.random() * 4) + 1) * 10;
 							}
 							break;
 						}
@@ -8080,7 +8103,7 @@ window.onload = function() {
 												}
 												if (escRange[0] && escRange[1] != 0) {
 													if (dist < escRange[1]) {
-														if (Search(c, this, 45, escRange[1])) {
+														if (Search(c, this, 60, escRange[1])) {
 															this.escapeTarget = c;
 															this.escapeFlg = true;
 														}

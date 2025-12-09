@@ -260,7 +260,7 @@ const Categorys = {
 		1.5, //brown
 		3, //gray
 		5, //green
-		8, //red
+		15, //red
 		5, //lightgreen
 		8, //elitegray
 		1.2, //elitegreen
@@ -292,7 +292,7 @@ const Categorys = {
 		[false, false, false], //brown
 		[true, true, false], //gray
 		[true, true, true], //green
-		[true, false, false], //red
+		[true, false, true], //red
 		[true, true, true], //lightgreen
 		[true, true, true], //elitegray
 		[false, false, false], //elitegreen
@@ -308,7 +308,7 @@ const Categorys = {
 		[0, 0, 0], //brown
 		[300, 200, 200], //gray
 		[400, 200, 150], //green
-		[200, 0, 0], //red
+		[260, 0, 300], //red
 		[300, 200, 200], //lightgreen
 		[360, 250, 200], //elitegray
 		[0, 0, 0], //elitegreen
@@ -3973,7 +3973,9 @@ window.onload = function() {
 			}
 			this.opacity = value;
 
-			let rad = Rot_to_Rad(from.rotation + 90);
+			let randOffset = from.from.shotSpeed > 20 ? 0 : (Math.floor(Math.random() * 7) - 3) * (5);
+
+			let rad = Rot_to_Rad(from.rotation + 90 + randOffset);
 			let dx = Math.cos(rad) * (9);
 			let dy = Math.sin(rad) * (9);
 			this.rotation = from.rotation;
@@ -4051,6 +4053,134 @@ window.onload = function() {
 			now_scene.FireGroup.addChild(this);
 		}
 	});
+	
+	/*var OpenFire = Class.create(Sprite, {
+		initialize: function(from) {
+			Sprite.call(this, 64, 64); // 大きめに確保
+			this.time = 0;
+
+			// 位置計算
+			let rad = Rot_to_Rad(from.rotation - 90);
+			let dx = Math.cos(rad) * 40;
+			let dy = Math.sin(rad) * 40;
+			let f = Get_Center(from);
+			this.moveTo(f.x - this.width / 2 + dx, f.y - this.height / 2 + dy);
+			this.rotation = from.rotation;
+
+			// Surfaceにトゲトゲを描画
+			let s = new Surface(this.width, this.height);
+			let ctx = s.context;
+			let cx = this.width / 2;
+			let cy = this.height / 2;
+			let spikes = 12; // トゲの数
+			let outer = 30;  // 外側半径
+			let inner = 10;  // 内側半径
+
+			// グラデーションを作成
+			let grad = ctx.createRadialGradient(cx, cy, 7, cx, cy, outer);
+			grad.addColorStop(0, "#fa0");       // 中心
+			grad.addColorStop(0.1, "#f40");       // 中心
+			grad.addColorStop(0.5, "red");        // 中間
+			grad.addColorStop(1, "#800");        // 中間
+			ctx.fillStyle = grad;
+
+			ctx.beginPath();
+			for (let i = 0; i < spikes; i++) {
+				let angle = (i / spikes) * Math.PI * 2;
+				let x1 = cx + Math.cos(angle) * outer;
+				let y1 = cy + Math.sin(angle) * outer;
+				let x2 = cx + Math.cos(angle + Math.PI / spikes) * inner;
+				let y2 = cy + Math.sin(angle + Math.PI / spikes) * inner;
+				if (i === 0) ctx.moveTo(x1, y1);
+				else ctx.lineTo(x1, y1);
+				ctx.lineTo(x2, y2);
+			}
+			ctx.closePath();
+			ctx.fill();
+
+			this.image = s;
+
+			this.scaleX = this.scaleY = 1.0;
+			this.opacity = 1.0;
+
+			this.onenterframe = function() {
+				if (WorldFlg) {
+					this.x += Math.cos(rad) * 2;
+					this.y += Math.sin(rad) * 2;
+					this.scaleX *= 0.9;   // 徐々に縮小
+					this.scaleY *= 0.9;
+					this.opacity -= 0.1;  // フェードアウト
+					this.time++;
+					if (this.opacity <= 0) {
+						now_scene.FireGroup.removeChild(this);
+					}
+				}
+			};
+			now_scene.FireGroup.addChild(this);
+		}
+	});*/
+
+	/*var OpenFire = Class.create(Sprite, {
+		initialize: function(from) {
+			Sprite.call(this, 64, 64); // 扇形を描くために大きめの領域
+			this.time = 0;
+
+			// Surfaceに扇状のトゲトゲを描画
+			let s = new Surface(this.width, this.height);
+			let ctx = s.context;
+			let cx = this.width / 2;
+			let cy = this.height / 2;
+
+			// 扇状に広がるトゲを描画
+			ctx.fillStyle = "#f40";
+			ctx.beginPath();
+			let spikes = 12; // トゲの数
+			let startAngle = -Math.PI / 6 - Math.PI / 2; // -30° - 90° = -120°
+        	let endAngle   =  Math.PI / 6 - Math.PI / 2; // +30° - 90° = -60°
+			for (let i = 0; i <= spikes; i++) {
+				let angle = startAngle + (i / spikes) * (endAngle - startAngle);
+				let r = 30 + Math.random() * 10; // 外側半径ランダム
+				let x = cx + Math.cos(angle) * r;
+				let y = cy + Math.sin(angle) * r;
+				if (i === 0) ctx.moveTo(cx, cy);
+				ctx.lineTo(x, y);
+			}
+			ctx.closePath();
+			ctx.fill();
+
+			this.image = s;
+
+			// 位置計算（発射方向へ配置）
+			let rad = Rot_to_Rad(from.rotation - 90);
+			let dx = Math.cos(rad) * 40;
+			let dy = Math.sin(rad) * 40;
+			let f = Get_Center(from);
+			this.moveTo(f.x - this.width / 2 + dx, f.y - this.height / 2 + dy);
+			this.rotation = from.rotation;
+
+			this.scaleX = this.scaleY = 1.0;
+			this.opacity = 1.0;
+
+			this.onenterframe = function() {
+				if (WorldFlg) {
+					// 発射方向へ少し移動
+					this.x += Math.cos(rad) * 2;
+					this.y += Math.sin(rad) * 2;
+
+					// 徐々に縮小
+					this.scaleX *= 0.95;
+					this.scaleY *= 0.95;
+
+					this.opacity -= 0.08; // フェードアウト
+					this.time++;
+					if (this.opacity <= 0) {
+						now_scene.FireGroup.removeChild(this);
+					}
+				}
+			};
+			now_scene.FireGroup.addChild(this);
+		}
+	});*/
 
 	var Flash = Class.create(Sprite, {
 		initialize: function(target) {
@@ -6139,7 +6269,7 @@ window.onload = function() {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							if (this.category == 6) this._ResetAim();
-							else if (this.category == 5 && Math.floor(Math.random() * 3) == 0) this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * (10);
+							else if (this.category == 5 && Math.floor(Math.random() * 3) == 0) this.cannon.rotation += (Math.floor(Math.random() * 7) - 3) * (5);
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							break;
 						}
@@ -8121,6 +8251,8 @@ window.onload = function() {
 
 			var rot = 0;
 
+			var moveRandom = 1;
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
@@ -8218,6 +8350,10 @@ window.onload = function() {
 							}
 
 							this.time++;
+
+							if (this.time % 45 == 0){
+								moveRandom = Math.floor(Math.random() * 5) ? 1 : 0;
+							}
 
 							if (hittingTime >= 35) {
 								let arr = [];
@@ -8321,7 +8457,7 @@ window.onload = function() {
 												}
 												if (escRange[0] && escRange[1] != 0) {
 													if (dist < escRange[1]) {
-														if (Search(c, this, 45, escRange[1])) {
+														if (Search(c, this, 60, escRange[1])) {
 															this.escapeTarget = c;
 															this.escapeFlg = true;
 														}
@@ -8426,7 +8562,7 @@ window.onload = function() {
 										} else {
 
 											if (this.time % 9 == 0) {
-												SelDirection(this.weak, this.attackTarget, 1);
+												SelDirection(this.weak, this.attackTarget, moveRandom);
 											}
 
 										}
