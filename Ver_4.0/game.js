@@ -154,7 +154,7 @@ const Categorys = {
 		4, //elitegray
 		3, //elitegreen
 		2, //snow
-		4, //elitered
+		3, //elitered
 		6, //pink
 		3, //sand
 		1, //random
@@ -199,10 +199,10 @@ const Categorys = {
 		40, //gray
 		25, //green
 		20, //red
-		32, //elitegray
+		40, //elitegray
 		10, //elitegreen
 		30, //snow
-		8, //elitered
+		16, //elitered
 		6, //pink
 		36, //sand
 		10, //random
@@ -282,7 +282,7 @@ const Categorys = {
 		180, //elitegray
 		90, //elitegreen
 		360, //snow
-		180, //elitered
+		360, //elitered
 		180, //pink
 		90, //sand
 		90, //random
@@ -1057,22 +1057,22 @@ const ViewConfig = {
 	'TankList': {
 		Head: {
 			position: {
-				x: PixelSize * 1,
+				x: PixelSize * 0.5,
 				y: PixelSize * 0.5
 			},
 			size: {
-				width: PixelSize * 18,
+				width: PixelSize * 19,
 				height: PixelSize * 14
 			},
 			color: '#a00'
 		},
 		Body: {
 			position: {
-				x: PixelSize * 1,
+				x: PixelSize * 0.5,
 				y: PixelSize * 3
 			},
 			size: {
-				width: PixelSize * 18,
+				width: PixelSize * 19,
 				height: PixelSize * 9.5
 			},
 			color: '#eea'
@@ -1672,7 +1672,7 @@ window.onload = function() {
 
 	inputManager = new InputManager();
 
-	let vh = (window.innerHeight / ((PixelSize * Stage_H) + 32));
+	let vh = (window.innerHeight / ((PixelSize * Stage_H)));
 	if (window.innerWidth < game.width * vh) {
 		vh = (window.innerWidth / ((PixelSize * Stage_W) + 128));
 	}
@@ -4263,6 +4263,7 @@ window.onload = function() {
 						break;
 					case 8:
 						this.moveSpeed += 0.5;
+						this.fireLate -= 8;
 						this.bulMax += 1;
 						this.CannonRotSpeed += 4;
 						break;
@@ -4270,6 +4271,7 @@ window.onload = function() {
 						this.fireLate -= 2;
 						break;
 					case 10:
+						this.fireLate -= 12;
 						this.moveSpeed += 0.5;
 						this.bomMax += 1;
 						break;
@@ -5160,6 +5162,7 @@ window.onload = function() {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							this.time += Math.floor(Math.random() * 3);
 							break;
 						}
 					}
@@ -5548,6 +5551,7 @@ window.onload = function() {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							this.time += Math.floor(Math.random() * 5);
 							break;
 						}
 					}
@@ -6009,6 +6013,7 @@ window.onload = function() {
 							this.shotStopFlg = true;
 							if (this.category == 5) this._ResetAim();
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							this.time += Math.floor(Math.random() * 3);
 							break;
 						}
 					}
@@ -6057,6 +6062,16 @@ window.onload = function() {
 				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
 				const b = 2 * (dx * dvx + dy * dvy);
 				const c = dx * dx + dy * dy;
+
+				// 近すぎると暴れる
+				if (c < 2000) return;
+
+				// a が小さいときは未来予測が不安定
+				if (Math.abs(a) < 0.0001) {
+					const aimAngle = Math.atan2(dy, dx);
+					this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					return;
+				}
 
 				const discriminant = b * b - 4 * a * c;
 				if (discriminant >= 0){
@@ -6939,6 +6954,7 @@ window.onload = function() {
 							this._ResetAim();
 							this.shotStopFlg = true;
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							this.time += Math.floor(Math.random() * 5);
 							break;
 						}
 					}
@@ -7472,6 +7488,8 @@ window.onload = function() {
 
 			var rot = 0;
 
+			var moveRandom = 1;
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
@@ -7535,6 +7553,10 @@ window.onload = function() {
 						if (WorldFlg) {
 							
 							if(this._Damage()) this._ResetStatus();
+
+							if (this.time % 45 == 0){
+								moveRandom = Math.floor(Math.random() * 5) ? 1 : 0;
+							}
 
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
@@ -7737,7 +7759,7 @@ window.onload = function() {
 										} else {
 
 											if (this.time % 10 == 0) {
-												SelDirection(this.weak, this.attackTarget, 1);
+												SelDirection(this.weak, this.attackTarget, moveRandom);
 											}
 
 										}
@@ -7855,15 +7877,15 @@ window.onload = function() {
 		_ResetStatus: function() {
 			switch (this.life) {
 				case 3:
-					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
+					if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 					break;
 				case 2:
-					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
+					if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
 					this.fireLate = Categorys.FireLate[this.category] + 5;
 					this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
 					break;
 				case 1:
-					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
+					if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.2;
 					this.fireLate = Categorys.FireLate[this.category] - 10;
 					this.shotSpeed = Categorys.ShotSpeed[this.category] + 5;
 					this.ref = 0;
@@ -8370,17 +8392,17 @@ window.onload = function() {
 		_ResetStatus: function() {
 			switch (this.life) {
 				case 3:
-					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
+					if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 					break;
 				case 2:
-					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
+					if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
 					this.fireLate = Categorys.FireLate[this.category] + 3;
 					this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
 					this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 4;
 					this.distance = Categorys.Distances[this.category] + 100;
 					break;
 				case 1:
-					if (this.MoveSpeed > 1) this.MoveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
+					if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] - 0.5;
 					this.fireLate = Categorys.FireLate[this.category] - 12;
 					this.shotSpeed = Categorys.ShotSpeed[this.category] + 3;
 					this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 7;
@@ -8834,24 +8856,6 @@ window.onload = function() {
 								}
 							}
 
-							/*if (this.time % 60 == 0 && (root == false || rootFlg)) {
-								if (Block.collection.length > 0) {
-									if (Math.floor(Math.random() * 2)) {
-										for (var i = 0, l = Block.collection.length; i < l; i++) {
-											let c = Block.collection[i];
-											if (this.within(c, 80) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
-												new Bom(this, this.num, boms[this.num])._SetBom();
-												this.bomReload = 0;
-												this.bomSetFlg = true;
-												this.bulReloadFlg = true;
-												break;
-											}
-										}
-									}
-								}
-
-							}*/
-
 							if (this.moveSpeed > 0) {
 								if (this.time % 3 == 0) {
 									if (this.escapeFlg) {
@@ -8964,7 +8968,7 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (bullets[this.num] >= this.bulMax-3 && this.attackTarget.name == "Entity") return;
+			if (bullets[this.num] >= this.bulMax-2 && this.attackTarget.name == "Entity") return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
 					for (let i = 0; i < this.bulMax; i++) {
@@ -8980,59 +8984,6 @@ window.onload = function() {
 			}
 		},
 		_ResetAim: function() {
-			/*function Get_ShotOrigin(shooter) {
-				const pos = Get_Center(shooter);
-
-				// 発射方向（迎撃時は shooter.cannon.rotation を使う）
-				const vec = Rot_to_Vec(shooter.cannon.rotation, -90);
-				const rad = Math.atan2(vec.y, vec.x);
-
-				// あなたの弾生成コードと同じオフセット
-				const ox = Math.cos(rad) * 60 - 2.25;
-				const oy = Math.sin(rad) * 60 - 3;
-
-				return { x: pos.x + ox, y: pos.y + oy };
-			}*/
-
-			/*if (this.attackTarget.name == 'Bullet') {
-				const shooterPos = Get_Center(this);
-				const bullet = this.attackTarget;
-				const bulletPos = Get_Center(bullet);
-				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = bullet.from.shotSpeed;
-				const shotSpeed = this.shotSpeed;
-
-				// 相対位置と速度ベクトル
-				const dx = bulletPos.x - shooterPos.x;
-				const dy = bulletPos.y - shooterPos.y;
-				const dvx = bulletVec.x * targetSpeed;
-				const dvy = bulletVec.y * targetSpeed;
-
-				// 二次方程式を解いて迎撃時間を推定
-				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
-				const b = 2 * (dx * dvx + dy * dvy);
-				const c = dx * dx + dy * dy;
-
-				const discriminant = b * b - 4 * a * c;
-				if (discriminant >= 0){
-					const sqrtDisc = Math.sqrt(discriminant);
-					let t1 = (-b - sqrtDisc) / (2 * a);
-					let t2 = (-b + sqrtDisc) / (2 * a);
-
-					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
-					if (time >= 0){
-						// 少し手前を狙うための係数（例：90%の位置を狙う）
-						var biasFactor = 0.4;
-
-						// 予測位置
-						const futureX = bulletPos.x + (dvx * time * biasFactor);
-						const futureY = bulletPos.y + (dvy * time * biasFactor);
-
-						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
-						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					}
-				}
-			}*/
 			if (this.attackTarget.name === 'Bullet') {
 				const shooterPos = Get_Center(this);
 				const bullet = this.attackTarget;
@@ -9051,13 +9002,18 @@ window.onload = function() {
 				const c = dx*dx + dy*dy;
 
 				// 近すぎると暴れる
-				if (c < 2500) return;
+				if (c < 2000) return;
 
 				// a が小さいときは未来予測が不安定
 				if (Math.abs(a) < 0.0001) {
-					const aimAngle = Math.atan2(dy, dx);
-					this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					return;
+					if (gameMode == 2){
+						a = a >= 0 ? 0.0001 : -0.0001; 
+					}
+					else{
+						const aimAngle = Math.atan2(dy, dx);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+						return;
+					}
 				}
 
 				const discriminant = b*b - 4*a*c;
@@ -10151,7 +10107,7 @@ window.onload = function() {
 			var tankBulSpd = new ViewText(area.body, 'Text', { width: 36 * 12, height: 48 }, { x: PixelSize * 6.5, y: PixelSize * 3.5 }, '　弾速　：', '36px sans-serif', 'black', 'left', true);
 			var tankBulRef = new ViewText(area.body, 'Text', { width: 36 * 12, height: 48 }, { x: PixelSize * 6.5, y: PixelSize * 4.5 }, '跳弾回数：', '36px sans-serif', 'black', 'left', true);
 			var tankSpd = new ViewText(area.body, 'Text', { width: 36 * 12, height: 48 }, { x: PixelSize * 6.5, y: PixelSize * 5.5 }, '移動速度：', '36px sans-serif', 'black', 'left', true);
-			var tankDsc = new ViewText(area.body, 'Text', { width: 36 * 20, height: 36 * 3 }, { x: PixelSize * 6.5, y: PixelSize * 6.5 }, '・戦車の特徴', '36px sans-serif', 'black', 'left', true);
+			var tankDsc = new ViewText(area.body, 'Text', { width: 36 * 22, height: 36 * 5 }, { x: PixelSize * 6.5, y: PixelSize * 6.5 }, '・戦車の特徴', '36px sans-serif', 'black', 'left', true);
 
 			var change = new ViewButton(area.body, 'Change', { width: 36 * 10, height: 36 }, { x: PixelSize * 0.5, y: PixelSize * 8 }, '選択中の戦車に変更', '36px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
 			var selTank = new ViewText(this, 'Select', { width: 60, height: 20 }, { x: 0, y: 0 }, '自機→', '20px sans-serif', '#00f', 'center', true);
@@ -11030,7 +10986,7 @@ window.onload = function() {
 if (navigator.userAgent.match(/iPhone/)) {
 	window.addEventListener('orientationchange', function() {
 		stageScreen = document.getElementById('enchant-stage');
-		let vh = (window.innerHeight / ((PixelSize * Stage_H) + 32));
+		let vh = (window.innerHeight / ((PixelSize * Stage_H)));
 		if (window.innerWidth < game.width * vh) {
 			vh = (window.innerWidth / ((PixelSize * Stage_W) + 128));
 		}
@@ -11044,7 +11000,7 @@ if (navigator.userAgent.match(/iPhone/)) {
 }
 window.onresize = function() {
 	stageScreen = document.getElementById('enchant-stage');
-	let vh = (window.innerHeight / ((PixelSize * Stage_H) + 32));
+	let vh = (window.innerHeight / ((PixelSize * Stage_H)));
 	if (window.innerWidth < game.width * vh) {
 		vh = (window.innerWidth / ((PixelSize * Stage_W) + 128));
 	}
