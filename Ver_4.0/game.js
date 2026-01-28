@@ -10949,6 +10949,56 @@ window.onload = function() {
 		}
 	})
 
+	var canStart = false;
+
+	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+		if (Math.abs(window.orientation) == 90) {
+			canStart = true;
+		} else {
+			alert("このゲームは横向きで遊んで下さい\r\n※画面を横向きにしないとゲームは始まりません。");
+		}
+	} else {
+		canStart = true;
+	}
+
+	if (canStart) {
+		if (DebugFlg) {
+			game.debug();
+		} else {
+			game.start();
+		}
+	}
+
+	function startFixedLoop(game) {
+		// enchant.js の内部ループを止める
+		game._requestNextFrame = function() {};
+		
+		var FIXED_FPS = 60;
+		var FIXED_DT = 1000 / FIXED_FPS;
+		var accumulator = 0;
+		var lastTime = performance.now();
+
+		game._fixedTick = function() {
+			var now = performance.now();
+			var delta = now - lastTime;
+			lastTime = now;
+
+			accumulator += delta;
+
+			while (accumulator >= FIXED_DT) {
+				game._tick();
+				accumulator -= FIXED_DT;
+			}
+
+			if (game._renderer && game.currentScene) { 
+				game._renderer.render(game.currentScene); 
+			}
+			requestAnimationFrame(game._fixedTick);
+		};
+
+		requestAnimationFrame(game._fixedTick);
+	}
+
 	game.onload = function() {
 		var script = document.createElement("script");
 		script.src = stagePath[stageNum];
@@ -10965,22 +11015,8 @@ window.onload = function() {
 		}
 	}
 
-	if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
-		if (Math.abs(window.orientation) == 90) {
-			if(DebugFlg){
-				game.debug();	//	ゲームをデバッグモードで実行させる。
-			}else{
-				game.start(); // ゲームをスタートさせます
-			}
-		}else{
-			alert("このゲームは横向きで遊んで下さい\r\n※画面を横向きにしないとゲームは始まりません。");
-		}
-	}else{
-		if(DebugFlg){
-			game.debug();	//	ゲームをデバッグモードで実行させる。
-		}else{
-			game.start(); // ゲームをスタートさせます
-		}
+	if (canStart){
+		startFixedLoop(game);
 	}
 };
 if (navigator.userAgent.match(/iPhone/)) {
