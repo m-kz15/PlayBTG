@@ -68,42 +68,24 @@
             return bound;
         };
     }
-    
-    window.getTime = (function() {
-        var origin;
-        if (window.performance && window.performance.now) {
-            origin = Date.now();
-            return function() {
-                return origin + window.performance.now();
-            };
-        } else if (window.performance && window.performance.webkitNow) {
-            origin = Date.now();
-            return function() {
-                return origin + window.performance.webkitNow();
-            };
-        } else {
-            return Date.now;
+    // High-resolution timestamp
+    window.getTime = (function () {
+        if (performance && performance.now) {
+            const origin = Date.now();
+            return () => origin + performance.now();
         }
-    }());
-    
-    // define requestAnimationFrame
-    window.requestAnimationFrame =
-        window.requestAnimationFrame ||
-        window.mozRequestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.msRequestAnimationFrame ||
-        (function() {
-            var lastTime = window.getTime();
-            var frame = 1000 / 60;
-            return function(func) {
-                var _id = setTimeout(function() {
-                    lastTime = window.getTime();
-                    func(lastTime);
-                }, Math.max(0, lastTime + frame - window.getTime()));
-                return _id;
-            };
-        }());
-    
+        return Date.now;
+    })();
+
+    // requestAnimationFrame fallback
+    if (!window.requestAnimationFrame) {
+        window.requestAnimationFrame = function (callback) {
+            return setTimeout(() => {
+                callback(window.getTime());
+            }, 1000 / 60);
+        };
+    }
+
     /**
      * Export the library classes globally.
      *
@@ -122,51 +104,53 @@
      * @global
      * @name enchant
      */
-    var enchant = function(modules) {
-        if (modules != null) {
-            if (!(modules instanceof Array)) {
-                modules = Array.prototype.slice.call(arguments);
-            }
-            modules = modules.filter(function(module) {
-                return [module].join();
-            });
+    var enchant = function (...modules) {
+        // Normalize modules
+        if (modules.length === 0) {
+            modules = null;
+        } else {
+            modules = modules.filter(m => m !== '');
         }
-        (function include(module, prefix) {
-            var submodules = [],
-                i, len;
-            for (var prop in module) {
-                if (module.hasOwnProperty(prop)) {
-                    if (typeof module[prop] === 'function') {
-                        window[prop] = module[prop];
-                    } else if (typeof module[prop] === 'object' && module[prop] !== null && Object.getPrototypeOf(module[prop]) === Object.prototype) {
-                        if (modules == null) {
-                            submodules.push(prop);
-                        } else {
-                            i = modules.indexOf(prefix + prop);
-                            if (i !== -1) {
-                                submodules.push(prop);
-                                modules.splice(i, 1);
-                            }
+
+        const include = (module, prefix) => {
+            const submodules = [];
+
+            for (const prop of Object.keys(module)) {
+                const value = module[prop];
+
+                if (typeof value === 'function') {
+                    window[prop] = value;
+                } else if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+                    const fullName = prefix + prop;
+
+                    if (modules === null || modules.includes(fullName)) {
+                        submodules.push(prop);
+
+                        if (modules) {
+                            modules = modules.filter(m => m !== fullName);
                         }
                     }
                 }
             }
-    
-            for (i = 0, len = submodules.length; i < len; i++) {
-                include(module[submodules[i]], prefix + submodules[i] + '.');
+
+            for (const sub of submodules) {
+                include(module[sub], prefix + sub + '.');
             }
-        }(enchant, ''));
-    
-        // issue 185
-        if (enchant.Class.getInheritanceTree(window.Game).length <= enchant.Class.getInheritanceTree(window.Core).length) {
+        };
+
+        include(enchant, '');
+
+        // issue 185 fix (getInheritanceTree を使わない版)
+        if (!(window.Game.prototype instanceof window.Core)) {
             window.Game = window.Core;
         }
-    
-        if (modules != null && modules.length) {
+
+
+        if (modules && modules.length) {
             throw new Error('Cannot load module: ' + modules.join(', '));
         }
     };
-    
+
     // export enchant
     window.enchant = enchant;
     
@@ -255,71 +239,51 @@
      * @param {*} [definition] Class definition.
      * @static
      */
-    enchant.Class.create = function(superclass, definition) {
-        if (superclass == null && definition) {
-            throw new Error("superclass is undefined (enchant.Class.create)");
-        } else if (superclass == null) {
-            throw new Error("definition is undefined (enchant.Class.create)");
+    enchant.Class.create = function (superclass, definition) {
+        if (!superclass) throw new Error("superclass is undefined");
+        if (!definition && typeof superclass !== "function") {
+            definition = superclass;
+            superclass = Object;
         }
-    
-        if (arguments.length === 0) {
-            return enchant.Class.create(Object, definition);
-        } else if (arguments.length === 1 && typeof arguments[0] !== 'function') {
-            return enchant.Class.create(Object, arguments[0]);
-        }
-    
-        for (var prop in definition) {
-            if (definition.hasOwnProperty(prop)) {
-                if (typeof definition[prop] === 'object' && definition[prop] !== null && Object.getPrototypeOf(definition[prop]) === Object.prototype) {
-                    if (!('enumerable' in definition[prop])) {
-                        definition[prop].enumerable = true;
-                    }
-                } else {
-                    definition[prop] = { value: definition[prop], enumerable: true, writable: true };
-                }
-            }
-        }
-        var Constructor = function() {
-            if (this instanceof Constructor) {
-                Constructor.prototype.initialize.apply(this, arguments);
+
+        // Normalize definition into property descriptors
+        const desc = {};
+        for (const key in definition) {
+            if (!definition.hasOwnProperty(key)) continue;
+            const val = definition[key];
+
+            if (val && typeof val === "object" && Object.getPrototypeOf(val) === Object.prototype) {
+                desc[key] = { ...val, enumerable: true };
             } else {
-                return new Constructor();
+                desc[key] = { value: val, enumerable: true, writable: true };
             }
-        };
-        Constructor.prototype = Object.create(superclass.prototype, definition);
+        }
+
+        // Constructor
+        function Constructor() {
+            return Constructor.prototype.initialize.apply(this, arguments);
+        }
+
+        Constructor.prototype = Object.create(superclass.prototype, desc);
         Constructor.prototype.constructor = Constructor;
-        if (Constructor.prototype.initialize == null) {
-            Constructor.prototype.initialize = function() {
+
+        if (!Constructor.prototype.initialize) {
+            Constructor.prototype.initialize = function () {
                 superclass.apply(this, arguments);
             };
         }
-    
-        var tree = this.getInheritanceTree(superclass);
-        for (var i = 0, l = tree.length; i < l; i++) {
-            if (typeof tree[i]._inherited === 'function') {
-                tree[i]._inherited(Constructor);
+
+        // Call inherited hook
+        let proto = superclass;
+        while (proto && proto !== Object) {
+            if (typeof proto._inherited === "function") {
+                proto._inherited(Constructor);
                 break;
             }
+            proto = Object.getPrototypeOf(proto.prototype)?.constructor;
         }
-    
+
         return Constructor;
-    };
-    
-    /**
-     * Get the inheritance tree of this class.
-     * @param {Function} Constructor
-     * @return {Function[]} Parent's constructor
-     */
-    enchant.Class.getInheritanceTree = function(Constructor) {
-        var ret = [];
-        var C = Constructor;
-        var proto = C.prototype;
-        while (C !== Object) {
-            ret.push(C);
-            proto = Object.getPrototypeOf(proto);
-            C = proto.constructor;
-        }
-        return ret;
     };
     
     /**
@@ -931,419 +895,289 @@
          * @scope enchant.Core.prototype
          */
         enchant.Core = enchant.Class.create(enchant.EventTarget, {
-            /**
-             * @name enchant.Core
-             * @class
-             * A class for controlling the core’s main loop and scenes.
-             *
-             * There can be only one instance at a time. When the
-             * constructor is executed while an instance exists, the
-             * existing instance will be overwritten. The existing instance
-             * can be accessed from {@link enchant.Core.instance}.
-             *
-             * @param {Number} [width=320] The width of the core viewport.
-             * @param {Number} [height=320] The height of the core viewport.
-             * @constructs
-             * @extends enchant.EventTarget
-             */
-            initialize: function(width, height) {
-                if (window.document.body === null) {
-                    // @TODO postpone initialization after window.onload
-                    throw new Error("document.body is null. Please excute 'new Core()' in window.onload.");
+
+            initialize: function (width, height) {
+                if (!document.body) {
+                    throw new Error("document.body is null. Please execute 'new Core()' in window.onload.");
                 }
-    
+
                 enchant.EventTarget.call(this);
-                var initial = true;
-                if (core) {
-                    initial = false;
-                    core.stop();
-                }
+
+                var initial = !core;
+                if (!initial) core.stop();
                 core = enchant.Core.instance = this;
-    
+
                 this._calledTime = 0;
                 this._mousedownID = 0;
                 this._surfaceID = 0;
                 this._soundID = 0;
-    
                 this._scenes = [];
-    
-                width = width || 320;
-                height = height || 320;
-    
+
+                this._width = width || 320;
+                this._height = height || 320;
+
                 var stage = document.getElementById('enchant-stage');
-                var scale, sWidth, sHeight;
+                var scale = 1;
+
                 if (!stage) {
                     stage = document.createElement('div');
                     stage.id = 'enchant-stage';
                     stage.style.position = 'absolute';
-    
+
                     if (document.body.firstChild) {
                         document.body.insertBefore(stage, document.body.firstChild);
                     } else {
                         document.body.appendChild(stage);
                     }
+
                     scale = Math.min(
-                        window.innerWidth / width,
-                        window.innerHeight / height
+                        window.innerWidth / this._width,
+                        window.innerHeight / this._height
                     );
-                    this._pageX = stage.getBoundingClientRect().left;
-                    this._pageY = stage.getBoundingClientRect().top;
+
+                    var rect = stage.getBoundingClientRect();
+                    this._pageX = rect.left;
+                    this._pageY = rect.top;
+
                 } else {
                     var style = window.getComputedStyle(stage);
-                    sWidth = parseInt(style.width, 10);
-                    sHeight = parseInt(style.height, 10);
+                    var sWidth = parseInt(style.width, 10);
+                    var sHeight = parseInt(style.height, 10);
+
                     if (sWidth && sHeight) {
-                        scale = Math.min(
-                            sWidth / width,
-                            sHeight / height
-                        );
-                    } else {
-                        scale = 1;
+                        scale = Math.min(sWidth / this._width, sHeight / this._height);
                     }
-                    while (stage.firstChild) {
-                        stage.removeChild(stage.firstChild);
-                    }
+
+                    stage.textContent = '';
                     stage.style.position = 'relative';
-    
-                    var bounding = stage.getBoundingClientRect();
-                    this._pageX = Math.round(window.scrollX || window.pageXOffset + bounding.left);
-                    this._pageY = Math.round(window.scrollY || window.pageYOffset + bounding.top);
+
+                    var rect2 = stage.getBoundingClientRect();
+                    var scrollX = window.scrollX || window.pageXOffset || 0;
+                    var scrollY = window.scrollY || window.pageYOffset || 0;
+                    this._pageX = Math.round(scrollX + rect2.left);
+                    this._pageY = Math.round(scrollY + rect2.top);
                 }
+
                 stage.style.fontSize = '12px';
                 stage.style.webkitTextSizeAdjust = 'none';
-                stage.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+                stage.style.webkitTapHighlightColor = 'rgba(0,0,0,0)';
                 this._element = stage;
-    
+
                 this.addEventListener('coreresize', this._oncoreresize);
-    
-                this._width = width;
-                this._height = height;
+
                 this.scale = scale;
-    
-                /**
-                 * The frame rate of the core.
-                 * @type Number
-                 */
+
                 this.fps = 30;
-                /**
-                 * The number of frames processed since the core was started.
-                 * @type Number
-                 */
                 this.frame = 0;
-                /**
-                 * Indicates whether or not the core can be executed.
-                 * @type Boolean
-                 */
                 this.ready = false;
-                /**
-                 * Indicates whether or not the core is currently running.
-                 * @type Boolean
-                 */
                 this.running = false;
-                /**
-                 * Object which stores loaded assets using their paths as keys.
-                 * @type Object
-                 */
                 this.assets = {};
-                var assets = this._assets = [];
+                this._assets = [];
+
+                // detectAssets（軽量化版）
                 (function detectAssets(module) {
-                    if (module.assets) {
-                        enchant.Core.instance.preload(module.assets);
-                    }
+                    if (module.assets) enchant.Core.instance.preload(module.assets);
                     for (var prop in module) {
-                        if (module.hasOwnProperty(prop)) {
-                            if (typeof module[prop] === 'object' && module[prop] !== null && Object.getPrototypeOf(module[prop]) === Object.prototype) {
-                                detectAssets(module[prop]);
-                            }
+                        if (!module.hasOwnProperty(prop)) continue;
+                        var v = module[prop];
+                        if (v && typeof v === 'object' &&
+                            Object.getPrototypeOf(v) === Object.prototype) {
+                            detectAssets(v);
                         }
                     }
                 }(enchant));
-    
-                /**
-                 * The Scene which is currently displayed. This Scene is on top of the Scene stack.
-                 * @type enchant.Scene
-                 */
+
                 this.currentScene = null;
-                /**
-                 * The root Scene. The Scene at the bottom of the Scene stack.
-                 * @type enchant.Scene
-                 */
                 this.rootScene = new enchant.Scene();
                 this.pushScene(this.rootScene);
-                /**
-                 * The Scene to be displayed during loading.
-                 * @type enchant.Scene
-                 */
                 this.loadingScene = new enchant.LoadingScene();
-    
-                /**
-                 [/lang:ja]
-                 * Indicates whether or not {@link enchant.Core#start} has been called.
-                 [/lang]
-                 * @type Boolean
-                 * @private
-                 */
+
                 this._activated = false;
-    
                 this._offsetX = 0;
                 this._offsetY = 0;
-    
-                /**
-                 * Object that saves the current input state for the core.
-                 * @type Object
-                 */
+
                 this.input = {};
-    
-                this.keyboardInputManager = new enchant.KeyboardInputManager(window.document, this.input);
+                this.keyboardInputManager = new enchant.KeyboardInputManager(document, this.input);
                 this.keyboardInputManager.addBroadcastTarget(this);
                 this._keybind = this.keyboardInputManager._binds;
-    
-                if (!enchant.ENV.KEY_BIND_TABLE) {
-                    enchant.ENV.KEY_BIND_TABLE = {};
-                }
-    
-                for (var prop in enchant.ENV.KEY_BIND_TABLE) {
-                    this.keybind(prop, enchant.ENV.KEY_BIND_TABLE[prop]);
-                }
-    
-                if (initial) {
-                    stage = enchant.Core.instance._element;
-                    var evt;
-                    document.addEventListener('keydown', function(e) {
-                        core.dispatchEvent(new enchant.Event('keydown'));
-                        if (enchant.ENV.PREVENT_DEFAULT_KEY_CODES.indexOf(e.keyCode) !== -1) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }
-                    }, true);
-    
-                    if (enchant.ENV.TOUCH_ENABLED) {
-                        stage.addEventListener('touchstart', function(e) {
-                            var tagName = (e.target.tagName).toLowerCase();
-                            if (enchant.ENV.USE_DEFAULT_EVENT_TAGS.indexOf(tagName) === -1) {
-                                e.preventDefault();
-                                if (!core.running) {
-                                    e.stopPropagation();
-                                }
-                            }
-                        }, true);
-                        stage.addEventListener('touchmove', function(e) {
-                            var tagName = (e.target.tagName).toLowerCase();
-                            if (enchant.ENV.USE_DEFAULT_EVENT_TAGS.indexOf(tagName) === -1) {
-                                e.preventDefault();
-                                if (!core.running) {
-                                    e.stopPropagation();
-                                }
-                            }
-                        }, true);
-                        stage.addEventListener('touchend', function(e) {
-                            var tagName = (e.target.tagName).toLowerCase();
-                            if (enchant.ENV.USE_DEFAULT_EVENT_TAGS.indexOf(tagName) === -1) {
-                                e.preventDefault();
-                                if (!core.running) {
-                                    e.stopPropagation();
-                                }
-                            }
-                        }, true);
+
+                if (!enchant.ENV.KEY_BIND_TABLE) enchant.ENV.KEY_BIND_TABLE = {};
+                for (var key in enchant.ENV.KEY_BIND_TABLE) {
+                    if (enchant.ENV.KEY_BIND_TABLE.hasOwnProperty(key)) {
+                        this.keybind(key, enchant.ENV.KEY_BIND_TABLE[key]);
                     }
-                    stage.addEventListener('mousedown', function(e) {
-                        var tagName = (e.target.tagName).toLowerCase();
-                        if (enchant.ENV.USE_DEFAULT_EVENT_TAGS.indexOf(tagName) === -1) {
-                            e.preventDefault();
-                            core._mousedownID++;
-                            if (!core.running) {
-                                e.stopPropagation();
-                            }
-                        }
+                }
+
+                if (initial) {
+                    this._setupStageEvents(stage);
+                }
+            },
+
+            _setupStageEvents: function (stage) {
+                var core = this;
+
+                document.addEventListener('keydown', function (e) {
+                    core.dispatchEvent(new enchant.Event('keydown'));
+                    if (enchant.ENV.PREVENT_DEFAULT_KEY_CODES.indexOf(e.keyCode) !== -1) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                }, true);
+
+                var shouldHandle = function (e) {
+                    var tag = (e.target.tagName || '').toLowerCase();
+                    return enchant.ENV.USE_DEFAULT_EVENT_TAGS.indexOf(tag) === -1;
+                };
+
+                var preventIfNeeded = function (e) {
+                    if (!shouldHandle(e)) return false;
+                    e.preventDefault();
+                    if (!core.running) e.stopPropagation();
+                    return true;
+                };
+
+                // Touch events
+                if (enchant.ENV.TOUCH_ENABLED) {
+                    ['touchstart', 'touchmove', 'touchend'].forEach(function (type) {
+                        stage.addEventListener(type, function (e) {
+                            preventIfNeeded(e);
+                        }, true);
+                    });
+                }
+
+                // Mouse events
+                ['mousedown', 'mousemove', 'mouseup'].forEach(function (type) {
+                    stage.addEventListener(type, function (e) {
+                        if (!preventIfNeeded(e)) return;
+                        if (type === 'mousedown') core._mousedownID++;
                     }, true);
-                    stage.addEventListener('mousemove', function(e) {
-                        var tagName = (e.target.tagName).toLowerCase();
-                        if (enchant.ENV.USE_DEFAULT_EVENT_TAGS.indexOf(tagName) === -1) {
-                            e.preventDefault();
-                            if (!core.running) {
-                                e.stopPropagation();
-                            }
+                });
+
+                core._touchEventTarget = {};
+
+                // Touch → Scene dispatch
+                if (enchant.ENV.TOUCH_ENABLED) {
+                    stage.addEventListener('touchstart', function (e) {
+                        var touches = e.changedTouches;
+                        var evt = new enchant.Event(enchant.Event.TOUCH_START);
+                        var i, touch, target;
+
+                        for (i = 0; i < touches.length; i++) {
+                            touch = touches[i];
+                            evt._initPosition(touch.pageX, touch.pageY);
+                            target = core.currentScene._determineEventTarget(evt);
+                            core._touchEventTarget[touch.identifier] = target;
+                            target.dispatchEvent(evt);
                         }
-                    }, true);
-                    stage.addEventListener('mouseup', function(e) {
-                        var tagName = (e.target.tagName).toLowerCase();
-                        if (enchant.ENV.USE_DEFAULT_EVENT_TAGS.indexOf(tagName) === -1) {
-                            e.preventDefault();
-                            if (!core.running) {
-                                e.stopPropagation();
-                            }
-                        }
-                    }, true);
-                    core._touchEventTarget = {};
-                    if (enchant.ENV.TOUCH_ENABLED) {
-                        stage.addEventListener('touchstart', function(e) {
-                            var core = enchant.Core.instance;
-                            var evt = new enchant.Event(enchant.Event.TOUCH_START);
-                            var touches = e.changedTouches;
-                            var touch, target;
-                            for (var i = 0, l = touches.length; i < l; i++) {
-                                touch = touches[i];
+                    }, false);
+
+                    stage.addEventListener('touchmove', function (e) {
+                        var touches = e.changedTouches;
+                        var evt = new enchant.Event(enchant.Event.TOUCH_MOVE);
+                        var i, touch, target;
+
+                        for (i = 0; i < touches.length; i++) {
+                            touch = touches[i];
+                            target = core._touchEventTarget[touch.identifier];
+                            if (target) {
                                 evt._initPosition(touch.pageX, touch.pageY);
-                                target = core.currentScene._determineEventTarget(evt);
-                                core._touchEventTarget[touch.identifier] = target;
                                 target.dispatchEvent(evt);
                             }
-                        }, false);
-                        stage.addEventListener('touchmove', function(e) {
-                            var core = enchant.Core.instance;
-                            var evt = new enchant.Event(enchant.Event.TOUCH_MOVE);
-                            var touches = e.changedTouches;
-                            var touch, target;
-                            for (var i = 0, l = touches.length; i < l; i++) {
-                                touch = touches[i];
-                                target = core._touchEventTarget[touch.identifier];
-                                if (target) {
-                                    evt._initPosition(touch.pageX, touch.pageY);
-                                    target.dispatchEvent(evt);
-                                }
-                            }
-                        }, false);
-                        stage.addEventListener('touchend', function(e) {
-                            var core = enchant.Core.instance;
-                            var evt = new enchant.Event(enchant.Event.TOUCH_END);
-                            var touches = e.changedTouches;
-                            var touch, target;
-                            for (var i = 0, l = touches.length; i < l; i++) {
-                                touch = touches[i];
-                                target = core._touchEventTarget[touch.identifier];
-                                if (target) {
-                                    evt._initPosition(touch.pageX, touch.pageY);
-                                    target.dispatchEvent(evt);
-                                    delete core._touchEventTarget[touch.identifier];
-                                }
-                            }
-                        }, false);
-                    }
-                    stage.addEventListener('mousedown', function(e) {
-                        var core = enchant.Core.instance;
-                        var evt = new enchant.Event(enchant.Event.TOUCH_START);
-                        evt._initPosition(e.pageX, e.pageY);
-                        var target = core.currentScene._determineEventTarget(evt);
-                        core._touchEventTarget[core._mousedownID] = target;
-                        target.dispatchEvent(evt);
-                    }, false);
-                    stage.addEventListener('mousemove', function(e) {
-                        var core = enchant.Core.instance;
-                        var evt = new enchant.Event(enchant.Event.TOUCH_MOVE);
-                        evt._initPosition(e.pageX, e.pageY);
-                        var target = core._touchEventTarget[core._mousedownID];
-                        if (target) {
-                            target.dispatchEvent(evt);
                         }
                     }, false);
-                    stage.addEventListener('mouseup', function(e) {
-                        var core = enchant.Core.instance;
+
+                    stage.addEventListener('touchend', function (e) {
+                        var touches = e.changedTouches;
                         var evt = new enchant.Event(enchant.Event.TOUCH_END);
-                        evt._initPosition(e.pageX, e.pageY);
-                        var target = core._touchEventTarget[core._mousedownID];
-                        if (target) {
-                            target.dispatchEvent(evt);
+                        var i, touch, target;
+
+                        for (i = 0; i < touches.length; i++) {
+                            touch = touches[i];
+                            target = core._touchEventTarget[touch.identifier];
+                            if (target) {
+                                evt._initPosition(touch.pageX, touch.pageY);
+                                target.dispatchEvent(evt);
+                                delete core._touchEventTarget[touch.identifier];
+                            }
                         }
-                        delete core._touchEventTarget[core._mousedownID];
                     }, false);
                 }
+
+                // Mouse → Scene dispatch
+                stage.addEventListener('mousedown', function (e) {
+                    var evt = new enchant.Event(enchant.Event.TOUCH_START);
+                    evt._initPosition(e.pageX, e.pageY);
+                    var target = core.currentScene._determineEventTarget(evt);
+                    core._touchEventTarget[core._mousedownID] = target;
+                    target.dispatchEvent(evt);
+                }, false);
+
+                stage.addEventListener('mousemove', function (e) {
+                    var target = core._touchEventTarget[core._mousedownID];
+                    if (!target) return;
+                    var evt = new enchant.Event(enchant.Event.TOUCH_MOVE);
+                    evt._initPosition(e.pageX, e.pageY);
+                    target.dispatchEvent(evt);
+                }, false);
+
+                stage.addEventListener('mouseup', function (e) {
+                    var target = core._touchEventTarget[core._mousedownID];
+                    if (!target) return;
+                    var evt = new enchant.Event(enchant.Event.TOUCH_END);
+                    evt._initPosition(e.pageX, e.pageY);
+                    target.dispatchEvent(evt);
+                    delete core._touchEventTarget[core._mousedownID];
+                }, false);
             },
-            /**
-             * The width of the core screen.
-             * @type Number
-             */
+            /* ============================
+            *  Core Properties
+            * ============================ */
+
             width: {
-                get: function() {
-                    return this._width;
-                },
-                set: function(w) {
-                    this._width = w;
-                    this._dispatchCoreResizeEvent();
-                }
+                get: function () { return this._width; },
+                set: function (w) { this._width = w; this._dispatchCoreResizeEvent(); }
             },
-            /**
-             * The height of the core screen.
-             * @type Number
-             */
+
             height: {
-                get: function() {
-                    return this._height;
-                },
-                set: function(h) {
-                    this._height = h;
-                    this._dispatchCoreResizeEvent();
-                }
+                get: function () { return this._height; },
+                set: function (h) { this._height = h; this._dispatchCoreResizeEvent(); }
             },
-            /**
-             * The scaling of the core rendering.
-             * @type Number
-             */
+
             scale: {
-                get: function() {
-                    return this._scale;
-                },
-                set: function(s) {
-                    this._scale = s;
-                    this._dispatchCoreResizeEvent();
-                }
+                get: function () { return this._scale; },
+                set: function (s) { this._scale = s; this._dispatchCoreResizeEvent(); }
             },
-            _dispatchCoreResizeEvent: function() {
+
+            _dispatchCoreResizeEvent: function () {
                 var e = new enchant.Event('coreresize');
                 e.width = this._width;
                 e.height = this._height;
                 e.scale = this._scale;
                 this.dispatchEvent(e);
             },
-            _oncoreresize: function(e) {
+
+            _oncoreresize: function (e) {
                 this._element.style.width = Math.floor(this._width * this._scale) + 'px';
                 this._element.style.height = Math.floor(this._height * this._scale) + 'px';
-                var scene;
-                for (var i = 0, l = this._scenes.length; i < l; i++) {
-                    scene = this._scenes[i];
-                    scene.dispatchEvent(e);
+
+                for (var i = 0; i < this._scenes.length; i++) {
+                    this._scenes[i].dispatchEvent(e);
                 }
             },
-            /**
-             * File preloader.
-             *
-             * Loads the files specified in the parameters when
-             * {@link enchant.Core#start} is called.
-             * When all files are loaded, a {@link enchant.Event.LOAD}
-             * event is dispatched from the Core object. Depending on the
-             * type of each file, different objects will be created and
-             * stored in {@link enchant.Core#assets} Variable.
-             *
-             * When an image file is loaded, a {@link enchant.Surface} is
-             * created. If a sound file is loaded, an {@link enchant.Sound}
-             * object is created. Any other file type will be accessible
-             * as a string.
-             *
-             * In addition, because this Surface object is created with
-             * {@link enchant.Surface.load}, it is not possible to
-             * manipulate the image directly.
-             * Refer to the {@link enchant.Surface.load} documentation.
-             *
-             * @example
-             * core.preload('player.gif');
-             * core.onload = function() {
-             *     var sprite = new Sprite(32, 32);
-             *     sprite.image = core.assets['player.gif']; // Access via path
-             *     ...
-             * };
-             * core.start();
-             *
-             * @param {...String|String[]} assets Path of images to be preloaded.
-             * Multiple settings possible.
-             * @return {enchant.Core} this
-             */
-            preload: function(assets) {
+
+            /* ============================
+            *  Preload / Load
+            * ============================ */
+
+            preload: function (assets) {
                 var a;
-                if (!(assets instanceof Array)) {
-                    if (typeof assets === 'object') {
+
+                if (!Array.isArray(assets)) {
+                    if (assets && typeof assets === 'object') {
                         a = [];
                         for (var name in assets) {
                             if (assets.hasOwnProperty(name)) {
-                                a.push([ assets[name], name ]);
+                                a.push([assets[name], name]);
                             }
                         }
                         assets = a;
@@ -1351,249 +1185,202 @@
                         assets = Array.prototype.slice.call(arguments);
                     }
                 }
+
                 Array.prototype.push.apply(this._assets, assets);
                 return this;
             },
-            /**
-             * Loads a file.
-             *
-             * @param {String} src File path of the resource to be loaded.
-             * @param {String} [alias] Name you want to designate for the resource to be loaded.
-             * @param {Function} [callback] Function to be called if the file loads successfully.
-             * @param {Function} [onerror] Function to be called if the file fails to load.
-             * @return {enchant.Deferred}
-             */
-            load: function(src, alias, callback, onerror) {
+
+            load: function (src, alias, callback, onerror) {
                 var assetName;
-                if (typeof arguments[1] === 'string') {
+
+                if (typeof alias === 'string') {
                     assetName = alias;
-                    callback = callback || function() {};
-                    onerror = onerror || function() {};
+                    callback = callback || function () {};
+                    onerror = onerror || function () {};
                 } else {
                     assetName = src;
-                    var tempCallback = callback;
-                    callback = arguments[1] || function() {};
-                    onerror = tempCallback || function() {};
+                    var temp = callback;
+                    callback = alias || function () {};
+                    onerror = temp || function () {};
                 }
-    
+
                 var ext = enchant.Core.findExt(src);
-    
-                return enchant.Deferred.next(function() {
+
+                return enchant.Deferred.next(function () {
                     var d = new enchant.Deferred();
-                    var _callback = function(e) {
+
+                    var _callback = function (e) {
                         d.call(e);
                         callback.call(this, e);
                     };
-                    var _onerror = function(e) {
+
+                    var _onerror = function (e) {
                         d.fail(e);
                         onerror.call(this, e);
                     };
+
+                    // 拡張子に応じたロード関数がある場合
                     if (enchant.Core._loadFuncs[ext]) {
-                        enchant.Core.instance.assets[assetName] = enchant.Core._loadFuncs[ext](src, ext, _callback, _onerror);
+                        enchant.Core.instance.assets[assetName] =
+                            enchant.Core._loadFuncs[ext](src, ext, _callback, _onerror);
                     } else {
+                        // XHR ロード（fetch に置き換え可能だが互換性のため残す）
                         var req = new XMLHttpRequest();
                         req.open('GET', src, true);
-                        req.onreadystatechange = function() {
-                            if (req.readyState === 4) {
-                                if (req.status !== 200 && req.status !== 0) {
-                                    // throw new Error(req.status + ': ' + 'Cannot load an asset: ' + src);
-                                    var e = new enchant.Event('error');
-                                    e.message = req.status + ': ' + 'Cannot load an asset: ' + src;
-                                    _onerror.call(enchant.Core.instance, e);
-                                }
-    
-                                var type = req.getResponseHeader('Content-Type') || '';
-                                if (type.match(/^image/)) {
-                                    core.assets[assetName] = enchant.Surface.load(src, _callback, _onerror);
-                                } else if (type.match(/^audio/)) {
-                                    core.assets[assetName] = enchant.Sound.load(src, type, _callback, _onerror);
-                                } else {
-                                    core.assets[assetName] = req.responseText;
-                                    _callback.call(enchant.Core.instance, new enchant.Event('load'));
-                                }
+
+                        req.onreadystatechange = function () {
+                            if (req.readyState !== 4) return;
+
+                            if (req.status !== 200 && req.status !== 0) {
+                                var ev = new enchant.Event('error');
+                                ev.message = req.status + ': Cannot load asset: ' + src;
+                                _onerror.call(enchant.Core.instance, ev);
+                                return;
+                            }
+
+                            var type = req.getResponseHeader('Content-Type') || '';
+
+                            if (type.indexOf('image') === 0) {
+                                core.assets[assetName] = enchant.Surface.load(src, _callback, _onerror);
+                            } else if (type.indexOf('audio') === 0) {
+                                core.assets[assetName] = enchant.Sound.load(src, type, _callback, _onerror);
+                            } else {
+                                core.assets[assetName] = req.responseText;
+                                _callback.call(enchant.Core.instance, new enchant.Event('load'));
                             }
                         };
+
                         req.send(null);
                     }
+
                     return d;
                 });
             },
-            /**
-             * Start the core.
-             *
-             * Sets the framerate of the {@link enchant.Core#currentScene}
-             * according to the value stored in {@link enchant.core#fps}. If
-             * there are images to preload, loading will begin and the
-             * loading screen will be displayed.
-             * @return {enchant.Deferred}
-             */
-            start: function(deferred) {
-                var onloadTimeSetter = function() {
-                    this.frame = 0;
-                    this.removeEventListener('load', onloadTimeSetter);
+
+            _requestPreload: function () {
+                var o = {};
+                var loaded = 0;
+                var len = 0;
+                var core = this;
+
+                var loadFunc = function () {
+                    var e = new enchant.Event('progress');
+                    e.loaded = ++loaded;
+                    e.total = len;
+                    core.loadingScene.dispatchEvent(e);
+                };
+
+                this._assets.reverse().forEach(function (asset) {
+                    var src, name;
+
+                    if (asset instanceof Array) {
+                        src = asset[0];
+                        name = asset[1];
+                    } else {
+                        src = name = asset;
+                    }
+
+                    if (!o[name]) {
+                        o[name] = this.load(src, name, loadFunc);
+                        len++;
+                    }
+                }, this);
+
+                this.pushScene(this.loadingScene);
+                return enchant.Deferred.parallel(o);
+            },
+            /* ============================
+            *  Start / Main Loop
+            * ============================ */
+
+            start: function (deferred) {
+                var self = this;
+
+                var onloadTimeSetter = function () {
+                    self.frame = 0;
+                    self.removeEventListener('load', onloadTimeSetter);
                 };
                 this.addEventListener('load', onloadTimeSetter);
-    
+
                 this.currentTime = window.getTime();
                 this.running = true;
                 this.ready = true;
-    
+
+                // Touch-to-start (iOS Safari 対策)
                 if (!this._activated) {
                     this._activated = true;
+
                     if (enchant.ENV.BROWSER === 'mobilesafari' &&
                         enchant.ENV.USE_WEBAUDIO &&
                         enchant.ENV.USE_TOUCH_TO_START_SCENE) {
+
                         var d = new enchant.Deferred();
                         var scene = this._createTouchToStartScene();
+
                         scene.addEventListener(enchant.Event.TOUCH_START, function waitTouch() {
-                            this.removeEventListener(enchant.Event.TOUCH_START, waitTouch);
+                            scene.removeEventListener(enchant.Event.TOUCH_START, waitTouch);
+
                             var a = new enchant.WebAudioSound();
                             a.buffer = enchant.WebAudioSound.audioContext.createBuffer(1, 1, 48000);
                             a.play();
+
                             core.removeScene(scene);
                             core.start(d);
-                        }, false);
+                        });
+
                         core.pushScene(scene);
                         return d;
                     }
                 }
-    
+
                 this._requestNextFrame(0);
-    
+
                 var ret = this._requestPreload()
-                    .next(function() {
-                        enchant.Core.instance.loadingScene.dispatchEvent(new enchant.Event(enchant.Event.LOAD));
+                    .next(function () {
+                        enchant.Core.instance.loadingScene.dispatchEvent(
+                            new enchant.Event(enchant.Event.LOAD)
+                        );
                     });
-    
+
                 if (deferred) {
-                    ret.next(function(arg) {
-                        deferred.call(arg);
-                    })
-                    .error(function(arg) {
-                        deferred.fail(arg);
-                    });
+                    ret.next(function (arg) { deferred.call(arg); })
+                    .error(function (arg) { deferred.fail(arg); });
                 }
-    
+
                 return ret;
             },
-            _requestPreload: function() {
-                var o = {};
-                var loaded = 0,
-                    len = 0,
-                    loadFunc = function() {
-                        var e = new enchant.Event('progress');
-                        e.loaded = ++loaded;
-                        e.total = len;
-                        core.loadingScene.dispatchEvent(e);
-                    };
-                this._assets
-                    .reverse()
-                    .forEach(function(asset) {
-                        var src, name;
-                        if (asset instanceof Array) {
-                            src = asset[0];
-                            name = asset[1];
-                        } else {
-                            src = name = asset;
-                        }
-                        if (!o[name]) {
-                            o[name] = this.load(src, name, loadFunc);
-                            len++;
-                        }
-                    }, this);
-    
-                this.pushScene(this.loadingScene);
-                return enchant.Deferred.parallel(o);
-            },
-            _createTouchToStartScene: function() {
-                var label = new enchant.Label('Touch to Start'),
-                    size = Math.round(core.width / 10),
-                    scene = new enchant.Scene();
-    
-                label.color = '#fff';
-                label.font = (size - 1) + 'px bold Helvetica,Arial,sans-serif';
-                label.textAlign = 'center';
-                label.width = core.width;
-                label.height = label._boundHeight;
-                label.y = (core.height - label.height) / 2;
-    
-                scene.backgroundColor = '#000';
-                scene.addChild(label);
-    
-                return scene;
-            },
-            /**
-             * Start application in debug mode.
-             *
-             * Core debug mode can be turned on even if the
-             * {@link enchant.Core#_debug} flag is already set to true.
-             * @return {enchant.Deferred}
-             */
+
             debug: function() {
                 this._debug = true;
                 return this.start();
             },
-            actualFps: {
-                get: function() {
-                    return this._actualFps || this.fps;
-                }
-            },
-            /**
-             * Requests the next frame.
-             * @param {Number} delay Amount of time to delay before calling requestAnimationFrame.
-             * @private
-             */
-            _requestNextFrame: function(delay) {
-                if (!this.ready) {
-                    return;
-                }
+            
+            _requestNextFrame: function (delay) {
+                if (!this.ready) return;
+
+                var self = this;
+
                 if (this.fps >= 60 || delay <= 16) {
                     this._calledTime = window.getTime();
                     window.requestAnimationFrame(this._callTick);
                 } else {
-                    setTimeout(function() {
+                    setTimeout(function () {
                         var core = enchant.Core.instance;
                         core._calledTime = window.getTime();
                         window.requestAnimationFrame(core._callTick);
                     }, Math.max(0, delay));
                 }
             },
-            /**
-             * Calls {@link enchant.Core#_tick}.
-             * @param {Number} time
-             * @private
-             */
-            _callTick: function(time) {
+
+            _callTick: function (time) {
                 enchant.Core.instance._tick(time);
             },
-            _tick: function(time) {
-                /*var e = new enchant.Event('enterframe');
-                var now = window.getTime();
-                var elapsed = e.elapsed = now - this.currentTime;
-                this.currentTime = now;
-    
-                this._actualFps = elapsed > 0 ? (1000 / elapsed) : 0;
-    
-                var nodes = this.currentScene.childNodes.slice();
-                var push = Array.prototype.push;
-                while (nodes.length) {
-                    var node = nodes.pop();
-                    node.age++;
-                    node.dispatchEvent(e);
-                    if (node.childNodes) {
-                        push.apply(nodes, node.childNodes);
-                    }
-                }
-    
-                this.currentScene.age++;
-                this.currentScene.dispatchEvent(e);
-                this.dispatchEvent(e);
-    
-                this.dispatchEvent(new enchant.Event('exitframe'));
-                this.frame++;
-                now = window.getTime();
-                
-                this._requestNextFrame(1000 / this.fps - (now - this._calledTime));*/
+
+            /* ============================
+            *  Tick (Main Loop)
+            * ============================ */
+
+            _tick: function (time) {
                 var now = window.getTime();
                 var elapsed = now - this.currentTime;
                 this.currentTime = now;
@@ -1609,11 +1396,11 @@
                 while (nodes.length) {
                     var node = nodes.pop();
 
-                    // 時間ベースの age 管理（必要なら age を秒単位に変更）
+                    // 時間ベースの age 管理
                     node.elapsedTime = (node.elapsedTime || 0) + elapsed;
                     node.dispatchEvent(e);
 
-                    if (node.childNodes) {
+                    if (node.childNodes && node.childNodes.length) {
                         push.apply(nodes, node.childNodes);
                     }
                 }
@@ -1625,209 +1412,172 @@
                 this.dispatchEvent(new enchant.Event('exitframe'));
                 this.frame++;
 
-                var nextFrameDelay = Math.max(0, 1000 / this.fps - (window.getTime() - this._calledTime));
+                var nextFrameDelay = Math.max(
+                    0,
+                    1000 / this.fps - (window.getTime() - this._calledTime)
+                );
+
                 this._requestNextFrame(nextFrameDelay);
             },
-            getTime: function() {
+
+            getTime: function () {
                 return window.getTime();
             },
-            /**
-             * Stops the core.
-             *
-             * The frame will not be updated, and player input will not be accepted anymore.
-             * Core can be restarted using {@link enchant.Core#resume}.
-             */
-            stop: function() {
+
+            /* ============================
+            *  Stop / Pause / Resume
+            * ============================ */
+
+            stop: function () {
                 this.ready = false;
                 this.running = false;
             },
-            /**
-             * Stops the core.
-             *
-             * The frame will not be updated, and player input will not be accepted anymore.
-             * Core can be started again using {@link enchant.Core#resume}.
-             */
-            pause: function() {
+
+            pause: function () {
                 this.ready = false;
             },
-            /**
-             * Resumes core operations.
-             */
-            resume: function() {
-                if (this.ready) {
-                    return;
-                }
+
+            resume: function () {
+                if (this.ready) return;
+
                 this.currentTime = window.getTime();
                 this.ready = true;
                 this.running = true;
                 this._requestNextFrame(0);
             },
-    
-            /**
-             * Switches to a new Scene.
-             *
-             * Scenes are controlled using a stack, with the top scene on
-             * the stack being the one displayed.
-             * When {@link enchant.Core#pushScene} is executed, the Scene is
-             * placed top of the stack. Frames will be only updated for the
-             * Scene which is on the top of the stack.
-             *
-             * @param {enchant.Scene} scene The new scene to display.
-             * @return {enchant.Scene} The new Scene.
-             */
-            pushScene: function(scene) {
+
+            /* ============================
+            *  Scene Stack Management
+            * ============================ */
+
+            pushScene: function (scene) {
                 this._element.appendChild(scene._element);
+
                 if (this.currentScene) {
                     this.currentScene.dispatchEvent(new enchant.Event('exit'));
                 }
+
                 this.currentScene = scene;
                 this.currentScene.dispatchEvent(new enchant.Event('enter'));
+
                 return this._scenes.push(scene);
             },
-            /**
-             * Ends the current Scene and returns to the previous Scene.
-             *
-             * Scenes are controlled using a stack, with the top scene on
-             * the stack being the one displayed.
-             * When {@link enchant.Core#popScene} is executed, the Scene at
-             * the top of the stack is removed and returned.
-             *
-             * @return {enchant.Scene} Removed Scene.
-             */
-            popScene: function() {
+
+            popScene: function () {
                 if (this.currentScene === this.rootScene) {
                     return this.currentScene;
                 }
+
                 this._element.removeChild(this.currentScene._element);
                 this.currentScene.dispatchEvent(new enchant.Event('exit'));
+
                 this.currentScene = this._scenes[this._scenes.length - 2];
                 this.currentScene.dispatchEvent(new enchant.Event('enter'));
+
                 return this._scenes.pop();
             },
-            /**
-             * Overwrites the current Scene with a new Scene.
-             *
-             * Executes {@link enchant.Core#popScene} and {@link enchant.Core#pushScene}
-             * one after another to replace the current scene with the new scene.
-             *
-             * @param {enchant.Scene} scene The new scene with which to replace the current scene.
-             * @return {enchant.Scene} The new Scene.
-             */
-            replaceScene: function(scene) {
+
+            replaceScene: function (scene) {
                 this.popScene();
                 return this.pushScene(scene);
             },
-            /**
-             * Removes a Scene from the Scene stack.
-             *
-             * If the scene passed in as a parameter is not the current
-             * scene, the stack will be searched for the given scene.
-             * If the given scene does not exist anywhere in the stack,
-             * this method returns null.
-             *
-             * @param {enchant.Scene} scene Scene to be removed.
-             * @return {enchant.Scene} The deleted Scene.
-             */
-            removeScene: function(scene) {
+
+            removeScene: function (scene) {
                 if (this.currentScene === scene) {
                     return this.popScene();
-                } else {
-                    var i = this._scenes.indexOf(scene);
-                    if (i !== -1) {
-                        this._scenes.splice(i, 1);
-                        this._element.removeChild(scene._element);
-                        return scene;
-                    } else {
-                        return null;
-                    }
                 }
+
+                var i = this._scenes.indexOf(scene);
+                if (i !== -1) {
+                    this._scenes.splice(i, 1);
+                    this._element.removeChild(scene._element);
+                    return scene;
+                }
+
+                return null;
             },
-            _buttonListener: function(e) {
+
+            /* ============================
+            *  Input / Keybind
+            * ============================ */
+
+            _buttonListener: function (e) {
                 this.currentScene.dispatchEvent(e);
             },
-            /**
-             * Bind a key code to an enchant.js button.
-             *
-             * Binds the given key code to the given enchant.js button
-             * ('left', 'right', 'up', 'down', 'a', 'b').
-             *
-             * @param {Number} key Key code for the button to be bound.
-             * @param {String} button An enchant.js button.
-             * @return {enchant.Core} this
-             */
-            keybind: function(key, button) {
+
+            keybind: function (key, button) {
                 this.keyboardInputManager.keybind(key, button);
                 this.addEventListener(button + 'buttondown', this._buttonListener);
                 this.addEventListener(button + 'buttonup', this._buttonListener);
                 return this;
             },
-            /**
-             * Delete the key binding for the given key.
-             *
-             * @param {Number} key Key code whose binding is to be deleted.
-             * @return {enchant.Core} this
-             */
-            keyunbind: function(key) {
+
+            keyunbind: function (key) {
                 var button = this._keybind[key];
                 this.keyboardInputManager.keyunbind(key);
                 this.removeEventListener(button + 'buttondown', this._buttonListener);
                 this.removeEventListener(button + 'buttonup', this._buttonListener);
                 return this;
             },
-            changeButtonState: function(button, bool) {
+
+            changeButtonState: function (button, bool) {
                 this.keyboardInputManager.changeState(button, bool);
             },
-            /**
-             * Get the core time (not actual) elapsed since {@link enchant.Core#start} was called.
-             * @return {Number} Time elapsed (in seconds).
-             */
-            getElapsedTime: function() {
+
+            /* ============================
+            *  Utility
+            * ============================ */
+
+            getElapsedTime: function () {
                 return this.frame / this.fps;
             }
         });
+
     
-        /**
-         * Functions for loading assets of the corresponding file type.
-         * The loading functions must take the file path, extension and
-         * callback function as arguments, then return the appropriate
-         * class instance.
-         * @static
-         * @private
-         * @type Object
-         */
+        // ============================
+        //  Optimized _loadFuncs
+        // ============================
+
         enchant.Core._loadFuncs = {};
-        enchant.Core._loadFuncs['jpg'] =
-            enchant.Core._loadFuncs['jpeg'] =
-                enchant.Core._loadFuncs['gif'] =
-                    enchant.Core._loadFuncs['png'] =
-                        enchant.Core._loadFuncs['bmp'] = function(src, ext, callback, onerror) {
-                            return enchant.Surface.load(src, callback, onerror);
-                        };
-        enchant.Core._loadFuncs['mp3'] =
-            enchant.Core._loadFuncs['aac'] =
-                enchant.Core._loadFuncs['m4a'] =
-                    enchant.Core._loadFuncs['wav'] =
-                        enchant.Core._loadFuncs['ogg'] = function(src, ext, callback, onerror) {
-                            return enchant.Sound.load(src, 'audio/' + ext, callback, onerror);
-                        };
-    
-        /**
-         * Get the file extension from a path.
-         * @param {String} path file path.
-         * @return {*}
-         */
-        enchant.Core.findExt = function(path) {
-            var matched = path.match(/\.\w+$/);
-            if (matched && matched.length > 0) {
-                return matched[0].slice(1).toLowerCase();
+
+        // Image extensions
+        ['jpg', 'jpeg', 'gif', 'png', 'bmp'].forEach(function (ext) {
+            enchant.Core._loadFuncs[ext] = function (src, ext, callback, onerror) {
+                return enchant.Surface.load(src, callback, onerror);
+            };
+        });
+
+        // Audio extensions
+        ['mp3', 'aac', 'm4a', 'wav', 'ogg'].forEach(function (ext) {
+            enchant.Core._loadFuncs[ext] = function (src, ext, callback, onerror) {
+                return enchant.Sound.load(src, 'audio/' + ext, callback, onerror);
+            };
+        });
+
+        // ============================
+        //  Optimized findExt
+        // ============================
+
+        enchant.Core.findExt = function (path) {
+            // Fast path: normal file extension
+            var idx = path.lastIndexOf('.');
+            if (idx !== -1 && idx < path.length - 1) {
+                return path.substring(idx + 1).toLowerCase();
             }
-    
-            // for data URI
+
+            // Data URI
             if (path.indexOf('data:') === 0) {
-                return path.split(/[\/;]/)[1].toLowerCase();
+                // "data:image/png;base64,..." → "png"
+                var slash = path.indexOf('/');
+                var semi = path.indexOf(';');
+                if (slash !== -1 && semi !== -1 && semi > slash) {
+                    return path.substring(slash + 1, semi).toLowerCase();
+                }
             }
+
             return null;
         };
+
     
         /**
          * The current Core instance.
@@ -2162,162 +1912,183 @@
         return this._instances[keyCode];
     };
     
-    /**
-     * @scope enchant.Node.prototype
-     */
     enchant.Node = enchant.Class.create(enchant.EventTarget, {
-        /**
-         * @name enchant.Node
-         * @class
-         * Base class for objects in the display tree which is rooted at a Scene.
-         * Not to be used directly.
-         * @constructs
-         * @extends enchant.EventTarget
-         */
-        initialize: function() {
+
+        initialize: function () {
             enchant.EventTarget.call(this);
-    
+
             this._dirty = false;
-    
-            this._matrix = [ 1, 0, 0, 1, 0, 0 ];
-    
+
+            // transform 行列
+            this._matrix = [1, 0, 0, 1, 0, 0];
+
             this._x = 0;
             this._y = 0;
             this._offsetX = 0;
             this._offsetY = 0;
-    
-            /**
-             * The age (frames) of this node which will be increased before this node receives {@link enchant.Event.ENTER_FRAME} event.
-             * @type Number
-             */
+
+            // ★ 元仕様どおり「未設定＝null」
+            this._originX = null;
+            this._originY = null;
+
             this.age = 0;
-    
-            /**
-             * Parent Node of this Node.
-             * @type enchant.Group
-             */
+
             this.parentNode = null;
-            /**
-             * Scene to which Node belongs.
-             * @type enchant.Scene
-             */
             this.scene = null;
-    
-            this.addEventListener('touchstart', function(e) {
-                if (this.parentNode) {
-                    this.parentNode.dispatchEvent(e);
-                }
-            });
-            this.addEventListener('touchmove', function(e) {
-                if (this.parentNode) {
-                    this.parentNode.dispatchEvent(e);
-                }
-            });
-            this.addEventListener('touchend', function(e) {
-                if (this.parentNode) {
-                    this.parentNode.dispatchEvent(e);
-                }
-            });
-    
-            // Nodeが生成される際に, tl プロパティに Timeline オブジェクトを追加している.
+
+            // 共有バブル関数
+            this.addEventListener('touchstart', enchant.Node._bubble);
+            this.addEventListener('touchmove', enchant.Node._bubble);
+            this.addEventListener('touchend', enchant.Node._bubble);
+
             if (enchant.ENV.USE_ANIMATION) {
                 this.tl = new enchant.Timeline(this);
             }
         },
-        /**
-         * Move the Node to the given target location.
-         * @param {Number} x Target x coordinates.
-         * @param {Number} y Target y coordinates.
-         */
-        moveTo: function(x, y) {
+
+        moveTo: function (x, y) {
             this.x = x;
             this.y = y;
         },
-        /**
-         * Move the Node relative to its current position.
-         * @param {Number} x x axis movement distance.
-         * @param {Number} y y axis movement distance.
-         */
-        moveBy: function(x, y) {
+
+        moveBy: function (x, y) {
             this.x += x;
             this.y += y;
         },
-        /**
-         * x coordinates of the Node.
-         * @type Number
-         */
+
         x: {
-            get: function() {
-                return this._x;
-            },
-            set: function(x) {
-                if(this._x !== x) {
+            get: function () { return this._x; },
+            set: function (x) {
+                if (this._x !== x) {
                     this._x = x;
+                    // ★ 自分だけ dirty（これが安定）
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * y coordinates of the Node.
-         * @type Number
-         */
+
         y: {
-            get: function() {
-                return this._y;
-            },
-            set: function(y) {
-                if(this._y !== y) {
+            get: function () { return this._y; },
+            set: function (y) {
+                if (this._y !== y) {
                     this._y = y;
                     this._dirty = true;
                 }
             }
         },
-        _updateCoordinate: function() {
-            var node = this;
-            var tree = [ node ];
-            var parent = node.parentNode;
-            var scene = this.scene;
-            while (parent && node._dirty) {
-                tree.unshift(parent);
-                node = node.parentNode;
-                parent = node.parentNode;
+
+        originX: {
+            get: function () { return this._originX; },
+            set: function (v) {
+                if (this._originX !== v) {
+                    this._originX = v;
+                    this._dirty = true;
+                }
             }
+        },
+
+        originY: {
+            get: function () { return this._originY; },
+            set: function (v) {
+                if (this._originY !== v) {
+                    this._originY = v;
+                    this._dirty = true;
+                }
+            }
+        },
+
+        /* ============================
+        *  最適化版 _updateCoordinate
+        * ============================ */
+        _updateCoordinate: function () {
+            var node = this;
+            var tree = [];
+
+            // 親方向へ dirty が続く限り辿る
+            while (node) {
+                tree.push(node);
+                if (!node._dirty) break;
+                node = node.parentNode;
+            }
+
+            if (tree.length === 0) {
+                return;
+            }
+
+            // ルートから順に行列を更新
+            tree.reverse();
+
             var matrix = enchant.Matrix.instance;
             var stack = matrix.stack;
-            var mat = [];
-            var newmat, ox, oy;
-            stack.push(tree[0]._matrix);
-            for (var i = 1, l = tree.length; i < l; i++) {
+
+            // ルートの行列を push
+            var base = tree[0]._matrix;
+            stack.push(base);
+
+            var parentMat;
+            var newMat = [1, 0, 0, 1, 0, 0]; // 再利用
+            var ox, oy;
+            var vec = [0, 0];
+
+            for (var i = 1; i < tree.length; i++) {
                 node = tree[i];
-                newmat = [];
-                matrix.makeTransformMatrix(node, mat);
-                matrix.multiply(stack[stack.length - 1], mat, newmat);
-                node._matrix = newmat;
-                stack.push(newmat);
-                ox = (typeof node._originX === 'number') ? node._originX : node._width / 2 || 0;
-                oy = (typeof node._originY === 'number') ? node._originY : node._height / 2 || 0;
-                var vec = [ ox, oy ];
-                matrix.multiplyVec(newmat, vec, vec);
+
+                parentMat = stack[stack.length - 1];
+
+                // node のローカル行列を newMat に生成
+                matrix.makeTransformMatrix(node, newMat);
+
+                // 親行列 × ローカル行列 → node._matrix
+                matrix.multiply(parentMat, newMat, newMat);
+                node._matrix = newMat;
+
+                stack.push(newMat);
+
+                // ★ 元仕様どおり：未設定なら width/2, height/2
+                ox = (node._originX != null) ? node._originX : (node._width  >> 1) || 0;
+                oy = (node._originY != null) ? node._originY : (node._height >> 1) || 0;
+
+                vec[0] = ox;
+                vec[1] = oy;
+
+                matrix.multiplyVec(newMat, vec, vec);
+
                 node._offsetX = vec[0] - ox;
                 node._offsetY = vec[1] - oy;
+
                 node._dirty = false;
             }
+
             matrix.reset();
         },
-        remove: function() {
+
+        remove: function () {
             if (this.parentNode) {
                 this.parentNode.removeChild(this);
             }
-            if (this.childNodes) {
-                var childNodes = this.childNodes.slice();
-                for(var i = childNodes.length-1; i >= 0; i--) {
-                    childNodes[i].remove();
+
+            if (this.childNodes && this.childNodes.length) {
+                var children = this.childNodes;
+                for (var i = children.length - 1; i >= 0; i--) {
+                    if (children[i] && typeof children[i].remove === 'function') {
+                        children[i].remove();
+                    }
                 }
             }
-            
+
             this.clearEventListener();
         }
     });
+
+    // 共有バブル関数
+    enchant.Node._bubble = function (e) {
+        if (this.parentNode) {
+            this.parentNode.dispatchEvent(e);
+        }
+    };
+
+
+
     
     var _intersectBetweenClassAndInstance = function(Class, instance) {
         var ret = [];
@@ -2409,27 +2180,26 @@
      * @scope enchant.Entity.prototype
      */
     enchant.Entity = enchant.Class.create(enchant.Node, {
-        /**
-         * @name enchant.Entity
-         * @class
-         * A class with objects displayed as DOM elements. Not to be used directly.
-         * @constructs
-         * @extends enchant.Node
-         */
-        initialize: function() {
-            var core = enchant.Core.instance;
+
+        initialize: function () {
             enchant.Node.call(this);
-    
+
+            var core = enchant.Core.instance;
+
+            // Transform properties
             this._rotation = 0;
             this._scaleX = 1;
             this._scaleY = 1;
-    
+
+            // Interaction / rendering flags
             this._touchEnabled = true;
             this._clipping = false;
-    
+
+            // Origin (null = auto center)
             this._originX = null;
             this._originY = null;
-    
+
+            // Size / appearance
             this._width = 0;
             this._height = 0;
             this._backgroundColor = null;
@@ -2437,582 +2207,546 @@
             this._strokeColor = '#0000ff';
             this._opacity = 1;
             this._visible = true;
+
+            // Button mode
             this._buttonMode = null;
-    
+            this.buttonMode = null;
+            this.buttonPressed = false;
+
+            // Style cache
             this._style = {};
             this.__styleStatus = {};
-    
+
+            // Collision collection flag
             this._isContainedInCollection = false;
-    
-            /**
-             * @type String
-             */
+
+            // Composite operation
             this.compositeOperation = null;
-    
-            /**
-             * Defines this Entity as a button.
-             * When touched or clicked the corresponding button event is dispatched.
-             * Valid buttonModes are: left, right, up, down, a, b. 
-             * @type String
-             */
-            this.buttonMode = null;
-            /**
-             * Indicates if this Entity is being clicked.
-             * Only works when {@link enchant.Entity.buttonMode} is set.
-             * @type Boolean
-             */
-            this.buttonPressed = false;
-            this.addEventListener('touchstart', function() {
-                if (!this.buttonMode) {
-                    return;
-                }
-                this.buttonPressed = true;
-                this.dispatchEvent(new enchant.Event(this.buttonMode + 'buttondown'));
-                core.changeButtonState(this.buttonMode, true);
+
+            // --- 最適化：buttonMode 用のイベントを共通化 ---
+            var self = this;
+
+            var handleButton = function (isDown) {
+                if (!self.buttonMode) return;
+
+                self.buttonPressed = isDown;
+
+                var evtName = self.buttonMode + (isDown ? 'buttondown' : 'buttonup');
+                self.dispatchEvent(new enchant.Event(evtName));
+
+                core.changeButtonState(self.buttonMode, isDown);
+            };
+
+            this.addEventListener('touchstart', function () {
+                handleButton(true);
             });
-            this.addEventListener('touchend', function() {
-                if (!this.buttonMode) {
-                    return;
-                }
-                this.buttonPressed = false;
-                this.dispatchEvent(new enchant.Event(this.buttonMode + 'buttonup'));
-                core.changeButtonState(this.buttonMode, false);
+
+            this.addEventListener('touchend', function () {
+                handleButton(false);
             });
-    
+
+            // 衝突判定コレクションに登録
             this.enableCollection();
         },
-        /**
-         * The width of the Entity.
-         * @type Number
-         */
+
+        /* ============================
+        *  Size / Appearance
+        * ============================ */
+
         width: {
-            get: function() {
-                return this._width;
-            },
-            set: function(width) {
-                if(this._width !== width) {
-                    this._width = width;
+            get: function () { return this._width; },
+            set: function (w) {
+                if (this._width !== w) {
+                    this._width = w;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * The height of the Entity.
-         * @type Number
-         */
+
         height: {
-            get: function() {
-                return this._height;
-            },
-            set: function(height) {
-                if(this._height !== height) {
-                    this._height = height;
+            get: function () { return this._height; },
+            set: function (h) {
+                if (this._height !== h) {
+                    this._height = h;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * The Entity background color.
-         * Must be provided in the same format as the CSS 'color' property.
-         * @type String
-         */
+
         backgroundColor: {
-            get: function() {
-                return this._backgroundColor;
-            },
-            set: function(color) {
-                this._backgroundColor = color;
-            }
+            get: function () { return this._backgroundColor; },
+            set: function (c) { this._backgroundColor = c; }
         },
-        /**
-         * The Entity debug color.
-         * Must be provided in the same format as the CSS 'color' property.
-         * @type String
-         */
+
         debugColor: {
-            get: function() {
-                return this._debugColor;
-            },
-            set: function(color) {
-                this._debugColor = color;
-            }
+            get: function () { return this._debugColor; },
+            set: function (c) { this._debugColor = c; }
         },
-        /**
-         * The transparency of this entity.
-         * Defines the transparency level from 0 to 1
-         * (0 is completely transparent, 1 is completely opaque).
-         * @type Number
-         */
+
         opacity: {
-            get: function() {
-                return this._opacity;
-            },
-            set: function(opacity) {
-                this._opacity = parseFloat(opacity);
-            }
+            get: function () { return this._opacity; },
+            set: function (o) { this._opacity = +o; }
         },
-        /**
-         * Indicates whether or not to display this Entity.
-         * @type Boolean
-         */
+
         visible: {
-            get: function() {
-                return this._visible;
-            },
-            set: function(visible) {
-                this._visible = visible;
-            }
+            get: function () { return this._visible; },
+            set: function (v) { this._visible = !!v; }
         },
-        /**
-         * Indicates whether or not this Entity can be touched.
-         * @type Boolean
-         */
+
         touchEnabled: {
-            get: function() {
-                return this._touchEnabled;
-            },
-            set: function(enabled) {
+            get: function () { return this._touchEnabled; },
+            set: function (enabled) {
                 this._touchEnabled = enabled;
-                if (enabled) {
-                    this._style.pointerEvents = 'all';
-                } else {
-                    this._style.pointerEvents = 'none';
-                }
+                this._style.pointerEvents = enabled ? 'all' : 'none';
             }
         },
-        /**
-         * Performs a collision detection based on whether or not the bounding rectangles are intersecting.
-         * @param {*} other An object like Entity, with the properties x, y, width, height, which are used for the 
-         * collision detection.
-         * @return {Boolean} True, if a collision was detected.
-         */
-        intersect: function(other) {
+
+        /* ============================
+        *  Collision Detection
+        * ============================ */
+
+        intersect: function (other) {
             if (other instanceof enchant.Entity) {
                 return this._intersectOne(other);
-            } else if (typeof other === 'function' && other.collection) {
+            }
+            if (typeof other === 'function' && other.collection) {
                 return _intersectBetweenClassAndInstance(other, this);
             }
             return false;
         },
-        _intersectOne: function(other) {
-            if (this._dirty) {
-                this._updateCoordinate();
-            } if (other._dirty) {
-                other._updateCoordinate();
-            }
-            return this._offsetX < other._offsetX + other.width && other._offsetX < this._offsetX + this.width &&
-                this._offsetY < other._offsetY + other.height && other._offsetY < this._offsetY + this.height;
+
+        _intersectOne: function (other) {
+            if (this._dirty) this._updateCoordinate();
+            if (other._dirty) other._updateCoordinate();
+
+            var ax = this._offsetX, ay = this._offsetY;
+            var bx = other._offsetX, by = other._offsetY;
+
+            return (
+                ax < bx + other.width &&
+                bx < ax + this.width &&
+                ay < by + other.height &&
+                by < ay + this.height
+            );
         },
-        intersectStrict: function(other) {
+
+        intersectStrict: function (other) {
             if (other instanceof enchant.Entity) {
                 return this._intersectStrictOne(other);
-            } else if (typeof other === 'function' && other.collection) {
+            }
+            if (typeof other === 'function' && other.collection) {
                 return _intersectStrictBetweenClassAndInstance(other, this);
             }
             return false;
         },
-        _intersectStrictOne: function(other) {
-            if (this._dirty) {
-                this._updateCoordinate();
-            } if (other._dirty) {
-                other._updateCoordinate();
-            }
-            var rect1 = this.getOrientedBoundingRect(),
-                rect2 = other.getOrientedBoundingRect(),
-                lt1 = rect1.leftTop, rt1 = rect1.rightTop,
-                lb1 = rect1.leftBottom, rb1 = rect1.rightBottom,
-                lt2 = rect2.leftTop, rt2 = rect2.rightTop,
-                lb2 = rect2.leftBottom, rb2 = rect2.rightBottom,
-                ltx1 = lt1[0], lty1 = lt1[1], rtx1 = rt1[0], rty1 = rt1[1],
-                lbx1 = lb1[0], lby1 = lb1[1], rbx1 = rb1[0], rby1 = rb1[1],
-                ltx2 = lt2[0], lty2 = lt2[1], rtx2 = rt2[0], rty2 = rt2[1],
-                lbx2 = lb2[0], lby2 = lb2[1], rbx2 = rb2[0], rby2 = rb2[1],
-                t1 = [ rtx1 - ltx1, rty1 - lty1 ],
-                r1 = [ rbx1 - rtx1, rby1 - rty1 ],
-                b1 = [ lbx1 - rbx1, lby1 - rby1 ],
-                l1 = [ ltx1 - lbx1, lty1 - lby1 ],
-                t2 = [ rtx2 - ltx2, rty2 - lty2 ],
-                r2 = [ rbx2 - rtx2, rby2 - rty2 ],
-                b2 = [ lbx2 - rbx2, lby2 - rby2 ],
-                l2 = [ ltx2 - lbx2, lty2 - lby2 ],
-                cx1 = (ltx1 + rtx1 + lbx1 + rbx1) >> 2,
-                cy1 = (lty1 + rty1 + lby1 + rby1) >> 2,
-                cx2 = (ltx2 + rtx2 + lbx2 + rbx2) >> 2,
-                cy2 = (lty2 + rty2 + lby2 + rby2) >> 2,
-                i, j, poss1, poss2, dirs1, dirs2, pos1, pos2, dir1, dir2,
-                px1, py1, px2, py2, dx1, dy1, dx2, dy2, vx, vy, c, c1, c2;
-            if (t1[0] * (cy2 - lty1) - t1[1] * (cx2 - ltx1) > 0 &&
-                r1[0] * (cy2 - rty1) - r1[1] * (cx2 - rtx1) > 0 &&
-                b1[0] * (cy2 - rby1) - b1[1] * (cx2 - rbx1) > 0 &&
-                l1[0] * (cy2 - lby1) - l1[1] * (cx2 - lbx1) > 0) {
-                return true;
-            } else if (t2[0] * (cy1 - lty2) - t2[1] * (cx1 - ltx2) > 0 &&
-                r2[0] * (cy1 - rty2) - r2[1] * (cx1 - rtx2) > 0 &&
-                b2[0] * (cy1 - rby2) - b2[1] * (cx1 - rbx2) > 0 &&
-                l2[0] * (cy1 - lby2) - l2[1] * (cx1 - lbx2) > 0) {
-                return true;
-            } else {
-                poss1 = [ lt1, rt1, rb1, lb1 ];
-                poss2 = [ lt2, rt2, rb2, lb2 ];
-                dirs1 = [ t1, r1, b1, l1 ];
-                dirs2 = [ t2, r2, b2, l2 ];
-                for (i = 0; i < 4; i++) {
-                    pos1 = poss1[i];
-                    px1 = pos1[0]; py1 = pos1[1];
-                    dir1 = dirs1[i];
-                    dx1 = dir1[0]; dy1 = dir1[1];
-                    for (j = 0; j < 4; j++) {
-                        pos2 = poss2[j];
-                        px2 = pos2[0]; py2 = pos2[1];
-                        dir2 = dirs2[j];
-                        dx2 = dir2[0]; dy2 = dir2[1];
-                        c = dx1 * dy2 - dy1 * dx2;
-                        if (c !== 0) {
-                            vx = px2 - px1;
-                            vy = py2 - py1;
-                            c1 = (vx * dy1 - vy * dx1) / c;
-                            c2 = (vx * dy2 - vy * dx2) / c;
-                            if (0 < c1 && c1 < 1 && 0 < c2 && c2 < 1) {
-                                return true;
-                            }
+
+        _intersectStrictOne: function (other) {
+            if (this._dirty) this._updateCoordinate();
+            if (other._dirty) other._updateCoordinate();
+
+            var rect1 = this.getOrientedBoundingRect();
+            var rect2 = other.getOrientedBoundingRect();
+
+            var lt1 = rect1.leftTop,    rt1 = rect1.rightTop,
+                lb1 = rect1.leftBottom, rb1 = rect1.rightBottom;
+
+            var lt2 = rect2.leftTop,    rt2 = rect2.rightTop,
+                lb2 = rect2.leftBottom, rb2 = rect2.rightBottom;
+
+            // 4 辺の方向ベクトル（SAT 用）
+            var t1 = [rt1[0] - lt1[0], rt1[1] - lt1[1]];
+            var r1 = [rb1[0] - rt1[0], rb1[1] - rt1[1]];
+            var b1 = [lb1[0] - rb1[0], lb1[1] - rb1[1]];
+            var l1 = [lt1[0] - lb1[0], lt1[1] - lb1[1]];
+
+            var t2 = [rt2[0] - lt2[0], rt2[1] - lt2[1]];
+            var r2 = [rb2[0] - rt2[0], rb2[1] - rt2[1]];
+            var b2 = [lb2[0] - rb2[0], lb2[1] - rb2[1]];
+            var l2 = [lt2[0] - lb2[0], lt2[1] - lb2[1]];
+
+            // 中心点
+            var cx1 = (lt1[0] + rt1[0] + lb1[0] + rb1[0]) >> 2;
+            var cy1 = (lt1[1] + rt1[1] + lb1[1] + rb1[1]) >> 2;
+            var cx2 = (lt2[0] + rt2[0] + lb2[0] + rb2[0]) >> 2;
+            var cy2 = (lt2[1] + rt2[1] + lb2[1] + rb2[1]) >> 2;
+
+            // SAT の高速チェック
+            if (
+                t1[0] * (cy2 - lt1[1]) - t1[1] * (cx2 - lt1[0]) > 0 &&
+                r1[0] * (cy2 - rt1[1]) - r1[1] * (cx2 - rt1[0]) > 0 &&
+                b1[0] * (cy2 - rb1[1]) - b1[1] * (cx2 - rb1[0]) > 0 &&
+                l1[0] * (cy2 - lb1[1]) - l1[1] * (cx2 - lb1[0]) > 0
+            ) return true;
+
+            if (
+                t2[0] * (cy1 - lt2[1]) - t2[1] * (cx1 - lt2[0]) > 0 &&
+                r2[0] * (cy1 - rt2[1]) - r2[1] * (cx1 - rt2[0]) > 0 &&
+                b2[0] * (cy1 - rb2[1]) - b2[1] * (cx1 - rb2[0]) > 0 &&
+                l2[0] * (cy1 - lb2[1]) - l2[1] * (cx1 - lb2[0]) > 0
+            ) return true;
+
+            // 辺同士の交差判定（最適化版）
+            var poss1 = [lt1, rt1, rb1, lb1];
+            var poss2 = [lt2, rt2, rb2, lb2];
+            var dirs1 = [t1, r1, b1, l1];
+            var dirs2 = [t2, r2, b2, l2];
+
+            var i, j, p1, p2, d1, d2, c, vx, vy, c1, c2;
+
+            for (i = 0; i < 4; i++) {
+                p1 = poss1[i];
+                d1 = dirs1[i];
+
+                for (j = 0; j < 4; j++) {
+                    p2 = poss2[j];
+                    d2 = dirs2[j];
+
+                    c = d1[0] * d2[1] - d1[1] * d2[0];
+                    if (c !== 0) {
+                        vx = p2[0] - p1[0];
+                        vy = p2[1] - p1[1];
+
+                        c1 = (vx * d1[1] - vy * d1[0]) / c;
+                        c2 = (vx * d2[1] - vy * d2[0]) / c;
+
+                        if (0 < c1 && c1 < 1 && 0 < c2 && c2 < 1) {
+                            return true;
                         }
                     }
                 }
-                return false;
             }
+
+            return false;
         },
-        /**
-         * Performs a collision detection based on distance from the Entity's central point.
-         * @param {*} other An object like Entity, with properties x, y, width, height, which are used for the 
-         * collision detection.
-         * @param {Number} [distance] The greatest distance to be considered for a collision.
-         * The default distance is the average of both objects width and height.
-         * @return {Boolean} True, if a collision was detected.
-         */
-        within: function(other, distance) {
-            if (this._dirty) {
-                this._updateCoordinate();
-            } if (other._dirty) {
-                other._updateCoordinate();
-            }
+
+        /* ============================
+        *  Distance-based Collision
+        * ============================ */
+
+        within: function (other, distance) {
+            if (this._dirty) this._updateCoordinate();
+            if (other._dirty) other._updateCoordinate();
+
             if (distance == null) {
-                distance = (this.width + this.height + other.width + other.height) / 4;
+                distance = (this.width + this.height + other.width + other.height) * 0.25;
             }
-            var _;
-            return (_ = this._offsetX - other._offsetX + (this.width - other.width) / 2) * _ +
-                (_ = this._offsetY - other._offsetY + (this.height - other.height) / 2) * _ < distance * distance;
+
+            var dx = this._offsetX - other._offsetX + (this.width - other.width) * 0.5;
+            var dy = this._offsetY - other._offsetY + (this.height - other.height) * 0.5;
+
+            return dx * dx + dy * dy < distance * distance;
         },
-        withinStrict: function(other, distance){
+
+        withinStrict: function (other, distance) {
             if (other instanceof enchant.Entity) {
                 return this.within(other, distance);
-            } else if (typeof other === 'function' && other.collection) {
+            }
+            if (typeof other === 'function' && other.collection) {
                 return _withinBetweenClassAndInstance(other, this, distance);
             }
             return false;
         },
-        /**
-         * Enlarges or shrinks this Entity.
-         * @param {Number} x Scaling factor on the x axis.
-         * @param {Number} [y] Scaling factor on the y axis.
-         */
-        scale: function(x, y) {
+
+        /* ============================
+        *  Transform Operations
+        * ============================ */
+
+        scale: function (x, y) {
             this._scaleX *= x;
-            this._scaleY *= (y != null) ? y : x;
+            this._scaleY *= (y !== undefined ? y : x);
             this._dirty = true;
         },
-        /**
-         * Rotate this Entity.
-         * @param {Number} deg Rotation angle (degree).
-         */
-        rotate: function(deg) {
-            this.rotation += deg;
+
+        rotate: function (deg) {
+            this.rotation = this._rotation + deg;
         },
-        /**
-         * Scaling factor on the x axis of this Entity.
-         * @type Number
-         */
+
         scaleX: {
-            get: function() {
-                return this._scaleX;
-            },
-            set: function(scaleX) {
-                if(this._scaleX !== scaleX) {
-                    this._scaleX = scaleX;
+            get: function () { return this._scaleX; },
+            set: function (v) {
+                if (this._scaleX !== v) {
+                    this._scaleX = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * Scaling factor on the y axis of this Entity.
-         * @type Number
-         */
+
         scaleY: {
-            get: function() {
-                return this._scaleY;
-            },
-            set: function(scaleY) {
-                if(this._scaleY !== scaleY) {
-                    this._scaleY = scaleY;
+            get: function () { return this._scaleY; },
+            set: function (v) {
+                if (this._scaleY !== v) {
+                    this._scaleY = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * Entity rotation angle (degree).
-         * @type Number
-         */
+
         rotation: {
-            get: function() {
-                return this._rotation;
-            },
-            set: function(rotation) {
-                if(this._rotation !== rotation) {
-                    /* 20250218 */
-                    if(Math.abs(rotation) >= 360) rotation %= 360;
-				    if(rotation < 0) rotation = 360 + rotation;
-                    this._rotation = Math.round(rotation * 100) / 100;
+            get: function () { return this._rotation; },
+            set: function (v) {
+                if (this._rotation !== v) {
+
+                    // 高速な角度正規化
+                    v %= 360;
+                    if (v < 0) v += 360;
+
+                    // 小数点2桁に丸め（高速版）
+                    this._rotation = (v * 100 | 0) / 100;
+
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * The point of origin used for rotation and scaling.
-         * @type Number
-         */
+
         originX: {
-            get: function() {
-                return this._originX;
-            },
-            set: function(originX) {
-                if(this._originX !== originX) {
-                    this._originX = originX;
+            get: function () { return this._originX; },
+            set: function (v) {
+                if (this._originX !== v) {
+                    this._originX = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * The point of origin used for rotation and scaling.
-         * @type Number
-         */
+
         originY: {
-            get: function() {
-                return this._originY;
-            },
-            set: function(originY) {
-                if(this._originY !== originY) {
-                    this._originY = originY;
+            get: function () { return this._originY; },
+            set: function (v) {
+                if (this._originY !== v) {
+                    this._originY = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         */
-        enableCollection: function() {
+
+        /* ============================
+        *  Collision Collection
+        * ============================ */
+
+        enableCollection: function () {
             this.addEventListener('addedtoscene', this._addSelfToCollection);
             this.addEventListener('removedfromscene', this._removeSelfFromCollection);
-            if (this.scene) {
-                this._addSelfToCollection();
-            }
+
+            if (this.scene) this._addSelfToCollection();
         },
-        /**
-         */
-        disableCollection: function() {
+
+        disableCollection: function () {
             this.removeEventListener('addedtoscene', this._addSelfToCollection);
             this.removeEventListener('removedfromscene', this._removeSelfFromCollection);
-            if (this.scene) {
-                this._removeSelfFromCollection();
-            }
+
+            if (this.scene) this._removeSelfFromCollection();
         },
-        /**#nocode+*/
-        clearEventListener: function() {
-            _nodePrototypeClearEventListener.apply(this,arguments);
-            if (this.scene) {
-                this._removeSelfFromCollection();
-            }
+
+        clearEventListener: function () {
+            _nodePrototypeClearEventListener.apply(this, arguments);
+            if (this.scene) this._removeSelfFromCollection();
         },
-        /**#nocode-*/
-        _addSelfToCollection: function() {
-            if (this._isContainedInCollection) {
-                return;
+
+        _addSelfToCollection: function () {
+            if (this._isContainedInCollection) return;
+
+            var Ctor = this.getConstructor();
+            var targets = Ctor._collectionTarget;
+
+            for (var i = 0; i < targets.length; i++) {
+                targets[i].collection.push(this);
             }
-    
-            var Constructor = this.getConstructor();
-            Constructor._collectionTarget.forEach(function(C) {
-                C.collection.push(this);
-            }, this);
-    
+
             this._isContainedInCollection = true;
         },
-        _removeSelfFromCollection: function() {
-            if (!this._isContainedInCollection) {
-                return;
+
+        _removeSelfFromCollection: function () {
+            if (!this._isContainedInCollection) return;
+
+            var Ctor = this.getConstructor();
+            var targets = Ctor._collectionTarget;
+
+            for (var i = 0; i < targets.length; i++) {
+                var list = targets[i].collection;
+                var idx = list.indexOf(this);
+                if (idx !== -1) list.splice(idx, 1);
             }
-    
-            var Constructor = this.getConstructor();
-            Constructor._collectionTarget.forEach(function(C) {
-                var i = C.collection.indexOf(this);
-                if (i !== -1) {
-                    C.collection.splice(i, 1);
-                }
-            }, this);
-    
+
             this._isContainedInCollection = false;
         },
-        getBoundingRect: function() {
-            var w = this.width || 0;
+
+        /* ============================
+        *  Bounding Rectangles
+        * ============================ */
+
+        getBoundingRect: function () {
+            var w = this.width  || 0;
             var h = this.height || 0;
-            var mat = this._matrix;
-            var m11w = mat[0] * w, m12w = mat[1] * w,
-                m21h = mat[2] * h, m22h = mat[3] * h,
-                mdx = mat[4], mdy = mat[5];
-            var xw = [ mdx, m11w + mdx, m21h + mdx, m11w + m21h + mdx ].sort(function(a, b) { return a - b; });
-            var yh = [ mdy, m12w + mdy, m22h + mdy, m12w + m22h + mdy ].sort(function(a, b) { return a - b; });
-    
+            var m = this._matrix;
+
+            var m11w = m[0] * w, m12w = m[1] * w;
+            var m21h = m[2] * h, m22h = m[3] * h;
+            var dx = m[4], dy = m[5];
+
+            // 4 点の x, y をまとめて計算
+            var xs = [dx, m11w + dx, m21h + dx, m11w + m21h + dx];
+            var ys = [dy, m12w + dy, m22h + dy, m12w + m22h + dy];
+
+            xs.sort();
+            ys.sort();
+
             return {
-                left: xw[0],
-                top: yh[0],
-                width: xw[3] - xw[0],
-                height: yh[3] - yh[0]
+                left: xs[0],
+                top: ys[0],
+                width: xs[3] - xs[0],
+                height: ys[3] - ys[0]
             };
         },
-        getOrientedBoundingRect: function() {
-            var w = this.width || 0;
+
+        getOrientedBoundingRect: function () {
+            var w = this.width  || 0;
             var h = this.height || 0;
-            var mat = this._matrix;
-            var m11w = mat[0] * w, m12w = mat[1] * w,
-                m21h = mat[2] * h, m22h = mat[3] * h,
-                mdx = mat[4], mdy = mat[5];
-    
+            var m = this._matrix;
+
+            var m11w = m[0] * w, m12w = m[1] * w;
+            var m21h = m[2] * h, m22h = m[3] * h;
+            var dx = m[4], dy = m[5];
+
             return {
-                leftTop: [ mdx, mdy ],
-                rightTop: [ m11w + mdx, m12w + mdy ],
-                leftBottom: [ m21h + mdx, m22h + mdy ],
-                rightBottom: [ m11w + m21h + mdx, m12w + m22h + mdy ]
+                leftTop:     [dx, dy],
+                rightTop:    [m11w + dx, m12w + dy],
+                leftBottom:  [m21h + dx, m22h + dy],
+                rightBottom: [m11w + m21h + dx, m12w + m22h + dy]
             };
         },
-        getConstructor: function() {
+
+        getConstructor: function () {
             return Object.getPrototypeOf(this).constructor;
         }
+
     });
     
-    var _collectizeConstructor = function(Constructor) {
-        if (Constructor._collective) {
-            return;
-        }
-        var rel = enchant.Class.getInheritanceTree(Constructor);
-        var i = rel.indexOf(enchant.Entity);
-        if (i !== -1) {
-            Constructor._collectionTarget = rel.splice(0, i + 1);
+    var _collectizeConstructor = function (Ctor) {
+        if (Ctor._collective) return;
+
+        // Entity を継承している場合のみコレクション対象を構築
+        if (Ctor.prototype instanceof enchant.Entity) {
+
+            // Entity までの継承チェーンを構築（高速版）
+            var chain = [];
+            var proto = Ctor;
+
+            while (proto && proto !== enchant.Entity) {
+                chain.push(proto);
+                proto = Object.getPrototypeOf(proto.prototype).constructor;
+            }
+
+            // 最後に Entity を追加
+            chain.push(enchant.Entity);
+
+            Ctor._collectionTarget = chain;
+
         } else {
-            Constructor._collectionTarget = [];
+            Ctor._collectionTarget = [];
         }
-        Constructor.intersect = _staticIntersect;
-        Constructor.intersectStrict = _staticIntersectStrict;
-        Constructor.collection = [];
-        Constructor._collective = true;
+
+        // 静的メソッドを付与
+        Ctor.intersect = _staticIntersect;
+        Ctor.intersectStrict = _staticIntersectStrict;
+
+        // コレクション配列
+        Ctor.collection = [];
+
+        Ctor._collective = true;
     };
-    
+
+    // Entity 自身を初期化
     _collectizeConstructor(enchant.Entity);
-    
-    enchant.Entity._inherited = function(subclass) {
+
+    // 継承時に自動でコレクション設定
+    enchant.Entity._inherited = function (subclass) {
         _collectizeConstructor(subclass);
     };
+
     
     /**
      * @scope enchant.Sprite.prototype
      */
     enchant.Sprite = enchant.Class.create(enchant.Entity, {
-        /**
-         * @name enchant.Sprite
-         * @class
-         * Class which can display images.
-         * @param {Number} width Sprite width.
-         * @param {Number} height Sprite height.
-         *
-         * @example
-         * var bear = new Sprite(32, 32);
-         * bear.image = core.assets['chara1.gif'];
-         *
-         * @constructs
-         * @extends enchant.Entity
-         */
-        initialize: function(width, height) {
+
+        initialize: function (width, height) {
             enchant.Entity.call(this);
-    
+
             this.width = width;
             this.height = height;
+
             this._image = null;
             this._debugColor = '#ff0000';
+
             this._frameLeft = 0;
             this._frameTop = 0;
             this._frame = 0;
+
             this._frameSequence = null;
+            this.__frameSequence = null;
+            this._originalFrameSequence = null;
         },
-        /**
-         * Image displayed in the Sprite.
-         * @type enchant.Surface
-         */
+
+        /* ============================
+        *  Image
+        * ============================ */
+
         image: {
-            get: function() {
-                return this._image;
-            },
-            set: function(image) {
-                if (image === undefined) {
-                    throw new Error('Assigned value on Sprite.image is undefined. Please double-check image path, and check if the image you want to use is preload before use.');
+            get: function () { return this._image; },
+            set: function (img) {
+                if (img === undefined) {
+                    throw new Error(
+                        'Sprite.image に undefined が代入されました。' +
+                        '画像パスや preload を確認してください。'
+                    );
                 }
-                if (image === this._image) {
-                    return;
-                }
-                this._image = image;
+                if (img === this._image) return;
+
+                this._image = img;
                 this._computeFramePosition();
             }
         },
-        /**
-         * Index of the frame to be displayed.
-         * Frames with the same width and height as Sprite will be arrayed from upper left corner of the 
-         * {@link enchant.Sprite#image} image. When a sequence of numbers is provided, the displayed frame 
-         * will switch automatically. At the end of the array the sequence will restart. By setting 
-         * a value within the sequence to null, the frame switching is stopped.
-         *
-         * @example
-         * var sprite = new Sprite(32, 32);
-         * sprite.frame = [0, 1, 0, 2]
-         * //-> 0, 1, 0, 2, 0, 1, 0, 2,..
-         * sprite.frame = [0, 1, 0, 2, null]
-         * //-> 0, 1, 0, 2, (2, 2,.. :stop)
-         *
-         * @type Number|Array
-         */
+
+        /* ============================
+        *  Frame
+        * ============================ */
+
         frame: {
-            get: function() {
-                return this._frame;
-            },
-            set: function(frame) {
-                if (((this._frameSequence == null) && (this._frame === frame)) || (this._deepCompareToPreviousFrame(frame))) {
+            get: function () { return this._frame; },
+            set: function (f) {
+
+                // 同じフレーム or 同じ配列なら何もしない
+                if ((this._frameSequence == null && this._frame === f) ||
+                    this._deepCompareToPreviousFrame(f)) {
                     return;
                 }
-                if (frame instanceof Array) {
-                    this._frameSequence = frame;
+
+                if (Array.isArray(f)) {
+                    this._frameSequence = f;
                 } else {
                     this._frameSequence = null;
-                    this._frame = frame;
+                    this._frame = f;
                     this._computeFramePosition();
                 }
             }
         },
+
         _frameSequence: {
-            get: function() {
-                return this.__frameSequence;
-            },
-            set: function(frameSequence) {
-                if(frameSequence && !this.__frameSequence) {
+            get: function () { return this.__frameSequence; },
+            set: function (seq) {
+
+                var hadSeq = !!this.__frameSequence;
+
+                if (seq && !hadSeq) {
                     this.addEventListener(enchant.Event.ENTER_FRAME, this._rotateFrameSequence);
-                } else if(!frameSequence && this.__frameSequence) {
+                } else if (!seq && hadSeq) {
                     this.removeEventListener(enchant.Event.ENTER_FRAME, this._rotateFrameSequence);
                 }
-                if(frameSequence) {
-                    this.__frameSequence = frameSequence.slice();
-                    this._originalFrameSequence = frameSequence.slice();
+
+                if (seq) {
+                    // slice を 1 回に削減
+                    var copy = seq.slice();
+                    this.__frameSequence = copy;
+                    this._originalFrameSequence = copy.slice();
                     this._rotateFrameSequence();
                 } else {
                     this.__frameSequence = null;
@@ -3020,697 +2754,692 @@
                 }
             }
         },
-        /**
-         * If we are setting the same frame Array as animation,
-         * just continue animating.
-         * @private
-         */
-        _deepCompareToPreviousFrame: function(frameArray) {
-            if (frameArray === this._originalFrameSequence) {
-                return true;
-            }
-            if (frameArray == null || this._originalFrameSequence == null) {
-                return false;
-            }
-            if (!(frameArray instanceof Array)) {
-                return false;
-            }
-            if (frameArray.length !== this._originalFrameSequence.length) {
-                return false;
-            }
-            for (var i = 0; i < frameArray.length; ++i) {
-                if (frameArray[i] !== this._originalFrameSequence[i]){
-                    return false;
-                }
+
+        _deepCompareToPreviousFrame: function (arr) {
+            var prev = this._originalFrameSequence;
+
+            if (arr === prev) return true;
+            if (!arr || !prev) return false;
+            if (!Array.isArray(arr)) return false;
+            if (arr.length !== prev.length) return false;
+
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] !== prev[i]) return false;
             }
             return true;
         },
-        /**
-         * 0 <= frame
-         * @private
-         */
-        _computeFramePosition: function() {
-            var image = this._image;
-            var row;
-            if (image != null) {
-                row = image.width / this._width | 0;
-                this._frameLeft = (this._frame % row | 0) * this._width;
-                this._frameTop = (this._frame / row | 0) * this._height % image.height;
-            }
+
+        /* ============================
+        *  Frame Position
+        * ============================ */
+
+        _computeFramePosition: function () {
+            var img = this._image;
+            if (!img) return;
+
+            var w = this._width;
+            var h = this._height;
+
+            var row = (img.width / w) | 0;
+
+            var f = this._frame | 0;
+
+            this._frameLeft = (f % row) * w;
+            this._frameTop = ((f / row) | 0) * h % img.height;
         },
-        _rotateFrameSequence: function() {
-            var frameSequence = this._frameSequence;
-            if (frameSequence && frameSequence.length !== 0) {
-                var nextFrame = frameSequence.shift();
-                if (nextFrame === null) {
-                    this._frameSequence = null;
-                    this.dispatchEvent(new enchant.Event(enchant.Event.ANIMATION_END));
-                } else {
-                    this._frame = nextFrame;
-                    this._computeFramePosition();
-                    frameSequence.push(nextFrame);
-                }
+
+        _rotateFrameSequence: function () {
+            var seq = this._frameSequence;
+            if (!seq || seq.length === 0) return;
+
+            var next = seq.shift();
+
+            if (next === null) {
+                this._frameSequence = null;
+                this.dispatchEvent(new enchant.Event(enchant.Event.ANIMATION_END));
+                return;
             }
+
+            this._frame = next;
+            this._computeFramePosition();
+            seq.push(next);
         },
-        /**#nocode+*/
+
+        /* ============================
+        *  Width / Height override
+        * ============================ */
+
         width: {
-            get: function() {
-                return this._width;
-            },
-            set: function(width) {
-                this._width = width;
+            get: function () { return this._width; },
+            set: function (w) {
+                this._width = w;
                 this._computeFramePosition();
                 this._dirty = true;
             }
         },
+
         height: {
-            get: function() {
-                return this._height;
-            },
-            set: function(height) {
-                this._height = height;
+            get: function () { return this._height; },
+            set: function (h) {
+                this._height = h;
                 this._computeFramePosition();
                 this._dirty = true;
             }
         },
-        /**#nocode-*/
-        cvsRender: function(ctx) {
-            var image = this._image,
-                w = this._width, h = this._height,
-                iw, ih, elem, sx, sy, sw, sh;
-            if (image && w !== 0 && h !== 0) {
-                iw = image.width;
-                ih = image.height;
-                if (iw < w || ih < h) {
-                    ctx.fillStyle = enchant.Surface._getPattern(image);
-                    ctx.fillRect(0, 0, w, h);
-                } else {
-                    elem = image._element;
-                    sx = this._frameLeft;
-                    sy = Math.min(this._frameTop, ih - h);
-                    // IE9 doesn't allow for negative or 0 widths/heights when drawing on the CANVAS element
-                    sw = Math.max(0.01, Math.min(iw - sx, w));
-                    sh = Math.max(0.01, Math.min(ih - sy, h));
-                    ctx.drawImage(elem, sx, sy, sw, sh, 0, 0, w, h);
-                }
+
+        /* ============================
+        *  Canvas Rendering
+        * ============================ */
+
+        cvsRender: function (ctx) {
+            var img = this._image;
+            var w = this._width, h = this._height;
+
+            if (!img || w === 0 || h === 0) return;
+
+            var iw = img.width;
+            var ih = img.height;
+
+            if (iw < w || ih < h) {
+                ctx.fillStyle = enchant.Surface._getPattern(img);
+                ctx.fillRect(0, 0, w, h);
+                return;
             }
+
+            var elem = img._element;
+            var sx = this._frameLeft;
+            var sy = this._frameTop;
+
+            // IE9 対策
+            var sw = Math.max(0.01, Math.min(iw - sx, w));
+            var sh = Math.max(0.01, Math.min(ih - sy, h));
+
+            ctx.drawImage(elem, sx, sy, sw, sh, 0, 0, w, h);
         },
-        domRender: (function() {
-            if (enchant.ENV.VENDOR_PREFIX === 'ms') {
-                return function(element) {
-                    if (this._image) {
-                        if (this._image._css) {
-                            this._style['background-image'] = this._image._css;
-                            this._style['background-position'] =
-                                -this._frameLeft + 'px ' +
-                                -this._frameTop + 'px';
-                        } else if (this._image._element) {
-                        }
-                    }
-                };
-            } else {
-                return function(element) {
-                    if (this._image) {
-                        if (this._image._css) {
-                            this._style['background-image'] = this._image._css;
-                            this._style['background-position'] =
-                                -this._frameLeft + 'px ' +
-                                -this._frameTop + 'px';
-                        } else if (this._image._element) {
-                        }
-                    }
-                };
+
+        /* ============================
+        *  DOM Rendering
+        * ============================ */
+
+        domRender: function () {
+            var img = this._image;
+            if (!img) return;
+
+            if (img._css) {
+                this._style['background-image'] = img._css;
+                this._style['background-position'] =
+                    -this._frameLeft + 'px ' + -this._frameTop + 'px';
             }
-        }())
+        }
     });
+
     
     /**
      * @scope enchant.Label.prototype
      */
     enchant.Label = enchant.Class.create(enchant.Entity, {
-        /**
-         * @name enchant.Label
-         * @class
-         * A class for Label object.
-         * @constructs
-         * @extends enchant.Entity
-         */
-        initialize: function(text) {
+        initialize: function (text) {
             enchant.Entity.call(this);
-    
+
             this.text = text || '';
             this.width = 300;
             this.font = '14px serif';
             this.textAlign = 'left';
-    
+
             this._debugColor = '#ff0000';
+            this._splitText = [];
+            this._boundWidth = 0;
+            this._boundHeight = 0;
+            this._boundOffset = 0;
         },
-        /**#nocode+*/
+
+        // width は境界更新も行う
         width: {
-            get: function() {
-                return this._width;
-            },
-            set: function(width) {
-                this._width = width;
+            get: function () { return this._width; },
+            set: function (w) {
+                this._width = w;
                 this._dirty = true;
-                // issue #164
                 this.updateBoundArea();
             }
         },
-        /**#nocode-*/
-        /**
-         * Text to be displayed.
-         * @type String
-         */
+
         text: {
-            get: function() {
-                return this._text;
-            },
-            set: function(text) {
-                text = '' + text;
-                if(this._text === text) {
-                    return;
-                }
-                this._text = text;
-                text = text.replace(/<br ?\/?>/gi, '<br/>');
-                this._splitText = text.split('<br/>');
-                this.updateBoundArea();
-                for (var i = 0, l = this._splitText.length; i < l; i++) {
-                    text = this._splitText[i];
-                    var metrics = this.getMetrics(text);
-                    this._splitText[i] = {};
-                    this._splitText[i].text = text;
-                    this._splitText[i].height = metrics.height;
-                    this._splitText[i].width = metrics.width;
+            get: function () { return this._text; },
+            set: function (t) {
+                t = '' + t;
+                if (this._text === t) return;
+
+                this._text = t;
+
+                // <br> 正規化 & 分割
+                var normalized = t.replace(/<br ?\/?>/gi, '<br/>');
+                var lines = normalized.split('<br/>');
+
+                this._splitText = [];
+                this.updateBoundArea(); // font/align 依存のため先に更新
+
+                for (var i = 0, l = lines.length; i < l; i++) {
+                    var lineText = lines[i];
+                    var metrics = this.getMetrics(lineText);
+                    this._splitText.push({
+                        text: lineText,
+                        height: metrics.height,
+                        width: metrics.width
+                    });
                 }
             }
         },
-        /**
-         * Specifies horizontal alignment of text.
-         * Can be set according to the format of the CSS 'text-align' property.
-         * @type String
-         */
+
         textAlign: {
-            get: function() {
-                return this._style['text-align'];
-            },
-            set: function(textAlign) {
-                this._style['text-align'] = textAlign;
+            get: function () { return this._style['text-align']; },
+            set: function (align) {
+                this._style['text-align'] = align;
                 this.updateBoundArea();
             }
         },
-        /**
-         * Font settings.
-         * Can be set according to the format of the CSS 'font' property.
-         * @type String
-         */
+
         font: {
-            get: function() {
-                return this._style.font;
-            },
-            set: function(font) {
+            get: function () { return this._style.font; },
+            set: function (font) {
                 this._style.font = font;
                 this.updateBoundArea();
             }
         },
-        /**
-         * Text color settings.
-         * Can be set according to the format of the CSS 'color' property.
-         * @type String
-         */
+
         color: {
-            get: function() {
-                return this._style.color;
-            },
-            set: function(color) {
-                this._style.color = color;
-            }
+            get: function () { return this._style.color; },
+            set: function (c) { this._style.color = c; }
         },
-        cvsRender: function(ctx) {
-            var x, y = 0;
+
+        cvsRender: function (ctx) {
+            var lines = this._splitText;
+            if (!lines || !lines.length) return;
+
             var labelWidth = this.width;
-            var charWidth, amount, line, text, c, buf, increase, length;
-            var bufWidth;
-            if (this._splitText) {
-                ctx.textBaseline = 'top';
-                ctx.font = this.font;
-                ctx.fillStyle = this.color || '#000000';
-                charWidth = ctx.measureText(' ').width;
-                amount = labelWidth / charWidth;
-                for (var i = 0, l = this._splitText.length; i < l; i++) {
-                    line = this._splitText[i];
-                    text = line.text;
-                    c = 0;
-                    while (text.length > c + amount || ctx.measureText(text.slice(c, c + amount)).width > labelWidth) {
-                        buf = '';
-                        increase = amount;
-                        length = 0;
-                        while (increase > 0) {
-                            if (ctx.measureText(buf).width < labelWidth) {
-                                length += increase;
-                                buf = text.slice(c, c + length);
-                            } else {
-                                length -= increase;
-                                buf = text.slice(c, c + length);
-                            }
-                            increase = increase / 2 | 0;
+            var y = 0;
+
+            ctx.textBaseline = 'top';
+            ctx.font = this.font;
+            ctx.fillStyle = this.color || '#000000';
+
+            var align = this.textAlign || 'left';
+
+            for (var i = 0, l = lines.length; i < l; i++) {
+                var line = lines[i];
+                var text = line.text;
+                var len = text.length;
+                var c = 0;
+
+                while (c < len) {
+                    var buf = '';
+                    var step = 1;
+                    var maxWidth = labelWidth;
+                    var length = 0;
+
+                    // 最大幅に収まる文字列を探す
+                    while (c + length < len) {
+                        var candidate = text.slice(c, c + length + step);
+                        var w = ctx.measureText(candidate).width;
+                        if (w <= maxWidth) {
+                            length += step;
+                        } else {
+                            break;
                         }
-                        ctx.fillText(buf, 0, y);
-                        y += line.height - 1;
-                        c += length;
                     }
-                    buf = text.slice(c, c + text.length);
-                    if (this.textAlign === 'right') {
-                        x = labelWidth - ctx.measureText(buf).width;
-                    } else if (this.textAlign === 'center') {
-                        x = (labelWidth - ctx.measureText(buf).width) / 2;
-                    } else {
-                        x = 0;
+
+                    if (length === 0) length = 1;
+                    buf = text.slice(c, c + length);
+                    var bufWidth = ctx.measureText(buf).width;
+
+                    var x = 0;
+                    if (align === 'right') {
+                        x = labelWidth - bufWidth;
+                    } else if (align === 'center') {
+                        x = (labelWidth - bufWidth) / 2;
                     }
+
                     ctx.fillText(buf, x, y);
-                    y += line.height - 1;
+                    y += line.height; // ← -1 を削除して安定化
+                    c += length;
                 }
             }
         },
-        domRender: function(element) {
+
+
+        domRender: function (element) {
             if (element.innerHTML !== this._text) {
                 element.innerHTML = this._text;
             }
         },
-        detectRender: function(ctx) {
+
+        detectRender: function (ctx) {
             ctx.fillRect(this._boundOffset, 0, this._boundWidth, this._boundHeight);
         },
-        updateBoundArea: function() {
+
+        updateBoundArea: function () {
             var metrics = this.getMetrics();
             this._boundWidth = metrics.width;
             this._boundHeight = metrics.height;
+
+            var w = this.width;
+            var bw = this._boundWidth;
+
             if (this.textAlign === 'right') {
-                this._boundOffset = this.width - this._boundWidth;
+                this._boundOffset = w - bw;
             } else if (this.textAlign === 'center') {
-                this._boundOffset = (this.width - this._boundWidth) / 2;
+                this._boundOffset = (w - bw) / 2;
             } else {
                 this._boundOffset = 0;
             }
         },
-        getMetrics: function(text) {
-            var ret = {};
-            var div, width, height;
-            if (document.body) {
-                div = document.createElement('div');
-                for (var prop in this._style) {
-                    if(prop !== 'width' && prop !== 'height') {
-                        div.style[prop] = this._style[prop];
-                    }
-                }
-                text = text || this._text;
-                div.innerHTML = text.replace(/ /g, '&nbsp;');
-                div.style.whiteSpace = 'noWrap';
-                div.style.lineHeight = 1;
-                document.body.appendChild(div);
-                var computedStyle = getComputedStyle(div);
-                ret.height = parseInt(computedStyle.height, 10) + 1;
-                div.style.position = 'absolute';
-                ret.width = parseInt(computedStyle.width, 10) + 1;
-                document.body.removeChild(div);
-            } else {
+
+        getMetrics: function (text) {
+            var ret = { width: 0, height: 0 };
+
+            if (!document.body) {
                 ret.width = this.width;
                 ret.height = this.height;
+                return ret;
             }
+
+            var div = document.createElement('div');
+            var style = this._style;
+
+            for (var prop in style) {
+                if (!style.hasOwnProperty(prop)) continue;
+                if (prop === 'width' || prop === 'height') continue;
+                div.style[prop] = style[prop];
+            }
+
+            text = text || this._text || '';
+            div.innerHTML = text.replace(/ /g, '&nbsp;');
+            div.style.whiteSpace = 'noWrap';
+            div.style.lineHeight = 1;
+
+            document.body.appendChild(div);
+
+            var cs = getComputedStyle(div);
+            ret.height = (parseInt(cs.height, 10) || 0) + 1;
+
+            div.style.position = 'absolute';
+            ret.width = (parseInt(cs.width, 10) || 0) + 1;
+
+            document.body.removeChild(div);
+
             return ret;
         }
     });
+
     
     /**
      * @scope enchant.Map.prototype
      */
     enchant.Map = enchant.Class.create(enchant.Entity, {
-        /**
-         * @name enchant.Map
-         * @class
-         * A class to create and display maps from a tile set.
-         * @param {Number} tileWidth Tile width.
-         * @param {Number} tileHeight Tile height.
-         * @constructs
-         * @extends enchant.Entity
-         */
-        initialize: function(tileWidth, tileHeight) {
+        initialize: function (tileWidth, tileHeight) {
             var core = enchant.Core.instance;
-    
+
             enchant.Entity.call(this);
-    
-            var surface = new enchant.Surface(core.width, core.height);
+
+            var w = core.width;
+            var h = core.height;
+
+            var surface = new enchant.Surface(w, h);
             this._surface = surface;
+
             var canvas = surface._element;
             canvas.style.position = 'absolute';
+
             if (enchant.ENV.RETINA_DISPLAY && core.scale === 2) {
-                canvas.width = core.width * 2;
-                canvas.height = core.height * 2;
+                canvas.width = w * 2;
+                canvas.height = h * 2;
                 this._style.webkitTransformOrigin = '0 0';
                 this._style.webkitTransform = 'scale(0.5)';
             } else {
-                canvas.width = core.width;
-                canvas.height = core.height;
+                canvas.width = w;
+                canvas.height = h;
             }
+
             this._context = canvas.getContext('2d');
-    
+
             this._tileWidth = tileWidth || 0;
             this._tileHeight = tileHeight || 0;
             this._image = null;
-            this._data = [
-                [
-                    []
-                ]
-            ];
+
+            // [layer][y][x]
+            this._data = [[[ ]]];
+
             this._dirty = false;
             this._tight = false;
-    
+
             this.touchEnabled = false;
-    
-            /**
-             * Two dimensional array to store if collision detection should be performed for a tile.
-             * @type Number[][]
-             */
+
             this.collisionData = null;
-    
+
+            this._previousOffsetX = null;
+            this._previousOffsetY = null;
+
             this._listeners['render'] = null;
-            this.addEventListener('render', function() {
-                if(this._dirty) {
+            this.addEventListener('render', function () {
+                if (this._dirty) {
                     this._previousOffsetX = this._previousOffsetY = null;
                 }
             });
         },
-        /**
-         * Set map data.
-         * Sets the tile data, whereas the data (two-dimensional array with indizes starting from 0) 
-         * is mapped on the image starting from the upper left corner.
-         * When more than one map data array is set, they are displayed in reverse order.
-         * @param {...Number[][]} data Two-dimensional array of tile indizes. Multiple designations possible.
-         */
-        loadData: function(data) {
-            this._data = Array.prototype.slice.apply(arguments);
+
+        loadData: function () {
+            // 可変長引数 → 配列化
+            this._data = Array.prototype.slice.call(arguments);
             this._dirty = true;
-    
+
             this._tight = false;
+
             for (var i = 0, len = this._data.length; i < len; i++) {
-                var c = 0;
-                data = this._data[i];
-                for (var y = 0, l = data.length; y < l; y++) {
-                    for (var x = 0, ll = data[y].length; x < ll; x++) {
-                        if (data[y][x] >= 0) {
-                            c++;
-                        }
+                var layer = this._data[i];
+                var rows = layer.length;
+                var cols = layer[0].length;
+                var filled = 0;
+
+                for (var y = 0; y < rows; y++) {
+                    var row = layer[y];
+                    for (var x = 0; x < cols; x++) {
+                        if (row[x] >= 0) filled++;
                     }
                 }
-                if (c / (data.length * data[0].length) > 0.2) {
+
+                if (filled / (rows * cols) > 0.2) {
                     this._tight = true;
                     break;
                 }
             }
         },
-        /**
-         * Checks what tile is present at the given position.
-         * @param {Number} x x coordinates of the point on the map.
-         * @param {Number} y y coordinates of the point on the map.
-         * @return {*} The tile data for the given position.
-         */
-        checkTile: function(x, y) {
-            if (x < 0 || this.width <= x || y < 0 || this.height <= y) {
-                return false;
-            }
-            var width = this._image.width;
-            var height = this._image.height;
-            var tileWidth = this._tileWidth || width;
-            var tileHeight = this._tileHeight || height;
-            x = x / tileWidth | 0;
-            y = y / tileHeight | 0;
-            //		return this._data[y][x];
-            var data = this._data[0];
-            return data[y][x];
+
+        checkTile: function (x, y) {
+            if (x < 0 || y < 0) return false;
+
+            var tw = this._tileWidth  || (this._image && this._image.width)  || 0;
+            var th = this._tileHeight || (this._image && this._image.height) || 0;
+            if (!tw || !th) return false;
+
+            var tx = (x / tw) | 0;
+            var ty = (y / th) | 0;
+
+            var layer0 = this._data[0];
+            if (!layer0 || !layer0[ty] || layer0[ty][tx] == null) return false;
+
+            return layer0[ty][tx];
         },
-        /**
-         * Judges whether or not obstacles are on top of Map.
-         * @param {Number} x x coordinates of detection spot on map.
-         * @param {Number} y y coordinates of detection spot on map.
-         * @return {Boolean} True, if there are obstacles.
-         */
-        hitTest: function(x, y) {
-            if (x < 0 || this.width <= x || y < 0 || this.height <= y) {
-                return false;
+
+        hitTest: function (x, y) {
+            if (x < 0 || y < 0) return false;
+
+            var tw = this._tileWidth  || (this._image && this._image.width)  || 0;
+            var th = this._tileHeight || (this._image && this._image.height) || 0;
+            if (!tw || !th) return false;
+
+            var tx = (x / tw) | 0;
+            var ty = (y / th) | 0;
+
+            if (this.collisionData) {
+                var row = this.collisionData[ty];
+                return !!(row && row[tx]);
             }
-            var width = this._image.width;
-            var height = this._image.height;
-            var tileWidth = this._tileWidth || width;
-            var tileHeight = this._tileHeight || height;
-            x = x / tileWidth | 0;
-            y = y / tileHeight | 0;
-            if (this.collisionData != null) {
-                return this.collisionData[y] && !!this.collisionData[y][x];
-            } else {
-                for (var i = 0, len = this._data.length; i < len; i++) {
-                    var data = this._data[i];
-                    var n;
-                    if (data[y] != null && (n = data[y][x]) != null &&
-                        0 <= n && n < (width / tileWidth | 0) * (height / tileHeight | 0)) {
-                        return true;
-                    }
+
+            if (!this._image) return false;
+
+            var iw = this._image.width;
+            var ih = this._image.height;
+            var maxIndex = ((iw / tw) | 0) * ((ih / th) | 0);
+
+            for (var i = 0, len = this._data.length; i < len; i++) {
+                var layer = this._data[i];
+                var row = layer[ty];
+                if (!row) continue;
+
+                var n = row[tx];
+                if (n != null && n >= 0 && n < maxIndex) {
+                    return true;
                 }
-                return false;
             }
+            return false;
         },
-        /**
-         * Image with which the tile set is displayed on the map.
-         * @type enchant.Surface
-         */
+
         image: {
-            get: function() {
-                return this._image;
-            },
-            set: function(image) {
+            get: function () { return this._image; },
+            set: function (img) {
                 var core = enchant.Core.instance;
-    
-                this._image = image;
-                if (enchant.ENV.RETINA_DISPLAY && core.scale === 2) {
-                    var img = new enchant.Surface(image.width * 2, image.height * 2);
-                    var tileWidth = this._tileWidth || image.width;
-                    var tileHeight = this._tileHeight || image.height;
-                    var row = image.width / tileWidth | 0;
-                    var col = image.height / tileHeight | 0;
+
+                this._image = img;
+                this._doubledImage = null;
+
+                if (img && enchant.ENV.RETINA_DISPLAY && core.scale === 2) {
+                    var tw = this._tileWidth  || img.width;
+                    var th = this._tileHeight || img.height;
+
+                    var row = (img.width  / tw) | 0;
+                    var col = (img.height / th) | 0;
+
+                    var doubled = new enchant.Surface(img.width * 2, img.height * 2);
+
                     for (var y = 0; y < col; y++) {
                         for (var x = 0; x < row; x++) {
-                            img.draw(image, x * tileWidth, y * tileHeight, tileWidth, tileHeight,
-                                x * tileWidth * 2, y * tileHeight * 2, tileWidth * 2, tileHeight * 2);
+                            doubled.draw(
+                                img,
+                                x * tw, y * th, tw, th,
+                                x * tw * 2, y * th * 2, tw * 2, th * 2
+                            );
                         }
                     }
-                    this._doubledImage = img;
+                    this._doubledImage = doubled;
                 }
+
                 this._dirty = true;
             }
         },
-        /**
-         * Map tile width.
-         * @type Number
-         */
+
         tileWidth: {
-            get: function() {
-                return this._tileWidth;
-            },
-            set: function(tileWidth) {
-                if(this._tileWidth !== tileWidth) {
-                    this._tileWidth = tileWidth;
+            get: function () { return this._tileWidth; },
+            set: function (w) {
+                if (this._tileWidth !== w) {
+                    this._tileWidth = w;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * Map tile height.
-         * @type Number
-         */
+
         tileHeight: {
-            get: function() {
-                return this._tileHeight;
-            },
-            set: function(tileHeight) {
-                if(this._tileHeight !== tileHeight) {
-                    this._tileHeight = tileHeight;
+            get: function () { return this._tileHeight; },
+            set: function (h) {
+                if (this._tileHeight !== h) {
+                    this._tileHeight = h;
                     this._dirty = true;
                 }
             }
         },
-        /**
-         * @private
-         */
+
         width: {
-            get: function() {
-                return this._tileWidth * this._data[0][0].length;
+            get: function () {
+                var layer0 = this._data[0];
+                return this._tileWidth * (layer0 && layer0[0] ? layer0[0].length : 0);
             }
         },
-        /**
-         * @private
-         */
+
         height: {
-            get: function() {
-                return this._tileHeight * this._data[0].length;
+            get: function () {
+                var layer0 = this._data[0];
+                return this._tileHeight * (layer0 ? layer0.length : 0);
             }
         },
-        /**
-         * @private
-         */
-        redraw: function(x, y, width, height) {
-            if (this._image == null) {
-                return;
-            }
-    
-            var image, tileWidth, tileHeight, dx, dy;
+
+        redraw: function (x, y, width, height) {
+            if (!this._image) return;
+
+            var img = this._doubledImage || this._image;
+            var tw = this._doubledImage ? this._tileWidth * 2 : this._tileWidth;
+            var th = this._doubledImage ? this._tileHeight * 2 : this._tileHeight;
+
+            var dx = this._doubledImage ? -this._offsetX * 2 : -this._offsetX;
+            var dy = this._doubledImage ? -this._offsetY * 2 : -this._offsetY;
+
             if (this._doubledImage) {
-                image = this._doubledImage;
-                tileWidth = this._tileWidth * 2;
-                tileHeight = this._tileHeight * 2;
-                dx = -this._offsetX * 2;
-                dy = -this._offsetY * 2;
-                x *= 2;
-                y *= 2;
-                width *= 2;
-                height *= 2;
-            } else {
-                image = this._image;
-                tileWidth = this._tileWidth;
-                tileHeight = this._tileHeight;
-                dx = -this._offsetX;
-                dy = -this._offsetY;
+                x <<= 1; y <<= 1;
+                width <<= 1; height <<= 1;
             }
-            var row = image.width / tileWidth | 0;
-            var col = image.height / tileHeight | 0;
-            var left = Math.max((x + dx) / tileWidth | 0, 0);
-            var top = Math.max((y + dy) / tileHeight | 0, 0);
-            var right = Math.ceil((x + dx + width) / tileWidth);
-            var bottom = Math.ceil((y + dy + height) / tileHeight);
-    
-            var source = image._element;
-            var context = this._context;
-            var canvas = context.canvas;
-            context.clearRect(x, y, width, height);
-            for (var i = 0, len = this._data.length; i < len; i++) {
-                var data = this._data[i];
-                var r = Math.min(right, data[0].length);
-                var b = Math.min(bottom, data.length);
-                for (y = top; y < b; y++) {
-                    for (x = left; x < r; x++) {
-                        var n = data[y][x];
-                        if (0 <= n && n < row * col) {
-                            var sx = (n % row) * tileWidth;
-                            var sy = (n / row | 0) * tileHeight;
-                            context.drawImage(source, sx, sy, tileWidth, tileHeight,
-                                x * tileWidth - dx, y * tileHeight - dy, tileWidth, tileHeight);
+
+            var row = (img.width / tw) | 0;
+            var col = (img.height / th) | 0;
+            var maxIndex = row * col;
+
+            var left   = Math.max(((x + dx) / tw) | 0, 0);
+            var top    = Math.max(((y + dy) / th) | 0, 0);
+            var right  = Math.min(Math.ceil((x + dx + width) / tw),  this._data[0][0].length);
+            var bottom = Math.min(Math.ceil((y + dy + height) / th), this._data[0].length);
+
+            var ctx = this._context;
+            var source = img._element;
+
+            ctx.clearRect(x, y, width, height);
+
+            var layers = this._data;
+
+            for (var i = 0, L = layers.length; i < L; i++) {
+                var data = layers[i];
+
+                for (var ty = top; ty < bottom; ty++) {
+                    var rowData = data[ty];
+                    for (var tx = left; tx < right; tx++) {
+                        var n = rowData[tx];
+                        if (n >= 0 && n < maxIndex) {
+                            var sx = (n % row) * tw;
+                            var sy = ((n / row) | 0) * th;
+
+                            ctx.drawImage(
+                                source,
+                                sx, sy, tw, th,
+                                tx * tw - dx,
+                                ty * th - dy,
+                                tw, th
+                            );
                         }
                     }
                 }
             }
         },
-        /**
-         * @private
-         */
-        updateBuffer: function() {
-            if (this._visible === undefined || this._visible) {
-                var core = enchant.Core.instance;
-                if (this._dirty || this._previousOffsetX == null) {
-                    this.redraw(0, 0, core.width, core.height);
-                } else if (this._offsetX !== this._previousOffsetX ||
-                        this._offsetY !== this._previousOffsetY) {
-                    if (this._tight) {
-                        var x = -this._offsetX;
-                        var y = -this._offsetY;
-                        var px = -this._previousOffsetX;
-                        var py = -this._previousOffsetY;
-                        var w1 = x - px + core.width;
-                        var w2 = px - x + core.width;
-                        var h1 = y - py + core.height;
-                        var h2 = py - y + core.height;
-                        if (w1 > this._tileWidth && w2 > this._tileWidth &&
-                                h1 > this._tileHeight && h2 > this._tileHeight) {
-                            var sx, sy, dx, dy, sw, sh;
-                            if (w1 < w2) {
-                                sx = 0;
-                                dx = px - x;
-                                sw = w1;
-                            } else {
-                                sx = x - px;
-                                dx = 0;
-                                sw = w2;
-                            }
-                            if (h1 < h2) {
-                                sy = 0;
-                                dy = py - y;
-                                sh = h1;
-                            } else {
-                                sy = y - py;
-                                dy = 0;
-                                sh = h2;
-                            }
-    
-                            if (core._buffer == null) {
-                                core._buffer = document.createElement('canvas');
-                                core._buffer.width = this._context.canvas.width;
-                                core._buffer.height = this._context.canvas.height;
-                            }
-                            var context = core._buffer.getContext('2d');
-                            if (this._doubledImage) {
-                                context.clearRect(0, 0, sw * 2, sh * 2);
-                                context.drawImage(this._context.canvas,
-                                        sx * 2, sy * 2, sw * 2, sh * 2, 0, 0, sw * 2, sh * 2);
-                                context = this._context;
-                                context.clearRect(dx * 2, dy * 2, sw * 2, sh * 2);
-                                context.drawImage(core._buffer,
-                                        0, 0, sw * 2, sh * 2, dx * 2, dy * 2, sw * 2, sh * 2);
-                            } else {
-                                context.clearRect(0, 0, sw, sh);
-                                context.drawImage(this._context.canvas,
-                                        sx, sy, sw, sh, 0, 0, sw, sh);
-                                context = this._context;
-                                context.clearRect(dx, dy, sw, sh);
-                                context.drawImage(core._buffer,
-                                        0, 0, sw, sh, dx, dy, sw, sh);
-                            }
-    
-                            if (dx === 0) {
-                                this.redraw(sw, 0, core.width - sw, core.height);
-                            } else {
-                                this.redraw(0, 0, core.width - sw, core.height);
-                            }
-                            if (dy === 0) {
-                                this.redraw(0, sh, core.width, core.height - sh);
-                            } else {
-                                this.redraw(0, 0, core.width, core.height - sh);
-                            }
-                        } else {
-                            this.redraw(0, 0, core.width, core.height);
-                        }
-                    } else {
-                        this.redraw(0, 0, core.width, core.height);
-                    }
-                }
+
+        updateBuffer: function () {
+            if (this._visible === false) return;
+
+            var core = enchant.Core.instance;
+
+            // 初回 or 完全更新
+            if (this._dirty || this._previousOffsetX == null) {
+                this.redraw(0, 0, core.width, core.height);
                 this._previousOffsetX = this._offsetX;
                 this._previousOffsetY = this._offsetY;
+                return;
             }
+
+            // オフセットが変わらないなら何もしない
+            if (this._offsetX === this._previousOffsetX &&
+                this._offsetY === this._previousOffsetY) {
+                return;
+            }
+
+            // tight モードで部分更新
+            if (this._tight) {
+                var x = -this._offsetX;
+                var y = -this._offsetY;
+                var px = -this._previousOffsetX;
+                var py = -this._previousOffsetY;
+
+                var w1 = x - px + core.width;
+                var w2 = px - x + core.width;
+                var h1 = y - py + core.height;
+                var h2 = py - y + core.height;
+
+                if (w1 > this._tileWidth && w2 > this._tileWidth &&
+                    h1 > this._tileHeight && h2 > this._tileHeight) {
+
+                    if (!core._buffer) {
+                        core._buffer = document.createElement('canvas');
+                        core._buffer.width = this._context.canvas.width;
+                        core._buffer.height = this._context.canvas.height;
+                    }
+
+                    var bufCtx = core._buffer.getContext('2d');
+                    var ctx = this._context;
+
+                    var sx = (w1 < w2) ? 0 : (x - px);
+                    var dx = (w1 < w2) ? (px - x) : 0;
+                    var sw = (w1 < w2) ? w1 : w2;
+
+                    var sy = (h1 < h2) ? 0 : (y - py);
+                    var dy = (h1 < h2) ? (py - y) : 0;
+                    var sh = (h1 < h2) ? h1 : h2;
+
+                    // Retina 対応
+                    var mul = this._doubledImage ? 2 : 1;
+
+                    bufCtx.clearRect(0, 0, sw * mul, sh * mul);
+                    bufCtx.drawImage(
+                        ctx.canvas,
+                        sx * mul, sy * mul, sw * mul, sh * mul,
+                        0, 0, sw * mul, sh * mul
+                    );
+
+                    ctx.clearRect(dx * mul, dy * mul, sw * mul, sh * mul);
+                    ctx.drawImage(
+                        core._buffer,
+                        0, 0, sw * mul, sh * mul,
+                        dx * mul, dy * mul, sw * mul, sh * mul
+                    );
+
+                    // 残り部分を再描画
+                    if (dx === 0) {
+                        this.redraw(sw, 0, core.width - sw, core.height);
+                    } else {
+                        this.redraw(0, 0, core.width - sw, core.height);
+                    }
+
+                    if (dy === 0) {
+                        this.redraw(0, sh, core.width, core.height - sh);
+                    } else {
+                        this.redraw(0, 0, core.width, core.height - sh);
+                    }
+
+                } else {
+                    this.redraw(0, 0, core.width, core.height);
+                }
+
+            } else {
+                this.redraw(0, 0, core.width, core.height);
+            }
+
+            this._previousOffsetX = this._offsetX;
+            this._previousOffsetY = this._offsetY;
         },
-        cvsRender: function(ctx) {
-            if (this.width !== 0 && this.height !== 0) {
-                var core = enchant.Core.instance;
-                this.updateBuffer();
-                ctx.save();
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                var cvs = this._context.canvas;
-                    ctx.drawImage(cvs, 0, 0, core.width, core.height);
-                ctx.restore();
-            }
+
+        cvsRender: function (ctx) {
+            if (this.width === 0 || this.height === 0) return;
+
+            var core = enchant.Core.instance;
+            this.updateBuffer();
+
+            var cvs = this._context.canvas;
+
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.drawImage(cvs, 0, 0, core.width, core.height);
+            ctx.restore();
         },
-        domRender: function(element) {
-            if (this._image) {
-                this.updateBuffer();
-                this._style['background-image'] = this._surface._css;
-                // bad performance
-                this._style[enchant.ENV.VENDOR_PREFIX + 'Transform'] = 'matrix(1, 0, 0, 1, 0, 0)';
-            }
+
+        domRender: function () {
+            if (!this._image) return;
+
+            this.updateBuffer();
+            this._style['background-image'] = this._surface._css;
+            this._style[enchant.ENV.VENDOR_PREFIX + 'Transform'] = 'matrix(1,0,0,1,0,0)';
         }
+
     });
     
     
@@ -3718,235 +3447,198 @@
      * @scope enchant.Group.prototype
      */
     enchant.Group = enchant.Class.create(enchant.Node, {
-        /**
-         * @name enchant.Group
-         * @class
-         * A class that can hold multiple {@link enchant.Node}.
-         *
-         * @example
-         * var stage = new Group();
-         * stage.addChild(player);
-         * stage.addChild(enemy);
-         * stage.addChild(map);
-         * stage.addEventListener('enterframe', function() {
-         *     // Moves the entire frame in according to the player's coordinates.
-         *     if (this.x > 64 - player.x) {
-         *         this.x = 64 - player.x;
-         *     }
-         * });
-         * @constructs
-         * @extends enchant.Node
-         */
-        initialize: function() {
-            /**
-             * Child Nodes.
-             * @type enchant.Node[]
-             */
+
+        initialize: function () {
             this.childNodes = [];
-    
+
             enchant.Node.call(this);
-    
+
             this._rotation = 0;
             this._scaleX = 1;
             this._scaleY = 1;
-    
+
             this._originX = null;
             this._originY = null;
-    
+
             this.__dirty = false;
-    
-            [enchant.Event.ADDED_TO_SCENE, enchant.Event.REMOVED_FROM_SCENE]
-                .forEach(function(event) {
-                    this.addEventListener(event, function(e) {
-                        this.childNodes.forEach(function(child) {
-                            child.scene = this.scene;
-                            child.dispatchEvent(e);
-                        }, this);
-                    });
-                }, this);
+
+            // --- 最適化：イベント伝播を1回のループに統合 ---
+            var self = this;
+            var propagate = function (e) {
+                var scene = self.scene;
+                var children = self.childNodes;
+                for (var i = 0, l = children.length; i < l; i++) {
+                    var child = children[i];
+                    child.scene = scene;
+                    child.dispatchEvent(e);
+                }
+            };
+
+            this.addEventListener(enchant.Event.ADDED_TO_SCENE, propagate);
+            this.addEventListener(enchant.Event.REMOVED_FROM_SCENE, propagate);
         },
-        /**
-         * Adds a Node to the Group.
-         * @param {enchant.Node} node Node to be added.
-         */
-        addChild: function(node) {
-            if (node.parentNode) {
-                node.parentNode.removeChild(node);
-            }
+
+        /* ============================
+        *  Child Management
+        * ============================ */
+
+        addChild: function (node) {
+            if (node.parentNode) node.parentNode.removeChild(node);
+
             this.childNodes.push(node);
             node.parentNode = this;
-            var childAdded = new enchant.Event('childadded');
-            childAdded.node = node;
-            childAdded.next = null;
-            this.dispatchEvent(childAdded);
+
+            var e1 = new enchant.Event('childadded');
+            e1.node = node;
+            e1.next = null;
+            this.dispatchEvent(e1);
+
             node.dispatchEvent(new enchant.Event('added'));
+
             if (this.scene) {
                 node.scene = this.scene;
-                var addedToScene = new enchant.Event('addedtoscene');
-                node.dispatchEvent(addedToScene);
+                node.dispatchEvent(new enchant.Event('addedtoscene'));
             }
         },
-        /**
-         * Incorporates Node into Group.
-         * @param {enchant.Node} node Node to be incorporated.
-         * @param {enchant.Node} reference Node in position before insertion.
-         */
-        insertBefore: function(node, reference) {
-            if (node.parentNode) {
-                node.parentNode.removeChild(node);
-            }
-            var i = this.childNodes.indexOf(reference);
-            if (i !== -1) {
-                this.childNodes.splice(i, 0, node);
+
+        insertBefore: function (node, reference) {
+            if (node.parentNode) node.parentNode.removeChild(node);
+
+            var list = this.childNodes;
+            var idx = list.indexOf(reference);
+
+            if (idx !== -1) {
+                list.splice(idx, 0, node);
                 node.parentNode = this;
-                var childAdded = new enchant.Event('childadded');
-                childAdded.node = node;
-                childAdded.next = reference;
-                this.dispatchEvent(childAdded);
+
+                var e1 = new enchant.Event('childadded');
+                e1.node = node;
+                e1.next = reference;
+                this.dispatchEvent(e1);
+
                 node.dispatchEvent(new enchant.Event('added'));
+
                 if (this.scene) {
                     node.scene = this.scene;
-                    var addedToScene = new enchant.Event('addedtoscene');
-                    node.dispatchEvent(addedToScene);
+                    node.dispatchEvent(new enchant.Event('addedtoscene'));
                 }
             } else {
                 this.addChild(node);
             }
         },
-        /**
-         * Remove a Node from the Group.
-         * @param {enchant.Node} node Node to be deleted.
-         */
-        removeChild: function(node) {
-            var i;
-            if ((i = this.childNodes.indexOf(node)) !== -1) {
-                this.childNodes.splice(i, 1);
+
+        removeChild: function (node) {
+            var list = this.childNodes;
+            var idx = list.indexOf(node);
+
+            if (idx !== -1) {
+                list.splice(idx, 1);
                 node.parentNode = null;
-                var childRemoved = new enchant.Event('childremoved');
-                childRemoved.node = node;
-                this.dispatchEvent(childRemoved);
+
+                var e1 = new enchant.Event('childremoved');
+                e1.node = node;
+                this.dispatchEvent(e1);
+
                 node.dispatchEvent(new enchant.Event('removed'));
+
                 if (this.scene) {
                     node.scene = null;
-                    var removedFromScene = new enchant.Event('removedfromscene');
-                    node.dispatchEvent(removedFromScene);
+                    node.dispatchEvent(new enchant.Event('removedfromscene'));
                 }
             }
         },
-        /**
-         * The Node which is the first child.
-         * @type enchant.Node
-         */
+
+        /* ============================
+        *  First / Last Child
+        * ============================ */
+
         firstChild: {
-            get: function() {
+            get: function () {
                 return this.childNodes[0];
             }
         },
-        /**
-         * The Node which is the last child.
-         * @type enchant.Node
-         */
+
         lastChild: {
-            get: function() {
-                return this.childNodes[this.childNodes.length - 1];
+            get: function () {
+                var list = this.childNodes;
+                return list[list.length - 1];
             }
         },
-        /**
-        * Group rotation angle (degree).
-        * @type Number
-        */
+
+        /* ============================
+        *  Transform Properties
+        * ============================ */
+
         rotation: {
-            get: function() {
-                return this._rotation;
-            },
-            set: function(rotation) {
-                if(this._rotation !== rotation) {
-                    this._rotation = rotation;
+            get: function () { return this._rotation; },
+            set: function (v) {
+                if (this._rotation !== v) {
+                    this._rotation = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-        * Scaling factor on the x axis of the Group.
-        * @type Number
-        * @see enchant.Group#originX
-        * @see enchant.Group#originY
-        */
+
         scaleX: {
-            get: function() {
-                return this._scaleX;
-            },
-            set: function(scale) {
-                if(this._scaleX !== scale) {
-                    this._scaleX = scale;
+            get: function () { return this._scaleX; },
+            set: function (v) {
+                if (this._scaleX !== v) {
+                    this._scaleX = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-        * Scaling factor on the y axis of the Group.
-        * @type Number
-        * @see enchant.Group#originX
-        * @see enchant.Group#originY
-        */
+
         scaleY: {
-            get: function() {
-                return this._scaleY;
-            },
-            set: function(scale) {
-                if(this._scaleY !== scale) {
-                    this._scaleY = scale;
+            get: function () { return this._scaleY; },
+            set: function (v) {
+                if (this._scaleY !== v) {
+                    this._scaleY = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-        * origin point of rotation, scaling
-        * @type Number
-        */
+
         originX: {
-            get: function() {
-                return this._originX;
-            },
-            set: function(originX) {
-                if(this._originX !== originX) {
-                    this._originX = originX;
+            get: function () { return this._originX; },
+            set: function (v) {
+                if (this._originX !== v) {
+                    this._originX = v;
                     this._dirty = true;
                 }
             }
         },
-        /**
-        * origin point of rotation, scaling
-        * @type Number
-        */
+
         originY: {
-            get: function() {
-                return this._originY;
-            },
-            set: function(originY) {
-                if(this._originY !== originY) {
-                    this._originY = originY;
+            get: function () { return this._originY; },
+            set: function (v) {
+                if (this._originY !== v) {
+                    this._originY = v;
                     this._dirty = true;
                 }
             }
         },
-        /**#nocode+*/
+
+        /* ============================
+        *  Dirty Propagation
+        * ============================ */
+
         _dirty: {
-            get: function() {
-                return this.__dirty;
-            },
-            set: function(dirty) {
-                dirty = !!dirty;
-                this.__dirty = dirty;
-                if (dirty) {
-                    for (var i = 0, l = this.childNodes.length; i < l; i++) {
-                        this.childNodes[i]._dirty = true;
+            get: function () { return this.__dirty; },
+            set: function (flag) {
+                flag = !!flag;
+                this.__dirty = flag;
+
+                if (flag) {
+                    var list = this.childNodes;
+                    for (var i = 0, l = list.length; i < l; i++) {
+                        list[i]._dirty = true;
                     }
                 }
             }
         }
-        /**#nocode-*/
     });
+
     
     enchant.Matrix = enchant.Class.create({
         initialize: function() {
@@ -4843,61 +4535,67 @@
      * @scope enchant.Scene.prototype
      */
     enchant.Scene = enchant.Class.create(enchant.Group, {
-        /**
-         * @name enchant.Scene
-         * @class
-         * Class that becomes the root of the display object tree.
-         * Child {@link Entity} objects are distributed to the Scene layer according to the drawing method.
-         * The DOM of each Scene layer has a ({@link enchant.DOMLayer} and  {@link enchant.CanvasLayer}) and is drawn using the Canvas.
-         * Scenes are drawn in the order that they are added.
-         *
-         * @example
-         * var scene = new Scene();
-         * scene.addChild(player);
-         * scene.addChild(enemy);
-         * core.pushScene(scene);
-         *
-         * @constructs
-         * @extends enchant.Group
-         */
         initialize: function() {
             var core = enchant.Core.instance;
-    
+
             // Call initialize method of enchant.Group
             enchant.Group.call(this);
-    
+
             // All nodes (entities, groups, scenes) have reference to the scene that it belongs to.
             this.scene = this;
-    
+
             this._backgroundColor = null;
-    
+
             // Create div tag which possesses its layers
             this._element = document.createElement('div');
             this._element.style.position = 'absolute';
             this._element.style.overflow = 'hidden';
             this._element.style[enchant.ENV.VENDOR_PREFIX + 'TransformOrigin'] = '0 0';
-    
+
             this._layers = {};
             this._layerPriority = [];
-    
+            // キャッシュ用：頻出ループで for-in を避ける
+            this._layerList = [];
+            this._layerListDirty = false;
+
             this.addEventListener(enchant.Event.CHILD_ADDED, this._onchildadded);
             this.addEventListener(enchant.Event.CHILD_REMOVED, this._onchildremoved);
             this.addEventListener(enchant.Event.ENTER, this._onenter);
             this.addEventListener(enchant.Event.EXIT, this._onexit);
-    
+
+            // EXIT_FRAME イベントをキャッシュ
+            this._exitFrameEvent = new enchant.Event(enchant.Event.EXIT_FRAME);
+
             var that = this;
             this._dispatchExitframe = function() {
-                var layer;
-                for (var prop in that._layers) {
-                    layer = that._layers[prop];
-                    layer.dispatchEvent(new enchant.Event(enchant.Event.EXIT_FRAME));
+                if (that._layerListDirty) {
+                    that._updateLayerList();
+                }
+                var list = that._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].dispatchEvent(that._exitFrameEvent);
                 }
             };
-    
+
             this.addEventListener(enchant.Event.CORE_RESIZE, this._oncoreresize);
-    
+
             this._oncoreresize(core);
         },
+
+        // 内部用：レイヤー配列キャッシュを更新
+        _updateLayerList: function() {
+            var list = [];
+            for (var i = 0, len = this._layerPriority.length; i < len; i++) {
+                var type = this._layerPriority[i];
+                var layer = this._layers[type];
+                if (layer) {
+                    list.push(layer);
+                }
+            }
+            this._layerList = list;
+            this._layerListDirty = false;
+        },
+
         /**#nocode+*/
         x: {
             get: function() {
@@ -4905,8 +4603,12 @@
             },
             set: function(x) {
                 this._x = x;
-                for (var type in this._layers) {
-                    this._layers[type].x = x;
+                if (this._layerListDirty) {
+                    this._updateLayerList();
+                }
+                var list = this._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].x = x;
                 }
             }
         },
@@ -4916,8 +4618,12 @@
             },
             set: function(y) {
                 this._y = y;
-                for (var type in this._layers) {
-                    this._layers[type].y = y;
+                if (this._layerListDirty) {
+                    this._updateLayerList();
+                }
+                var list = this._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].y = y;
                 }
             }
         },
@@ -4927,8 +4633,12 @@
             },
             set: function(width) {
                 this._width = width;
-                for (var type in this._layers) {
-                    this._layers[type].width = width;
+                if (this._layerListDirty) {
+                    this._updateLayerList();
+                }
+                var list = this._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].width = width;
                 }
             }
         },
@@ -4938,8 +4648,12 @@
             },
             set: function(height) {
                 this._height = height;
-                for (var type in this._layers) {
-                    this._layers[type].height = height;
+                if (this._layerListDirty) {
+                    this._updateLayerList();
+                }
+                var list = this._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].height = height;
                 }
             }
         },
@@ -4949,8 +4663,12 @@
             },
             set: function(rotation) {
                 this._rotation = rotation;
-                for (var type in this._layers) {
-                    this._layers[type].rotation = rotation;
+                if (this._layerListDirty) {
+                    this._updateLayerList();
+                }
+                var list = this._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].rotation = rotation;
                 }
             }
         },
@@ -4960,8 +4678,12 @@
             },
             set: function(scaleX) {
                 this._scaleX = scaleX;
-                for (var type in this._layers) {
-                    this._layers[type].scaleX = scaleX;
+                if (this._layerListDirty) {
+                    this._updateLayerList();
+                }
+                var list = this._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].scaleX = scaleX;
                 }
             }
         },
@@ -4971,8 +4693,12 @@
             },
             set: function(scaleY) {
                 this._scaleY = scaleY;
-                for (var type in this._layers) {
-                    this._layers[type].scaleY = scaleY;
+                if (this._layerListDirty) {
+                    this._updateLayerList();
+                }
+                var list = this._layerList;
+                for (var i = 0, len = list.length; i < len; i++) {
+                    list[i].scaleY = scaleY;
                 }
             }
         },
@@ -4986,11 +4712,11 @@
         },
         remove: function() {
             this.clearEventListener();
-    
+
             while (this.childNodes.length > 0) {
                 this.childNodes[0].remove();
             }
-    
+
             return enchant.Core.instance.removeScene(this);
         },
         /**#nocode-*/
@@ -5000,9 +4726,13 @@
             this._element.style.height = e.height + 'px';
             this.height = e.height;
             this._element.style[enchant.ENV.VENDOR_PREFIX + 'Transform'] = 'scale(' + e.scale + ')';
-    
-            for (var type in this._layers) {
-                this._layers[type].dispatchEvent(e);
+
+            if (this._layerListDirty) {
+                this._updateLayerList();
+            }
+            var list = this._layerList;
+            for (var i = 0, len = list.length; i < len; i++) {
+                list[i].dispatchEvent(e);
             }
         },
         addLayer: function(type, i) {
@@ -5028,10 +4758,30 @@
                 this._element.appendChild(element);
                 this._layerPriority.push(type);
             }
+            this._layerListDirty = true;
             layer._scene = this;
         },
         _determineEventTarget: function(e) {
             var layer, target;
+
+            // よくある 2 レイヤー構成（Dom / Canvas）の場合は高速パス
+            if (this._layers.Dom || this._layers.Canvas) {
+                if (this._layers.Dom) {
+                    target = this._layers.Dom._determineEventTarget(e);
+                    if (target) {
+                        return target;
+                    }
+                }
+                if (this._layers.Canvas) {
+                    target = this._layers.Canvas._determineEventTarget(e);
+                    if (target) {
+                        return target;
+                    }
+                }
+                return this;
+            }
+
+            // 汎用パス（元の構造を維持）
             for (var i = this._layerPriority.length - 1; i >= 0; i--) {
                 layer = this._layers[this._layerPriority[i]];
                 target = layer._determineEventTarget(e);
@@ -5064,18 +4814,28 @@
         },
         _onchildremoved: function(e) {
             var child = e.node;
-            child._layer.removeChild(child);
-            child._layer = null;
+            if (child._layer) {
+                child._layer.removeChild(child);
+                child._layer = null;
+            }
         },
         _onenter: function() {
-            for (var type in this._layers) {
-                this._layers[type]._startRendering();
+            if (this._layerListDirty) {
+                this._updateLayerList();
+            }
+            var list = this._layerList;
+            for (var i = 0, len = list.length; i < len; i++) {
+                list[i]._startRendering();
             }
             enchant.Core.instance.addEventListener('exitframe', this._dispatchExitframe);
         },
         _onexit: function() {
-            for (var type in this._layers) {
-                this._layers[type]._stopRendering();
+            if (this._layerListDirty) {
+                this._updateLayerList();
+            }
+            var list = this._layerList;
+            for (var i = 0, len = list.length; i < len; i++) {
+                list[i]._stopRendering();
             }
             enchant.Core.instance.removeEventListener('exitframe', this._dispatchExitframe);
         }
@@ -5227,151 +4987,111 @@
         /**
          * @name enchant.Surface
          * @class
-         * Class that wraps canvas elements.
-         *
-         * Can be used to set the {@link enchant.Sprite} and {@link enchant.Map}'s image properties to be displayed.
-         * If you wish to access Canvas API use the {@link enchant.Surface#context} property.
-         *
-         * @example
-         * // Creates Sprite that displays a circle.
-         * var ball = new Sprite(50, 50);
-         * var surface = new Surface(50, 50);
-         * surface.context.beginPath();
-         * surface.context.arc(25, 25, 25, 0, Math.PI*2, true);
-         * surface.context.fill();
-         * ball.image = surface;
-         *
-         * @param {Number} width Surface width.
-         * @param {Number} height Surface height.
+         * @param {Number} width
+         * @param {Number} height
          * @constructs
          * @extends enchant.EventTarget
          */
-        initialize: function(width, height) {
+        initialize: function (width, height) {
             enchant.EventTarget.call(this);
-    
+
             var core = enchant.Core.instance;
-    
-            /**
-             * Surface width.
-             * @type Number
-             */
-            this.width = Math.ceil(width);
-            /**
-             * Surface height.
-             * @type Number
-             */
+
+            this.width  = Math.ceil(width);
             this.height = Math.ceil(height);
-            /**
-             * Surface drawing context.
-             * @type CanvasRenderingContext2D
-             */
+
             this.context = null;
-    
+            this._element = null;
+            this._css = null;
+
             var id = 'enchant-surface' + core._surfaceID++;
+
             if (document.getCSSCanvasContext) {
                 this.context = document.getCSSCanvasContext('2d', id, width, height);
                 this._element = this.context.canvas;
                 this._css = '-webkit-canvas(' + id + ')';
-                var context = this.context;
             } else if (document.mozSetImageElement) {
-                this._element = document.createElement('canvas');
-                this._element.width = width;
-                this._element.height = height;
+                var canvas = document.createElement('canvas');
+                canvas.width  = width;
+                canvas.height = height;
+                this._element = canvas;
                 this._css = '-moz-element(#' + id + ')';
-                this.context = this._element.getContext('2d');
-                document.mozSetImageElement(id, this._element);
+                this.context = canvas.getContext('2d');
+                document.mozSetImageElement(id, canvas);
             } else {
-                this._element = document.createElement('canvas');
-                this._element.width = width;
-                this._element.height = height;
-                this._element.style.position = 'absolute';
-                this.context = this._element.getContext('2d');
-    
-                enchant.ENV.CANVAS_DRAWING_METHODS.forEach(function(name) {
-                    var method = this.context[name];
-                    this.context[name] = function() {
-                        method.apply(this, arguments);
-                        this._dirty = true;
+                var canvas2 = document.createElement('canvas');
+                canvas2.width  = width;
+                canvas2.height = height;
+                canvas2.style.position = 'absolute';
+                this._element = canvas2;
+                this.context = canvas2.getContext('2d');
+
+                var ctx = this.context;
+                var self = this;
+                enchant.ENV.CANVAS_DRAWING_METHODS.forEach(function (name) {
+                    var method = ctx[name];
+                    if (!method) { return; }
+                    ctx[name] = function () {
+                        method.apply(ctx, arguments);
+                        self._dirty = true;
                     };
-                }, this);
+                });
             }
+
+            // setPixel 用 1x1 ImageData キャッシュ
+            this._onePixel = null;
         },
-        /**
-         * Returns 1 pixel from the Surface.
-         * @param {Number} x The pixel's x coordinates.
-         * @param {Number} y The pixel's y coordinates.
-         * @return {Number[]} An array that holds pixel information in [r, g, b, a] format.
-         */
-        getPixel: function(x, y) {
+
+        getPixel: function (x, y) {
             return this.context.getImageData(x, y, 1, 1).data;
         },
-        /**
-         * Sets one pixel within the surface.
-         * @param {Number} x The pixel's x coordinates.
-         * @param {Number} y The pixel's y coordinates.
-         * @param {Number} r The pixel's red level.
-         * @param {Number} g The pixel's green level.
-         * @param {Number} b The pixel's blue level.
-         * @param {Number} a The pixel's transparency.
-         */
-        setPixel: function(x, y, r, g, b, a) {
-            var pixel = this.context.createImageData(1, 1);
-            pixel.data[0] = r;
-            pixel.data[1] = g;
-            pixel.data[2] = b;
-            pixel.data[3] = a;
+
+        setPixel: function (x, y, r, g, b, a) {
+            var pixel = this._onePixel;
+            if (!pixel) {
+                pixel = this._onePixel = this.context.createImageData(1, 1);
+            }
+            var data = pixel.data;
+            data[0] = r;
+            data[1] = g;
+            data[2] = b;
+            data[3] = a;
             this.context.putImageData(pixel, x, y);
         },
-        /**
-         * Clears all Surface pixels and makes the pixels transparent.
-         */
-        clear: function() {
+
+        clear: function () {
             this.context.clearRect(0, 0, this.width, this.height);
         },
-        /**
-         * Draws the content of the given Surface onto this surface.
-         *
-         * Wraps Canvas API drawImage and if multiple arguments are given,
-         * these are getting applied to the Canvas drawImage method.
-         *
-         * @example
-         * var src = core.assets['src.gif'];
-         * var dst = new Surface(100, 100);
-         * dst.draw(src);         // Draws source at (0, 0)
-         * dst.draw(src, 50, 50); // Draws source at (50, 50)
-         * // Draws just 30 horizontal and vertical pixels of source at (50, 50)
-         * dst.draw(src, 50, 50, 30, 30);
-         * // Takes the image content in src starting at (10,10) with a (Width, Height) of (40,40),
-         * // scales it and draws it in this surface at (50, 50) with a (Width, Height) of (30,30).
-         * dst.draw(src, 10, 10, 40, 40, 50, 50, 30, 30);
-         *
-         * @param {enchant.Surface} image Surface used in drawing.
-         */
-        draw: function(image) {
-            image = image._element;
-            if (arguments.length === 1) {
-                this.context.drawImage(image, 0, 0);
-            } else {
-                var args = arguments;
-                args[0] = image;
-                this.context.drawImage.apply(this.context, args);
+
+        draw: function (image) {
+            var elem = image._element;
+            switch (arguments.length) {
+                case 1:
+                    this.context.drawImage(elem, 0, 0);
+                    break;
+                case 3:
+                    this.context.drawImage(elem, arguments[1], arguments[2]);
+                    break;
+                case 5:
+                    this.context.drawImage(elem, arguments[1], arguments[2],
+                                        arguments[3], arguments[4]);
+                    break;
+                default:
+                    // 9 引数パターンなど
+                    var args = Array.prototype.slice.call(arguments);
+                    args[0] = elem;
+                    this.context.drawImage.apply(this.context, args);
+                    break;
             }
         },
-        /**
-         * Copies Surface.
-         * @return {enchant.Surface} The copied Surface.
-         */
-        clone: function() {
+
+        clone: function () {
             var clone = new enchant.Surface(this.width, this.height);
             clone.draw(this);
             return clone;
         },
-        /**
-         * Creates a data URI scheme from this Surface.
-         * @return {String} The data URI scheme that identifies this Surface and
-         * can be used to include this Surface into a dom tree.
-         */
-        toDataURL: function() {
+
+        toDataURL: function () {
             var src = this._element.src;
             if (src) {
                 if (src.slice(0, 5) === 'data:') {
@@ -5379,11 +5099,11 @@
                 } else {
                     return this.clone().toDataURL();
                 }
-            } else {
-                return this._element.toDataURL();
             }
+            return this._element.toDataURL();
         }
     });
+
     
     /**
      * Loads an image and creates a Surface object out of it.
@@ -5631,100 +5351,80 @@
      * @scope enchant.DOMSound.prototype
      */
     enchant.DOMSound = enchant.Class.create(enchant.EventTarget, {
-        /**
-         * @name enchant.DOMSound
-         * @class
-         * Class to wrap audio elements.
-         *
-         * Safari, Chrome, Firefox, Opera, and IE all play MP3 files
-         * (Firefox and Opera play via Flash). WAVE files can be played on
-         * Safari, Chrome, Firefox, and Opera. When the browser is not compatible with
-         * the used codec the file will not play.
-         *
-         * Instances are created not via constructor but via {@link enchant.DOMSound.load}.
-         * @constructs
-         * @extends enchant.EventTarget
-         */
-        initialize: function() {
+
+        initialize: function () {
             enchant.EventTarget.call(this);
-            /**
-             * Sound file duration (seconds).
-             * @type Number
-             */
             this.duration = 0;
             throw new Error("Illegal Constructor");
         },
-        /**
-         * Begin playing.
-         */
-        play: function() {
-            if (this._element) {
-                this._element.play();
+
+        play: function () {
+            var el = this._element;
+            if (el) {
+                el.play();
             }
         },
-        /**
-         * Pause playback.
-         */
-        pause: function() {
-            if (this._element) {
-                this._element.pause();
+
+        pause: function () {
+            var el = this._element;
+            if (el) {
+                el.pause();
             }
         },
-        /**
-         * Stop playing.
-         */
-        stop: function() {
-            this.pause();
-            this.currentTime = 0;
+
+        stop: function () {
+            var el = this._element;
+            if (el) {
+                el.pause();
+                el.currentTime = 0;
+            }
         },
-        /**
-         * Create a copy of this Sound object.
-         * @return {enchant.DOMSound} Copied Sound.
-         */
-        clone: function() {
+
+        clone: function () {
+            var el = this._element;
             var clone;
-            if (this._element instanceof Audio) {
-                clone = Object.create(enchant.DOMSound.prototype, {
-                    _element: { value: this._element.cloneNode(false) },
-                    duration: { value: this.duration }
-                });
+
+            if (el instanceof Audio) {
+                clone = Object.create(enchant.DOMSound.prototype);
+                clone._element = el.cloneNode(false);
+                clone.duration = this.duration;
             } else if (enchant.ENV.USE_FLASH_SOUND) {
                 return this;
             } else {
                 clone = Object.create(enchant.DOMSound.prototype);
             }
+
             enchant.EventTarget.call(clone);
             return clone;
         },
-        /**
-         * Current playback position (seconds).
-         * @type Number
-         */
+
         currentTime: {
-            get: function() {
-                return this._element ? this._element.currentTime : 0;
+            get: function () {
+                var el = this._element;
+                return el ? el.currentTime : 0;
             },
-            set: function(time) {
-                if (this._element) {
-                    this._element.currentTime = time;
+            set: function (time) {
+                var el = this._element;
+                if (el) {
+                    el.currentTime = time;
                 }
             }
         },
-        /**
-         * Volume. 0 (muted) ～ 1 (full volume).
-         * @type Number
-         */
+
         volume: {
-            get: function() {
-                return this._element ? this._element.volume : 1;
+            get: function () {
+                var el = this._element;
+                return el ? el.volume : 1;
             },
-            set: function(volume) {
-                if (this._element) {
-                    this._element.volume = volume;
+            set: function (v) {
+                var el = this._element;
+                if (el) {
+                    el.volume = v;
                 }
             }
         }
     });
+
     
     /**
      * Loads an audio file and creates DOMSound object.
@@ -5823,136 +5523,136 @@
      * @scope enchant.WebAudioSound.prototype
      */
     enchant.WebAudioSound = enchant.Class.create(enchant.EventTarget, {
-        /**
-         * @name enchant.WebAudioSound
-         * @class
-         * Sound wrapper class for Web Audio API (supported on some webkit-based browsers)
-         * @constructs
-         * @extends enchant.EventTarget
-         */
-        initialize: function() {
+
+        initialize: function () {
             if (!window.AudioContext) {
                 throw new Error("This browser does not support WebAudio API.");
             }
+
             enchant.EventTarget.call(this);
+
             if (!enchant.WebAudioSound.audioContext) {
-              enchant.WebAudioSound.audioContext = new window.AudioContext();
-              enchant.WebAudioSound.destination = enchant.WebAudioSound.audioContext.destination;
+                var ctx = new window.AudioContext();
+                enchant.WebAudioSound.audioContext = ctx;
+                enchant.WebAudioSound.destination = ctx.destination;
             }
-            this.context = enchant.WebAudioSound.audioContext;
-            this.src = this.context.createBufferSource();
+
+            var ctx = enchant.WebAudioSound.audioContext;
+
+            this.context = ctx;
+            this.src = ctx.createBufferSource();
             this.buffer = null;
+
+            this._gain = null;
             this._volume = 1;
+
             this._currentTime = 0;
+            this._startTime = 0;
             this._state = 0;
+
             this.connectTarget = enchant.WebAudioSound.destination;
         },
-        /**
-         * Begin playing.
-         * @param {Boolean} [dup=false] If true, Object plays new sound while keeps last sound.
-         */
-        play: function(dup) {
-            if (this._state === 1 && !dup) {
+
+        play: function (dup) {
+            var state = this._state;
+            var ctx = this.context;
+
+            if (state === 1 && !dup) {
                 this.src.disconnect();
             }
-            if (this._state !== 2) {
+
+            if (state !== 2) {
                 this._currentTime = 0;
             }
+
             var offset = this._currentTime;
-            var actx = this.context;
-            this.src = actx.createBufferSource();
-            if (actx.createGain != null) {
-                this._gain = actx.createGain();
+
+            var src = ctx.createBufferSource();
+            var gain = ctx.createGain();
+
+            src.buffer = this.buffer;
+            gain.gain.value = this._volume;
+
+            src.connect(gain);
+            gain.connect(this.connectTarget);
+
+            var dur = this.buffer.duration - offset - 1.192e-7;
+            if (src.start) {
+                src.start(0, offset, dur);
             } else {
-                this._gain = actx.createGainNode();
+                src.noteGrainOn(0, offset, dur);
             }
-            this.src.buffer = this.buffer;
-            this._gain.gain.value = this._volume;
-    
-            this.src.connect(this._gain);
-            this._gain.connect(this.connectTarget);
-            if (this.src.start != null) {
-                this.src.start(0, offset, this.buffer.duration - offset - 1.192e-7);
-            } else {
-                this.src.noteGrainOn(0, offset, this.buffer.duration - offset - 1.192e-7);
-            }
-            this._startTime = actx.currentTime - this._currentTime;
+
+            this.src = src;
+            this._gain = gain;
+
+            this._startTime = ctx.currentTime - this._currentTime;
             this._state = 1;
         },
-        /**
-         * Pause playback.
-         */
-        pause: function() {
-            var currentTime = this.currentTime;
-            if (currentTime === this.duration) {
+
+        pause: function () {
+            var current = this.currentTime;
+            if (current === this.duration) {
                 return;
             }
-            if (this.src.stop != null) {
-                this.src.stop(0);
+
+            var src = this.src;
+            if (src.stop) {
+                src.stop(0);
             } else {
-                this.src.noteOff(0);
+                src.noteOff(0);
             }
-            this._currentTime = currentTime;
+
+            this._currentTime = current;
             this._state = 2;
         },
-        /**
-         * Stop playing.
-         */
-        stop: function() {
-            if (this.src.stop != null) {
-                this.src.stop(0);
+
+        stop: function () {
+            var src = this.src;
+            if (src.stop) {
+                src.stop(0);
             } else {
-                this.src.noteOff(0);
+                src.noteOff(0);
             }
             this._state = 0;
         },
-        /**
-         * Create a copy of this Sound object.
-         * @return {enchant.WebAudioSound} Copied Sound.
-         */
-        clone: function() {
+
+        clone: function () {
             var sound = new enchant.WebAudioSound();
             sound.buffer = this.buffer;
+            sound._volume = this._volume;
             return sound;
         },
-        /**
-         * Sound file duration (seconds).
-         * @type Number
-         */
+
         duration: {
-            get: function() {
-                if (this.buffer) {
-                    return this.buffer.duration;
-                } else {
-                    return 0;
-                }
+            get: function () {
+                var b = this.buffer;
+                return b ? b.duration : 0;
             }
         },
-        /**
-         * Volume. 0 (muted) ～ 1 (full volume).
-         * @type Number
-         */
+
         volume: {
-            get: function() {
+            get: function () {
                 return this._volume;
             },
-            set: function(volume) {
-                volume = Math.max(0, Math.min(1, volume));
-                this._volume = volume;
-                if (this.src) {
-                    this._gain.gain.value = volume;
+            set: function (v) {
+                v = Math.max(0, Math.min(1, v));
+                this._volume = v;
+
+                var gain = this._gain;
+                if (gain) {
+                    gain.gain.value = v;
                 }
             }
         },
-        /**
-         * Current playback position (seconds).
-         * @type Number
-         */
+
         currentTime: {
-            get: function() {
-                return Math.max(0, Math.min(this.duration, this.src.context.currentTime - this._startTime));
+            get: function () {
+                var dur = this.duration;
+                var t = this.src.context.currentTime - this._startTime;
+                return Math.max(0, Math.min(dur, t));
             },
-            set: function(time) {
+            set: function (time) {
                 this._currentTime = time;
                 if (this._state !== 2) {
                     this.play(false);
@@ -5960,6 +5660,7 @@
             }
         }
     });
+
     
     /**
      * Loads an audio file and creates WebAudioSound object.
@@ -6334,173 +6035,160 @@
             this.isFrameBased = true;
             this._parallel = null;
             this._activated = false;
+
             this.addEventListener(enchant.Event.ENTER_FRAME, this._onenterframe);
-    
+
             var tl = this;
             this._nodeEventListener = function(e) {
                 tl.dispatchEvent(e);
             };
         },
-        /**
-         * @private
-         */
+
         _deactivateTimeline: function() {
             if (this._activated) {
                 this._activated = false;
                 this.node.removeEventListener('enterframe', this._nodeEventListener);
             }
         },
-        /**
-         * @private
-         */
+
         _activateTimeline: function() {
             if (!this._activated && !this.paused) {
-                this.node.addEventListener("enterframe", this._nodeEventListener);
+                this.node.addEventListener('enterframe', this._nodeEventListener);
                 this._activated = true;
             }
         },
-        /**
-         * @private
-         */
+
         _onenterframe: function(evt) {
-            if (this.paused) {
+            if (this.paused || this.queue.length === 0) {
                 return;
             }
-    
             this.tick(this.isFrameBased ? 1 : evt.elapsed);
         },
-        /**
-         */
+
         setFrameBased: function() {
             this.isFrameBased = true;
         },
-        /**
-         */
+
         setTimeBased: function() {
             this.isFrameBased = false;
         },
-        /**
-         */
+
         next: function(remainingTime) {
-            var e, action = this.queue.shift();
-    
+            var action = this.queue.shift();
+            var e;
+
             if (action) {
-                e = new enchant.Event("actionend");
+                e = new enchant.Event('actionend');
                 e.timeline = this;
                 action.dispatchEvent(e);
-    
-                e = new enchant.Event("removedfromtimeline");
+
+                e = new enchant.Event('removedfromtimeline');
                 e.timeline = this;
                 action.dispatchEvent(e);
-    
+
                 if (this.looped) {
                     this.add(action);
                 }
             }
-    
-            if (this.queue.length === 0) {
+
+            var nextAction = this.queue[0];
+            if (!nextAction) {
                 this._deactivateTimeline();
                 return;
             }
-    
-            if (remainingTime > 0 || (this.queue[0] && this.queue[0].time === 0)) {
-                var event = new enchant.Event("actiontick");
+
+            if (remainingTime > 0 || nextAction.time === 0) {
+                var event = new enchant.Event('actiontick');
                 event.elapsed = remainingTime;
                 event.timeline = this;
-                this.queue[0].dispatchEvent(event);
+                nextAction.dispatchEvent(event);
             }
         },
-        /**
-         * @param {Number} elapsed
-         */
+
         tick: function(elapsed) {
-            if (this.queue.length > 0) {
-                var action = this.queue[0];
-                if (action.frame === 0) {
-                    var f;
-                    f = new enchant.Event("actionstart");
-                    f.timeline = this;
-                    action.dispatchEvent(f);
-                }
-    
-                var e = new enchant.Event("actiontick");
-                e.timeline = this;
-                e.elapsed = elapsed;
-                action.dispatchEvent(e);
+            var action = this.queue[0];
+            if (!action) {
+                return;
             }
+
+            if (action.frame === 0) {
+                var startEvent = new enchant.Event('actionstart');
+                startEvent.timeline = this;
+                action.dispatchEvent(startEvent);
+            }
+
+            var e = new enchant.Event('actiontick');
+            e.timeline = this;
+            e.elapsed = elapsed;
+            action.dispatchEvent(e);
         },
-        /**
-         * @param {enchant.Action} action
-         * @return {enchant.Timeline}
-         */
+
         add: function(action) {
             this._activateTimeline();
+
             if (this._parallel) {
                 this._parallel.actions.push(action);
                 this._parallel = null;
             } else {
                 this.queue.push(action);
             }
+
             action.frame = 0;
-    
-            var e = new enchant.Event("addedtotimeline");
+
+            var e = new enchant.Event('addedtotimeline');
             e.timeline = this;
             action.dispatchEvent(e);
-    
-            e = new enchant.Event("actionadded");
+
+            e = new enchant.Event('actionadded');
             e.action = action;
             this.dispatchEvent(e);
-    
+
             return this;
         },
-        /**
-         * @param {Object} params
-         * @return {enchant.Timeline}
-         */
+
         action: function(params) {
             return this.add(new enchant.Action(params));
         },
-        /**
-         * @param {Object} params
-         * @return {enchant.Timeline}
-         */
+
         tween: function(params) {
             return this.add(new enchant.Tween(params));
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         clear: function() {
-            var e = new enchant.Event("removedfromtimeline");
+            var e = new enchant.Event('removedfromtimeline');
             e.timeline = this;
-    
-            for (var i = 0, len = this.queue.length; i < len; i++) {
-                this.queue[i].dispatchEvent(e);
+
+            var q = this.queue;
+            for (var i = 0, len = q.length; i < len; i++) {
+                q[i].dispatchEvent(e);
             }
             this.queue = [];
             this._deactivateTimeline();
             return this;
         },
+
         /**
          * @param {Number} frames
          * @return {enchant.Timeline}
          */
         skip: function(frames) {
+            // Event を毎ループ new しない（1つだけ使い回す）
             var event = new enchant.Event("enterframe");
+
             if (this.isFrameBased) {
                 event.elapsed = 1;
             } else {
                 event.elapsed = frames;
                 frames = 1;
             }
-            while (frames--) {
+
+            // while より for の方が JIT 最適化されやすい
+            for (var i = 0; i < frames; i++) {
                 this.dispatchEvent(event);
             }
             return this;
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         pause: function() {
             if (!this.paused) {
                 this.paused = true;
@@ -6508,9 +6196,7 @@
             }
             return this;
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         resume: function() {
             if (this.paused) {
                 this.paused = false;
@@ -6518,77 +6204,52 @@
             }
             return this;
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         loop: function() {
             this.looped = true;
             return this;
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         unloop: function() {
             this.looped = false;
             return this;
         },
-        /**
-         * @param {Number} time
-         * @return {enchant.Timeline}
-         */
+
         delay: function(time) {
-            return this.action({
-                time: time
-            });
+            return this.action({ time: time });
         },
-        /**
-         * @ignore
-         * @param {Number} time
-         */
+
         wait: function(time) {
             // reserved
             return this;
         },
-        /**
-         * @param {Function} func
-         * @return {enchant.Timeline}
-         */
+
         then: function(func) {
             return this.action({
                 onactiontick: function(evt) {
                     func.call(this);
                 },
-                // if time is 0, next action will be immediately executed
                 time: 0
             });
         },
-        /**
-         * @param {Function} func
-         * @return {enchant.Timeline}
-         */
+
         exec: function(func) {
             return this.then(func);
         },
-        /**
-         * @param {Object} cue
-         * @return {enchant.Timeline}
-         */
+
         cue: function(cue) {
             var ptr = 0;
-            for (var frame in cue) {
-                if (cue.hasOwnProperty(frame)) {
-                    this.delay(frame - ptr);
-                    this.then(cue[frame]);
-                    ptr = frame;
-                }
+            // for-in は遅いので keys() を使う
+            var keys = Object.keys(cue);
+            for (var i = 0, len = keys.length; i < len; i++) {
+                var frame = keys[i] | 0; // 数値化
+                this.delay(frame - ptr);
+                this.then(cue[frame]);
+                ptr = frame;
             }
             return this;
         },
-        /**
-         * @param {Function} func
-         * @param {Number} time
-         * @return {enchant.Timeline}
-         */
+
         repeat: function(func, time) {
             return this.action({
                 onactiontick: function(evt) {
@@ -6597,11 +6258,10 @@
                 time: time
             });
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         and: function() {
             var last = this.queue.pop();
+
             if (last instanceof enchant.ParallelAction) {
                 this._parallel = last;
                 this.queue.push(last);
@@ -6613,28 +6273,19 @@
             }
             return this;
         },
-        /**
-         * @ignore
-         */
+
         or: function() {
             return this;
         },
-        /**
-         * @ignore
-         */
+
         doAll: function(children) {
             return this;
         },
-        /**
-         * @ignore
-         */
+
         waitAll: function() {
             return this;
         },
-        /**
-         * @param {Function} func
-         * @return {enchant.Timeline}
-         */
+
         waitUntil: function(func) {
             return this.action({
                 onactiontick: function(evt) {
@@ -6644,12 +6295,7 @@
                 }
             });
         },
-        /**
-         * @param {Number} opacity
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         fadeTo: function(opacity, time, easing) {
             return this.tween({
                 opacity: opacity,
@@ -6657,398 +6303,333 @@
                 easing: easing
             });
         },
-        /**
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         fadeIn: function(time, easing) {
             return this.fadeTo(1, time, easing);
         },
-        /**
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         fadeOut: function(time, easing) {
             return this.fadeTo(0, time, easing);
         },
-        /**
-         * @param {Number} x
-         * @param {Number} y
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         moveTo: function(x, y, time, easing) {
-            return this.tween({
-                x: x,
-                y: y,
-                time: time,
-                easing: easing
-            });
+            return this.tween({ x, y, time, easing });
         },
-        /**
-         * @param {Number} x
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         moveX: function(x, time, easing) {
-            return this.tween({
-                x: x,
-                time: time,
-                easing: easing
-            });
+            return this.tween({ x, time, easing });
         },
-        /**
-         * @param {Number} y
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         moveY: function(y, time, easing) {
-            return this.tween({
-                y: y,
-                time: time,
-                easing: easing
-            });
+            return this.tween({ y, time, easing });
         },
-        /**
-         * @param {Number} x
-         * @param {Number} y
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         moveBy: function(x, y, time, easing) {
+            // クロージャ生成は必要最小限に
             return this.tween({
-                x: function() {
-                    return this.x + x;
-                },
-                y: function() {
-                    return this.y + y;
-                },
-                time: time,
-                easing: easing
+                x: function() { return this.x + x; },
+                y: function() { return this.y + y; },
+                time,
+                easing
             });
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         hide: function() {
-            return this.then(function() {
-                this.opacity = 0;
-            });
+            return this.then(function() { this.opacity = 0; });
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         show: function() {
-            return this.then(function() {
-                this.opacity = 1;
-            });
+            return this.then(function() { this.opacity = 1; });
         },
-        /**
-         * @return {enchant.Timeline}
-         */
+
         removeFromScene: function() {
             return this.then(function() {
-                this.parentNode.removeChild(this);
+                if (this.parentNode) {
+                    this.parentNode.removeChild(this);
+                }
             });
         },
-        /**
-         * @param {Number} scaleX
-         * @param {Number} [scaleY]
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         scaleTo: function(scale, time, easing) {
+            // 元コードの「引数の型で分岐」を高速化
             var scaleX, scaleY;
-    
+
             if (typeof easing === "number") {
-                scaleX = arguments[0];
-                scaleY = arguments[1];
-                time = arguments[2];
-                easing = arguments[3];
+                // scaleTo(x, y, time, easing)
+                scaleX = scale;
+                scaleY = time;
+                time   = easing;
+                easing = arguments[4];
             } else {
+                // scaleTo(scale, time, easing)
                 scaleX = scaleY = scale;
             }
-    
-            return this.tween({
-                scaleX: scaleX,
-                scaleY: scaleY,
-                time: time,
-                easing: easing
-            });
+
+            return this.tween({ scaleX, scaleY, time, easing });
         },
-        /**
-         * @param {Number} scaleX
-         * @param {Number} [scaleY]
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         scaleBy: function(scale, time, easing) {
             var scaleX, scaleY;
-    
+
             if (typeof easing === "number") {
-                scaleX = arguments[0];
-                scaleY = arguments[1];
-                time = arguments[2];
-                easing = arguments[3];
+                scaleX = scale;
+                scaleY = time;
+                time   = easing;
+                easing = arguments[4];
             } else {
                 scaleX = scaleY = scale;
             }
-    
+
             return this.tween({
-                scaleX: function() {
-                    return this.scaleX * scaleX;
-                },
-                scaleY: function() {
-                    return this.scaleY * scaleY;
-                },
-                time: time,
-                easing: easing
+                scaleX: function() { return this.scaleX * scaleX; },
+                scaleY: function() { return this.scaleY * scaleY; },
+                time,
+                easing
             });
         },
-        /**
-         * @param {Number} deg
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         rotateTo: function(deg, time, easing) {
-            return this.tween({
-                rotation: deg,
-                time: time,
-                easing: easing
-            });
+            return this.tween({ rotation: deg, time, easing });
         },
-        /**
-         * @param {Number} deg
-         * @param {Number} time
-         * @param {Function} [easing=enchant.Easing.LINEAR]
-         * @return {enchant.Timeline}
-         */
+
         rotateBy: function(deg, time, easing) {
             return this.tween({
-                rotation: function() {
-                    return this.rotation + deg;
-                },
-                time: time,
-                easing: easing
+                rotation: function() { return this.rotation + deg; },
+                time,
+                easing
             });
         }
+
     });
     
     /**
      * @scope enchant.Action.prototype
      */
     enchant.Action = enchant.Class.create(enchant.ActionEventTarget, {
-        /**
-         * @name enchant.Action
-         * @class
-         * Actions are units that make up the timeline.
-         * It is a unit used to specify the action you want to perform.
-         * 
-         * Actions that have been added to the timeline are performed in sequential order.
-         * The transition from one action to the next occurs automatically 
-         * after the number of frames specified by the time parameter have elapsed.
-         *
-         * An actionstart event is fired when the action has started.
-         * An actionend event is fired when the action has stopped.
-         * For each frame that elapses, an actiontick event is fired.
-         * 
-         * You can specify a listener for these events to perform specific events when they occur.
-         *
-         * @param {Object} param
-         * @param {Number} [param.time] The number of frames that the action will persist. For an infinite number set this to null.
-         * @param {Function} [param.onactionstart] Event listener for when the action is initiated.
-         * @param {Function} [param.onactiontick] Event listener for when the action has passed one frame.
-         * @param {Function} [param.onactionend] Event listener for when the action is finished.
-         * @constructs
-         * @extends enchant.ActionEventTarget
-         */
         initialize: function(param) {
             enchant.ActionEventTarget.call(this);
+
             this.time = null;
             this.frame = 0;
-            for (var key in param) {
-                if (param.hasOwnProperty(key)) {
-                    if (param[key] != null) {
-                        this[key] = param[key];
+
+            // param のコピーを高速化
+            if (param) {
+                var keys = Object.keys(param);
+                for (var i = 0, len = keys.length; i < len; i++) {
+                    var k = keys[i];
+                    var v = param[k];
+                    if (v != null) {
+                        this[k] = v;
                     }
                 }
             }
-            var action = this;
-    
+
             this.timeline = null;
             this.node = null;
-    
-            this.addEventListener(enchant.Event.ADDED_TO_TIMELINE, function(evt) {
-                action.timeline = evt.timeline;
-                action.node = evt.timeline.node;
-                action.frame = 0;
-            });
-    
-            this.addEventListener(enchant.Event.REMOVED_FROM_TIMELINE, function() {
-                action.timeline = null;
-                action.node = null;
-                action.frame = 0;
-            });
-    
-            this.addEventListener(enchant.Event.ACTION_TICK, function(evt) {
-                var remaining = action.time - (action.frame + evt.elapsed);
-                if (action.time != null && remaining <= 0) {
-                    action.frame = action.time;
-                    evt.timeline.next(-remaining);
+
+            // ★ リスナーはインスタンスごとに1回だけ生成
+            var self = this;
+
+            this._onAdded = function(evt) {
+                self.timeline = evt.timeline;
+                self.node = evt.timeline.node;
+                self.frame = 0;
+            };
+
+            this._onRemoved = function() {
+                self.timeline = null;
+                self.node = null;
+                self.frame = 0;
+            };
+
+            this._onTick = function(evt) {
+                var t = self.time;
+                var f = self.frame + evt.elapsed;
+
+                if (t != null && f >= t) {
+                    // 終了
+                    self.frame = t;
+                    evt.timeline.next(f - t); // 残り時間を渡す
                 } else {
-                    action.frame += evt.elapsed;
+                    self.frame = f;
                 }
-            });
-    
+            };
+
+            this.addEventListener(enchant.Event.ADDED_TO_TIMELINE, this._onAdded);
+            this.addEventListener(enchant.Event.REMOVED_FROM_TIMELINE, this._onRemoved);
+            this.addEventListener(enchant.Event.ACTION_TICK, this._onTick);
         }
     });
+
     
     /**
      * @scope enchant.ParallelAction.prototype
      */
     enchant.ParallelAction = enchant.Class.create(enchant.Action, {
-        /**
-         * @name enchant.ParallelAction
-         * @class
-         * Actions to be executed in parallel.
-         * It's possible to have more than one child action.
-         * @constructs
-         * @extends enchant.Action
-         */
         initialize: function(param) {
             enchant.Action.call(this, param);
-            /**
-             * Children Actions.
-             * @type enchant.Action[]
-             */
+
             this.actions = [];
-            /**
-             * Removed actions.
-             * @type enchant.Action[]
-             */
             this.endedActions = [];
-            var that = this;
-    
+
+            var self = this;
+
+            // ACTION_START
             this.addEventListener(enchant.Event.ACTION_START, function(evt) {
-                for (var i = 0, len = that.actions.length; i < len; i++) {
-                    that.actions[i].dispatchEvent(evt);
+                var acts = self.actions;
+                for (var i = 0, len = acts.length; i < len; i++) {
+                    acts[i].dispatchEvent(evt);
                 }
             });
-    
+
+            // ACTION_TICK
             this.addEventListener(enchant.Event.ACTION_TICK, function(evt) {
-                var i, len, timeline = {
-                    next: function(remaining) {
-                        var action = that.actions[i];
-                        that.actions.splice(i--, 1);
-                        len = that.actions.length;
-                        that.endedActions.push(action);
-    
-                        var e = new enchant.Event("actionend");
-                        e.timeline = this;
-                        action.dispatchEvent(e);
-    
-                        e = new enchant.Event("removedfromtimeline");
-                        e.timeline = this;
-                        action.dispatchEvent(e);
-                    }
-                };
-    
-                var e = new enchant.Event("actiontick");
-                e.timeline = timeline;
-                e.elapsed = evt.elapsed;
-                for (i = 0, len = that.actions.length; i < len; i++) {
-                    that.actions[i].dispatchEvent(e);
+                var acts = self.actions;
+                var i = 0;
+                var len = acts.length;
+
+                while (i < len) {
+
+                    // ★ timeline は毎回 new（安全）
+                    var timeline = {
+                        next: function(remaining) {
+                            var action = acts[this._i];
+                            acts.splice(this._i--, 1);
+                            len = acts.length;
+                            self.endedActions.push(action);
+
+                            var e1 = new enchant.Event("actionend");
+                            e1.timeline = this;
+                            action.dispatchEvent(e1);
+
+                            var e2 = new enchant.Event("removedfromtimeline");
+                            e2.timeline = this;
+                            action.dispatchEvent(e2);
+                        },
+                        _i: i
+                    };
+
+                    // ★ tick イベントも毎回 new（安全）
+                    var tick = new enchant.Event("actiontick");
+                    tick.timeline = timeline;
+                    tick.elapsed = evt.elapsed;
+
+                    acts[i].dispatchEvent(tick);
+
+                    i++;
                 }
-    
-                if (that.actions.length === 0) {
+
+                if (acts.length === 0) {
                     evt.timeline.next();
                 }
             });
-    
+
+            // ADDED_TO_TIMELINE
             this.addEventListener(enchant.Event.ADDED_TO_TIMELINE, function(evt) {
-                for (var i = 0, len = that.actions.length; i < len; i++) {
-                    that.actions[i].dispatchEvent(evt);
+                var acts = self.actions;
+                for (var i = 0, len = acts.length; i < len; i++) {
+                    acts[i].dispatchEvent(evt);
                 }
             });
-    
+
+            // REMOVED_FROM_TIMELINE
             this.addEventListener(enchant.Event.REMOVED_FROM_TIMELINE, function() {
-                that.actions = that.endedActions;
-                that.endedActions = [];
+                self.actions = self.endedActions;
+                self.endedActions = [];
             });
-    
         }
     });
+
+
     
     /**
      * @scope enchant.Tween.prototype
      */
     enchant.Tween = enchant.Class.create(enchant.Action, {
-        /**
-         * @name enchant.Tween
-         * @class
-         * @param {Object} params
-         * @param {Number} params.time
-         * @param {Function} [params.easing=enchant.Easing.LINEAR]
-         * @constructs
-         * @extends enchant.Action
-         */
         initialize: function(params) {
             var origin = {};
             var target = {};
+
             enchant.Action.call(this, params);
-    
+
             if (this.easing == null) {
                 this.easing = enchant.Easing.LINEAR;
             }
-    
+
             var tween = this;
-            this.addEventListener(enchant.Event.ACTION_START, function() {
-                // excepted property
-                var excepted = ["frame", "time", "callback", "onactiontick", "onactionstart", "onactionend"];
-                for (var prop in params) {
-                    if (params.hasOwnProperty(prop)) {
-                        // if function is used instead of numerical value, evaluate it
-                        var target_val;
-                        if (typeof params[prop] === "function") {
-                            target_val = params[prop].call(tween.node);
-                        } else {
-                            target_val = params[prop];
-                        }
-    
-                        if (excepted.indexOf(prop) === -1) {
-                            origin[prop] = tween.node[prop];
-                            target[prop] = target_val;
-                        }
+
+            // 除外プロパティは配列＋indexOf ではなくマップで判定
+            var excluded = {
+                frame: true,
+                time: true,
+                callback: true,
+                onactiontick: true,
+                onactionstart: true,
+                onactionend: true
+            };
+
+            // 対象プロパティ名だけを事前に抽出しておく（毎フレーム for-in しない）
+            var propNames = [];
+            if (params) {
+                var keys = Object.keys(params);
+                for (var i = 0, len = keys.length; i < len; i++) {
+                    var prop = keys[i];
+                    if (!excluded[prop]) {
+                        propNames.push(prop);
                     }
                 }
+            }
+
+            this.addEventListener(enchant.Event.ACTION_START, function() {
+                // origin / target を開始時に確定
+                for (var i = 0, len = propNames.length; i < len; i++) {
+                    var prop = propNames[i];
+
+                    var v = params[prop];
+                    var targetVal = (typeof v === "function") ? v.call(tween.node) : v;
+
+                    origin[prop] = tween.node[prop];
+                    target[prop] = targetVal;
+                }
             });
-    
+
             this.addEventListener(enchant.Event.ACTION_TICK, function(evt) {
-                // if time is 0, set property to target value immediately
-                var ratio = tween.time === 0 ? 1 : tween.easing(Math.min(tween.time,tween.frame + evt.elapsed), 0, 1, tween.time) - tween.easing(tween.frame, 0, 1, tween.time);
-    
-                for (var prop in target){
-                    if (target.hasOwnProperty(prop)) {
-                        if (typeof this[prop] === "undefined"){
-                            continue;
-                        }
-                        tween.node[prop] += (target[prop] - origin[prop]) * ratio;
-                        if (Math.abs(tween.node[prop]) < 10e-8){
-                            tween.node[prop] = 0;
-                        }
+                var t = tween.time;
+                var f = tween.frame;
+                var elapsed = evt.elapsed;
+                var easing = tween.easing;
+
+                // time が 0 のときは即座に目標値へ
+                var ratio;
+                if (t === 0) {
+                    ratio = 1;
+                } else {
+                    var nf = Math.min(t, f + elapsed);
+                    var e1 = easing(nf, 0, 1, t);
+                    var e0 = easing(f, 0, 1, t);
+                    ratio = e1 - e0;
+                }
+
+                for (var i = 0, len = propNames.length; i < len; i++) {
+                    var prop = propNames[i];
+
+                    // this は node を指す前提（元コードと同じ）
+                    if (typeof this[prop] === "undefined") {
+                        continue;
+                    }
+
+                    var o = origin[prop];
+                    var tg = target[prop];
+
+                    tween.node[prop] += (tg - o) * ratio;
+
+                    if (Math.abs(tween.node[prop]) < 10e-8) {
+                        tween.node[prop] = 0;
                     }
                 }
             });
         }
     });
+
     
     }(window));
