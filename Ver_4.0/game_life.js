@@ -4237,7 +4237,7 @@ window.onload = function() {
 
 	const key = (r, c) => `${r},${c}`;
 
-	// Bresenham の視線判定
+	// 視線が通るかどうかを判定（Bresenhamの直線アルゴリズム）
 	const isVisible = (from, to, grid) => {
 		let [y0, x0] = from;
 		const [y1, x1] = to;
@@ -4258,7 +4258,7 @@ window.onload = function() {
 			if (x > grid[y].length - 1) x = grid[y].length - 1;
 
 			if (grid[y][x] === 'Obstacle') {
-				return false;
+				return false; // 障害物に当たったら即失敗
 			}
 
 			const e2 = 2 * err;
@@ -4271,7 +4271,7 @@ window.onload = function() {
 				y = Math.min(Math.max(y + sy, 0), grid.length - 1);
 			}
 		}
-		return true;
+		return true; // ゴールに到達できた
 	};
 
 	const locationStatus = (location, grid) => {
@@ -4323,7 +4323,7 @@ window.onload = function() {
 		return path.length > 0 ? path : false;
 	};
 
-	// BFS（最短経路探索）
+	// 幅優先探索（BFS）で経路を探す
 	const findShortestPath = (startCoordinates, grid, scene, goalCoordinates = null) => {
 		const [startTop, startLeft] = startCoordinates;
 		const [goalTop, goalLeft] = goalCoordinates || [];
@@ -4367,85 +4367,12 @@ window.onload = function() {
 		return false;
 	};
 
-	const findShortestPathLimited = (start, goal, grid, maxDepth = 30) => {
-		const queue = [{
-			y: start[0],
-			x: start[1],
-			parent: null,
-			move: null,
-			depth: 0
-		}];
-
-		const visited = new Set([key(start[0], start[1])]);
-		const directions = ['North', 'East', 'South', 'West'];
-
-		while (queue.length > 0) {
-			const cur = queue.shift();
-
-			// 深さ制限
-			if (cur.depth > maxDepth) continue;
-
-			// ゴール判定
-			if (cur.y === goal[0] && cur.x === goal[1]) {
-				return reconstructPath(cur);
-			}
-
-			for (const dir of directions) {
-				const [dy, dx] = deltas[dir];
-				const ny = cur.y + dy;
-				const nx = cur.x + dx;
-				const k = key(ny, nx);
-
-				if (!grid[ny] || !grid[ny][nx]) continue;
-				if (grid[ny][nx] === 'Obstacle') continue;
-				if (visited.has(k)) continue;
-
-				visited.add(k);
-				queue.push({
-					y: ny,
-					x: nx,
-					parent: cur,
-					move: dir,
-					depth: cur.depth + 1
-				});
-			}
-		}
-
-		return null; // 到達不能
-	};
-
-
-	// ★ 改善版：スタートから BFS を1回だけ実行して reachable を作る
-	const computeReachable = (start, grid) => {
-		const reachable = new Set();
-		const queue = [start];
-		reachable.add(key(start[0], start[1]));
-
-		while (queue.length > 0) {
-			const [y, x] = queue.shift();
-
-			for (const [dy, dx] of Object.values(deltas)) {
-				const ny = y + dy;
-				const nx = x + dx;
-				const k = key(ny, nx);
-
-				if (!reachable.has(k) &&
-					grid[ny] &&
-					grid[ny][nx] === 'Empty') {
-					reachable.add(k);
-					queue.push([ny, nx]);
-				}
-			}
-		}
-
-		return reachable;
-	};
-
-	// ★ 改善版：視界が通り、かつ到達可能なタイルを高速に探索
+	// ゴールが見え、かつ到達可能なマスを探す
 	const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
 		const [goalY, goalX] = goal;
+		const candidates = [];
 
-		// 通行可能マスを Empty に変換（初期化時に1回だけ行うのが理想）
+		// 通行可能なマスを 'Empty' に変換
 		for (let i = 0; i < grid.length; i++) {
 			for (let j = 0; j < grid[i].length; j++) {
 				if (map.collisionData[i][j] === 2 || map.collisionData[i][j] === 3) {
@@ -4454,22 +4381,14 @@ window.onload = function() {
 			}
 		}
 
-		// ① スタートから BFS を1回だけ実行
-		const reachable = computeReachable(start, grid);
-
-		// ② 距離 ≤ 8 のマスだけチェック
-		const candidates = [];
-
-		for (const pos of reachable) {
-			const [y, x] = pos.split(',').map(Number);
-
-			if (Math.abs(x - goalX) + Math.abs(y - goalY) > 8) continue;
-
-			// ③ 視界チェック
-			if (isVisible([y, x], [goalY, goalX], grid)) {
-				// ④ 最短経路を復元
-				const path = findShortestPath(start, grid, scene, [y, x]);
-				if (path) candidates.push({ x, y, path });
+		for (let y = 0; y < grid.length; y++) {
+			for (let x = 0; x < grid[y].length; x++) {
+				if (grid[y][x] === 'Empty' && isVisible([y, x], [goalY, goalX], grid) && Math.abs(x - goalX) + Math.abs(y - goalY) <= 8) {
+					const path = findShortestPath(start, grid, scene, [y, x]);
+					if (path) {
+						candidates.push({ x, y, path });
+					}
+				}
 			}
 		}
 
@@ -4482,9 +4401,9 @@ window.onload = function() {
 		if (!path) {
 			path = findVisibleAccessibleTile(goal, grid, map, start, scene);
 		}
+		//let path = findVisibleAccessibleTile(goal, grid, map, start, scene);
 		return path && path.length > 0 ? path : false;
 	};
-
 
 	//	戦車の親クラス
 	var TankBase = Class.create(Sprite, {

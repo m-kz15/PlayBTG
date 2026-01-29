@@ -4020,7 +4020,7 @@ window.onload = function() {
 
 	const key = (r, c) => `${r},${c}`;
 
-	// Bresenham の視線判定
+	// 視線が通るかどうかを判定（Bresenhamの直線アルゴリズム）
 	const isVisible = (from, to, grid) => {
 		let [y0, x0] = from;
 		const [y1, x1] = to;
@@ -4041,7 +4041,7 @@ window.onload = function() {
 			if (x > grid[y].length - 1) x = grid[y].length - 1;
 
 			if (grid[y][x] === 'Obstacle') {
-				return false;
+				return false; // 障害物に当たったら即失敗
 			}
 
 			const e2 = 2 * err;
@@ -4054,7 +4054,7 @@ window.onload = function() {
 				y = Math.min(Math.max(y + sy, 0), grid.length - 1);
 			}
 		}
-		return true;
+		return true; // ゴールに到達できた
 	};
 
 	const locationStatus = (location, grid) => {
@@ -4106,7 +4106,7 @@ window.onload = function() {
 		return path.length > 0 ? path : false;
 	};
 
-	// BFS（最短経路探索）
+	// 幅優先探索（BFS）で経路を探す
 	const findShortestPath = (startCoordinates, grid, scene, goalCoordinates = null) => {
 		const [startTop, startLeft] = startCoordinates;
 		const [goalTop, goalLeft] = goalCoordinates || [];
@@ -4150,37 +4150,12 @@ window.onload = function() {
 		return false;
 	};
 
-	// ★ 改善版：スタートから BFS を1回だけ実行して reachable を作る
-	const computeReachable = (start, grid) => {
-		const reachable = new Set();
-		const queue = [start];
-		reachable.add(key(start[0], start[1]));
-
-		while (queue.length > 0) {
-			const [y, x] = queue.shift();
-
-			for (const [dy, dx] of Object.values(deltas)) {
-				const ny = y + dy;
-				const nx = x + dx;
-				const k = key(ny, nx);
-
-				if (!reachable.has(k) &&
-					grid[ny] &&
-					grid[ny][nx] === 'Empty') {
-					reachable.add(k);
-					queue.push([ny, nx]);
-				}
-			}
-		}
-
-		return reachable;
-	};
-
-	// ★ 改善版：視界が通り、かつ到達可能なタイルを高速に探索
+	// ゴールが見え、かつ到達可能なマスを探す
 	const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
 		const [goalY, goalX] = goal;
+		const candidates = [];
 
-		// 通行可能マスを Empty に変換（初期化時に1回だけ行うのが理想）
+		// 通行可能なマスを 'Empty' に変換
 		for (let i = 0; i < grid.length; i++) {
 			for (let j = 0; j < grid[i].length; j++) {
 				if (map.collisionData[i][j] === 2 || map.collisionData[i][j] === 3) {
@@ -4189,22 +4164,14 @@ window.onload = function() {
 			}
 		}
 
-		// ① スタートから BFS を1回だけ実行
-		const reachable = computeReachable(start, grid);
-
-		// ② 距離 ≤ 8 のマスだけチェック
-		const candidates = [];
-
-		for (const pos of reachable) {
-			const [y, x] = pos.split(',').map(Number);
-
-			if (Math.abs(x - goalX) + Math.abs(y - goalY) > 8) continue;
-
-			// ③ 視界チェック
-			if (isVisible([y, x], [goalY, goalX], grid)) {
-				// ④ 最短経路を復元
-				const path = findShortestPath(start, grid, scene, [y, x]);
-				if (path) candidates.push({ x, y, path });
+		for (let y = 0; y < grid.length; y++) {
+			for (let x = 0; x < grid[y].length; x++) {
+				if (grid[y][x] === 'Empty' && isVisible([y, x], [goalY, goalX], grid) && Math.abs(x - goalX) + Math.abs(y - goalY) <= 8) {
+					const path = findShortestPath(start, grid, scene, [y, x]);
+					if (path) {
+						candidates.push({ x, y, path });
+					}
+				}
 			}
 		}
 
@@ -4217,6 +4184,7 @@ window.onload = function() {
 		if (!path) {
 			path = findVisibleAccessibleTile(goal, grid, map, start, scene);
 		}
+		//let path = findVisibleAccessibleTile(goal, grid, map, start, scene);
 		return path && path.length > 0 ? path : false;
 	};
 
@@ -4772,7 +4740,7 @@ window.onload = function() {
 					parseInt((self.x + self.width / 2) / PixelSize)
 				];
 				//root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-				root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene);
+				root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene)
 				if (root && root.length > 0) {
 					updateRotationAndDistance(root[0], myPath, self);
 				}
