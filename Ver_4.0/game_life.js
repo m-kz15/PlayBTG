@@ -4367,6 +4367,54 @@ window.onload = function() {
 		return false;
 	};
 
+	const findShortestPathLimited = (start, goal, grid, maxDepth = 30) => {
+		const queue = [{
+			y: start[0],
+			x: start[1],
+			parent: null,
+			move: null,
+			depth: 0
+		}];
+
+		const visited = new Set([key(start[0], start[1])]);
+		const directions = ['North', 'East', 'South', 'West'];
+
+		while (queue.length > 0) {
+			const cur = queue.shift();
+
+			// 深さ制限
+			if (cur.depth > maxDepth) continue;
+
+			// ゴール判定
+			if (cur.y === goal[0] && cur.x === goal[1]) {
+				return reconstructPath(cur);
+			}
+
+			for (const dir of directions) {
+				const [dy, dx] = deltas[dir];
+				const ny = cur.y + dy;
+				const nx = cur.x + dx;
+				const k = key(ny, nx);
+
+				if (!grid[ny] || !grid[ny][nx]) continue;
+				if (grid[ny][nx] === 'Obstacle') continue;
+				if (visited.has(k)) continue;
+
+				visited.add(k);
+				queue.push({
+					y: ny,
+					x: nx,
+					parent: cur,
+					move: dir,
+					depth: cur.depth + 1
+				});
+			}
+		}
+
+		return null; // 到達不能
+	};
+
+
 	// ★ 改善版：スタートから BFS を1回だけ実行して reachable を作る
 	const computeReachable = (start, grid) => {
 		const reachable = new Set();
@@ -5017,7 +5065,7 @@ window.onload = function() {
 					parseInt((self.y + self.height / 2) / PixelSize),
 					parseInt((self.x + self.width / 2) / PixelSize)
 				];
-				root = findVisibleAccessibleTile([targetPath[0], targetPath[1]], grid, map, [myPath[0], myPath[1]], scene);//getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene)
+				root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene)
 				if (root && root.length > 0) {
 					updateRotationAndDistance(root[0], myPath, self);
 				}
@@ -5308,7 +5356,7 @@ window.onload = function() {
 									}
 								}
 
-								if (!root) {
+								if (!root && this.time % 60 == 0) {
 									updatePathAndRotation(this, grid, scene);
 								}
 

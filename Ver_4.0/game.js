@@ -4772,7 +4772,7 @@ window.onload = function() {
 					parseInt((self.x + self.width / 2) / PixelSize)
 				];
 				//root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-				root = findVisibleAccessibleTile([targetPath[0], targetPath[1]], grid, map, [myPath[0], myPath[1]], scene);
+				root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene);
 				if (root && root.length > 0) {
 					updateRotationAndDistance(root[0], myPath, self);
 				}
@@ -5161,7 +5161,7 @@ window.onload = function() {
 									}
 								}
 
-								if (!root) {
+								if (!root && this.time % 60 == 0) {
 									updatePathAndRotation(this, grid, scene);
 								}
 
