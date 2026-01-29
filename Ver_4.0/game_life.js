@@ -4228,7 +4228,7 @@ window.onload = function() {
 		}
 	});
 
-	const deltas = {
+	/*const deltas = {
 		North: [-1, 0],
 		East: [0, 1],
 		South: [1, 0],
@@ -4365,10 +4365,193 @@ window.onload = function() {
 		}
 
 		return false;
+	};*/
+	const DIRS = [
+		[-1, 0, "North"],
+		[0, 1, "East"],
+		[1, 0, "South"],
+		[0, -1, "West"]
+	];
+
+	// 視線が通るかどうかを判定（Bresenhamの直線アルゴリズム）
+	const isVisible = (from, to, grid) => {
+		let [y0, x0] = from;
+		const [y1, x1] = to;
+
+		const rows = grid.length;
+		const cols = grid[0].length;
+
+		let dx = Math.abs(x1 - x0);
+		let dy = Math.abs(y1 - y0);
+		let sx = x0 < x1 ? 1 : -1;
+		let sy = y0 < y1 ? 1 : -1;
+		let err = dx - dy;
+
+		while (true) {
+			// 障害物チェック
+			if (grid[y0][x0] === "Obstacle") return false;
+
+			// ゴールに到達
+			if (x0 === x1 && y0 === y1) return true;
+
+			const e2 = err * 2;
+
+			if (e2 > -dy) {
+				err -= dy;
+				x0 += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				y0 += sy;
+			}
+
+			// 範囲外なら不可視扱い（安全対策）
+			if (x0 < 0 || x0 >= cols || y0 < 0 || y0 >= rows) return false;
+		}
+	};
+
+
+	// 0 = Invalid, 1 = Blocked, 2 = Valid, 3 = Goal
+	const locationStatusFast = (y, x, grid) => {
+		if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return 0;
+
+		const cell = grid[y][x];
+		if (cell === "Goal") return 3;
+		if (cell === "Empty") return 2;
+		return 1;
+	};
+
+	const exploreInDirectionFast = (cur, dy, dx, moveName, grid, visited) => {
+		const ny = cur.y + dy;
+		const nx = cur.x + dx;
+
+		// 範囲外 or 訪問済み
+		if (ny < 0 || ny >= grid.length || nx < 0 || nx >= grid[0].length) return null;
+		if (visited[ny][nx]) return null;
+
+		const status = locationStatusFast(ny, nx, grid);
+		if (status === 0 || status === 1) return null; // Invalid / Blocked
+
+		visited[ny][nx] = true;
+
+		return {
+			y: ny,
+			x: nx,
+			parent: cur,
+			move: moveName,
+			status
+		};
+	};
+
+	const reconstructPath = (node) => {
+		const path = [];
+		while (node.parent) {
+			path.unshift(node.move);
+			node = node.parent;
+		}
+		return path.length > 0 ? path : false;
+	};
+
+	const findShortestPath = (startCoordinates, grid, scene, goalCoordinates = null) => {
+		const [startY, startX] = startCoordinates;
+		const goalY = goalCoordinates ? goalCoordinates[0] : null;
+		const goalX = goalCoordinates ? goalCoordinates[1] : null;
+
+		// BFS キュー（shift を使わない）
+		const queue = new Array(400);
+		let head = 0;
+		let tail = 0;
+
+		queue[tail++] = {
+			y: startY,
+			x: startX,
+			parent: null,
+			move: null
+		};
+
+		// visited を boolean 配列に
+		const visited = Array.from({ length: grid.length }, () =>
+			Array(grid[0].length).fill(false)
+		);
+		visited[startY][startX] = true;
+
+		while (head < tail) {
+			const cur = queue[head++];
+
+			// ゴール指定あり
+			if (goalCoordinates && cur.y === goalY && cur.x === goalX) {
+				return reconstructPath(cur);
+			}
+
+			for (const [dy, dx, moveName] of DIRS) {
+				const next = exploreInDirectionFast(cur, dy, dx, moveName, grid, visited);
+				if (!next) continue;
+
+				// ゴール指定なしで Goal に到達
+				if (!goalCoordinates && next.status === 3) {
+					return reconstructPath(next);
+				}
+
+				if (next.status === 2) { // Valid
+					queue[tail++] = next;
+				}
+			}
+		}
+
+		return false;
 	};
 
 	// ゴールが見え、かつ到達可能なマスを探す
 	const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
+		const [goalY, goalX] = goal;
+		let bestPath = null;
+
+		// ★ 事前に通行可能マスを Empty に変換（1回だけ）
+		for (let y = 0; y < grid.length; y++) {
+			for (let x = 0; x < grid[y].length; x++) {
+				if (map.collisionData[y][x] === 2 || map.collisionData[y][x] === 3) {
+					grid[y][x] = 'Empty';
+				}
+			}
+		}
+
+		// ★ 探索範囲（ゴール中心 ±8）
+		const minY = Math.max(0, goalY - 8);
+		const maxY = Math.min(grid.length - 1, goalY + 8);
+		const minX = Math.max(0, goalX - 8);
+		const maxX = Math.min(grid[0].length - 1, goalX + 8);
+
+		for (let y = minY; y <= maxY; y++) {
+			for (let x = minX; x <= maxX; x++) {
+
+				if (grid[y][x] !== 'Empty') continue;
+
+				// 距離フィルタ
+				const dist = Math.abs(x - goalX) + Math.abs(y - goalY);
+				if (dist > 8) continue;
+
+				// ★ 既に最短経路が見つかっているなら、距離がそれより長い候補は無視
+				if (bestPath && dist >= bestPath.length) continue;
+
+				// 可視判定
+				if (!isVisible([y, x], goal, grid)) continue;
+
+				// 経路探索
+				const path = findShortestPath(start, grid, scene, [y, x]);
+				if (!path) continue;
+
+				// 最短経路を更新
+				if (!bestPath || path.length < bestPath.length) {
+					bestPath = path;
+				}
+			}
+		}
+
+		return bestPath;
+	};
+
+
+	/*const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
 		const [goalY, goalX] = goal;
 		const candidates = [];
 
@@ -4394,7 +4577,7 @@ window.onload = function() {
 
 		candidates.sort((a, b) => a.path.length - b.path.length);
 		return candidates.length > 0 ? candidates[0].path : null;
-	};
+	};*/
 
 	const getPathToGoalOrVisibleTile = (start, goal, grid, map, scene) => {
 		let path = findShortestPath(start, grid, scene, null);
@@ -5275,7 +5458,7 @@ window.onload = function() {
 									}
 								}
 
-								if (!root && this.time % 60 == 0) {
+								if (!root && this.time % 30 == 0) {
 									updatePathAndRotation(this, grid, scene);
 								}
 
@@ -11367,6 +11550,26 @@ window.onload = function() {
 			this.time = 0;
 
 			now_scene = this;
+
+			const onHidden = () => { 
+				if (document.hidden) {
+					// ★ 既存の条件を満たすときだけポーズ 
+					if (gameStatus == 0 && game.time > 250) {
+						// ★ PauseScene が重複しないようにチェック 
+						if (!(game.currentScene instanceof PauseScene)) { 
+							new PauseScene();
+						} 
+					} 
+				} 
+			};
+			// ★ TestScene が開始されたときだけイベント登録 
+			this.addEventListener("enter", () => { 
+				document.addEventListener("visibilitychange", onHidden); 
+			}); 
+			// ★ TestScene を抜けたらイベント解除（重要） 
+			this.addEventListener("exit", () => { 
+				document.removeEventListener("visibilitychange", onHidden); 
+			});
 
 			stageData = LoadStage()[stageRandom]; //ステージ情報引き出し
 
