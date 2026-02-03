@@ -3675,9 +3675,9 @@ window.onload = function() {
 
 		// ★ 爆発範囲は半径40（80×80）
 		processDamage: function() {
-			const range = 45;
+			const range = 55;
 			this.damageNearbyTanks(range);
-			this.destroyNearbyBlocks(range + 15);
+			this.destroyNearbyBlocks(range + 5);
 			this.destroyNearbyBombs(range);
 		},
 
