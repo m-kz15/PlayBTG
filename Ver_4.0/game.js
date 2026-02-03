@@ -3278,8 +3278,8 @@ window.onload = function() {
 			if (gameStatus === 0) {
 				//game.assets['./sound/Sample_0000.wav'].clone().play();
 				let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
-				sound.volume = 0.5;
 				sound.play();
+				sound.volume = 0.5;
 			}
 		}
 	});
