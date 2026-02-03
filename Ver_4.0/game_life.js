@@ -1696,6 +1696,7 @@ window.onload = function() {
 		'./image/ObjectImage/Abyssal.png',
 		'./image/ObjectImage/AbyssalCannon.png',
 		'./image/ObjectImage/R2.png',
+		'./image/ObjectImage/R3.png',
 		'./image/ObjectImage/mark.png',
 		'./image/ObjectImage/block.png',
 		'./image/ObjectImage/block_top.png',
@@ -1751,6 +1752,48 @@ window.onload = function() {
 	stageScreen.style.position = "absolute";
 	stageScreen.style.left = ScreenMargin + "px";
 	game._pageX = ScreenMargin;
+
+	var PhysSprite = Class.create(Sprite, {
+		initialize: function(w, h) {
+			Sprite.call(this, w, h);
+
+			this.vx = 0;   // 速度X
+			this.vy = 0;   // 速度Y
+			this.ax = 0;   // 加速度X
+			this.ay = 0;   // 加速度Y
+			this.friction = 0.90; // 摩擦（減衰）
+			this.maxSpeed = 10;
+
+			this.onenterframe = function() {
+				// 加速度を速度に反映
+				this.vx += this.ax;
+				this.vy += this.ay;
+
+				// 最大速度制限
+				const spd = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+				if (spd > this.maxSpeed) {
+					this.vx *= this.maxSpeed / spd;
+					this.vy *= this.maxSpeed / spd;
+				}
+
+				// 摩擦で減速
+				this.vx *= this.friction;
+				this.vy *= this.friction;
+
+				// 位置更新
+				this.x += this.vx;
+				this.y += this.vy;
+			};
+		},
+
+		// 角度方向に力を加える
+		thrust: function(angleDeg, power) {
+			const rad = angleDeg * Math.PI / 180;
+			this.ax = Math.cos(rad) * power;
+			this.ay = Math.sin(rad) * power;
+		}
+	});
+
 
 	var Wall = Class.create(PhyBoxSprite, {
 		initialize: function(width, height, x, y, name, scene) {
@@ -2492,9 +2535,12 @@ window.onload = function() {
 				ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
 				ctx.fill();
 				this.image = surface;
-			} else if (Categorys.MaxRef[category] === 0) {
-				this.scale(2.0, 2.0);
-			}
+			} else{
+				this.visible = false;
+				if (Categorys.MaxRef[category] === 0) {
+					this.scale(2.0, 2.0);
+				}
+			} 
 
 			// 大砲回転処理
 			let rot = normalizeRotation(Rad_to_Rot(this.rad));
@@ -3205,16 +3251,26 @@ window.onload = function() {
 		}
 	});
 
-	var Bullet = Class.create(Sprite, {
-		initialize: function(from, num, id) {
-			Sprite.call(this, 12, 18);
-			this.image = game.assets['./image/ObjectImage/R2.png'];
-			this.time = 0;
-			this.id = id;
-			this.num = num;
+	var BulletBase = Class.create(Sprite, {
+		initialize: function(width, height, from, category, num, id, shotSpeed) {
+			Sprite.call(this, width, height);
+
 			this.from = from;
+			this.category = category;
+			this.num = num;
+			this.id = id;
+			this.shotSpeed = shotSpeed;
 			this.name = 'Bullet';
 
+			this.time = 0;
+		}
+	});
+
+	var Bullet = Class.create(BulletBase, {
+		initialize: function(from, num, id) {
+			BulletBase.call(this, 12, 18, from, from.category, num, id, from.shotSpeed);
+			
+			this.image = game.assets['./image/ObjectImage/R2.png'];
 			this.force = this.computeForce(from);
 			this.updateRotation(from.rad);
 			this.updatePosition();
@@ -3260,6 +3316,189 @@ window.onload = function() {
 			);
 		}
 	});
+
+	var PhysBulletCol = Class.create(BulletBase, {
+		initialize: function(shotSpeed, ref, from, category, num, id, targetEntity) {
+			BulletBase.call(this, 12, 18, from, category, num, id, Math.round(shotSpeed / 2));
+
+			this.name = 'PhyBullet';
+
+			// 見た目（Bullet と同じ画像）
+			this.image = game.assets['./image/ObjectImage/R3.png'];
+
+			// 発射時点のターゲット座標を保持
+			const tgt = Get_Center(targetEntity);
+			this.targetX = tgt.x;
+			this.targetY = tgt.y;
+
+			this.applyBulletScaling(category);
+			const [random0, random1] = this.getRandomOffset(category);
+
+			// 発射角度
+			const rad = Rot_to_Rad((from.rotation + random0 + random1) - 90);
+			this.vx = Math.cos(rad) * this.shotSpeed;
+			this.vy = Math.sin(rad) * this.shotSpeed;
+
+			// 初期位置（BulletCol と同じ補正）
+			const pos = Get_Center(from);
+			this.moveTo(
+				pos.x + Math.cos(rad) * 60 - this.width / 2,
+				pos.y + Math.sin(rad) * 60 - this.height / 2
+			);
+
+			this.targetDistance = Vec_Distance({x: this.x, y: this.y}, tgt);
+			this.travelDistance = 0;
+
+			// 弾 ON
+			bulStack[this.num][this.id] = true;
+			bullets[this.num]++;
+		},
+
+		// ★★★ BulletCol と同じ呼び出し方を可能にする _Shot() ★★★
+		_Shot: function() {
+			now_scene.BulletGroup.addChild(this);
+
+			new OpenFire(this.from);
+			game.assets['./sound/s_car_door_O2.wav'].clone().play();
+
+			if (this.shotSpeed >= 14) {
+				game.assets['./sound/Sample_0003.wav'].clone().play();
+			}
+
+			this._startMotion();
+		},
+
+		// ★★★ 移動・衝突・爆発処理 ★★★
+		_startMotion: function() {
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
+
+				this.time++;
+
+				// 移動（滑らか）
+				this.x += this.vx;
+				this.y += this.vy;
+
+				this.travelDistance += Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+
+				// 見た目の回転（Bullet と同じ）
+				this.rotation = -1 * (180 + Math.atan2(this.vx, this.vy) * 180 / Math.PI);
+
+				/*// ① ターゲット地点に到達したら爆発
+				if (Vec_Distance({x:this.x, y:this.y}, {x:this.targetX, y:this.targetY}) < 12) {
+					this._Explode();
+					return;
+				}*/
+				// ★ ターゲットと同じ距離だけ進んだら爆発
+				if (this.travelDistance >= this.targetDistance) {
+					this._Explode();
+					return;
+				}
+
+
+				// ② 壁に衝突したら爆発
+				if (Block.intersectStrict(this).length > 0 ||
+					Wall.intersectStrict(this).length > 0) {
+					this._Explode();
+					return;
+				}
+
+				// ③ 戦車に衝突したら爆発
+				TankBase.intersectStrict(this).forEach(elem => {
+					if (elem.num !== this.num) {
+						elem._Damage();
+						this._Explode();
+					}
+				});
+
+				// ④ 他の弾と衝突したら爆発
+				Bullet.intersectStrict(this).forEach(elem => {
+					if (this.num !== elem.num || this.id !== elem.id) {
+						elem.from._Destroy();
+						this._Explode();
+					}
+				});
+
+				// ④ 他の弾と衝突したら爆発
+				PhysBulletCol.intersectStrict(this).forEach(elem => {
+					if (this.num !== elem.num || this.id !== elem.id) {
+						elem._Explode();
+						this._Explode();
+					}
+				});
+
+				// ⑤ エフェクト（Bullet と同じ）
+				if (this.time % 2 === 0) {
+					if (this.shotSpeed >= 14) new Fire(this);
+					if (this.time % 4 === 0) {
+						this.num === 0 ? new PlayerBulAim(this) : new BulAim(this);
+					}
+				}
+			};
+		},
+
+		getRandomOffset: function(category) {
+			const ranges = {
+				4: 10, 9: 6, 13: 4
+			};
+			const r = ranges[category];
+			if (!r) return [0, 0];
+			return [
+				(Math.floor(Math.random() * (r * 2)) - r) / 2,
+				(Math.floor(Math.random() * (r * 2)) - r) / 2
+			];
+		},
+
+		applyBulletScaling: function(category) {
+			const scaleMap = {
+				0: [1.0, 1.0],
+				1: [0.8, 1.0],
+				6: [0.6, 1.0],
+				8: [1.0, 1.0],
+				9: [0.7, 0.7],
+				11: [0.6, 1.0]
+			};
+			const s = scaleMap[category];
+			if (s) this.scale(...s);
+		},
+
+		// ★★★ 爆発処理（範囲ダメージ） ★★★
+		_Explode: function() {
+			/*const ex = this.x + this.width / 2;
+			const ey = this.y + this.height / 2;*/
+
+			new TouchFire(this);
+			Spark_Effect(this);
+			new BulletExplosion(this);
+
+			/*const range = 48;
+			TankBase.collection.forEach(t => {
+				if (!deadFlgs[t.num]) {
+					const d = Vec_Distance(Get_Center(t), {x:ex, y:ey});
+					if (d < range) t._Damage();
+				}
+			});*/
+
+			this._Destroy();
+		},
+
+		_Destroy: function() {
+			bullets[this.num]--;
+			bulStack[this.num][this.id] = false;
+
+			now_scene.BulletGroup.removeChild(this);
+
+			if (gameStatus === 0) {
+				//game.assets['./sound/Sample_0000.wav'].clone().play();
+				let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
+				sound.volume = 0.5;
+				sound.play();
+			}
+		}
+	});
+
+
+
 
 	var Bom = Class.create(Sprite, {
 		initialize: function(from, num, id) {
@@ -3307,6 +3546,14 @@ window.onload = function() {
 					Bullet.intersectStrict(this).some(elem => {
 						if (bulStack[elem.num]?.[elem.id]) {
 							elem.from._Destroy();
+							this._Destroy();
+							return true;
+						}
+						return false;
+					});
+					PhysBulletCol.intersectStrict(this).some(elem => {
+						if (bulStack[elem.num]?.[elem.id]) {
+							elem._Explode();
 							this._Destroy();
 							return true;
 						}
@@ -3596,9 +3843,111 @@ window.onload = function() {
 				new ViewDamage(elem, 100, false);
 				elem.life -= 100;
 				elem.lifeBar.Change(elem.life);
+				elem._DamageEffect();
 			});
 		}
 	});
+
+	var BulletExplosion = Class.create(Sprite, {
+		initialize: function(from) {
+			Sprite.call(this, 80, 80);   // ★ 80×80 に変更
+			this.name = 'BombExplosion';
+			this.time = 0;
+			this.from = from;
+
+			const pos = Get_Center(from);
+			this.moveTo(pos.x - 40, pos.y - 40); // ★ 中心に合わせる
+			this.scaleX = this.scaleY = 0.1;
+
+			// ★ 80×80 用の爆風描画
+			const surface = new Surface(80, 80);
+			const ctx = surface.context;
+			const grad = ctx.createRadialGradient(40, 40, 8, 40, 40, 40);
+			grad.addColorStop(0, 'rgba(255, 255, 200, 1)');
+			grad.addColorStop(0.1, 'rgba(255, 255, 0, 0.9)');
+			grad.addColorStop(0.4, 'rgba(255, 120, 0, 0.75)');
+			grad.addColorStop(0.6, 'rgba(255, 80, 0, 0.6)');
+			grad.addColorStop(0.85, 'rgba(220, 0, 0, 0.4)');
+			grad.addColorStop(1, 'rgba(180, 0, 0, 0)');
+			ctx.fillStyle = grad;
+			ctx.beginPath();
+			ctx.arc(40, 40, 40, 0, Math.PI * 2);
+			ctx.fill();
+			this.image = surface;
+
+			// ★ アニメーション（80×80 用に調整）
+			this.tl
+				.scaleTo(1.3, 1.3, 8, enchant.Easing.EXP_EASEOUT)
+				.scaleTo(1.5, 1.5, 16, enchant.Easing.SIN_EASEOUT)
+				.and()
+				.fadeOut(24)
+				.then(() => now_scene.removeChild(this));
+
+			this.onenterframe = () => {
+				if (WorldFlg && gameStatus == 0) {
+					if (this.time < 2) this.processDamage();
+					this.time++;
+				}
+			};
+
+			now_scene.addChild(this);
+		},
+
+		// ★ 爆発範囲は半径40（80×80）
+		processDamage: function() {
+			const range = 50;
+			this.damageNearbyTanks(range);
+			this.destroyNearbyBlocks(range + 10);
+			this.destroyNearbyBombs(range);
+		},
+
+		destroyNearbyBlocks: function(range) {
+			Block.collection.forEach(elem => {
+				if (elem.within(this, range)){
+					elem._Destroy();
+				}
+			});
+		},
+
+		destroyNearbyBombs: function(range) {
+			Bom.collection.forEach(elem => {
+				if (elem.within(this, range)) elem._Destroy();
+			});
+		},
+
+		damageNearbyTanks: function(range) {
+			let damage = 6;
+			if (this.time > 0){
+				damage -= 4;
+				range += 20;
+			}
+			const targets = TankBase.collection
+				.filter(elem => !deadFlgs[elem.num] && elem.weak.within(this, range))
+				.sort((a, b) => b.num - a.num);
+
+			let cnt = 0;
+			targets.forEach(elem => {
+				if (!elem.damFlg){
+					if (elem.num != 0) cnt++;
+					if (elem.num == 0 && destruction + cnt == tankEntity.length - 1) return;
+
+					new ViewDamage(elem, damage, false);
+					elem.life -= damage;
+					elem.lifeBar.Change(elem.life);
+					elem.damFlg = true;
+					if (this.from.category == 9){
+						elem.damTimeMax = 4;
+					} 
+					elem._DamageEffect();
+					if (elem.category >= 12){
+						elem._ResetStatus();
+					}
+				}
+			});
+		}
+	});
+
+
 
 	var TankBoom = Class.create(Sprite,{
 		initialize: function(from){
@@ -5069,10 +5418,15 @@ window.onload = function() {
 					for (let i = 0; i < this.bulMax; i++) {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							
+							
 							if (this.category == 9) {
+								new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
 								this.fullFireFlg = true;
 								this.firecnt++;
+							}
+							else{
+								new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							}
 							//removeSpritesInSector(this.cannon, 100, 45);
 							break;
@@ -5205,11 +5559,6 @@ window.onload = function() {
 							if (this.time % 60 == 0) {
 								grid = JSON.parse(JSON.stringify(scene.grid));
 								map = Object.assign({}, scene.backgroundMap);
-							}
-
-							if (this.time % 2 === 0) {
-								this.fireFlg = false;
-								this.shotNGflg = false;
 
 								if (this.moveSpeed > 0 && !this.tankStopFlg) {
 									myPath = getGridCoord(this);
@@ -5250,6 +5599,11 @@ window.onload = function() {
 										}
 									}
 								}
+							}
+
+							if (this.time % 2 === 0) {
+								this.fireFlg = false;
+								this.shotNGflg = false;
 
 								if (this.tankStopFlg) this.tankStopFlg = false;
 							}
@@ -5357,9 +5711,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -5676,9 +6030,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -6145,9 +6499,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -6394,6 +6748,55 @@ window.onload = function() {
 					}
 				}
 			}
+			else if (this.attackTarget.name == 'PhyBullet') {
+				const shooterPos = Get_Center(this);
+				const bullet = this.attackTarget;
+				const bulletPos = Get_Center(bullet);
+				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
+				const targetSpeed = bullet.shotSpeed;
+				const shotSpeed = this.shotSpeed;
+
+				// 相対位置と速度ベクトル
+				const dx = bulletPos.x - shooterPos.x;
+				const dy = bulletPos.y - shooterPos.y;
+				const dvx = bulletVec.x * targetSpeed;
+				const dvy = bulletVec.y * targetSpeed;
+
+				// 二次方程式を解いて迎撃時間を推定
+				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
+				const b = 2 * (dx * dvx + dy * dvy);
+				const c = dx * dx + dy * dy;
+
+				// 近すぎると暴れる
+				if (c < 2000) return;
+
+				// a が小さいときは未来予測が不安定
+				if (Math.abs(a) < 0.0001) {
+					const aimAngle = Math.atan2(dy, dx);
+					this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					return;
+				}
+
+				const discriminant = b * b - 4 * a * c;
+				if (discriminant >= 0){
+					const sqrtDisc = Math.sqrt(discriminant);
+					let t1 = (-b - sqrtDisc) / (2 * a);
+					let t2 = (-b + sqrtDisc) / (2 * a);
+
+					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+					if (time >= 0){
+						// 少し手前を狙うための係数（例：90%の位置を狙う）
+						var biasFactor = 0.95;
+
+						// 予測位置
+						const futureX = bulletPos.x + dvx * time * biasFactor;
+						const futureY = bulletPos.y + dvy * time * biasFactor;
+
+						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					}
+				}
+			}
 		}
 	})
 
@@ -6443,6 +6846,7 @@ window.onload = function() {
 									this.shotStopFlg = false;
 									this.shotStopTime = 0;
 								}
+								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							} else {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
@@ -6514,8 +6918,9 @@ window.onload = function() {
 						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
 							this.fullFireFlg = true;
 							this.shotStopFlg = true;
-							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * (4);
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * ((bullets[this.num] + 1)*2);
+							//new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
 							this.firecnt++;
 							break;
 						}
@@ -6563,6 +6968,23 @@ window.onload = function() {
 					RefAim.call(this, ref, from, category, num);
 				}
 			})
+
+			function resolveCollision(entity, elem, isTank = false){
+				switch (elem.name) {
+					case isTank ? 'TankTop' : 'ObsTop':
+						entity.moveTo(entity.x, elem.y - 60);
+						break;
+					case isTank ? 'TankBottom' : 'ObsBottom':
+						entity.moveTo(entity.x, elem.y + elem.height);
+						break;
+					case isTank ? 'TankLeft' : 'ObsLeft':
+						entity.moveTo(elem.x - 60, entity.y);
+						break;
+					case isTank ? 'TankRight' : 'ObsRight':
+						entity.moveTo(elem.x + elem.width, entity.y);
+						break;
+				}
+			}
 
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
@@ -6625,60 +7047,13 @@ window.onload = function() {
 								}
 							}
 
-							/*for (let i = 0; i < hitList.length; i++) {
-								const elem = hitList[i];
-
-								// 砲台の回転（初回のみ）
-								if (elem.hitTime === 0 && this.cannon.rotation !== elem.agl) {
-									// カーソル位置の更新（変更があるときのみ）
-									if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
-										this.cursor.x = elem.tgt[0];
-										this.cursor.y = elem.tgt[1];
-									}
-									this.cannon.rotation = elem.agl;
-									this.cannon2.rotation = elem.agl - this.aimRot * (Math.floor(1 + Math.random() * 3) * 2);
-								}
-
-								// 発射フラグの設定（初回のみ）
-								if (elem.hitTime < 5 && !this.fireFlg) {
-									this.fireFlg = true;
-								}
-
-								// エイム時間の加算（上限付き）
-								if (this.aimingTime < this.aimCmpTime + 15) {
-									this.aimingTime += 3;
-								}
-
-								// 命中時間の更新と削除処理
-								elem.hitTime++;
-								if (elem.hitTime >= 5) {
-									now_scene.removeChild(elem);
-								}
-
-								break; // 最初のヒットだけ処理して終了
-							}*/
-
-							/*if (this.aimingTime > 0) {
-								//if(Math.abs(this.aimRot) == Categorys.CannonRotSpeed[this.category]) this.aimRot = this.aimRot > 0 ? Categorys.CannonRotSpeed[this.category] / 2 : -Categorys.CannonRotSpeed[this.category] / 2;
-								if (this.fireFlg && this.aimingTime % 15 == 0) {
-									this.aimRot *= -1;
-								}
-							}else{
-								//if(Math.abs(this.aimRot) == Categorys.CannonRotSpeed[this.category] / 2)this.aimRot = this.aimRot > 0 ? Categorys.CannonRotSpeed[this.category] : -Categorys.CannonRotSpeed[this.category];
-							}*/
-							
-							
-							if (this.aimingTime < this.aimCmpTime) {
-								
-								if (!this.fireFlg) {
-									if (this.cannon.rotation != this.cannon2.rotation) {
-										this.cannon2.rotation -= this.aimRot;
-									} else {
-										this.cannon2.rotation += this.aimRot;
-									}
-									this.cannon.rotation += this.aimRot;
-								}
+							if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
+								this.cannon.rotation += this.aimRot;
+								this.cannon2.rotation += (this.cannon.rotation !== this.cannon2.rotation)
+									? -this.aimRot
+									:  this.aimRot;
 							}
+
 
 							if (this.time % 5 == 0) {
 								if (this.aimingTime > 0 && !this.fireFlg) this.aimingTime -= 3;
@@ -6705,44 +7080,17 @@ window.onload = function() {
 								}
 							}
 
-
+							// タンクとの衝突処理
 							TankObstracle.intersect(this).forEach(elem => {
-								if (!deadFlgs[elem.num] && elem.num != this.num) {
-									switch (elem.name) {
-										case 'TankTop':
-											this.moveTo(this.x, elem.y - 60);
-											break;
-										case 'TankBottom':
-											this.moveTo(this.x, elem.y + (elem.height));
-											break;
-										case 'TankLeft':
-											this.moveTo(elem.x - 60, this.y);
-											break;
-										case 'TankRight':
-											this.moveTo(elem.x + (elem.width), this.y);
-											break;
-									}
-									console.log(this.category);
+								if (!deadFlgs[elem.num] && elem.num !== this.num) {
+									resolveCollision(this, elem, true);
 								}
+							});
 
-							})
-
+							// 障害物との衝突処理
 							Obstracle.intersect(this).forEach(elem => {
-								switch (elem.name) {
-									case 'ObsTop':
-										this.moveTo(this.x, elem.y - 60);
-										break;
-									case 'ObsBottom':
-										this.moveTo(this.x, elem.y + (elem.height))
-										break;
-									case 'ObsLeft':
-										this.moveTo(elem.x - 60, this.y)
-										break;
-									case 'ObsRight':
-										this.moveTo(elem.x + (elem.width), this.y)
-										break;
-								}
-							})
+								resolveCollision(this, elem, false);
+							});
 						}
 					} else {
 						destruction++;
@@ -6966,9 +7314,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -7499,10 +7847,10 @@ window.onload = function() {
 
 							this.escapeTargets = [];
 
-							if (Bullet.collection.length > 0) {
+							if (BulletBase.collection.length > 0) {
 								const escapeList = [];
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -7854,6 +8202,45 @@ window.onload = function() {
 					}
 				}
 			}
+			else if (this.attackTarget.name == 'PhyBullet') {
+				const shooterPos = Get_Center(this);
+				const bullet = this.attackTarget;
+				const bulletPos = Get_Center(bullet);
+				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
+				const targetSpeed = bullet.shotSpeed;
+				const shotSpeed = this.shotSpeed;
+
+				// 相対位置と速度ベクトル
+				const dx = bulletPos.x - shooterPos.x;
+				const dy = bulletPos.y - shooterPos.y;
+				const dvx = bulletVec.x * targetSpeed;
+				const dvy = bulletVec.y * targetSpeed;
+
+				// 二次方程式を解いて迎撃時間を推定
+				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
+				const b = 2 * (dx * dvx + dy * dvy);
+				const c = dx * dx + dy * dy;
+
+				const discriminant = b * b - 4 * a * c;
+				if (discriminant >= 0){
+					const sqrtDisc = Math.sqrt(discriminant);
+					let t1 = (-b - sqrtDisc) / (2 * a);
+					let t2 = (-b + sqrtDisc) / (2 * a);
+
+					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+					if (time >= 0){
+						// 少し手前を狙うための係数（例：90%の位置を狙う）
+						var biasFactor = 0.75;
+
+						// 予測位置
+						const futureX = bulletPos.x + dvx * time * biasFactor;
+						const futureY = bulletPos.y + dvy * time * biasFactor;
+
+						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					}
+				}
+			}
 		}
 	})
 
@@ -8049,9 +8436,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -8526,9 +8913,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -8807,6 +9194,56 @@ window.onload = function() {
 				const bulletPos = Get_Center(bullet);
 				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
 				const targetSpeed = bullet.from.shotSpeed;
+				const shotSpeed = this.shotSpeed;
+
+				// 相対位置と速度ベクトル
+				const dx = bulletPos.x - shooterPos.x;
+				const dy = bulletPos.y - shooterPos.y;
+				const dvx = bulletVec.x * targetSpeed;
+				const dvy = bulletVec.y * targetSpeed;
+
+				// 二次方程式を解いて迎撃時間を推定
+				var a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
+				var b = 2 * (dx * dvx + dy * dvy);
+				var c = dx * dx + dy * dy;
+
+				if (Math.abs(a) < 0.0001) {
+					if (gameMode == 2){
+						a = a <= 0 ? 0.0001 : -0.0001; 
+					}
+					else{
+						const aimAngle = Math.atan2(dy, dx);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+						return;
+					}
+				}
+
+				const discriminant = b * b - 4 * a * c;
+				if (discriminant >= 0){
+					const sqrtDisc = Math.sqrt(discriminant);
+					let t1 = (-b - sqrtDisc) / (2 * a);
+					let t2 = (-b + sqrtDisc) / (2 * a);
+
+					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+					if (time >= 0){
+						// 少し手前を狙うための係数（例：90%の位置を狙う）
+						var biasFactor = 0.4;
+
+						// 予測位置
+						const futureX = bulletPos.x + dvx * time * biasFactor;
+						const futureY = bulletPos.y + dvy * time * biasFactor;
+
+						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+					}
+				}
+			}
+			else if (this.attackTarget.name == 'PhyBullet') {
+				const shooterPos = Get_Center(this);
+				const bullet = this.attackTarget;
+				const bulletPos = Get_Center(bullet);
+				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
+				const targetSpeed = bullet.shotSpeed;
 				const shotSpeed = this.shotSpeed;
 
 				// 相対位置と速度ベクトル
@@ -9178,9 +9615,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									let c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									let c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 									if (c.num == target.num && !Categorys.DefenceFlg[this.category][0]) continue;
 									if (c.num == this.num && !Categorys.DefenceFlg[this.category][1]) continue;
@@ -9494,6 +9931,65 @@ window.onload = function() {
 				const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
 				this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
 			}
+			else if (this.attackTarget.name === 'PhyBullet') {
+				const shooterPos = Get_Center(this);
+				const bullet = this.attackTarget;
+				const bulletPos = Get_Center(bullet);
+				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
+				const targetSpeed = bullet.shotSpeed;
+				const shotSpeed = this.shotSpeed;
+
+				const dx = bulletPos.x - shooterPos.x;
+				const dy = bulletPos.y - shooterPos.y;
+				const dvx = bulletVec.x * targetSpeed;
+				const dvy = bulletVec.y * targetSpeed;
+
+				var a = (dvx*dvx + dvy*dvy) - shotSpeed*shotSpeed;
+				var b = 2 * (dx*dvx + dy*dvy);
+				var c = dx*dx + dy*dy;
+
+				a = Math.round(a * 1000) / 1000;
+				b = Math.round(b * 1000) / 1000;
+				c = Math.round(c * 1000) / 1000;
+
+				// 近すぎると暴れる
+				if (c < 2000) return;
+
+				// a が小さいときは未来予測が不安定
+				if (Math.abs(a) < 0.0001) {
+					if (gameMode == 2){
+						a = a >= 0 ? 0.0001 : -0.0001; 
+					}
+					else{
+						const aimAngle = Math.atan2(dy, dx);
+						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+						return;
+					}
+					
+					//	完璧すぎたためNG
+					//a = a <= 0 ? 0.0001 : -0.0001; 
+				}
+
+				const discriminant = b*b - 4*a*c;
+				if (discriminant < 0) return;
+
+				const sqrtDisc = Math.sqrt(discriminant);
+				const t1 = (-b - sqrtDisc) / (2*a);
+				const t2 = (-b + sqrtDisc) / (2*a);
+
+				// 正の時間のみ採用
+				const times = [t1, t2].filter(t => t > 0);
+				if (times.length === 0) return;
+
+				const time = Math.min(...times);
+
+				const biasFactor = 0.4;
+				const futureX = bulletPos.x + dvx * time * biasFactor;
+				const futureY = bulletPos.y + dvy * time * biasFactor;
+
+				const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
+				this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+			}
 		}
 	})
 
@@ -9707,9 +10203,9 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
+							if (BulletBase.collection.length > 0) {
+								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
 
 									const defFlg = Categorys.DefenceFlg[this.category];
@@ -11188,7 +11684,7 @@ window.onload = function() {
 					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + Categorys.MaxBullet[6], "　弾速　：とても速い(" + Categorys.ShotSpeed[6] + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：動かない(" + Categorys.MoveSpeed[6] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + Categorys.MaxBullet[7], "　弾速　：速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：やや遅い(" + Categorys.MoveSpeed[7] + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。"],
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + Categorys.MaxBullet[8], "　弾速　：普通(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：普通(" + Categorys.MoveSpeed[8] + ")", "・近距離迎撃型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　攻撃は弾を1発しか使わないが<br>　迎撃時には弾幕を貼って防御する。<br>　地雷も搭載している。"],
-					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　クリティカル発生率がとても高い。<br>　弾は小さいが多段ヒットするため要注意"],
+					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・弾幕爆撃型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　発射される弾には爆弾が仕込まれており、<br>　狙った場所で小規模の爆発させることが可能。"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：速い(" + Categorys.MoveSpeed[10] + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。"],
 					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + Categorys.MaxBullet[11], "　弾速　：最速(" + Categorys.ShotSpeed[11] + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。"],
@@ -11205,7 +11701,7 @@ window.onload = function() {
 					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：とても速い(" + Categorys.ShotSpeed[6] + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：動かない(" + Categorys.MoveSpeed[6] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
 					[colorsName[7], "　耐久　：" + Categorys.Life[7], "　弾数　：" + Categorys.MaxBullet[7], "　弾速　：速い(" + Categorys.ShotSpeed[7] + ")", "跳弾回数：" + Categorys.MaxRef[7], "移動速度：普通(" + (Categorys.MoveSpeed[7] + 0.5) + ")", "・攻守両立型<br>　ステルス能力を持つ敵戦車。<br>　死角からの砲撃に要注意。<br>【強化】装填にかかる時間の短縮"],
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + (Categorys.MaxBullet[8] + 1), "　弾速　：普通(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：速い(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・近距離迎撃型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　攻撃は弾を2発しか使わないが<br>　迎撃時には弾幕を貼って防御する。<br>　地雷も搭載している。"],
-					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・固定弾幕型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　クリティカル発生率がとても高い。<br>　弾は小さいが多段ヒットするため要注意<br>【強化】砲撃間隔の短縮"],
+					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・弾幕爆撃型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　発射される弾には爆弾が仕込まれており、<br>　狙った場所で小規模の爆発させることが可能。<br>【強化】砲撃間隔の短縮"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が2個に増加"],
 					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。<br>【弱化】砲撃間隔の延長"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。<br>【強化】自機狙いの偏差射撃追加"],
@@ -11553,12 +12049,22 @@ window.onload = function() {
 
 			const onHidden = () => { 
 				if (document.hidden) {
+					// ★ BGM を確実に停止 
+					if (BGM && !BGM.paused) { 
+						BGM.pause(); 
+					}
 					// ★ 既存の条件を満たすときだけポーズ 
 					if (gameStatus == 0 && game.time > 250) {
 						// ★ PauseScene が重複しないようにチェック 
 						if (!(game.currentScene instanceof PauseScene)) { 
 							new PauseScene();
 						} 
+					} 
+				}
+				else { 
+					// ★ タブ復帰時に BGM を再開（必要なら） 
+					if (BGM && BGM.paused && gameStatus == 0) { 
+						BGM.play(); 
 					} 
 				} 
 			};
@@ -12137,6 +12643,34 @@ window.onload = function() {
 		var accumulator = 0;
 		var lastTime = performance.now();
 
+		// ラグ補正（200ms 以上溜まったら切り捨て） 
+		const MAX_ACCUM = 200;
+
+		// 補間用：各 Node に prevX, prevY を追加する 
+		function storePrevPositions(scene) { 
+			scene.childNodes.forEach(node => { 
+				node.prevX = node.x; 
+				node.prevY = node.y; 
+			}); 
+		} 
+		// 補間適用：prev → curr を alpha で補間して描画 
+		function applyInterpolation(scene, alpha) { 
+			scene.childNodes.forEach(node => { 
+				if (node.prevX !== undefined) { 
+					node.x = node.prevX * (1 - alpha) + node.x * alpha; 
+					node.y = node.prevY * (1 - alpha) + node.y * alpha; 
+				} 
+			}); 
+		} 
+		// 補間後に元に戻す（次の tick のため） 
+		function restoreCurrentPositions(scene) { 
+			scene.childNodes.forEach(node => { 
+				if (node.prevX !== undefined) { 
+					node.x = node.x; // currX のまま 
+					node.y = node.y; 
+				} 
+			}); 
+		}
 		game._fixedTick = function() {
 			var now = performance.now();
 			var delta = now - lastTime;
@@ -12144,13 +12678,29 @@ window.onload = function() {
 
 			accumulator += delta;
 
+			// ラグが溜まりすぎたら切り捨てる 
+			if (accumulator > MAX_ACCUM) { 
+				accumulator = FIXED_DT; 
+			}
+
+			// ロジック更新前に現在位置を保存 
+			if (game.currentScene) { 
+				storePrevPositions(game.currentScene);
+			}
+
 			while (accumulator >= FIXED_DT) {
 				game._tick();
 				accumulator -= FIXED_DT;
 			}
 
+			// 補間係数（0〜1） 
+			const alpha = accumulator / FIXED_DT;
+
+			// 補間して描画 
 			if (game._renderer && game.currentScene) { 
+				applyInterpolation(game.currentScene, alpha); 
 				game._renderer.render(game.currentScene); 
+				restoreCurrentPositions(game.currentScene); 
 			}
 			requestAnimationFrame(game._fixedTick);
 		};
