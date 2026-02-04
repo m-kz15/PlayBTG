@@ -3384,17 +3384,11 @@ window.onload = function() {
 				// 見た目の回転（Bullet と同じ）
 				this.rotation = -1 * (180 + Math.atan2(this.vx, this.vy) * 180 / Math.PI);
 
-				/*// ① ターゲット地点に到達したら爆発
-				if (Vec_Distance({x:this.x, y:this.y}, {x:this.targetX, y:this.targetY}) < 12) {
-					this._Explode();
-					return;
-				}*/
 				// ★ ターゲットと同じ距離だけ進んだら爆発
 				if (this.travelDistance >= this.targetDistance) {
 					this._Explode();
 					return;
 				}
-
 
 				// ② 壁に衝突したら爆発
 				if (Block.intersectStrict(this).length > 0 ||
@@ -3455,7 +3449,7 @@ window.onload = function() {
 				1: [0.8, 1.0],
 				6: [0.6, 1.0],
 				8: [1.0, 1.0],
-				9: [0.7, 0.7],
+				9: [0.8, 0.8],
 				11: [0.6, 1.0]
 			};
 			const s = scaleMap[category];
@@ -3466,6 +3460,12 @@ window.onload = function() {
 		_Explode: function() {
 			/*const ex = this.x + this.width / 2;
 			const ey = this.y + this.height / 2;*/
+			if (gameStatus === 0) {
+				//game.assets['./sound/Sample_0000.wav'].clone().play();
+				let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
+				sound.play();
+				sound.volume = 0.5;
+			}
 
 			new TouchFire(this);
 			Spark_Effect(this);
@@ -3487,13 +3487,6 @@ window.onload = function() {
 			bulStack[this.num][this.id] = false;
 
 			now_scene.BulletGroup.removeChild(this);
-
-			if (gameStatus === 0) {
-				//game.assets['./sound/Sample_0000.wav'].clone().play();
-				let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
-				sound.play();
-				sound.volume = 0.5;
-			}
 		}
 	});
 
@@ -5725,7 +5718,7 @@ window.onload = function() {
 									if (dist == null) continue;
 
 									const defRange = Categorys.DefenceRange[this.category];
-									const escRange = Categorys.EscapeRange[this.category];
+									//const escRange = Categorys.EscapeRange[this.category];
 
 									switch (c.num) {
 										case 0:
@@ -5816,6 +5809,7 @@ window.onload = function() {
 									updatePathAndRotation(this, grid, scene);
 								}
 
+								let obsHit = false;
 								Obstracle.intersect(this).forEach(elem => {
 									switch (elem.name) {
 										case 'ObsTop': this.moveTo(this.x, elem.y - 60); break;
@@ -5823,11 +5817,12 @@ window.onload = function() {
 										case 'ObsLeft': this.moveTo(elem.x - 60, this.y); break;
 										case 'ObsRight': this.moveTo(elem.x + elem.width, this.y); break;
 									}
-									if (cflg) {
-										updatePathAndRotation(this, grid, scene);
-										markObstacle(rot, myPath, grid);
-									}
+									obsHit = true;
 								});
+								if (cflg && obsHit) {
+									updatePathAndRotation(this, grid, scene);
+									markObstacle(rot, myPath, grid);
+								}
 							}
 						}
 					} else {
@@ -6278,7 +6273,7 @@ window.onload = function() {
 			const Front = new InterceptFront(this.cannon);
 
 			switch (this.category) {
-				case 6:
+				case 5:
 					Around.scale(1.5, 1.5);
 					break;
 			}
@@ -6433,7 +6428,7 @@ window.onload = function() {
 								this.shotNGflg = false;
 								this.fireFlg = false;
 
-								if (this.moveSpeed > 0 && !rootFlg) {
+								if (this.moveSpeed > 0 && !rootFlg && this.time % 30 === 0) {
 									myPath = getGridCoord(this);
 									targetPath = getGridCoord(target);
 
@@ -6450,21 +6445,19 @@ window.onload = function() {
 										}
 									}
 
-									if (this.time % 30 === 0) {
-										root = findShortestPath(myPath, grid, scene);
+									root = findShortestPath(myPath, grid, scene);
 
-										const directionMap = {
-											East: 1,
-											West: 3,
-											North: 0,
-											South: 2
-										};
+									const directionMap = {
+										East: 1,
+										West: 3,
+										North: 0,
+										South: 2
+									};
 
-										if (root && root.length > 0) {
-											dirValue = directionMap[root[0]] ?? dirValue;
-										} else {
-											rootFlg = true;
-										}
+									if (root && root.length > 0) {
+										dirValue = directionMap[root[0]] ?? dirValue;
+									} else {
+										rootFlg = true;
 									}
 								}
 							}
@@ -6694,66 +6687,16 @@ window.onload = function() {
 							break;
 						}
 					}
-
 				}
 			}
 		},
 		_ResetAim: function () {
-			if (this.attackTarget.name == 'Bullet') {
+			if (this.attackTarget.name == 'Bullet' || this.attackTarget.name == 'PhyBullet') {
 				const shooterPos = Get_Center(this);
 				const bullet = this.attackTarget;
 				const bulletPos = Get_Center(bullet);
 				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = bullet.from.shotSpeed;
-				const shotSpeed = this.shotSpeed;
-
-				// 相対位置と速度ベクトル
-				const dx = bulletPos.x - shooterPos.x;
-				const dy = bulletPos.y - shooterPos.y;
-				const dvx = bulletVec.x * targetSpeed;
-				const dvy = bulletVec.y * targetSpeed;
-
-				// 二次方程式を解いて迎撃時間を推定
-				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
-				const b = 2 * (dx * dvx + dy * dvy);
-				const c = dx * dx + dy * dy;
-
-				// 近すぎると暴れる
-				if (c < 2000) return;
-
-				// a が小さいときは未来予測が不安定
-				if (Math.abs(a) < 0.0001) {
-					const aimAngle = Math.atan2(dy, dx);
-					this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					return;
-				}
-
-				const discriminant = b * b - 4 * a * c;
-				if (discriminant >= 0){
-					const sqrtDisc = Math.sqrt(discriminant);
-					let t1 = (-b - sqrtDisc) / (2 * a);
-					let t2 = (-b + sqrtDisc) / (2 * a);
-
-					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
-					if (time >= 0){
-						// 少し手前を狙うための係数（例：90%の位置を狙う）
-						var biasFactor = 0.95;
-
-						// 予測位置
-						const futureX = bulletPos.x + dvx * time * biasFactor;
-						const futureY = bulletPos.y + dvy * time * biasFactor;
-
-						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
-						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					}
-				}
-			}
-			else if (this.attackTarget.name == 'PhyBullet') {
-				const shooterPos = Get_Center(this);
-				const bullet = this.attackTarget;
-				const bulletPos = Get_Center(bullet);
-				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = bullet.shotSpeed;
+				const targetSpeed = this.attackTarget.name == 'Bullet' ? bullet.from.shotSpeed : bullet.shotSpeed;
 				const shotSpeed = this.shotSpeed;
 
 				// 相対位置と速度ベクトル
@@ -8163,51 +8106,12 @@ window.onload = function() {
 			}
 		},
 		_ResetAim: function () {
-			if (this.attackTarget.name == 'Bullet') {
+			if (this.attackTarget.name == 'Bullet' || this.attackTarget.name == 'PhyBullet') {
 				const shooterPos = Get_Center(this);
 				const bullet = this.attackTarget;
 				const bulletPos = Get_Center(bullet);
 				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = bullet.from.shotSpeed;
-				const shotSpeed = this.shotSpeed;
-
-				// 相対位置と速度ベクトル
-				const dx = bulletPos.x - shooterPos.x;
-				const dy = bulletPos.y - shooterPos.y;
-				const dvx = bulletVec.x * targetSpeed;
-				const dvy = bulletVec.y * targetSpeed;
-
-				// 二次方程式を解いて迎撃時間を推定
-				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
-				const b = 2 * (dx * dvx + dy * dvy);
-				const c = dx * dx + dy * dy;
-
-				const discriminant = b * b - 4 * a * c;
-				if (discriminant >= 0){
-					const sqrtDisc = Math.sqrt(discriminant);
-					let t1 = (-b - sqrtDisc) / (2 * a);
-					let t2 = (-b + sqrtDisc) / (2 * a);
-
-					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
-					if (time >= 0){
-						// 少し手前を狙うための係数（例：90%の位置を狙う）
-						var biasFactor = 0.75;
-
-						// 予測位置
-						const futureX = bulletPos.x + dvx * time * biasFactor;
-						const futureY = bulletPos.y + dvy * time * biasFactor;
-
-						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
-						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					}
-				}
-			}
-			else if (this.attackTarget.name == 'PhyBullet') {
-				const shooterPos = Get_Center(this);
-				const bullet = this.attackTarget;
-				const bulletPos = Get_Center(bullet);
-				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = bullet.shotSpeed;
+				const targetSpeed = this.attackTarget.name == 'Bullet' ? bullet.from.shotSpeed : bullet.shotSpeed;
 				const shotSpeed = this.shotSpeed;
 
 				// 相対位置と速度ベクトル
@@ -9188,62 +9092,12 @@ window.onload = function() {
 				let rad = Math.atan2(p.y, p.x);
 				this.cannon.rotation = Rad_to_Rot(rad);
 			}
-			else if (this.attackTarget.name == 'Bullet') {
+			else if (this.attackTarget.name == 'Bullet' || this.attackTarget.name == 'PhyBullet') {
 				const shooterPos = Get_Center(this);
 				const bullet = this.attackTarget;
 				const bulletPos = Get_Center(bullet);
 				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = bullet.from.shotSpeed;
-				const shotSpeed = this.shotSpeed;
-
-				// 相対位置と速度ベクトル
-				const dx = bulletPos.x - shooterPos.x;
-				const dy = bulletPos.y - shooterPos.y;
-				const dvx = bulletVec.x * targetSpeed;
-				const dvy = bulletVec.y * targetSpeed;
-
-				// 二次方程式を解いて迎撃時間を推定
-				var a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
-				var b = 2 * (dx * dvx + dy * dvy);
-				var c = dx * dx + dy * dy;
-
-				if (Math.abs(a) < 0.0001) {
-					if (gameMode == 2){
-						a = a <= 0 ? 0.0001 : -0.0001; 
-					}
-					else{
-						const aimAngle = Math.atan2(dy, dx);
-						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-						return;
-					}
-				}
-
-				const discriminant = b * b - 4 * a * c;
-				if (discriminant >= 0){
-					const sqrtDisc = Math.sqrt(discriminant);
-					let t1 = (-b - sqrtDisc) / (2 * a);
-					let t2 = (-b + sqrtDisc) / (2 * a);
-
-					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
-					if (time >= 0){
-						// 少し手前を狙うための係数（例：90%の位置を狙う）
-						var biasFactor = 0.4;
-
-						// 予測位置
-						const futureX = bulletPos.x + dvx * time * biasFactor;
-						const futureY = bulletPos.y + dvy * time * biasFactor;
-
-						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
-						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					}
-				}
-			}
-			else if (this.attackTarget.name == 'PhyBullet') {
-				const shooterPos = Get_Center(this);
-				const bullet = this.attackTarget;
-				const bulletPos = Get_Center(bullet);
-				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = bullet.shotSpeed;
+				const targetSpeed = this.attackTarget.name == 'Bullet' ? bullet.from.shotSpeed : bullet.shotSpeed;
 				const shotSpeed = this.shotSpeed;
 
 				// 相対位置と速度ベクトル
