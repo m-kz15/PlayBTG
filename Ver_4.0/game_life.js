@@ -43,6 +43,14 @@ var ActiveFlg = false;
 
 var destruction = 0; //ステージごとの撃破数
 
+let searchId = 1;
+const visited = Array.from({ length: Stage_H }, () => Array(Stage_W).fill(0));
+
+const qy = new Array(Stage_H * Stage_W);
+const qx = new Array(Stage_H * Stage_W);
+const qParent = new Array(Stage_H * Stage_W);
+const qMove = new Array(Stage_H * Stage_W);
+
 var tankEntity = []; //敵味方の戦車情報を保持する配列
 var deadFlgs = [];
 var bulStack = []; //弾の状態を判定する配列
@@ -780,7 +788,9 @@ function normalizeRotation(angle) {
 }
 
 function normalizeAngle(diff) {
-	return Math.abs(diff) >= 180 ? -diff : diff;
+	//return Math.abs(diff) >= 180 ? -diff : diff;
+	diff = (diff + 540) % 360 - 180;
+	return diff;
 }
 
 function Escape_Rot4(from, to, value) {
@@ -3464,7 +3474,7 @@ window.onload = function() {
 				//game.assets['./sound/Sample_0000.wav'].clone().play();
 				let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
 				sound.play();
-				sound.volume = 0.5;
+				sound.volume = 0.2;
 			}
 
 			new TouchFire(this);
@@ -4707,8 +4717,36 @@ window.onload = function() {
 		}
 
 		return false;
+	};
+	const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
+		const [goalY, goalX] = goal;
+		const candidates = [];
+
+		// 通行可能なマスを 'Empty' に変換
+		for (let i = 0; i < grid.length; i++) {
+			for (let j = 0; j < grid[i].length; j++) {
+				if (map.collisionData[i][j] === 2 || map.collisionData[i][j] === 3) {
+					grid[i][j] = 'Empty';
+				}
+			}
+		}
+
+		for (let y = 0; y < grid.length; y++) {
+			for (let x = 0; x < grid[y].length; x++) {
+				if (grid[y][x] === 'Empty' && isVisible([y, x], [goalY, goalX], grid) && Math.abs(x - goalX) + Math.abs(y - goalY) <= 8) {
+					const path = findShortestPath(start, grid, scene, [y, x]);
+					if (path) {
+						candidates.push({ x, y, path });
+					}
+				}
+			}
+		}
+
+		candidates.sort((a, b) => a.path.length - b.path.length);
+		return candidates.length > 0 ? candidates[0].path : null;
 	};*/
-	const DIRS = [
+
+	/*const DIRS = [
 		[-1, 0, "North"],
 		[0, 1, "East"],
 		[1, 0, "South"],
@@ -4890,36 +4928,183 @@ window.onload = function() {
 		}
 
 		return bestPath;
+	};*/
+
+
+	
+
+	const DIRS = [
+		{ dy: -1, dx: 0, move: "North" },
+		{ dy: 0, dx: 1, move: "East" },
+		{ dy: 1, dx: 0, move: "South" },
+		{ dy: 0, dx: -1, move: "West" }
+	];
+
+	const locationStatusFast = (y, x, grid) => {
+		if (y < 0 || y >= Stage_H || x < 0 || x >= Stage_W) return 0;
+		const cell = grid[y][x];
+		if (cell === "Goal") return 3;
+		if (cell === "Empty" || cell === "Start") return 2;
+		return 1;
 	};
 
+	const reconstructPathFast = (idx) => {
+		const path = [];
+		while (qParent[idx] !== -1) {
+			path.push(qMove[idx]);
+			idx = qParent[idx];
+		}
+		return path.reverse();
+	};
 
-	/*const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
-		const [goalY, goalX] = goal;
-		const candidates = [];
+	// ------------------------------------------------------
+	// ★ 既存の引数順を維持したまま最適化 BFS を実装
+	// ------------------------------------------------------
+	const findShortestPath = (startCoordinates, grid, scene, goalCoordinates = null) => {
+		const startY = startCoordinates[0];
+		const startX = startCoordinates[1];
 
-		// 通行可能なマスを 'Empty' に変換
-		for (let i = 0; i < grid.length; i++) {
-			for (let j = 0; j < grid[i].length; j++) {
-				if (map.collisionData[i][j] === 2 || map.collisionData[i][j] === 3) {
-					grid[i][j] = 'Empty';
+		let goalY = null, goalX = null;
+		if (goalCoordinates) {
+			goalY = goalCoordinates[0];
+			goalX = goalCoordinates[1];
+		}
+
+		searchId++;
+
+		let head = 0;
+		let tail = 0;
+
+		qy[0] = startY;
+		qx[0] = startX;
+		qParent[0] = -1;
+		visited[startY][startX] = searchId;
+
+		while (head <= tail) {
+			const y = qy[head];
+			const x = qx[head];
+			const curIndex = head;
+			head++;
+
+			// ゴール指定あり
+			if (goalCoordinates && y === goalY && x === goalX) {
+				return reconstructPathFast(curIndex);
+			}
+
+			// ゴール指定なし → grid 内の "Goal" に到達したら終了
+			if (!goalCoordinates && grid[y][x] === "Goal") {
+				return reconstructPathFast(curIndex);
+			}
+
+			for (let i = 0; i < 4; i++) {
+				const dy = DIRS[i].dy;
+				const dx = DIRS[i].dx;
+				const ny = y + dy;
+				const nx = x + dx;
+
+				if (ny < 0 || ny >= Stage_H || nx < 0 || nx >= Stage_W) continue;
+				if (visited[ny][nx] === searchId) continue;
+
+				const status = locationStatusFast(ny, nx, grid);
+				if (status === 0 || status === 1) continue;
+
+				visited[ny][nx] = searchId;
+
+				tail++;
+				qy[tail] = ny;
+				qx[tail] = nx;
+				qParent[tail] = curIndex;
+				qMove[tail] = DIRS[i].move;
+			}
+		}
+
+		return false;
+	};
+
+	// ------------------------------------------------------
+	// 可視判定（高速版）
+	// grid[y][x] === 1 → Obstacle
+	// ------------------------------------------------------
+	const isVisibleFast = (fromY, fromX, toY, toX, grid) => {
+		let x0 = fromX, y0 = fromY;
+		const x1 = toX, y1 = toY;
+
+		const dx = Math.abs(x1 - x0);
+		const dy = Math.abs(y1 - y0);
+		const sx = x0 < x1 ? 1 : -1;
+		const sy = y0 < y1 ? 1 : -1;
+
+		let err = dx - dy;
+
+		for (;;) {
+			if (grid[y0][x0] === 1) return false; // obstacle
+
+			if (x0 === x1 && y0 === y1) return true;
+
+			const e2 = err << 1;
+
+			if (e2 > -dy) {
+				err -= dy;
+				x0 += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				y0 += sy;
+			}
+		}
+	};
+
+	// ------------------------------------------------------
+	// findVisibleAccessibleTileFast（引数は既存のまま）
+	// goal = [goalY, goalX]
+	// start = [startY, startX]
+	// grid は数値グリッド（0=Empty, 1=Obstacle, 2=Goal）
+	// ------------------------------------------------------
+	const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
+		const goalY = goal[0];
+		const goalX = goal[1];
+
+		const startY = start[0];
+		const startX = start[1];
+
+		let bestLen = Infinity;
+		let bestPath = null;
+
+		// 探索範囲（±8）
+		const minY = Math.max(0, goalY - 8);
+		const maxY = Math.min(Stage_H - 1, goalY + 8);
+		const minX = Math.max(0, goalX - 8);
+		const maxX = Math.min(Stage_W - 1, goalX + 8);
+
+		for (let y = minY; y <= maxY; y++) {
+			for (let x = minX; x <= maxX; x++) {
+
+				// 通行不可
+				if (grid[y][x] !== 0) continue; // 0 = Empty
+
+				// マンハッタン距離
+				const dist = Math.abs(x - goalX) + Math.abs(y - goalY);
+				if (dist > 8) continue;
+
+				// 既に最短があるなら pruning
+				if (dist >= bestLen) continue;
+
+				// 可視判定
+				if (!isVisibleFast(y, x, goalY, goalX, grid)) continue;
+
+				// BFS（最適化版）
+				const path = findShortestPath(start, grid, scene, [y, x]);
+				if (!path) continue;
+
+				if (path.length < bestLen) {
+					bestLen = path.length;
+					bestPath = path;
 				}
 			}
 		}
 
-		for (let y = 0; y < grid.length; y++) {
-			for (let x = 0; x < grid[y].length; x++) {
-				if (grid[y][x] === 'Empty' && isVisible([y, x], [goalY, goalX], grid) && Math.abs(x - goalX) + Math.abs(y - goalY) <= 8) {
-					const path = findShortestPath(start, grid, scene, [y, x]);
-					if (path) {
-						candidates.push({ x, y, path });
-					}
-				}
-			}
-		}
-
-		candidates.sort((a, b) => a.path.length - b.path.length);
-		return candidates.length > 0 ? candidates[0].path : null;
-	};*/
+		return bestPath;
+	};
 
 	const getPathToGoalOrVisibleTile = (start, goal, grid, map, scene) => {
 		let path = findShortestPath(start, grid, scene, null);
@@ -9300,11 +9485,6 @@ window.onload = function() {
 							
 							this._Damage();
 
-							if (this.time % 60 == 0) {
-								grid = JSON.parse(JSON.stringify(scene.grid));
-								map = Object.assign({}, scene.backgroundMap);
-							}
-
 							if (this.time % 3 == 0) {
 								if (!this.escapeFlg) rootFlg = false;
 								if (this.attackTarget != target) rootFlg = true;
@@ -9313,31 +9493,34 @@ window.onload = function() {
 								this.fireFlg = false;
 
 								if (this.moveSpeed > 0 && !rootFlg) {
-									//  自身の位置とターゲットの位置をざっくり算出
-									myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)]
-									targetPath = [parseInt((target.y + target.height / 2) / PixelSize), parseInt((target.x + target.width / 2) / PixelSize)]
-									//  マップの障害物情報に自身とターゲットの位置設定
-									for (var i = 0; i < grid.length; i++) {
-										for (var j = 0; j < grid[i].length; j++) {
-											if (i == myPath[0] && j == myPath[1]) {
-												grid[i][j] = 'Start';
-											} else if (i == targetPath[0] && j == targetPath[1]) {
-												grid[i][j] = 'Goal';
-											} else {
-												//  StartやGoalの位置が更新されている場合の処理
-												if (map.collisionData[i][j] == 0 || map.collisionData[i][j] == 5) {
-													grid[i][j] = 'Empty';
+									
+									if (this.time % 60 == 0 && !this.bomSetFlg) {
+										grid = JSON.parse(JSON.stringify(scene.grid));
+										map = Object.assign({}, scene.backgroundMap);
+
+										//  自身の位置とターゲットの位置をざっくり算出
+										myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)]
+										targetPath = [parseInt((target.y + target.height / 2) / PixelSize), parseInt((target.x + target.width / 2) / PixelSize)]
+										//  マップの障害物情報に自身とターゲットの位置設定
+										for (var i = 0; i < grid.length; i++) {
+											for (var j = 0; j < grid[i].length; j++) {
+												if (i == myPath[0] && j == myPath[1]) {
+													grid[i][j] = 'Start';
+												} else if (i == targetPath[0] && j == targetPath[1]) {
+													grid[i][j] = 'Goal';
 												} else {
-													grid[i][j] = 'Obstacle';
+													//  StartやGoalの位置が更新されている場合の処理
+													if (map.collisionData[i][j] == 0 || map.collisionData[i][j] == 5) {
+														grid[i][j] = 'Empty';
+													} else {
+														grid[i][j] = 'Obstacle';
+													}
 												}
 											}
 										}
-									}
-									if (this.time % 20 == 0 && !this.bomSetFlg) {
-										//if(this.time == 0){
+
 										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
 										//root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene);
-										//if(this.time % 60 == 0) console.log(myPath);
 										if (root[0] == "East") {
 											dirValue = 1;
 											if (root[1] == "North" && grid[myPath[0] - 1][myPath[1] + 1] != 'Obstacle') {
