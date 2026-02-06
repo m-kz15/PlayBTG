@@ -2525,6 +2525,38 @@ window.onload = function() {
 		}
 	});
 
+	// Aim 用のキャッシュ（1回だけ生成）
+	const AimSurfaceCache = (() => {
+		const s = new Surface(8, 8);
+		const ctx = s.context;
+		ctx.beginPath();
+		ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
+		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
+		ctx.fill();
+		return s;
+	})();
+
+	const RedAimSurfaceCache = (() => {
+		const s = new Surface(8, 8);
+		const ctx = s.context;
+		ctx.beginPath();
+		ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
+		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
+		ctx.fill();
+		return s;
+	})();
+
+	const PlayerRefAimSurfaceCache = (() => {
+		// 可視エフェクト設定
+		const s = new Surface(8, 8);
+		const ctx = s.context;
+		ctx.beginPath();
+		ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
+		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
+		ctx.fill();
+		return s;
+	})
+
 	var Aim = Class.create(Sprite, {
 		initialize: function(from, to, category, num) {
 			Sprite.call(this, 8, 8);
@@ -2538,13 +2570,7 @@ window.onload = function() {
 
 			// ビジュアル設定
 			if (num === 0) {
-				const surface = new Surface(this.width, this.height);
-				const ctx = surface.context;
-				ctx.beginPath();
-				ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
-				ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
-				ctx.fill();
-				this.image = surface;
+				this.image = AimSurfaceCache;
 			} else{
 				this.visible = false;
 				if (Categorys.MaxRef[category] === 0) {
@@ -2747,14 +2773,7 @@ window.onload = function() {
 			if (DebugFlg) this.debugColor = 'orange';
 
 			if (num == 0){
-				// 可視エフェクト設定
-				const surface = new Surface(this.width, this.height);
-				const ctx = surface.context;
-				ctx.beginPath();
-				ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
-				ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
-				ctx.fill();
-				this.image = surface;
+				this.image = PlayerRefAimSurfaceCache;
 			}
 			else{
 				this.visible = false;
@@ -2974,6 +2993,7 @@ window.onload = function() {
 			this.target = from;
 			this.num = from.num;
 			this.id = from.id;
+			this.visible = false;
 
 			const rad = Rot_to_Rad(from.rotation - 90);
 			const dx = Math.cos(rad) * 24;
@@ -3022,6 +3042,7 @@ window.onload = function() {
 			this.target = from;
 			this.num = from.num;
 			this.id = from.id;
+			this.visible = false;
 
 			const rad = Rot_to_Rad(from.rotation - 90);
 			const dx = Math.cos(rad) * 24;
@@ -5463,12 +5484,7 @@ window.onload = function() {
 							} else {
 								let aim = new Aim(this.cannon, this.cursor, this.category, this.num);
 								if (this.category == 9 && (this.bulReloadFlg || bullets[this.num] > 0)) {
-									let n_color = new Surface(aim.width, aim.height);
-									n_color.context.beginPath();
-									n_color.context.fillStyle = 'rgba(255, 0, 0, 0.4)';
-									n_color.context.arc(4, 4, 4, 0, Math.PI * 2, true);
-									n_color.context.fill();
-									aim.image = n_color;
+									aim.image = RedAimSurfaceCache;
 								}
 							}
 
