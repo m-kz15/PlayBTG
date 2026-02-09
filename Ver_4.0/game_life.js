@@ -1672,6 +1672,86 @@ class ActBtn {
 	}
 }
 
+(function() {
+
+    const FIXED_FPS = 60;
+    const FIXED_DT = 1000 / FIXED_FPS;
+    const MAX_ACCUM = 200;
+
+    enchant.Core.prototype.enableFixedLoop = function() {
+        const core = this;
+
+        // enchant.js の内部ループを完全停止
+        core._requestNextFrame = function() {};
+
+        let accumulator = 0;
+        let lastTime = performance.now();
+
+        // 補間用
+        function storePrevPositions(scene) {
+            scene.childNodes.forEach(node => {
+                node.prevX = node.x;
+                node.prevY = node.y;
+            });
+        }
+
+        function applyInterpolation(scene, alpha) {
+            scene.childNodes.forEach(node => {
+                if (node.prevX !== undefined) {
+                    node.x = node.prevX * (1 - alpha) + node.x * alpha;
+                    node.y = node.prevY * (1 - alpha) + node.y * alpha;
+                }
+            });
+        }
+
+        function restoreCurrentPositions(scene) {
+            scene.childNodes.forEach(node => {
+                if (node.prevX !== undefined) {
+                    node.x = node.x;
+                    node.y = node.y;
+                }
+            });
+        }
+
+        // 固定ロジック＋補間描画ループ
+        core._fixedTick = function() {
+            const now = performance.now();
+            const delta = now - lastTime;
+            lastTime = now;
+
+            accumulator += delta;
+            if (accumulator > MAX_ACCUM) {
+                accumulator = FIXED_DT;
+            }
+
+            const scene = core.currentScene;
+
+            if (scene) {
+                storePrevPositions(scene);
+            }
+
+            while (accumulator >= FIXED_DT) {
+                core._tick(); // enchant.js のロジック更新
+                accumulator -= FIXED_DT;
+            }
+
+            const alpha = accumulator / FIXED_DT;
+
+            if (core._renderer && scene) {
+                applyInterpolation(scene, alpha);
+                core._renderer.render(scene);
+                restoreCurrentPositions(scene);
+            }
+
+            requestAnimationFrame(core._fixedTick);
+        };
+
+        requestAnimationFrame(core._fixedTick);
+    };
+
+})();
+
+
 window.onload = function() {
 	game = new Core(Stage_W * PixelSize, Stage_H * PixelSize);
 	game.fps = 60; //画面の更新頻度
@@ -1745,6 +1825,7 @@ window.onload = function() {
 		'./sound/TENTH.mp3',
 		'./sound/ELEVENTH.mp3'
 	);
+	game.enableFixedLoop();
 
 	inputManager = new InputManager();
 
@@ -13498,7 +13579,7 @@ window.onload = function() {
 	}
 
 	if (canStart){
-		startFixedLoop(game);
+		//startFixedLoop(game);
 	}
 };
 if (navigator.userAgent.match(/iPhone/)) {
