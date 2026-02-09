@@ -197,7 +197,7 @@ const Categorys = {
 		10, //elitered
 		11, //pink
 		12, //sand
-		23, //random
+		28, //random
 		13, //dazzle
 		13 //abysal
 	],
@@ -277,7 +277,7 @@ const Categorys = {
 		8, //elitered
 		5, //pink
 		10, //sand
-		1.5, //random
+		1, //random
 		10, //dazzle
 		15 //abysal
 	],
@@ -2542,10 +2542,7 @@ window.onload = function() {
 		}
 	});
 
-	
-
-
-	var RefAim = Class.create(Sprite, {
+	/*var RefAim = Class.create(Sprite, {
 		initialize: function(ref, from, category, num) {
 			Sprite.call(this, 8, 8);
 			this.time = 0;
@@ -2662,8 +2659,156 @@ window.onload = function() {
 
 			now_scene.addChild(this);
 		}
-	});
+	});*/
 
+	var RefAim = Class.create(Sprite, {
+		initialize: function (ref, from, category, num) {
+			Sprite.call(this, 8, 8);
+
+			this.time = 0;
+			this.category = category;
+			this.num = num;
+			this.ref = ref;
+			this.hitTime = 0;
+			this.visible = false;
+
+			if (DebugFlg) this.debugColor = 'orange';
+
+			this.originX = 4;
+			this.originY = 4;
+
+			// --- 前処理の最適化 ---
+			const lists = RefAim.collection.filter(e => e.num === num);
+			const percent = category == 6 ? lists.length % 3 === 0 : lists.length % 2 === 1;
+
+			const fc = Get_Center(from);
+			const baseRot = from.rotation - 90;
+			const rad = Rot_to_Rad(baseRot);
+
+			const cos = Math.cos(rad);
+			const sin = Math.sin(rad);
+
+			this.dx = cos * 20;
+			this.dy = sin * 20;
+			this.agl = from.rotation;
+
+			this.tgt = [fc.x + this.dx * 3, fc.y + this.dy * 3];
+			this.rotation = normalizeRotation((315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1);
+
+			this.moveTo(
+				fc.x + 36 * cos - this.width / 2,
+				fc.y + 36 * sin - this.height / 2
+			);
+
+			if (percent) {
+				this.x += this.dx / 2;
+				this.y += this.dy / 2;
+			}
+
+			// --- onenterframe ---
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
+
+				this.time++;
+
+				// 2 ステップ移動
+				for (let i = 0; i < 2; i++) {
+					this.x += this.dx / 2;
+					this.y += this.dy / 2;
+
+					// RefObstracle 衝突
+					const hit = RefObstracle.intersectStrict(this).find(e => true);
+					if (hit) {
+						this.handleCollision(hit, percent);
+						break;
+					}
+				}
+
+				// TankBase 衝突
+				TankBase.intersectStrict(this).forEach(elem => {
+					if (elem.num !== 0) now_scene.removeChild(this);
+				});
+
+				// 生存時間 or 反射回数
+				if (this.time > 150 || this.ref < 0) {
+					now_scene.removeChild(this);
+				}
+			};
+
+			// --- 衝突処理 ---
+			this.handleCollision = (elem, percent) => {
+				const v = Rot_to_Vec(this.rotation, 315);
+				const f = Math.atan2(v.x, v.y);
+
+				const midX = this.x + this.width / 2;
+				const midY = this.y + this.height / 2;
+
+				const isMaxRef = this.ref === Categorys.MaxRef[this.category];
+
+				switch (elem.name) {
+					case 'RefTop':
+						if (isMaxRef) {
+							this.tgt = [
+								midX - Math.cos(f) * (elem.y - (this.y - 1 + this.height + 2)),
+								elem.y - 2.5
+							];
+						}
+						this.x -= Math.cos(f) * (elem.y - (this.y + this.height));
+						this.y = elem.y - this.height;
+						this.dy = -this.dy;
+						break;
+
+					case 'RefBottom':
+						if (isMaxRef) {
+							this.tgt = [
+								midX - Math.cos(f) * (((this.y - 1) - (this.height + 2) / 2) - (elem.y + elem.height)),
+								elem.y + elem.height + 2.5
+							];
+						}
+						this.x -= Math.cos(f) * ((this.y - this.height / 2) - (elem.y + elem.height));
+						this.y = elem.y + elem.height;
+						this.dy = -this.dy;
+						break;
+
+					case 'RefLeft':
+						if (isMaxRef) {
+							this.tgt = [
+								elem.x - 2.5,
+								midY - Math.sin(f) * (((this.x - 1) + (this.width + 2)) - elem.x)
+							];
+						}
+						this.y -= Math.sin(f) * ((this.x + this.width) - elem.x);
+						this.x = elem.x - this.width;
+						this.dx = -this.dx;
+						break;
+
+					case 'RefRight':
+						if (isMaxRef) {
+							this.tgt = [
+								elem.x + elem.width + 2.5,
+								midY - Math.sin(f) * ((elem.x + elem.width) - ((this.x - 1) + (this.width + 2)))
+							];
+						}
+						this.y -= Math.sin(f) * ((elem.x + elem.width) - (this.x + this.width));
+						this.x = elem.x + elem.width;
+						this.dx = -this.dx;
+						break;
+				}
+
+				this.ref--;
+
+				// 反射後の角度更新
+				this.rotation = (315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1;
+
+				if (percent) {
+					this.x += this.dx / 2;
+					this.y += this.dy / 2;
+				}
+			};
+
+			now_scene.addChild(this);
+		}
+	});
 
 	var PlayerRefAim = Class.create(Sprite, {
 		initialize: function(ref, from, to, category, num) {
@@ -2944,7 +3089,7 @@ window.onload = function() {
 		return relativeAngle < angle || relativeAngle > (360 - angle);
 	}
 
-	var BulletCol = Class.create(PhyCircleSprite, {
+	/*var BulletCol = Class.create(PhyCircleSprite, {
 		initialize: function(shotSpeed, ref, from, category, num, id) {
 			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0, 0, 1, true);
 
@@ -3067,6 +3212,190 @@ window.onload = function() {
 				});
 			});
 			return count;
+		}
+	});*/
+	var BulletCol = Class.create(PhyCircleSprite, {
+		initialize: function (shotSpeed, ref, from, category, num, id) {
+			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0, 0, 1, true);
+
+			this.time = 0;
+			this.id = id;
+			this.num = num;
+			this.category = category;
+			this.from = from;
+			this.shotSpeed = shotSpeed;
+			this.ref = ref;
+			this.bullet = new Bullet(this, num, id);
+
+			let wasHit = false;   // 前フレームで当たっていたか
+			let hitTime = 0;      // 接触継続フレーム数
+
+			this.prevVx = 0;
+			this.prevVy = 0;
+
+			// 射角ブレ
+			const [r0, r1] = this.getRandomOffset(category);
+			this.applyBulletScaling(category);
+
+			this.vec = Rot_to_Vec(from.rotation + r0 + r1, -90);
+			this.rad = Math.atan2(this.vec.y, this.vec.x);
+
+			const pos = Get_Center(from);
+			this.moveTo(pos.x + Math.cos(this.rad) * 60 - 2.25,
+						pos.y + Math.sin(this.rad) * 60 - 3);
+
+			this.applyImpulse(new b2Vec2(Math.cos(this.rad) * shotSpeed,
+										Math.sin(this.rad) * shotSpeed));
+
+			/*this.onenterframe = () => {
+				if (!WorldFlg) return;
+
+				this.vec = { x: this.vx, y: this.vy };
+				this.rad = Math.atan2(this.vec.y, this.vec.x);
+				this.time++;
+
+				if (this.time % 10 === 0) new Smoke(this);
+
+				// --- 衝突判定（高速化） ---
+				const hitCount =
+					Wall.intersectStrict(this.bullet).length +
+					Block.intersectStrict(this.bullet).length;
+
+				const isHit = hitCount > 0;
+
+				// ★ 接触開始（enter）
+				if (isHit && !wasHit) {
+					this.ref--;
+					hitTime = 0;
+					if (gameStatus === 0)
+						game.assets['./sound/s_car_trunk_O.wav'].clone().play();
+				}
+
+				// ★ 接触継続（stay）
+				if (isHit) {
+					hitTime++;
+					if (hitTime >= 30) {
+						this.ref--;
+						hitTime = 0;
+					}
+				}
+
+				// ★ 接触終了（exit）
+				if (!isHit) {
+					hitTime = 0;
+				}
+
+				wasHit = isHit;
+
+				// 反射限界
+				if (this.ref < 0) this._Destroy();
+
+				// 他弾との衝突
+				Bullet.intersectStrict(this.bullet).forEach(elem => {
+					if (this.bullet.num !== elem.num || this.bullet.id !== elem.id) {
+						elem.from._Destroy();
+						this._Destroy();
+					}
+				});
+			};*/
+			this.onenterframe = () => {
+				if (!WorldFlg) return;
+
+				// 前フレーム速度を保存
+				const lastVx = this.prevVx;
+				const lastVy = this.prevVy;
+
+				this.prevVx = this.vx;
+				this.prevVy = this.vy;
+
+				this.vec = { x: this.vx, y: this.vy };
+				this.rad = Math.atan2(this.vec.y, this.vec.x);
+				this.time++;
+
+				if (this.time % 10 === 0) new Smoke(this);
+
+				// 前フレームと現在の速度ベクトルの角度差
+				const dot = lastVx * this.vx + lastVy * this.vy;
+				const mag1 = Math.sqrt(lastVx * lastVx + lastVy * lastVy);
+				const mag2 = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+
+				// 速度ゼロは除外
+				let angleChanged = false;
+				if (mag1 > 0 && mag2 > 0) {
+					const cosTheta = dot / (mag1 * mag2);
+					const angle = Math.acos(Math.min(1, Math.max(-1, cosTheta))); // 安全クランプ
+
+					// ★ 反射角度が小さくても検出できる
+					if (angle > 0.05) { // 0.2rad ≒ 11.5度（調整可能）
+						angleChanged = true;
+					}
+				}
+
+				if (angleChanged) {
+					this.ref--;
+					if (gameStatus === 0)
+						game.assets['./sound/s_car_trunk_O.wav'].clone().play();
+				}
+
+
+				// 反射限界
+				if (this.ref < 0) this._Destroy();
+
+				// 他弾との衝突
+				Bullet.intersectStrict(this.bullet).forEach(elem => {
+					if (this.bullet.num !== elem.num || this.bullet.id !== elem.id) {
+						elem.from._Destroy();
+						this._Destroy();
+					}
+				});
+			};
+
+		},
+
+		_Shot: function () {
+			bullets[this.num]++;
+			bulStack[this.num][this.id] = true;
+			now_scene.BulletGroup.addChild(this);
+			now_scene.BulletGroup.addChild(this.bullet);
+			new OpenFire(this.from);
+			game.assets['./sound/s_car_door_O2.wav'].clone().play();
+			if (this.shotSpeed >= 14)
+				game.assets['./sound/Sample_0003.wav'].clone().play();
+		},
+
+		_Destroy: function () {
+			bullets[this.num]--;
+			bulStack[this.num][this.id] = false;
+			new TouchFire(this.bullet);
+			Spark_Effect(this.bullet);
+			this.destroy();
+			now_scene.BulletGroup.removeChild(this);
+			now_scene.BulletGroup.removeChild(this.bullet);
+			if (gameStatus === 0)
+				game.assets['./sound/Sample_0000.wav'].clone().play();
+		},
+
+		getRandomOffset: function (category) {
+			const ranges = { 4: 10, 9: 6, 13: 4 };
+			const r = ranges[category];
+			if (!r) return [0, 0];
+			return [
+				(Math.floor(Math.random() * (r * 2)) - r) / 2,
+				(Math.floor(Math.random() * (r * 2)) - r) / 2
+			];
+		},
+
+		applyBulletScaling: function (category) {
+			const scaleMap = {
+				0: [1.0, 1.0],
+				1: [0.8, 1.0],
+				6: [0.6, 1.0],
+				8: [1.0, 1.0],
+				9: [0.7, 0.7],
+				11: [0.6, 1.0]
+			};
+			const s = scaleMap[category];
+			if (s) this.bullet.scale(...s);
 		}
 	});
 
@@ -3269,7 +3598,7 @@ window.onload = function() {
 				1: [0.8, 1.0],
 				6: [0.6, 1.0],
 				8: [1.0, 1.0],
-				9: [0.8, 0.8],
+				9: [0.7, 0.7],
 				11: [0.6, 1.0]
 			};
 			const s = scaleMap[category];
@@ -3828,131 +4157,145 @@ window.onload = function() {
 		const ctx = surface.context;
 
 		const debrisCount = 20;
-		const debris = [];
 		const debrisCount2 = 10;
+
+		const rand = Math.random;
+		const cos = Math.cos;
+		const sin = Math.sin;
+		const PI2 = Math.PI * 2;
+
+		const debris = [];
 		const debris2 = [];
 
-		// 破片の初期化（キャッシュ）
+		// 破片キャッシュ
 		for (let i = 0; i < debrisCount; i++) {
-			const angle = Math.random() * Math.PI * 2;
-			const speed = 30 + Math.random() * 60;
-			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 9) - 4) * 5);
-			const vy = Math.sin(angle) * speed - 60;
-			const rotation = angle;
-			const sizeW = 2 + Math.random() * 10;
-			const sizeH = 2 + Math.random() * 10;
-			const color = `rgba(${150 + Math.random() * 100}, ${Math.random() * 80}, 0,`;
-			debris.push({ vx, vy, sizeW, sizeH, rotation, color });
+			const angle = rand() * PI2;
+			const speed = 30 + rand() * 60;
+			debris.push({
+				vx: cos(angle) * speed + ((Math.floor(rand() * 9) - 4) * 5),
+				vy: sin(angle) * speed - 60,
+				sizeW: 2 + rand() * 10,
+				sizeH: 2 + rand() * 10,
+				rotation: angle,
+				color: `rgba(${150 + rand() * 100}, ${rand() * 80}, 0,`
+			});
 		}
+
+		const palette = [
+			() => `rgba(${10 + rand() * 40}, ${147 + rand() * 60}, 250,`,
+			() => `rgba(250, ${100 + rand() * 40}, 0,`,
+			() => `rgba(${rand() * 60}, ${rand() * 60}, ${rand() * 60},`,
+			() => `rgba(0, ${150 + rand() * 40}, 20,`,
+			() => `rgba(${155 + rand() * 100}, 0, 0,`,
+			() => `rgba(${60 + rand() * 60}, ${30 + rand() * 30}, 30,`,
+			() => `rgba(0, ${70 + rand() * 60}, 30,`,
+			() => `rgba(${64 + rand() * 80}, 250, 250,`,
+			() => `rgba(${160 + rand() * 40}, 0, ${rand() * 60},`,
+			() => `rgba(250, ${150 + rand() * 30}, ${150 + rand() * 30},`,
+			() => `rgba(250, 250, ${100 + rand() * 60},`,
+			() => `rgba(${rand() * 60}, ${rand() * 30}, 0,`,
+			() => `rgba(150, ${40 + rand() * 40}, 0,`,
+			() => `rgba(0, 0, ${60 + rand() * 60},`
+		];
 
 		for (let i = 0; i < debrisCount2; i++) {
-			const angle = Math.random() * Math.PI * 2;
-			const speed = 50 + Math.random() * 30;
-			const vx = Math.cos(angle) * speed + ((Math.floor(Math.random() * 3) - 1) * 3);
-			const vy = Math.sin(angle) * speed - 75;
-			const rotation = angle;
-			const sizeW = 10 + Math.random() * 10;
-			const sizeH = 10 + Math.random() * 10;
-			let color = `rgba(${Math.random() * 60}, ${Math.random() * 30}, 0,`;
-
-			if (Math.random() < 0.5) {
-				const palette = [
-					`rgba(${10 + Math.random() * 40}, ${147 + Math.random() * 60}, 250,`,
-					`rgba(250, ${100 + Math.random() * 40}, 0,`,
-					`rgba(${Math.random() * 60}, ${Math.random() * 60}, ${Math.random() * 60},`,
-					`rgba(0, ${150 + Math.random() * 40}, 20,`,
-					`rgba(${155 + Math.random() * 100}, 0, 0,`,
-					`rgba(${60 + Math.random() * 60}, ${30 + Math.random() * 30}, 30,`,
-					`rgba(0, ${70 + Math.random() * 60}, 30,`,
-					`rgba(${64 + Math.random() * 80}, 250, 250,`,
-					`rgba(${160 + Math.random() * 40}, 0, ${Math.random() * 60},`,
-					`rgba(250, ${150 + Math.random() * 30}, ${150 + Math.random() * 30},`,
-					`rgba(250, 250, ${100 + Math.random() * 60},`,
-					`rgba(${Math.random() * 60}, ${Math.random() * 30}, 0,`,
-					`rgba(150, ${40 + Math.random() * 40}, 0,`,
-					`rgba(0, 0, ${60 + Math.random() * 60},`
-				];
-				color = palette[category % palette.length];
-			}
-
-			debris2.push({ vx, vy, sizeW, sizeH, rotation, color });
+			const angle = rand() * PI2;
+			const speed = 50 + rand() * 30;
+			const usePalette = rand() < 0.5;
+			debris2.push({
+				vx: cos(angle) * speed + ((Math.floor(rand() * 3) - 1) * 3),
+				vy: sin(angle) * speed - 75,
+				sizeW: 10 + rand() * 10,
+				sizeH: 10 + rand() * 10,
+				rotation: angle,
+				color: usePalette ? palette[category % palette.length]() : `rgba(${rand() * 60}, ${rand() * 30}, 0,`
+			});
 		}
 
-		// スパイクのランダム値をキャッシュ
+		// スパイクキャッシュ
 		const spikeCache = Array.from({ length: frames }, () =>
 			Array.from({ length: 10 }, () => ({
-				aOffset: Math.random() * 0.15,
-				distOffset: Math.random() * 5,
-				len: 18 + Math.random() * 10,
-				wid: 3 + Math.random()
+				aOffset: rand() * 0.15,
+				distOffset: rand() * 5,
+				len: 18 + rand() * 10,
+				wid: 3 + rand()
 			}))
 		);
 
 		for (let frame = 0; frame < frames; frame++) {
 			const t = frame / (frames - 1);
-			const alpha = 1.0 - t;
+			const alpha = 1 - t;
 			const x = frame * size;
 			const cx = x + size / 2;
 			const cy = size / 2;
 
 			ctx.save();
 
-			// 爆心の光球
+			// 光球
 			if (frame < 15) {
 				ctx.beginPath();
-				ctx.fillStyle = `rgba(255,220,180,${0.7 * (1 - (t * 4.5))})`;
-				ctx.arc(cx, cy, 25 + frame * 2, 0, Math.PI * 2);
+				ctx.fillStyle = `rgba(255,220,180,${0.7 * (1 - t * 4.5)})`;
+				ctx.arc(cx, cy, 25 + frame * 2, 0, PI2);
 				ctx.fill();
 			}
 
-			// 爆風スパイク
+			// スパイク
 			if (frame < 40) {
 				const spikes = spikeCache[frame];
-				spikes.forEach((s, r) => {
-					const a = (Math.PI * 2 / 10) * r + s.aOffset;
+				for (let i = 0; i < 10; i++) {
+					const s = spikes[i];
+					const a = (PI2 / 10) * i + s.aOffset;
 					const dist = t * 55 + s.distOffset;
-					const px = cx + Math.cos(a) * dist;
-					const py = cy + Math.sin(a) * dist;
+					const px = cx + cos(a) * dist;
+					const py = cy + sin(a) * dist;
 
 					ctx.save();
 					ctx.translate(px, py);
 					ctx.rotate(a);
 					ctx.beginPath();
-					ctx.fillStyle = `rgba(255, ${80 + Math.random() * 100}, 0, ${alpha - 0.2})`;
-					ctx.ellipse(0, 0, s.wid, s.len, 0, 0, Math.PI * 2);
+					ctx.fillStyle = `rgba(255, ${80 + rand() * 100}, 0, ${alpha - 0.2})`;
+					ctx.ellipse(0, 0, s.wid, s.len, 0, 0, PI2);
 					ctx.fill();
 					ctx.restore();
-				});
+				}
 			}
 
-			// 破片描画
+			// 破片
 			if (frame > 10) {
-				[debris, debris2].forEach((group, index) => {
-					group.forEach(d => {
-						const dx = cx + d.vx * t;
-						const dy = cy + (d.vy + 120 * t) * t;
-						ctx.save();
-						ctx.translate(dx, dy);
-						ctx.rotate(d.rotation);
-						const opacity = index === 0 ? alpha : 0.8 * alpha;
-						ctx.fillStyle = `${d.color} ${opacity})`;
-						ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
-						ctx.restore();
-					});
-				});
+				const tvy = 120 * t;
+				for (let d of debris) {
+					const dx = cx + d.vx * t;
+					const dy = cy + (d.vy + tvy) * t;
+					ctx.save();
+					ctx.translate(dx, dy);
+					ctx.rotate(d.rotation);
+					ctx.fillStyle = `${d.color}${alpha})`;
+					ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
+					ctx.restore();
+				}
+				for (let d of debris2) {
+					const dx = cx + d.vx * t;
+					const dy = cy + (d.vy + tvy) * t;
+					ctx.save();
+					ctx.translate(dx, dy);
+					ctx.rotate(d.rotation);
+					ctx.fillStyle = `${d.color}${0.8 * alpha})`;
+					ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
+					ctx.restore();
+				}
 			}
 
 			// 煙
 			if (frame > 10) {
 				for (let i = 0; i < 5; i++) {
-					const a = Math.random() * Math.PI * 2;
-					const d = 20 + t * 40 + Math.random() * 10;
-					const px = cx + Math.cos(a) * d;
-					const py = cy + Math.sin(a) * d;
-					const r = 8 + Math.random() * 4;
+					const a = rand() * PI2;
+					const d = 20 + t * 40 + rand() * 10;
+					const px = cx + cos(a) * d;
+					const py = cy + sin(a) * d;
+					const r = 8 + rand() * 4;
 					ctx.beginPath();
 					ctx.fillStyle = `rgba(60,60,60,${0.5 * alpha})`;
-					ctx.arc(px, py, r, 0, Math.PI * 2);
+					ctx.arc(px, py, r, 0, PI2);
 					ctx.fill();
 				}
 			}
@@ -3962,6 +4305,7 @@ window.onload = function() {
 
 		return surface;
 	}
+
 
 	var Target = Class.create(Sprite, {
 		initialize: function(from, scene) {
@@ -4863,7 +5207,7 @@ window.onload = function() {
 
 	//	戦車の親クラス
 	var TankBase = Class.create(Sprite, {
-		initialize: function(x, y, category, num, scene) {
+		initialize: function (x, y, category, num, scene) {
 			Sprite.call(this, PixelSize - 4, PixelSize - 4);
 			this.name = "Entity";
 			this.time = 0;
@@ -4872,30 +5216,30 @@ window.onload = function() {
 			this.y = y * PixelSize - 18;
 			this.category = category;
 
-			this.life = Categorys.Life[this.category];
-			this.shotSpeed = Categorys.ShotSpeed[this.category];
-			this.fireLate = Categorys.FireLate[this.category];
-			this.ref = Categorys.MaxRef[this.category];
-			this.bulMax = Categorys.MaxBullet[this.category];
-			this.bomMax = Categorys.MaxBom[this.category];
-			this.moveSpeed = Categorys.MoveSpeed[this.category];
-			this.reload = Categorys.Reload[this.category];
+			this.life        = Categorys.Life[this.category];
+			this.shotSpeed   = Categorys.ShotSpeed[this.category];
+			this.fireLate    = Categorys.FireLate[this.category];
+			this.ref         = Categorys.MaxRef[this.category];
+			this.bulMax      = Categorys.MaxBullet[this.category];
+			this.bomMax      = Categorys.MaxBom[this.category];
+			this.moveSpeed   = Categorys.MoveSpeed[this.category];
+			this.reload      = Categorys.Reload[this.category];
 			this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category];
-			this.distance = Categorys.Distances[this.category];
+			this.distance    = Categorys.Distances[this.category];
 
-			this.bomSetFlg = false;
-			this.bomReload = 0;
+			this.bomSetFlg    = false;
+			this.bomReload    = 0;
 			this.bulReloadFlg = false;
 			this.bulReloadTime = 0;
-			this.shotNGflg = false;
-			this.moveFlg = true;
+			this.shotNGflg    = false;
+			this.moveFlg      = true;
 
-			this.damFlg = false;
-			this.damTime = 0;
-			this.damTimeMax = this.num == 0 || this.category == 0 ? 90 : 60;
-			this.damCng = false;
+			this.damFlg    = false;
+			this.damTime   = 0;
+			this.damTimeMax = (this.num === 0 || this.category === 0) ? 90 : 60;
+			this.damCng    = false;
 
-			this.fireFlg = false;
+			this.fireFlg   = false;
 			this.escapeFlg = false;
 
 			this.waitFrame = 0;
@@ -4904,207 +5248,210 @@ window.onload = function() {
 				switch (this.category) {
 					case 1:
 						this.shotSpeed += 2;
-						this.bulMax += 2;
+						this.bulMax    += 2;
 						break;
 					case 2:
 						this.shotSpeed += 1;
-						this.bulMax += 1;
+						this.bulMax    += 1;
 						this.moveSpeed += 0.5;
 						break;
 					case 3:
 						this.moveSpeed += 0.5;
-						this.bulMax += 1;
-						this.ref = 1;
-						this.reload += 90;
+						this.bulMax    += 1;
+						this.ref        = 1;
+						this.reload    += 90;
 						break;
 					case 4:
 						this.shotSpeed += 1;
-						this.bulMax += 1;
+						this.bulMax    += 1;
 						break;
 					case 5:
 						this.moveSpeed += 0.5;
 						this.shotSpeed += 1;
-						this.bulMax += 1;
-						this.fireLate = 24;
+						this.bulMax    += 1;
+						this.fireLate   = 24;
 						break;
 					case 6:
-						this.bulMax += 1;
+						this.bulMax    += 1;
 						break;
 					case 7:
 						this.moveSpeed += 0.5;
-						this.reload -= 240;
+						this.reload    -= 240;
 						break;
 					case 8:
 						this.moveSpeed += 0.5;
-						this.fireLate -= 8;
-						this.bulMax += 1;
+						this.fireLate  -= 8;
+						this.bulMax    += 1;
 						this.CannonRotSpeed += 4;
 						break;
 					case 9:
-						this.fireLate -= 2;
+						this.fireLate  -= 2;
 						break;
 					case 10:
-						this.fireLate -= 12;
+						this.fireLate  -= 12;
 						this.moveSpeed += 0.5;
-						this.bomMax += 1;
+						this.bomMax    += 1;
 						break;
 					case 11:
-						this.shotSpeed += 1;
-						this.bulMax += 1;
-						this.fireLate = 30;
+						this.bulMax    += 1;
+						this.fireLate   = 30;
 						break;
 				}
 			}
 
-			this.tank = new Tank(this, this.category);
+			this.tank   = new Tank(this, this.category);
 			this.cannon = new Cannon(this, this.category);
-			this.weak = new Weak(this, this.num);
+			this.weak   = new Weak(this, this.num);
 
 			this.tankFrame = TankFrame(this, this.num, scene);
 
-			bullets.push(0); //  発射済み弾数カウントリセット
+			bullets.push(0);
 			bulStack.push([]);
-			boms.push(0); //  設置済み爆弾カウントリセット
-			deadFlgs.push(false); //  生存判定をセット
+			boms.push(0);
+			deadFlgs.push(false);
 			deadTank[this.num] = false;
 
 			scene.addChild(this);
 		},
-		_Dead: function() {
+
+		_Dead: function () {
 			deadFlgs[this.num] = true;
 			deadTank[this.num] = true;
-			if(this.num != 0){
+			if (this.num !== 0) {
 				tankColorCounts[this.category]--;
 			}
 			new Mark(this);
-			//new Explosion(this); //  車体の爆破エフェクト生成
 			new TankBoom(this);
-			this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1)); //  戦車を移動
-			//console.log(this.x)
+			this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1));
 		},
-		_Rotation: function(rot) {
-			if (rot < 0) {
-				rot = 360 + rot;
-			}
-			let sa = this.rotation - (rot);
-			if (Math.abs(sa) >= 180) {
-				sa = sa * -1;
-			}
 
-			let currentRot = this.rotation % 360;
-			let diff = Math.abs(currentRot - rot);
+		_Rotation: function (rot) {
+			if (rot < 0) rot += 360;
+
+			let sa = this.rotation - rot;
+			if (Math.abs(sa) >= 180) sa *= -1;
+
+			const currentRot = this.rotation % 360;
+			const diff = Math.abs(currentRot - rot);
 
 			// 180度反対の角度も許容
 			if (diff === 0 || diff === 180) {
 				this.rotation = rot;
-				if(diff === 180) this.waitFrame = 5;
-				if(this.waitFrame > 0){
+				if (diff === 180) this.waitFrame = 5;
+
+				if (this.waitFrame > 0) {
 					this.waitFrame--;
 					return false;
-				}else{
+				} else {
 					this.waitFrame = 0;
 					return true;
 				}
 			}
 
-			let speed = this.bodyRotSpeed;
+			const speed = this.bodyRotSpeed;
 
 			if (Math.abs(sa) > speed) {
-				let rotmove = sa == 0 ? 0 : sa > 0 ? -speed : speed;
-				if (rotmove != 0) {
+				const rotmove = sa === 0 ? 0 : (sa > 0 ? -speed : speed);
+				if (rotmove !== 0) {
 					this.rotation += rotmove;
-					if (this.rotation < 0) {
-						this.rotation = 360 + this.rotation;
-					} else if (this.rotation > 359) {
-						this.rotation = this.rotation - 360;
-					}
+					if (this.rotation < 0) this.rotation += 360;
+					else if (this.rotation > 359) this.rotation -= 360;
 				}
-				if (this.tank.rotation != this.rotation) this.tank.rotation = this.rotation;
-				//console.log(this._matrix)
+				if (this.tank.rotation !== this.rotation) this.tank.rotation = this.rotation;
 				return false;
 			} else {
-				if (sa != 0) this.rotation = rot;
-				if (this.tank.rotation != this.rotation) this.tank.rotation = this.rotation;
+				if (sa !== 0) this.rotation = rot;
+				if (this.tank.rotation !== this.rotation) this.tank.rotation = this.rotation;
 				return true;
 			}
 		},
-		_Move: function(rot) {
+
+		_Move: function (rot) {
 			if (this._Rotation(rot)) {
 				let currentRot = this.rotation % 360;
-				let targetRot = rot % 360;
-				let diff = Math.abs(currentRot - targetRot);
+				let targetRot  = rot % 360;
+				let diff       = Math.abs(currentRot - targetRot);
 
 				// 移動方向を決定
-				rot = diff === 180 ? currentRot + 90 : currentRot - 90;
-				//rot = this.rotation - 90;
-				if (rot < 0) {
-					rot = 360 + rot;
-				} else if (rot > 359) {
-					rot = rot - 360;
-				}
-				let speed = this.moveSpeed;
-				let rad = Rot_to_Rad(rot);
-				let dx = Math.cos(rad) * speed;
-				let dy = Math.sin(rad) * speed;
+				rot = (diff === 180) ? currentRot + 90 : currentRot - 90;
+				if (rot < 0) rot += 360;
+				else if (rot > 359) rot -= 360;
+
+				const speed = this.moveSpeed;
+				const rad   = Rot_to_Rad(rot);
+				const dx    = Math.cos(rad) * speed;
+				const dy    = Math.sin(rad) * speed;
+
 				this.moveBy(dx, dy);
 				this.moveFlg = true;
-			}else{
+			} else {
 				this.moveFlg = false;
 			}
 			return this.moveFlg;
 		},
-		_Damage: function(){
-			let cnt = 0;
-			if (!this.damFlg) {
-				const hits = Bullet.intersectStrict(this.weak);
-				for (const elem of hits) {
-					const from = elem.from;
-					const damageSound = game.assets['./sound/mini_bomb2.mp3'].clone();
-					damageSound.play();
 
-					if (from.category == 9){
-						this.damTimeMax = 20;
-					} 
-
-					this.life--;
-					from._Destroy();
-
-					if (this.life > 0) {
-						damageSound.volume = 0.5;
-						this.damFlg = true;
-						cnt++;
-					}
-					break; // 最初の1発のみ処理
-				}
-			}
-			this._DamageEffect();
-			return cnt > 0;
-		},
-		_DamageEffect: function(){
+		_Damage: function () {
 			if (this.damFlg) {
-				this.tank.opacity = this.damCng ? 0.0 : 1.0;
-				this.cannon.opacity = this.damCng ? 0.0 : 1.0;
+				this._DamageEffect();
+				return false;
+			}
 
-				if (this.damTime % 5 === 0) this.damCng = !this.damCng;
+			const hits = Bullet.intersectStrict(this.weak);
+			if (!hits.length) {
+				this._DamageEffect();
+				return false;
+			}
 
-				if (++this.damTime > this.damTimeMax) {
-					this.damFlg = false;
-					this.damCng = false;
-					this.damTime = 0;
-					if(this.num == 0 || this.category == 0) this.damTimeMax = 90;
-					else this.damTimeMax = 60;
-					if (this.category == 7 && this.num > 0) {
-						new Flash(this);
-						this.tank.opacity = 0.0;
-						this.cannon.opacity = 0.0;
-					} else {
-						this.tank.opacity = 1.0;
-						this.cannon.opacity = 1.0;
-					}					
-				}
+			const elem = hits[0];
+			const from = elem.from;
+
+			const damageSound = game.assets['./sound/mini_bomb2.mp3'].clone();
+			damageSound.play();
+
+			if (from.category === 9) {
+				this.damTimeMax = 20;
+			}
+
+			this.life--;
+			from._Destroy();
+
+			if (this.life > 0) {
+				damageSound.volume = 0.5;
+				this.damFlg = true;
+			}
+
+			this._DamageEffect();
+			return true;
+		},
+
+		_DamageEffect: function () {
+			if (!this.damFlg) return;
+
+			const visible = !this.damCng;
+			this.tank.opacity   = visible ? 1.0 : 0.0;
+			this.cannon.opacity = visible ? 1.0 : 0.0;
+
+			if (this.damTime % 5 === 0) this.damCng = !this.damCng;
+
+			this.damTime++;
+			if (this.damTime <= this.damTimeMax) return;
+
+			this.damFlg  = false;
+			this.damCng  = false;
+			this.damTime = 0;
+			this.damTimeMax = (this.num === 0 || this.category === 0) ? 90 : 60;
+
+			if (this.category === 7 && this.num > 0) {
+				new Flash(this);
+				this.tank.opacity   = 0.0;
+				this.cannon.opacity = 0.0;
+			} else {
+				this.tank.opacity   = 1.0;
+				this.cannon.opacity = 1.0;
 			}
 		}
-	})
+	});
+
 
 	//	自機型
 	var Entity_Type0 = Class.create(TankBase, {
@@ -5330,17 +5677,16 @@ window.onload = function() {
 
 	//	最短追尾型
 	var Entity_Type1 = Class.create(TankBase, {
-		initialize: function(x, y, category, num, scene) {
+		initialize: function (x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			if(gameMode == 2)
-				this.weak.scale(0.6, 0.6);
+			if (gameMode == 2) this.weak.scale(0.6, 0.6);
 
 			const Around = new InterceptAround(this);
 			const Front = new InterceptFront(this.cannon);
 			const target = tankEntity[0];
 
-			this.attackTarget = tankEntity[0];
+			this.attackTarget = target;
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
@@ -5350,501 +5696,335 @@ window.onload = function() {
 			this.tankStopFlg = false;
 			this.stopTime = 0;
 
-			var myPath = [0, 0];
-			var targetPath = [0, 0];
+			let myPath = [0, 0];
+			let targetPath = [0, 0];
 
-			var map = Object.assign({}, scene.backgroundMap);
-			var grid = JSON.parse(JSON.stringify(scene.grid));
-			var root;
-			var moveCnt = 0 //  移動距離
-			var moveCmp = 64;
-			var returnFlg = false;
+			let map = Object.assign({}, scene.backgroundMap);
+			let grid = JSON.parse(JSON.stringify(scene.grid));
+			let root;
+			let moveCnt = 0;
+			let moveCmp = 64;
+			let returnFlg = false;
 
-			var rot = 0;
-			var cflg = false;
+			let rot = 0;
+			let cflg = false;
 
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
+			for (let i = 0; i < this.bulMax; i++) {
+				bulStack[this.num].push(false);
 			}
 
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
+			const EnemyAim = Class.create(Aim, {
+				initialize: function (cannon, cursor, category, num) {
 					Aim.call(this, cannon, cursor, category, num, scene);
 				}
 			});
-
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			}
-
-			function updateRotationAndDistance(direction, myPath, self){
-				const center = Get_Center(self);
-				let target = { x: 0, y: 0 };
-				switch (direction) {
-					case "East":
-						rot = 90;
-						target = { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * myPath[0] + 14 };
-						break;
-					case "West":
-						rot = 270;
-						target = { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * myPath[0] + 14 };
-						break;
-					case "North":
-						rot = 0;
-						target = { x: PixelSize * myPath[1] + 32, y: PixelSize * (myPath[0] - 1) + 14 };
-						break;
-					case "South":
-						rot = 180;
-						target = { x: PixelSize * myPath[1] + 32, y: PixelSize * (myPath[0] + 1) + 14 };
-						break;
-				}
-				moveCmp = Math.round(Vec_Distance(center, target));
-			}
-			function updatePathAndRotation(self, grid, scene){
-				myPath = [
-					parseInt((self.y + self.height / 2) / PixelSize),
-					parseInt((self.x + self.width / 2) / PixelSize)
-				];
-				//root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-				root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene)
-				if (root && root.length > 0) {
-					updateRotationAndDistance(root[0], myPath, self);
-				}
-				moveCnt = 0;
-			}
-
-			function markObstacle(rot, myPath, grid){
-				switch (rot) {
-					case 0: grid[myPath[0] - 1][myPath[1]] = 'Obstacle'; break;
-					case 90: grid[myPath[0]][myPath[1] + 1] = 'Obstacle'; break;
-					case 180: grid[myPath[0] + 1][myPath[1]] = 'Obstacle'; break;
-					case 270: grid[myPath[0]][myPath[1] - 1] = 'Obstacle'; break;
-   			 	}
-			}
 
 			const getGridCoord = (entity) => [
 				Math.floor((entity.y + entity.height / 2) / PixelSize),
 				Math.floor((entity.x + entity.width / 2) / PixelSize)
 			];
 
-			const collisionHandlers = {
-				0: { frame: 0, dx: 0, dy: 1 },
-				180: { frame: 1, dx: 0, dy: -1 },
-				270: { frame: 2, dx: 1, dy: 0 },
-				90: { frame: 3, dx: -1, dy: 0 }
+			const directionMap = {
+				East:  { rot: 90,  dx: 1, dy: 0 },
+				West:  { rot: 270, dx: -1, dy: 0 },
+				North: { rot: 0,   dx: 0, dy: -1 },
+				South: { rot: 180, dx: 0, dy: 1 }
 			};
 
-			this.onenterframe = function() {
-				if (!deadFlgs[this.num] && gameStatus == 0) {
-					if (this.life > 0) {
-						if (WorldFlg) {
-							
-							this._Damage();
+			const obstacleOffsets = {
+				0:   [-1, 0],
+				90:  [0, 1],
+				180: [1, 0],
+				270: [0, -1]
+			};
 
-							if (this.time % 60 == 0) {
-								grid = JSON.parse(JSON.stringify(scene.grid));
-								map = Object.assign({}, scene.backgroundMap);
+			const collisionHandlers = {
+				0:   { frame: 0, dx: 0, dy: 1 },
+				180: { frame: 1, dx: 0, dy: -1 },
+				270: { frame: 2, dx: 1, dy: 0 },
+				90:  { frame: 3, dx: -1, dy: 0 }
+			};
 
-								if (this.moveSpeed > 0 && !this.tankStopFlg) {
-									myPath = getGridCoord(this);
-									targetPath = getGridCoord(target);
+			const updateRotationAndDistance = (dir, myPath, self) => {
+				const d = directionMap[dir];
+				if (!d) return;
 
-									// grid 更新処理
-									for (let i = 0; i < grid.length; i++) {
-										for (let j = 0; j < grid[i].length; j++) {
-											if (i === myPath[0] && j === myPath[1]) {
-												grid[i][j] = 'Start';
-											} else if (i === targetPath[0] && j === targetPath[1]) {
-												grid[i][j] = 'Goal';
-											} else {
-												grid[i][j] = map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
-											}
-										}
-									}
+				rot = d.rot;
 
-									if (this.time === 0) {
-										root = findShortestPath(myPath, grid, scene);
+				const center = Get_Center(self);
+				const target = {
+					x: PixelSize * (myPath[1] + d.dx) + 32,
+					y: PixelSize * (myPath[0] + d.dy) + 14
+				};
 
-										const directionMap = {
-											East: { rot: 90, dx: 1, dy: 0 },
-											West: { rot: 270, dx: -1, dy: 0 },
-											North: { rot: 0, dx: 0, dy: -1 },
-											South: { rot: 180, dx: 0, dy: 1 }
-										};
+				moveCmp = Math.round(Vec_Distance(center, target));
+			};
 
-										const dir = root?.[0];
-										if (dir && directionMap[dir]) {
-											const { rot: newRot, dx, dy } = directionMap[dir];
-											rot = newRot;
-											const center = Get_Center(this);
-											moveCmp = Math.round(Vec_Distance(center, {
-												x: PixelSize * (myPath[1] + dx) + 32,
-												y: PixelSize * (myPath[0] + dy) + 14
-											}));
-										}
-									}
-								}
-							}
+			const updatePathAndRotation = (self, grid, scene) => {
+				myPath = getGridCoord(self);
+				root = getPathToGoalOrVisibleTile(myPath, targetPath, grid, map, scene);
+				if (root && root.length > 0) {
+					updateRotationAndDistance(root[0], myPath, self);
+				}
+				moveCnt = 0;
+			};
 
-							if (this.time % 2 === 0) {
-								this.fireFlg = false;
-								this.shotNGflg = false;
+			const markObstacle = (rot, myPath, grid) => {
+				const off = obstacleOffsets[rot];
+				if (!off) return;
+				grid[myPath[0] + off[0]][myPath[1] + off[1]] = 'Obstacle';
+			};
 
-								if (this.tankStopFlg) this.tankStopFlg = false;
-							}
+			this.onenterframe = () => {
+				if (deadFlgs[this.num] || gameStatus !== 0) return;
 
-							for (let i = 0; i < tankEntity.length; i++) {
-								if (i === this.num || deadFlgs[i]) continue;
+				if (this.life <= 0) {
+					destruction++;
+					this._Dead();
+					return;
+				}
+				if (!WorldFlg) return;
 
-								for (const [rot, { frame, dx, dy }] of Object.entries(collisionHandlers)) {
-									if (this.tankFrame[frame].intersectStrict(tankEntity[i]) && this.rotation == rot) {
-										this.tankStopFlg = true;
-										this.x += dx * this.moveSpeed;
-										this.y += dy * this.moveSpeed;
-										moveCnt -= this.moveSpeed;
-										break;
-									}
-								}
-							}
+				this._Damage();
 
-							if (this.tankStopFlg) {
-								if (!returnFlg) {
-									const directionMap = {
-										"East":  { rot: 270, dx: 1, dy: 0 },
-										"West":  { rot: 90,  dx: -1, dy: 0 },
-										"North": { rot: 180, dx: 0, dy: -1 },
-										"South": { rot: 0,   dx: 0, dy: 1 }
-									};
+				// grid / map 更新（60Fごと）
+				if (this.time % 60 === 0) {
+					grid = JSON.parse(JSON.stringify(scene.grid));
+					map = Object.assign({}, scene.backgroundMap);
 
-									const dir = directionMap[root[0]];
-									if (dir) {
-										rot = dir.rot;
-										const center = Get_Center(this);
-										const targetX = PixelSize * (myPath[1] + dir.dx) + 32;
-										const targetY = PixelSize * (myPath[0] + dir.dy) + 14;
-										moveCmp = Math.round(Vec_Distance(center, { x: targetX, y: targetY }));
-									}
+					if (this.moveSpeed > 0 && !this.tankStopFlg) {
+						myPath = getGridCoord(this);
+						targetPath = getGridCoord(target);
 
-									returnFlg = true;
-								}
-
-								this.stopTime++;
-							}
-
-							/*for (let i = 0; i < tankEntity.length; i++) {
-								if (i != this.num && !deadFlgs[i]) {
-									if (this.tankFrame[0].intersectStrict(tankEntity[i])) {
-										if (this.rotation == 0) {
-											this.tankStopFlg = true;
-
-											this.y += this.moveSpeed;
-											moveCnt -= this.moveSpeed;
-										}
-									} else if (this.tankFrame[1].intersectStrict(tankEntity[i])) {
-										if (this.rotation == 180) {
-											this.tankStopFlg = true;
-
-											this.y -= this.moveSpeed;
-											moveCnt -= this.moveSpeed;
-										}
-									} else if (this.tankFrame[2].intersectStrict(tankEntity[i])) {
-										if (this.rotation == 270) {
-											this.tankStopFlg = true;
-
-											this.x += this.moveSpeed;
-											moveCnt -= this.moveSpeed;
-										}
-									} else if (this.tankFrame[3].intersectStrict(tankEntity[i])) {
-										if (this.rotation == 90) {
-											this.tankStopFlg = true;
-
-											this.x -= this.moveSpeed;
-											moveCnt -= this.moveSpeed;
-										}
-									}
-								}
-							}
-							if (this.tankStopFlg) {
-								if (!returnFlg) {
-									if (root[0] == "East") {
-										rot = 270;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-									} else if (root[0] == "West") {
-										rot = 90;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-									} else if (root[0] == "North") {
-										rot = 180;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14 }));
-									} else if (root[0] == "South") {
-										rot = 0;
-										let center = Get_Center(this);
-										moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14 }));
-									}
-									//console.log(rot);
-									//moveCnt = moveCmp - Math.abs(moveCnt);
-									returnFlg = true;
-								}
-								this.stopTime++;
-							}*/
-							this.time++;
-
-							if (this.stopTime % 30 === 0 && this.stopTime > 0 && !returnFlg) {
-								this.stopTime = 0;
-								myPath = getGridCoord(this);
-
-								// rot に応じた障害物の位置をマッピング
-								const obstacleOffsets = {
-									0:    [-1, 0],
-									90:   [0, 1],
-									180:  [1, 0],
-									270:  [0, -1]
-								};
-
-								const [dy, dx] = obstacleOffsets[rot] || [0, 0];
-								grid[myPath[0] + dy][myPath[1] + dx] = 'Obstacle';
-
-								root = findShortestPath(myPath, grid, scene);
-
-								// root[0] に応じた移動方向と回転角をマッピング
-								const directionMap = {
-									"East":  { rot: 90,  dx: 1, dy: 0 },
-									"West":  { rot: 270, dx: -1, dy: 0 },
-									"North": { rot: 0,   dx: 0, dy: -1 },
-									"South": { rot: 180, dx: 0, dy: 1 }
-								};
-
-								const dir = directionMap[root[0]];
-								if (dir) {
-									rot = dir.rot;
-									const center = Get_Center(this);
-									const targetX = PixelSize * (myPath[1] + dir.dx) + 32;
-									const targetY = PixelSize * (myPath[0] + dir.dy) + 14;
-									moveCmp = Math.round(Vec_Distance(center, { x: targetX, y: targetY }));
-									moveCnt = moveCmp - Math.abs(moveCnt);
-								}
-							}
-
-							/*if (this.stopTime % 30 == 0 && this.stopTime > 0 && !returnFlg) {
-								this.stopTime = 0;
-								myPath = getGridCoord(this);
-								switch (rot) {
-									case 0:
-										grid[myPath[0] - 1][myPath[1]] = 'Obstacle';
-										break;
-									case 90:
-										grid[myPath[0]][myPath[1] + 1] = 'Obstacle';
-										break;
-									case 180:
-										grid[myPath[0] + 1][myPath[1]] = 'Obstacle';
-										break;
-									case 270:
-										grid[myPath[0]][myPath[1] - 1] = 'Obstacle';
-										break;
-								}
-								root = findShortestPath(myPath, grid, scene);
-								if (root[0] == "East") {
-									rot = 90;
-									let center = Get_Center(this);
-									moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] + 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-								} else if (root[0] == "West") {
-									rot = 270;
-									let center = Get_Center(this);
-									moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1] - 1) + 32, y: PixelSize * (myPath[0]) + 14 }));
-								} else if (root[0] == "North") {
-									rot = 0;
-									let center = Get_Center(this);
-									moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] - 1) + 14 }));
-								} else if (root[0] == "South") {
-									rot = 180;
-									let center = Get_Center(this);
-									moveCmp = Math.round(Vec_Distance(center, { x: PixelSize * (myPath[1]) + 32, y: PixelSize * (myPath[0] + 1) + 14 }));
-								}
-								//console.log(moveCmp)
-								//moveCnt = 0
-								moveCnt = moveCmp - Math.abs(moveCnt);
-							}*/
-
-							if (this.shotStopFlg) {
-								this.shotStopTime++;
-								if (this.shotStopTime > 10) {
-									this.shotStopFlg = false;
-									this.shotStopTime = 0;
-								}
-							}
-
-							new EnemyAim(this.cannon, this.cursor, this.category, this.num);
-
-							EnemyAim.intersect(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})
-
-							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
-							}
-
-							if (this.time % 5 == 0) {
-								if (this.attackTarget != tankEntity[0] && this.escapeFlg == false) this.attackTarget = tankEntity[0];
-								this.escapeFlg = false;
-							}
-
-							if (BulletBase.collection.length > 0) {
-								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
-									const c = BulletBase.collection[i];
-									if (!bulStack[c.num][c.id]) continue;
-
-									const defFlg = Categorys.DefenceFlg[this.category];
-									if ((c.num === 0 && !defFlg[0]) ||
-										(c.num === this.num && !defFlg[1]) ||
-										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
-
-									const dist = Instrumentation(this.weak, this.attackTarget, c);
-									if (dist == null) continue;
-
-									const defRange = Categorys.DefenceRange[this.category];
-									//const escRange = Categorys.EscapeRange[this.category];
-
-									switch (c.num) {
-										case 0:
-											if (dist < defRange[0]) {
-												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-													this.escapeFlg = true;
-												}
-											}
-											break;
-
-										case this.num:
-											if (this.ref == 0) break;
-											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-													this.escapeFlg = true;
-												}
-											}
-											break;
-
-										default:
-											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-													this.escapeFlg = true;
-												}
-											}
-											break;
-									}
-								}
-							}
-
-							if (this.bulReloadFlg == false) {
-								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
-							} else {
-								if (this.bulReloadTime < this.reload) {
-									this.bulReloadTime++;
-									if (this.shotNGflg == false) this.shotNGflg = true;
+						for (let i = 0; i < grid.length; i++) {
+							for (let j = 0; j < grid[i].length; j++) {
+								if (i === myPath[0] && j === myPath[1]) {
+									grid[i][j] = 'Start';
+								} else if (i === targetPath[0] && j === targetPath[1]) {
+									grid[i][j] = 'Goal';
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
-								}
-
-							}
-
-							if (!this.shotNGflg) {
-								if (this.time % this.fireLate == 0 && this.fireFlg) {
-									if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false && Math.floor(Math.random() * this.bulMax) > bullets[this.num]) {
-									//if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
-										this._Attack();
-									}
-								}
-							}
-
-							if (this.moveSpeed > 0) {
-								if (returnFlg) {
-									cflg = this._Move(rot);
-									if (cflg) moveCnt += this.moveSpeed;
-									if (moveCnt >= moveCmp) {
-										if (moveCnt > moveCmp) {
-											let rad = Rot_to_Rad(rot - 270);
-											this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
-										}
-										returnFlg = false;
-										updatePathAndRotation(this, grid, scene);
-										markObstacle(rot, myPath, grid);
-									}
-								} else if (!this.shotStopFlg && !this.tankStopFlg) {
-									if (root && !Around.intersect(target)) {
-										cflg = this._Move(rot);
-										if (cflg) moveCnt += this.moveSpeed;
-									}
-									if (moveCnt >= moveCmp) {
-										if (moveCnt > moveCmp) {
-											let rad = Rot_to_Rad(this.rotation - 270);
-											this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
-										}
-										updatePathAndRotation(this, grid, scene);
-									}
-								}
-
-								if (!root && this.time % 30 == 0) {
-									updatePathAndRotation(this, grid, scene);
-								}
-
-								let obsHit = false;
-								Obstracle.intersect(this).forEach(elem => {
-									switch (elem.name) {
-										case 'ObsTop': this.moveTo(this.x, elem.y - 60); break;
-										case 'ObsBottom': this.moveTo(this.x, elem.y + elem.height); break;
-										case 'ObsLeft': this.moveTo(elem.x - 60, this.y); break;
-										case 'ObsRight': this.moveTo(elem.x + elem.width, this.y); break;
-									}
-									obsHit = true;
-								});
-								if (cflg && obsHit) {
-									updatePathAndRotation(this, grid, scene);
-									markObstacle(rot, myPath, grid);
+									grid[i][j] = map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
 								}
 							}
 						}
-					} else {
-						destruction++;
-						this._Dead();
+
+						if (this.time === 0) {
+							root = findShortestPath(myPath, grid, scene);
+							const dir = directionMap[root?.[0]];
+							if (dir) {
+								rot = dir.rot;
+								const center = Get_Center(this);
+								moveCmp = Math.round(Vec_Distance(center, {
+									x: PixelSize * (myPath[1] + dir.dx) + 32,
+									y: PixelSize * (myPath[0] + dir.dy) + 14
+								}));
+							}
+						}
 					}
 				}
-			}
-		},
-		_Attack: function() {
-			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							this.time += Math.floor(Math.random() * 3);
+
+				// 2Fごとに射撃系フラグリセット
+				if (this.time % 2 === 0) {
+					this.fireFlg = false;
+					this.shotNGflg = false;
+					if (this.tankStopFlg) this.tankStopFlg = false;
+				}
+
+				// 戦車同士の衝突
+				for (let i = 0; i < tankEntity.length; i++) {
+					if (i === this.num || deadFlgs[i]) continue;
+
+					for (const [rotKey, h] of Object.entries(collisionHandlers)) {
+						if (this.tankFrame[h.frame].intersectStrict(tankEntity[i]) && this.rotation == rotKey) {
+							this.tankStopFlg = true;
+							this.x += h.dx * this.moveSpeed;
+							this.y += h.dy * this.moveSpeed;
+							moveCnt -= this.moveSpeed;
 							break;
 						}
 					}
+				}
 
+				// EnemyAim 生成
+				new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+
+				// 照準ヒット
+				const hit = EnemyAim.intersect(this.cursor)[0];
+				if (hit) this.fireFlg = true;
+
+				// 前方反射障害物
+				if (this.ref > 0) {
+					if (Front.intersectStrict(RefObstracle).length > 0) {
+						this.shotNGflg = true;
+					}
+				}
+
+				// 攻撃ターゲットの更新（5Fごと）
+				if (this.time % 5 === 0) {
+					if (this.attackTarget != tankEntity[0] && this.escapeFlg == false) {
+						this.attackTarget = tankEntity[0];
+					}
+					this.escapeFlg = false;
+				}
+
+				// 弾迎撃ロジック
+				if (BulletBase.collection.length > 0) {
+					for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
+						const c = BulletBase.collection[i];
+						if (!bulStack[c.num][c.id]) continue;
+
+						const defFlg = Categorys.DefenceFlg[this.category];
+						if ((c.num === 0 && !defFlg[0]) ||
+							(c.num === this.num && !defFlg[1]) ||
+							(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+						const dist = (function Instrumentation(weak, target1, target2) {
+							const dist1 = Get_Distance(weak, target1);
+							const dist2 = Get_Distance(weak, target2);
+							return dist1 >= dist2 ? dist2 : null;
+						})(this.weak, this.attackTarget, c);
+
+						if (dist == null) continue;
+
+						const defRange = Categorys.DefenceRange[this.category];
+
+						switch (c.num) {
+							case 0:
+								if (dist < defRange[0]) {
+									const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
+									if (match) {
+										this.attackTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+								break;
+
+							case this.num:
+								if (this.ref == 0) break;
+								if (dist < defRange[1] && dist > 100) {
+									const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
+									if (match) {
+										this.attackTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+								break;
+
+							default:
+								if (dist < defRange[2]) {
+									const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
+									if (match) {
+										this.attackTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+								break;
+						}
+					}
+				}
+
+				// リロード処理
+				if (!this.bulReloadFlg) {
+					if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
+				} else {
+					if (this.bulReloadTime < this.reload) {
+						this.bulReloadTime++;
+						if (!this.shotNGflg) this.shotNGflg = true;
+					} else {
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+
+				// 射撃
+				if (!this.shotNGflg && this.fireFlg && this.time % this.fireLate === 0) {
+					const idx = Math.floor(Math.random() * this.bulMax);
+					if (!bulStack[this.num][idx] && Math.floor(Math.random() * this.bulMax) > bullets[this.num]) {
+						this._Attack();
+					}
+				}
+
+				// 移動処理
+				if (this.moveSpeed > 0) {
+					if (returnFlg) {
+						cflg = this._Move(rot);
+						if (cflg) moveCnt += this.moveSpeed;
+
+						if (moveCnt >= moveCmp) {
+							if (moveCnt > moveCmp) {
+								const rad = Rot_to_Rad(rot - 270);
+								this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
+							}
+							returnFlg = false;
+							updatePathAndRotation(this, grid, scene);
+							markObstacle(rot, myPath, grid);
+						}
+					} else if (!this.shotStopFlg && !this.tankStopFlg) {
+						if (root && !Around.intersect(target)) {
+							cflg = this._Move(rot);
+							if (cflg) moveCnt += this.moveSpeed;
+						}
+						if (moveCnt >= moveCmp) {
+							if (moveCnt > moveCmp) {
+								const rad = Rot_to_Rad(this.rotation - 270);
+								this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
+							}
+							updatePathAndRotation(this, grid, scene);
+						}
+					}
+
+					if (!root && this.time % 30 === 0) {
+						updatePathAndRotation(this, grid, scene);
+					}
+
+					let obsHit = false;
+					Obstracle.intersect(this).forEach(elem => {
+						switch (elem.name) {
+							case 'ObsTop':    this.moveTo(this.x, elem.y - 60); break;
+							case 'ObsBottom': this.moveTo(this.x, elem.y + elem.height); break;
+							case 'ObsLeft':   this.moveTo(elem.x - 60, this.y); break;
+							case 'ObsRight':  this.moveTo(elem.x + elem.width, this.y); break;
+						}
+						obsHit = true;
+					});
+
+					if (cflg && obsHit) {
+						updatePathAndRotation(this, grid, scene);
+						markObstacle(rot, myPath, grid);
+					}
+				}
+
+				// ショット停止フラグの時間管理
+				if (this.shotStopFlg) {
+					this.shotStopTime++;
+					if (this.shotStopTime > 10) {
+						this.shotStopFlg = false;
+						this.shotStopTime = 0;
+					}
+				}
+
+				this.time++;
+			};
+		},
+
+		_Attack: function () {
+			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
+			if (!WorldFlg) return;
+
+			if (bullets[this.num] < this.bulMax && !deadFlgs[this.num]) {
+				for (let i = 0; i < this.bulMax; i++) {
+					if (!bulStack[this.num][i]) {
+						this.shotStopFlg = true;
+						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+						this.time += Math.floor(Math.random() * 3);
+						break;
+					}
 				}
 			}
 		}
 	});
+
 
 	//	攻守両立型
 	var Entity_Type2 = Class.create(TankBase, {
@@ -6881,21 +7061,17 @@ window.onload = function() {
 
 	//	弾道予測型
 	var Entity_Type5 = Class.create(TankBase, {
-		initialize: function(x, y, category, num, scene) {
+		initialize: function (x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			if(gameMode == 2)
-				this.weak.scale(0.6, 0.6);
+			if (gameMode == 2) this.weak.scale(0.6, 0.6);
 
 			this.cannon2 = new Cannon(this, this.category);
 			this.cannon2.opacity = 0;
 
-			this.y = this.y - 32;
+			this.y -= 32;
 
 			const target = tankEntity[0];
-
-			//this.weak.backgroundColor = 'blue';
-
 			this.attackTarget = target;
 
 			this.cursor = new RefCursor(this, scene);
@@ -6904,179 +7080,162 @@ window.onload = function() {
 			this.aimCmpTime = 60;
 			this.aimRot = Categorys.CannonRotSpeed[this.category];
 
-			if (Math.floor(Math.random() * 2)) {
-				this.aimRot *= -1;
+			if (Math.random() < 0.5) this.aimRot *= -1;
+
+			for (let i = 0; i < this.bulMax; i++) {
+				bulStack[this.num].push(false);
 			}
 
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
-
-			let EnemyAim = Class.create(RefAim, {
-				initialize: function(ref, from, category, num) {
+			// ★ initialize 内で毎回作らないようにする
+			const EnemyAim = Class.create(RefAim, {
+				initialize: function (ref, from, category, num) {
 					RefAim.call(this, ref, from, category, num);
 				}
-			})
+			});
 
-			function resolveCollision(entity, elem, isTank = false){
+			const resolveCollision = (entity, elem, isTank = false) => {
+				const top = isTank ? 'TankTop' : 'ObsTop';
+				const bottom = isTank ? 'TankBottom' : 'ObsBottom';
+				const left = isTank ? 'TankLeft' : 'ObsLeft';
+				const right = isTank ? 'TankRight' : 'ObsRight';
+
 				switch (elem.name) {
-					case isTank ? 'TankTop' : 'ObsTop':
-						entity.moveTo(entity.x, elem.y - 60);
-						break;
-					case isTank ? 'TankBottom' : 'ObsBottom':
-						entity.moveTo(entity.x, elem.y + elem.height);
-						break;
-					case isTank ? 'TankLeft' : 'ObsLeft':
-						entity.moveTo(elem.x - 60, entity.y);
-						break;
-					case isTank ? 'TankRight' : 'ObsRight':
-						entity.moveTo(elem.x + elem.width, entity.y);
-						break;
+					case top:    entity.moveTo(entity.x, elem.y - 60); break;
+					case bottom: entity.moveTo(entity.x, elem.y + elem.height); break;
+					case left:   entity.moveTo(elem.x - 60, entity.y); break;
+					case right:  entity.moveTo(elem.x + elem.width, entity.y); break;
 				}
-			}
+			};
 
-			this.onenterframe = function() {
-				if (!deadFlgs[this.num] && gameStatus == 0) {
-					if (this.life > 0) {
-						if (WorldFlg) {
-							
-							this._Damage();
+			this.onenterframe = () => {
+				if (deadFlgs[this.num] || gameStatus !== 0) return;
 
-							if (this.time % 2 == 0) {
-								this.shotNGflg = false;
-								this.fireFlg = false;
+				if (this.life <= 0) {
+					destruction++;
+					this._Dead();
+					return;
+				}
+				if (!WorldFlg) return;
 
-								if(this.time % 4 == 0){
-									new EnemyAim(this.ref, this.cannon2, this.category, this.num);
-								}else{
-									new EnemyAim(this.ref, this.cannon, this.category, this.num);
-								}
-								
-							}
+				this._Damage();
 
-							this.time++;
+				// --- 照準生成 ---
+				if (this.time % 2 === 0) {
+					this.shotNGflg = false;
+					this.fireFlg = false;
 
-							const hitList = EnemyAim.intersectStrict(target);
+					const useCannon = (this.time % 4 === 0) ? this.cannon2 : this.cannon;
+					new EnemyAim(this.ref, useCannon, this.category, this.num);
+				}
 
-							for (let i = 0; i < hitList.length; i++) {
-								const elem = hitList[i];
+				this.time++;
 
-								// カーソル位置の更新（変更があるときのみ）
-								if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
-									this.cursor.x = elem.tgt[0];
-									this.cursor.y = elem.tgt[1];
-								}
+				// --- 照準ヒット ---
+				const hitList = EnemyAim.intersectStrict(target);
+				if (hitList.length > 0) {
+					const elem = hitList[0];
 
-								// 砲台の回転（初回のみ）
-								if (elem.hitTime === 0 && this.cannon.rotation !== elem.agl) {
-									this.cannon.rotation = elem.agl;
-									this.cannon2.rotation = elem.agl - this.aimRot * 4;
-								}
+					if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
+						this.cursor.x = elem.tgt[0];
+						this.cursor.y = elem.tgt[1];
+					}
 
-								// 発射フラグの設定（初回のみ）
-								if (elem.hitTime < 5 && !this.fireFlg) {
-									this.fireFlg = true;
-								}
+					if (elem.hitTime === 0 && this.cannon.rotation !== elem.agl) {
+						this.cannon.rotation = elem.agl;
+						this.cannon2.rotation = elem.agl - this.aimRot * 4;
+					}
 
-								// エイム時間の加算（上限付き）
-								if (this.aimingTime < this.aimCmpTime + 15) {
-									this.aimingTime += 3;
-								}
+					if (elem.hitTime < 5 && !this.fireFlg) {
+						this.fireFlg = true;
+					}
 
-								// 命中時間の更新と削除処理
-								elem.hitTime++;
-								if (elem.hitTime >= 5) {
-									now_scene.removeChild(elem);
-								}
+					if (this.aimingTime < this.aimCmpTime + 15) {
+						this.aimingTime += 3;
+					}
 
-								break; // 最初のヒットだけ処理して終了
-							}
+					elem.hitTime++;
+					if (elem.hitTime >= 5) now_scene.removeChild(elem);
+				}
 
-							if (this.aimingTime > 0) {
-								if (this.fireFlg && this.aimingTime % 10 == 0) {
-									this.aimRot *= -1;
-								}
-							}
-							
-							if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
-								this.cannon.rotation += this.aimRot;
-								this.cannon2.rotation += (this.cannon.rotation !== this.cannon2.rotation)
-									? -this.aimRot
-									:  this.aimRot;
-							}
+				// --- エイム反転 ---
+				if (this.aimingTime > 0 && this.fireFlg && this.aimingTime % 10 === 0) {
+					this.aimRot *= -1;
+				}
 
-							if (this.time % 5 == 0) {
-								if (this.aimingTime > 0 && !this.fireFlg) this.aimingTime -= 3;
-								if (this.bulReloadFlg == false) {
-									if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
-								} else {
-									if (this.bulReloadTime < this.reload) {
-										this.bulReloadTime++;
-										if (this.shotNGflg == false) this.shotNGflg = true;
-									} else {
-										this.shotNGflg = false;
-										this.bulReloadFlg = false;
-										this.bulReloadTime = 0;
-									}
-								}
+				// --- エイム回転 ---
+				if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
+					this.cannon2.rotation += (this.cannon.rotation !== this.cannon2.rotation)
+						? -this.aimRot
+						:  this.aimRot;
+					this.cannon.rotation += this.aimRot;
+				}
 
-								if (!this.shotNGflg) {
-									if (this.time % this.fireLate == 0 && this.fireFlg) {
-										//if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
-										if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false) {
-											this._Attack();
-										}
-									}
-								}
-							}
+				// --- リロード・射撃 ---
+				if (this.time % 5 === 0) {
+					if (this.aimingTime > 0 && !this.fireFlg) this.aimingTime -= 3;
 
-							// タンクとの衝突処理
-							TankObstracle.intersect(this).forEach(elem => {
-								if (!deadFlgs[elem.num] && elem.num !== this.num) {
-									resolveCollision(this, elem, true);
-								}
-							});
-
-							// 障害物との衝突処理
-							Obstracle.intersect(this).forEach(elem => {
-								resolveCollision(this, elem, false);
-							});
-						}
+					if (!this.bulReloadFlg) {
+						if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
 					} else {
-						destruction++;
-						this._Dead();
-					}
-				}
-			}
-		},
-		_Attack: function() {
-			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							this.aimingTime = 0;
-							if (this.category != 1) {
-								this.aimCmpTime = Math.floor(Math.random() * 60) + 20;
-							} else {
-								this.aimCmpTime = Math.floor(Math.random() * 30) + 30;
-							}
-							this.cannon.rotation += this.aimRot / 2;
-							this.cannon2.rotation += this.aimRot / 2;
-							const children = now_scene.childNodes.slice().filter(child => child instanceof RefAim && child.num == this.num); // enchant.jsでは childNodes は配列風
-							children.forEach(child => {
-								now_scene.removeChild(child);
-							});
-							break;
+						if (this.bulReloadTime < this.reload) {
+							this.bulReloadTime++;
+							if (!this.shotNGflg) this.shotNGflg = true;
+						} else {
+							this.shotNGflg = false;
+							this.bulReloadFlg = false;
+							this.bulReloadTime = 0;
 						}
 					}
 
+					if (!this.shotNGflg && this.fireFlg && this.time % this.fireLate === 0) {
+						const idx = Math.floor(Math.random() * this.bulMax);
+						if (!bulStack[this.num][idx]) this._Attack();
+					}
+				}
+
+				// --- 衝突処理 ---
+				TankObstracle.intersect(this).forEach(elem => {
+					if (!deadFlgs[elem.num] && elem.num !== this.num) {
+						resolveCollision(this, elem, true);
+					}
+				});
+
+				Obstracle.intersect(this).forEach(elem => {
+					resolveCollision(this, elem, false);
+				});
+			};
+		},
+
+		_Attack: function () {
+			if (gameMode == -1 && Math.random() < 0.33) return;
+			if (!WorldFlg) return;
+
+			if (bullets[this.num] < this.bulMax && !deadFlgs[this.num]) {
+				for (let i = 0; i < this.bulMax; i++) {
+					if (!bulStack[this.num][i]) {
+						this.shotStopFlg = true;
+						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+
+						this.aimingTime = 0;
+						this.aimCmpTime = (this.category != 1)
+							? Math.floor(Math.random() * 60) + 20
+							: Math.floor(Math.random() * 30) + 30;
+
+						this.cannon.rotation += this.aimRot / 2;
+						this.cannon2.rotation += this.aimRot / 2;
+
+						const children = now_scene.childNodes.slice().filter(
+							child => child instanceof RefAim && child.num == this.num
+						);
+						children.forEach(child => now_scene.removeChild(child));
+
+						break;
+					}
 				}
 			}
 		}
-	})
+	});
+
 
 	//	爆弾設置型
 	var Entity_Type6 = Class.create(TankBase, {
@@ -10743,7 +10902,7 @@ window.onload = function() {
 					[colorsName[8], "　耐久　：" + Categorys.Life[8], "　弾数　：" + (Categorys.MaxBullet[8] + 1), "　弾速　：普通(" + Categorys.ShotSpeed[8] + ")", "跳弾回数：" + Categorys.MaxRef[8], "移動速度：速い(" + (Categorys.MoveSpeed[8] + 0.5) + ")", "・近距離迎撃型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　攻撃は弾を2発しか使わないが<br>　迎撃時には弾幕を貼って防御する。<br>　地雷も搭載している。"],
 					[colorsName[9], "　耐久　：" + Categorys.Life[9], "　弾数　：" + Categorys.MaxBullet[9], "　弾速　：やや速い(" + Categorys.ShotSpeed[9] + ")", "跳弾回数：" + Categorys.MaxRef[9], "移動速度：動かない(" + Categorys.MoveSpeed[9] + ")", "・弾幕爆撃型<br>　撃てる弾を全て使い弾幕を張る戦車。<br>　発射される弾には爆弾が仕込まれており、<br>　狙った場所で小規模の爆発させることが可能。<br>【強化】砲撃間隔の短縮"],
 					[colorsName[10], "　耐久　：" + Categorys.Life[10], "　弾数　：" + Categorys.MaxBullet[10], "　弾速　：やや速い(" + Categorys.ShotSpeed[10] + ")", "跳弾回数：" + Categorys.MaxRef[10], "移動速度：とても速い(" + (Categorys.MoveSpeed[10] + 0.5) + ")", "・地雷設置型<br>　高機動かつ地雷をばら撒く戦車。<br>　偏差射撃も使うため危険度が高い。<br>【強化】地雷の数が2個に増加"],
-					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + (Categorys.ShotSpeed[11] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。<br>【弱化】砲撃間隔の延長"],
+					[colorsName[11], "　耐久　：" + Categorys.Life[11], "　弾数　：" + (Categorys.MaxBullet[11] + 1), "　弾速　：最速(" + Categorys.ShotSpeed[11] + ")", "跳弾回数：" + Categorys.MaxRef[11], "移動速度：速い(" + Categorys.MoveSpeed[11] + ")", "・強襲狙撃型<br>　高機動かつ最速の弾を放つ戦車。<br>　稀に乱入する危険な不明車両。<br>　回避能力が極めて高いため撃破は困難。<br>【弱化】砲撃間隔の延長"],
 					[colorsName[12], "　耐久　：" + Categorys.Life[12], "　弾数　：" + Categorys.MaxBullet[12], "　弾速　：速い(" + Categorys.ShotSpeed[12] + ")", "跳弾回数：" + Categorys.MaxRef[12], "移動速度：やや速い(" + Categorys.MoveSpeed[12] + ")", "・精鋭型<br>　高い能力と耐久を持つボス戦車。<br>　地雷の爆破に巻き込めば耐久を無視して、<br>　撃破可能。<br>【強化】自機狙いの偏差射撃追加"],
 					[colorsName[13], "　耐久　：" + Categorys.Life[13], "　弾数　：" + Categorys.MaxBullet[13], "　弾速　：速い(" + Categorys.ShotSpeed[13] + ")", "跳弾回数：" + Categorys.MaxRef[13], "移動速度：とても速い(" + Categorys.MoveSpeed[13] + ")", "・精鋭型<br>　最上位の戦闘力を誇るボス戦車。<br>　優秀なプレイヤーしか対峙できない。<br>　耐久が1になると殲滅モードに移行する。<br>【強化】自機狙いの偏差射撃追加"]
 				];
@@ -10889,7 +11048,6 @@ window.onload = function() {
 							break;
 						case 11:
 							tankBulCnt.color = 'red';
-							tankBulSpd.color = 'red';
 							tankDsc.color = 'red';
 							break;
 						case 12:
