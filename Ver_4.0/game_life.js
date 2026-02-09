@@ -3765,7 +3765,7 @@ window.onload = function() {
 
 	var PhysBulletCol = Class.create(BulletBase, {
 		initialize: function(shotSpeed, ref, from, category, num, id, targetEntity) {
-			BulletBase.call(this, 12, 18, from, category, num, id, Math.round(shotSpeed / 2));
+			BulletBase.call(this, 12, 18, from, category, num, id, Math.round(((shotSpeed + 0.5) / 2)*10)/10);
 
 			this.name = 'PhyBullet';
 
@@ -3795,6 +3795,8 @@ window.onload = function() {
 			this.targetDistance = Vec_Distance({x: this.x, y: this.y}, tgt);
 			this.travelDistance = 0;
 
+			this.damage = Math.round(shotSpeed * ((this.scaleX + this.scaleY) / 2)) - 2;
+
 			// 弾 ON
 			bulStack[this.num][this.id] = true;
 			bullets[this.num]++;
@@ -3807,7 +3809,7 @@ window.onload = function() {
 			new OpenFire(this.from);
 			game.assets['./sound/s_car_door_O2.wav'].clone().play();
 
-			if (this.shotSpeed >= 14) {
+			if (this.shotSpeed > 7) {
 				game.assets['./sound/Sample_0003.wav'].clone().play();
 			}
 
@@ -3869,7 +3871,7 @@ window.onload = function() {
 
 				// ⑤ エフェクト（Bullet と同じ）
 				if (this.time % 2 === 0) {
-					if (this.shotSpeed >= 14) new Fire(this);
+					if (this.shotSpeed > 7) new Fire(this);
 					if (this.time % 4 === 0) {
 						this.num === 0 ? new PlayerBulAim(this) : new BulAim(this);
 					}
@@ -4355,9 +4357,9 @@ window.onload = function() {
 		},
 
 		damageNearbyTanks: function(range) {
-			let damage = 6;
+			let damage = this.from.damage;
 			if (this.time > 0){
-				damage -= 4;
+				damage = 2;
 				range += 20;
 			}
 			const targets = TankBase.collection
@@ -10069,7 +10071,12 @@ window.onload = function() {
 								//console.log(this.fireLate)
 
 							}
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							if (bullets[this.num] % 2 == 1){
+								new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
+							}
+							else{
+								new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+							}
 							break;
 						}
 					}
@@ -10147,7 +10154,7 @@ window.onload = function() {
 		_ResetStatus: function() {
 			let percent = (this.life / Categorys.Life[this.category]);
 			if (percent < 0.35) {
-				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.6;
+				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 				this.fireLate = Categorys.FireLate[this.category] - 8;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] + 3;
 				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 7;
