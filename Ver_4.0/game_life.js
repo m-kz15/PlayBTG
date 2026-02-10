@@ -6261,6 +6261,8 @@ window.onload = function() {
 
 				// 弾迎撃ロジック
 				if (BulletBase.collection.length > 0) {
+					const match1 = PlayerBulAim.intersectStrict(Around);
+					const match2 = BulAim.intersectStrict(Around);
 					for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
 						const c = BulletBase.collection[i];
 						if (!bulStack[c.num][c.id]) continue;
@@ -6283,8 +6285,7 @@ window.onload = function() {
 						switch (c.num) {
 							case 0:
 								if (dist < defRange[0]) {
-									const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-									if (match) {
+									if (match1.some(elem => elem.target === c)) {
 										this.attackTarget = c;
 										this.escapeFlg = true;
 									}
@@ -6294,8 +6295,7 @@ window.onload = function() {
 							case this.num:
 								if (this.ref == 0) break;
 								if (dist < defRange[1] && dist > 100) {
-									const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-									if (match) {
+									if (match2.some(elem => elem.target === c)) {
 										this.attackTarget = c;
 										this.escapeFlg = true;
 									}
@@ -6304,8 +6304,7 @@ window.onload = function() {
 
 							default:
 								if (dist < defRange[2]) {
-									const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-									if (match) {
+									if (match2.some(elem => elem.target === c)) {
 										this.attackTarget = c;
 										this.escapeFlg = true;
 									}
@@ -6539,6 +6538,12 @@ window.onload = function() {
 				Math.floor((entity.x + entity.width / 2) / PixelSize)
 			];
 
+			function isNear(a, b, range) { 
+				const dx = a.x - b.x; 
+				const dy = a.y - b.y; 
+				return (dx * dx + dy * dy) < (range * range); 
+			}
+
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
@@ -6574,11 +6579,13 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-
-							EnemyAim.intersect(this.cursor).forEach(elem => {
+							if (!this.fireFlg && EnemyAim.intersect(this.cursor).length > 0){
+								this.fireFlg = true; //  発射可能状態にする
+							}
+							/*EnemyAim.intersect(this.cursor).forEach(elem => {
 								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
 								return;
-							})
+							})*/
 
 							if (this.ref > 0) {
 								Front.intersectStrict(RefObstracle).forEach(function() {
@@ -6594,6 +6601,8 @@ window.onload = function() {
 							}
 
 							if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(Around);
+								const match2 = BulAim.intersectStrict(Around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -6612,8 +6621,7 @@ window.onload = function() {
 									switch (c.num) {
 										case 0:
 											if (dist < defRange[0]) {
-												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 												if (escRange[0] && escRange[1] != 0) {
@@ -6628,8 +6636,7 @@ window.onload = function() {
 										case this.num:
 											if (this.ref == 0) break;
 											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
+												if (match2.some(elem => elem.target === c)) {
 													if (escRange[0] && escRange[2] != 0) {
 														if (dist < escRange[2]) {
 															this.escapeTarget = c;
@@ -6643,8 +6650,7 @@ window.onload = function() {
 
 										default:
 											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match2.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 												if (escRange[0] && escRange[3] != 0) {
@@ -6714,7 +6720,7 @@ window.onload = function() {
 												dirValue = arr[Math.floor(Math.random() * arr.length)];
 											}
 											hittingTime = 0;
-										} else if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
+										} else if (isNear(this.weak, this.attackTarget, this.distance)) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 											if (this.time % 10 == 0) {
@@ -6770,7 +6776,7 @@ window.onload = function() {
 										if (Bom.collection.length > 0) {
 											for (var i = 0, l = Bom.collection.length; i < l; i++) {
 												let c = Bom.collection[i];
-												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 150) {
+												if (isNear(this.weak, c, 150)) {
 													SelDirection(this.weak, c, 0);
 													break;
 												}
@@ -6830,486 +6836,6 @@ window.onload = function() {
 	})
 
 	//	生存特化型
-	/*var Entity_Type3 = Class.create(TankBase, {
-		initialize: function(x, y, category, num, scene) {
-			TankBase.call(this, x, y, category, num, scene);
-
-			if(gameMode == 2)
-				this.weak.scale(0.6, 0.6);
-
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
-
-			switch (this.category) {
-				case 5:
-					Around.scale(1.5, 1.5);
-					break;
-			}
-
-			const target = tankEntity[0];
-
-			//this.weak.backgroundColor = 'blue';
-
-			this.attackTarget = target;
-			this.escapeTarget = null;
-
-			this.cursor = new Target(this, scene);
-
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-			this.tankStopFlg = false;
-			this.stopTime = 0;
-
-			var dirValue = 0;
-			var hittingTime = 0;
-
-			var map = Object.assign({}, scene.backgroundMap);
-			var grid = JSON.parse(JSON.stringify(scene.grid));
-
-			var myPath = [0, 0];
-			var targetPath = [0, 0];
-			var root;
-			var rootFlg = false;
-
-			var rot = 0;
-			var h = {x: 0, y: 0};
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
-
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			};
-
-			function NG_root_set() {
-				dir = [];
-				if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') dir.push(0);
-				if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') dir.push(1);
-				if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') dir.push(2);
-				if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') dir.push(3);
-				return dir;
-			};
-
-			function SelDirection(target1, target2, or) {
-				let arr = [0, 1, 2, 3];
-				if (or == 0) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) { //	相手より右にいる場合
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) { //	相手より下にいる場合
-							arr = [1, 2];
-						} else {
-							arr = [0, 1];
-						}
-					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							arr = [2, 3];
-						} else {
-							arr = [0, 3];
-						}
-					}
-				} else if (or == 1) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							arr = [0, 3];
-						} else {
-							arr = [2, 3];
-						}
-					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
-							arr = [0, 1];
-						} else {
-							arr = [1, 2];
-						}
-					}
-				}
-				let ng = NG_root_set();
-				arr = arr.filter(i => ng.indexOf(i) == -1);
-				if (arr.length > 0) {
-					if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
-				}
-			}
-
-			function getDistanceSq(a, b){
-				const dx = a.x - b.x;
-				const dy = a.y - b.y;
-				return dx * dx + dy * dy;
-			}
-
-			function updateDirection(entity, target, mode = 0){
-				SelDirection(entity, target, mode);
-			}
-
-			function resolveCollision(entity, elem, isTank = false){
-				switch (elem.name) {
-					case isTank ? 'TankTop' : 'ObsTop':
-						entity.moveTo(entity.x, elem.y - 60);
-						break;
-					case isTank ? 'TankBottom' : 'ObsBottom':
-						entity.moveTo(entity.x, elem.y + elem.height);
-						break;
-					case isTank ? 'TankLeft' : 'ObsLeft':
-						entity.moveTo(elem.x - 60, entity.y);
-						break;
-					case isTank ? 'TankRight' : 'ObsRight':
-						entity.moveTo(elem.x + elem.width, entity.y);
-						break;
-				}
-				h = Get_Center(elem);
-				hittingTime++;
-				rootFlg = true;
-			}
-
-			const getGridCoord = (entity) => [
-				Math.floor((entity.y + entity.height / 2) / PixelSize),
-				Math.floor((entity.x + entity.width / 2) / PixelSize)
-			];
-
-
-			this.onenterframe = function() {
-				if (!deadFlgs[this.num] && gameStatus == 0) {
-					if (this.life > 0) {
-						if (WorldFlg) {
-							
-							this._Damage();
-
-							if (this.time % 60 == 0) {
-								grid = JSON.parse(JSON.stringify(scene.grid));
-								map = Object.assign({}, scene.backgroundMap);
-							}
-
-							if (this.time % 2 === 0) {
-								if (!this.escapeFlg) rootFlg = false;
-								if (this.attackTarget !== target) rootFlg = true;
-
-								this.shotNGflg = false;
-								this.fireFlg = false;
-
-								if (this.moveSpeed > 0 && !rootFlg && this.time % 30 === 0) {
-									myPath = getGridCoord(this);
-									targetPath = getGridCoord(target);
-
-									// grid 更新処理を簡潔に
-									for (let i = 0; i < grid.length; i++) {
-										for (let j = 0; j < grid[i].length; j++) {
-											if (i === myPath[0] && j === myPath[1]) {
-												grid[i][j] = 'Start';
-											} else if (i === targetPath[0] && j === targetPath[1]) {
-												grid[i][j] = 'Goal';
-											} else {
-												grid[i][j] = map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
-											}
-										}
-									}
-
-									root = findShortestPath(myPath, grid, scene);
-
-									const directionMap = {
-										East: 1,
-										West: 3,
-										North: 0,
-										South: 2
-									};
-
-									if (root && root.length > 0) {
-										dirValue = directionMap[root[0]] ?? dirValue;
-									} else {
-										rootFlg = true;
-									}
-								}
-							}
-
-							this.time++;
-
-							if (this.shotStopFlg) {
-								this.shotStopTime++;
-								if (this.shotStopTime > 10) {
-									this.shotStopFlg = false;
-									this.shotStopTime = 0;
-								}
-							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
-							}
-
-							EnemyAim.intersectStrict(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								if (!rootFlg) rootFlg = true;
-								return;
-							})
-
-							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
-							}
-
-							if (this.time % 3 == 0) {
-								if (this.attackTarget != target && !this.escapeFlg) this.attackTarget = target;
-								this.escapeFlg = false;
-							}
-
-							if (BulletBase.collection.length > 0) {
-								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
-									const c = BulletBase.collection[i];
-									if (!bulStack[c.num][c.id]) continue;
-
-									const defFlg = Categorys.DefenceFlg[this.category];
-									if ((c.num === 0 && !defFlg[0]) ||
-										(c.num === this.num && !defFlg[1]) ||
-										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
-
-									const dist = Instrumentation(this.weak, this.attackTarget, c);
-									if (dist == null) continue;
-
-									const defRange = Categorys.DefenceRange[this.category];
-									const escRange = Categorys.EscapeRange[this.category];
-
-									switch (c.num) {
-										case 0:
-											if (dist < defRange[0]) {
-												let tgtFlg = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (tgtFlg){
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-												}
-												if (!tgtFlg && category == 5) {
-													this.attackTarget = target;
-												}
-												if (escRange[0] && escRange[1] != 0) {
-													if (dist < escRange[1]) {
-														this.escapeTarget = c;
-														this.escapeFlg = true;
-													}
-												}
-											}
-											break;
-
-										case this.num:
-											if (this.ref == 0) break;
-											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
-													if (escRange[0] && escRange[2] != 0) {
-														if (dist < escRange[2]) {
-															this.escapeTarget = c;
-															this.escapeFlg = true;
-														}
-													}
-												}
-												if(Search(this.cannon, c, 45, defRange[1]) && c.time > 30){
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-												}
-											}
-											break;
-
-										default:
-											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-												}
-												if (escRange[0] && escRange[3] != 0) {
-													if (dist < escRange[3]) {
-														this.escapeTarget = c;
-														this.escapeFlg = true;
-													}
-												}
-											}
-											break;
-									}
-								}
-							}
-
-							if (this.bulReloadFlg == false) {
-								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
-							} else {
-								if (this.bulReloadTime < this.reload) {
-									this.bulReloadTime++;
-									if (this.shotNGflg == false) this.shotNGflg = true;
-								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
-								}
-
-							}
-
-							TankBase.intersectStrict(Front).forEach(elem => {
-								if (elem.num != this.num && elem.num != 0) {
-									if (!deadFlgs[elem.num]) {
-										this.fireFlg = false;
-									}
-								}
-							})
-
-							if (!this.shotNGflg) {
-								if (this.time % this.fireLate == 0 && this.fireFlg) {
-									//if(bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false) {
-									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
-										this._Attack();
-									}
-								}
-							}
-
-							if (this.moveSpeed > 0 && this.time % 5 === 0) {
-								if (this.escapeFlg) {
-									dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
-								} else {
-									const distSq = getDistanceSq(this.weak, this.attackTarget);
-									const thresholdSq = this.distance ** 2;
-									if (hittingTime >= 35) {
-										myPath = [
-											parseInt((this.y + this.height / 2) / PixelSize),
-											parseInt((this.x + this.width / 2) / PixelSize)
-										];
-
-										let arr = [];
-										switch (dirValue) {
-											case 0: this.y += this.moveSpeed; break;
-											case 1: this.x -= this.moveSpeed; break;
-											case 2: this.y -= this.moveSpeed; break;
-											case 3: this.x += this.moveSpeed; break;
-										}
-
-										h = {x: Math.floor(h.x / PixelSize), y: Math.floor(h.y / PixelSize)};
-
-										if (h.x === 0 || h.y === 0) {
-											arr = dirValue % 2 === 0 ? [1, 3] : [0, 2];
-										} else {
-											if (dirValue % 2 === 0) {
-												arr.push(h.x > myPath[1] ? 3 : 1);
-											} else {
-												arr.push(h.y > myPath[0] ? 0 : 2);
-											}
-										}
-
-										if (!arr.includes(dirValue)) {
-											dirValue = arr[Math.floor(Math.random() * arr.length)];
-										}
-										hittingTime = 0;
-									} else if (distSq < thresholdSq) {
-										updateDirection(this.weak, this.attackTarget);
-									} else {
-										if (rootFlg && this.time % 10 === 0) {
-											updateDirection(this.weak, target, 1);
-										}
-									}
-
-									// 爆弾回避
-									for (let c of Bom.collection) {
-										if (getDistanceSq(this.weak, c) < 150 * 150) {
-											updateDirection(this.weak, c);
-											break;
-										}
-									}
-								}
-							}
-
-							if (!this.shotStopFlg) {
-								rot = [0, 90, 180, 270][dirValue];
-								this._Move(rot);
-							}
-
-							h = { x: 0, y: 0 };
-
-							// タンクとの衝突処理
-							TankObstracle.intersect(this).forEach(elem => {
-								if (!deadFlgs[elem.num] && elem.num !== this.num) {
-									resolveCollision(this, elem, true);
-								}
-							});
-
-							// 障害物との衝突処理
-							Obstracle.intersect(this).forEach(elem => {
-								resolveCollision(this, elem, false);
-							});
-						}
-					} else {
-						destruction++;
-						this._Dead();
-					}
-				}
-			}
-		},
-		_Attack: function() {
-			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							if (this.category == 5) this._ResetAim();
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							this.time += Math.floor(Math.random() * 3);
-							break;
-						}
-					}
-				}
-			}
-		},
-		_ResetAim: function () {
-			if (this.attackTarget.name == 'Bullet' || this.attackTarget.name == 'PhyBullet') {
-				const shooterPos = Get_Center(this);
-				const bullet = this.attackTarget;
-				const bulletPos = Get_Center(bullet);
-				const bulletVec = Rot_to_Vec(bullet.rotation, -90);
-				const targetSpeed = this.attackTarget.name == 'Bullet' ? bullet.from.shotSpeed : bullet.shotSpeed;
-				const shotSpeed = this.shotSpeed;
-
-				// 相対位置と速度ベクトル
-				const dx = bulletPos.x - shooterPos.x;
-				const dy = bulletPos.y - shooterPos.y;
-				const dvx = bulletVec.x * targetSpeed;
-				const dvy = bulletVec.y * targetSpeed;
-
-				// 二次方程式を解いて迎撃時間を推定
-				const a = dvx * dvx + dvy * dvy - shotSpeed * shotSpeed;
-				const b = 2 * (dx * dvx + dy * dvy);
-				const c = dx * dx + dy * dy;
-
-				// 近すぎると暴れる
-				if (c < 2000) return;
-
-				// a が小さいときは未来予測が不安定
-				if (Math.abs(a) < 0.0001) {
-					const aimAngle = Math.atan2(dy, dx);
-					this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					return;
-				}
-
-				const discriminant = b * b - 4 * a * c;
-				if (discriminant >= 0){
-					const sqrtDisc = Math.sqrt(discriminant);
-					let t1 = (-b - sqrtDisc) / (2 * a);
-					let t2 = (-b + sqrtDisc) / (2 * a);
-
-					const time = Math.min(t1, t2) > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
-					if (time >= 0){
-						// 少し手前を狙うための係数（例：90%の位置を狙う）
-						var biasFactor = 0.95;
-
-						// 予測位置
-						const futureX = bulletPos.x + dvx * time * biasFactor;
-						const futureY = bulletPos.y + dvy * time * biasFactor;
-
-						const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
-						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
-					}
-				}
-			}
-		}
-	})*/
 	var Entity_Type3 = Class.create(TankBase, {
 		initialize: function (x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
@@ -7531,6 +7057,9 @@ window.onload = function() {
 					const defRange = Categorys.DefenceRange[this.category];
 					const escRange = Categorys.EscapeRange[this.category];
 
+					const match1 = PlayerBulAim.intersectStrict(Around);
+					const match2 = BulAim.intersectStrict(Around);
+
 					for (let i = 0, l = bulletsCol.length; i < l; i++) {
 						const c = bulletsCol[i];
 						if (!bulStack[c.num][c.id]) continue;
@@ -7545,8 +7074,7 @@ window.onload = function() {
 						switch (c.num) {
 							case 0: {
 								if (dist < defRange[0]) {
-									const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-									if (match) {
+									if (match1.some(elem => elem.target === c)) {
 										this.attackTarget = c;
 									} else if (category == 5) {
 										this.attackTarget = target;
@@ -7561,8 +7089,7 @@ window.onload = function() {
 							case this.num: {
 								if (this.ref === 0) break;
 								if (dist < defRange[1] && dist > 100) {
-									const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-									if (match && escRange[0] && escRange[2] !== 0 && dist < escRange[2]) {
+									if (match2.some(elem => elem.target === c) && escRange[0] && escRange[2] !== 0 && dist < escRange[2]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -7574,8 +7101,7 @@ window.onload = function() {
 							}
 							default: {
 								if (dist < defRange[2]) {
-									const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-									if (match) {
+									if (match2.some(elem => elem.target === c)) {
 										this.attackTarget = c;
 									}
 									if (escRange[0] && escRange[3] !== 0 && dist < escRange[3]) {
@@ -7807,10 +7333,9 @@ window.onload = function() {
 
 							this.time++;
 
-							EnemyAim.intersectStrict(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})
+							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+								this.fireFlg = true; //  発射可能状態にする
+							}
 
 
 							if (this.bulReloadFlg == false) {
@@ -8237,22 +7762,16 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							EnemyAim.intersect(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})
-
-							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
+							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+								this.fireFlg = true; //  発射可能状態にする
 							}
 
-							if (this.fireFlg) {
-								EnemyAim.intersectStrict(Bom).forEach(elem => {
-									this.fireFlg = false;
-								})
+							if (this.fireFlg && EnemyAim.intersectStrict(Bom).length > 0) {
+								this.fireFlg = false;
+							}
+
+							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
+								this.shotNGflg = true;
 							}
 
 							if (this.time % 5 == 0) {
@@ -8261,6 +7780,8 @@ window.onload = function() {
 							}
 
 							if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(Around);
+								const match2 = BulAim.intersectStrict(Around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -8279,8 +7800,7 @@ window.onload = function() {
 									switch (c.num) {
 										case 0:
 											if (dist < defRange[0]) {
-												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 												if (escRange[0] && escRange[1] != 0) {
@@ -8295,8 +7815,7 @@ window.onload = function() {
 										case this.num:
 											if (this.ref == 0) break;
 											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
+												if (match2.some(elem => elem.target === c)) {
 													if (escRange[0] && escRange[2] != 0) {
 														if (dist < escRange[2]) {
 															this.escapeTarget = c;
@@ -8310,8 +7829,7 @@ window.onload = function() {
 
 										default:
 											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match2.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 												if (escRange[0] && escRange[3] != 0) {
@@ -8774,16 +8292,12 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							EnemyAim.intersect(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})
+							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+								this.fireFlg = true; //  発射可能状態にする
+							}
 
-							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
+							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
+								this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
@@ -8795,6 +8309,8 @@ window.onload = function() {
 
 							if (BulletBase.collection.length > 0) {
 								const escapeList = [];
+								const match1 = PlayerBulAim.intersectStrict(Around);
+								const match2 = BulAim.intersectStrict(Around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -8815,8 +8331,7 @@ window.onload = function() {
 									switch (c.num) {
 										case 0:
 											if (dist < defRange[0]) {
-												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}else{
 													this.attackTarget = target;
@@ -8832,8 +8347,7 @@ window.onload = function() {
 										case this.num:
 											if (this.ref == 0) break;
 											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
+												if (match2.some(elem => elem.target === c)) {
 													if (escRange[0] && escRange[2] != 0 && dist < escRange[2]) {
 														if (Search(c, this, 60, escRange[2])) {
 															escapeScore += 800 - dist;
@@ -8847,8 +8361,7 @@ window.onload = function() {
 
 										default:
 											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match2.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}else{
 													this.attackTarget = target;
@@ -8878,82 +8391,6 @@ window.onload = function() {
 								this.escapeTarget = this.escapeTargets[0];
 								this.escapeFlg = true;
 							}
-
-							/*if (Bullet.collection.length > 0) {
-								for (var i = 0, l = Bullet.collection.length; i < l; i++) {
-									const c = Bullet.collection[i];
-									if (!bulStack[c.num][c.id]) continue;
-
-									const defFlg = Categorys.DefenceFlg[this.category];
-									if ((c.num === 0 && !defFlg[0]) ||
-										(c.num === this.num && !defFlg[1]) ||
-										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
-
-									const dist = Instrumentation(this.weak, this.attackTarget, c);
-									if (dist == null) continue;
-
-									const defRange = Categorys.DefenceRange[this.category];
-									const escRange = Categorys.EscapeRange[this.category];
-
-									switch (c.num) {
-										case 0:
-											if (dist < defRange[0]) {
-												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-												}else{
-													this.attackTarget = target;
-												}
-												if (escRange[0] && escRange[1] != 0) {
-													if (dist < escRange[1]) {
-														if (Search(c, this, 75, escRange[1])) {
-															this.escapeTarget = c;
-															this.escapeFlg = true;
-														}
-													}
-												}
-											}
-											break;
-
-										case this.num:
-											if (this.ref == 0) break;
-											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
-													if (escRange[0] && escRange[2] != 0) {
-														if (dist < escRange[2]) {
-															if (Search(c, this, 60, escRange[2])) {
-																this.escapeTarget = c;
-																this.escapeFlg = true;
-															}
-														}
-													}
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-												}
-											}
-											break;
-
-										default:
-											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
-													this.attackTarget = c; //  迎撃のためにターゲット変更
-												}else{
-													this.attackTarget = target;
-												}
-												if (escRange[0] && escRange[3] != 0) {
-													if (dist < escRange[3]) {
-														if (Search(c, this, 60, escRange[3])) {
-															this.escapeTarget = c;
-															this.escapeFlg = true;
-														}
-													}
-												}
-											}
-											break;
-									}
-								}
-							}*/
 
 							if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
@@ -9326,16 +8763,12 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							EnemyAim.intersectStrict(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})
+							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+								this.fireFlg = true; //  発射可能状態にする
+							}
 
-							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
+							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
+								this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
@@ -9344,6 +8777,8 @@ window.onload = function() {
 							}
 
 							if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(Around);
+								const match2 = BulAim.intersectStrict(Around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -9362,8 +8797,7 @@ window.onload = function() {
 									switch (c.num) {
 										case 0:
 											if (dist < defRange[0]) {
-												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 												if (escRange[0] && escRange[1] != 0) {
@@ -9378,8 +8812,7 @@ window.onload = function() {
 										case this.num:
 											if (this.ref == 0) break;
 											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
+												if (match2.some(elem => elem.target === c)) {
 													if (escRange[0] && escRange[2] != 0) {
 														if (dist < escRange[2]) {
 															this.escapeTarget = c;
@@ -9393,8 +8826,7 @@ window.onload = function() {
 
 										default:
 											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match2.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 												if (escRange[0] && escRange[3] != 0) {
@@ -9512,7 +8944,6 @@ window.onload = function() {
 											break;
 									}
 									hittingTime++;
-									rootFlg = true;
 								}
 
 							})
@@ -9803,16 +9234,12 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							EnemyAim.intersectStrict(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})
+							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+								this.fireFlg = true; //  発射可能状態にする
+							}
 
-							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
+							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
+								this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
@@ -9821,6 +9248,8 @@ window.onload = function() {
 							}
 
 							if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(Around);
+								const match2 = BulAim.intersectStrict(Around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -9839,8 +9268,7 @@ window.onload = function() {
 									switch (c.num) {
 										case 0:
 											if (dist < defRange[0]) {
-												const match = PlayerBulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}else{
 													this.attackTarget = target;
@@ -9859,8 +9287,7 @@ window.onload = function() {
 										case this.num:
 											if (this.ref == 0) break;
 											if (dist < defRange[1] && dist > 100) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match) {
+												if (match2.some(elem => elem.target === c)) {
 													if (escRange[0] && escRange[2] != 0) {
 														if (dist < escRange[2]) {
 															this.escapeTarget = c;
@@ -9874,8 +9301,7 @@ window.onload = function() {
 
 										default:
 											if (dist < defRange[2]) {
-												const match = BulAim.intersectStrict(Around).find(elem => elem.target === c);
-												if (match){
+												if (match2.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}
 												if (escRange[0] && escRange[3] != 0) {
@@ -10016,7 +9442,6 @@ window.onload = function() {
 											break;
 									}
 									hittingTime++;
-									rootFlg = true;
 								}
 
 							})
@@ -10457,17 +9882,13 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							EnemyAim.intersectStrict(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
+							if (EnemyAim.intersectStrict(this.cursor).length > 0){
+								if (!this.fireFlg)this.fireFlg = true; //  発射可能状態にする
 								if (!rootFlg) rootFlg = true;
-								return;
-							})
+							}
 
-							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
+							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
+								this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
@@ -10476,6 +9897,8 @@ window.onload = function() {
 							}
 
 							if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(Around);
+								const match2 = BulAim.intersectStrict(Around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									let c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -10487,16 +9910,9 @@ window.onload = function() {
 									switch (c.num) {
 										case target.num:
 											if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
-												let tgtFlg = false;
-
-												PlayerBulAim.intersectStrict(Around).forEach(elem => {
-													if (tgtFlg) return;
-													if (elem.target == c) {
-														this.attackTarget = c; //  迎撃のためにターゲット変更
-														tgtFlg = true;
-													}
-												})
-												if (!tgtFlg) {
+												if (match1.some(elem => elem.target === c)){
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+												}else{
 													this.attackTarget = target;
 												}
 
@@ -10514,29 +9930,25 @@ window.onload = function() {
 										case this.num:
 											if (this.ref == 0) break;
 											if (dist != null && dist < Categorys.DefenceRange[this.category][1] && dist > 100) {
-												BulAim.intersectStrict(Around).forEach(elem => {
-													if (elem.target == c) {
-														if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][2] != 0) {
-															if (dist < Categorys.EscapeRange[this.category][2]) {
-																if (Search(c, this, 45, Categorys.EscapeRange[this.category][2])) {
-																	this.escapeTarget = c;
-																	this.escapeFlg = true;
-																}
+												if (match2.some(elem => elem.target === c)){
+													if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][2] != 0) {
+														if (dist < Categorys.EscapeRange[this.category][2]) {
+															if (Search(c, this, 45, Categorys.EscapeRange[this.category][2])) {
+																this.escapeTarget = c;
+																this.escapeFlg = true;
 															}
 														}
-														this.attackTarget = c; //  迎撃のためにターゲット変更
 													}
-												})
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+												}
 											}
 											break;
 
 										default:
 											if (dist != null && dist < Categorys.DefenceRange[this.category][2]) {
-												BulAim.intersectStrict(Around).forEach(elem => {
-													if (elem.target == c) {
-														this.attackTarget = c; //  迎撃のためにターゲット変更
-													}
-												})
+												if (match2.some(elem => elem.target === c)){
+													this.attackTarget = c; //  迎撃のためにターゲット変更
+												}
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][3] != 0) {
 													if (dist < Categorys.EscapeRange[this.category][3]) {
 														if (Search(c, this, 45, Categorys.EscapeRange[this.category][3])) {
