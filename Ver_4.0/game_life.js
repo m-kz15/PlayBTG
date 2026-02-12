@@ -9,6 +9,7 @@ const Stage_H = 15;
 const DebugFlg = false;
 
 var key = "BTG_PlayData_Ver4";
+var totalKey = "BTG_TotalData_Ver4";
 var BGM;
 
 var zanki = 5;
@@ -18,6 +19,7 @@ var playerType = 0;
 var playerLife = 0;
 
 var stageNum = 0;
+var totalStageNum = 0;
 var stageData;
 var stageRandom = -1;
 
@@ -94,6 +96,22 @@ let fontColor = [ //各戦車の表示色格納配列
 	'black',
 	'maroon',
 	'darkblue'
+];
+let changePermitNum = [
+	0,	//0
+	0,	//1
+	2,	//2
+	4,	//3
+	7,	//4
+	9,	//5
+	14,	//6
+	15,	//7
+	19,	//8
+	19,	//9
+	19,	//10
+	19,	//11
+	99,	//12
+	99	//13
 ];
 
 var BGMs = [ //bgm指定用配列
@@ -2636,7 +2654,7 @@ window.onload = function() {
 		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
 		ctx.fill();
 		return s;
-	})
+	})();
 
 	var Aim = Class.create(Sprite, {
 		initialize: function(from, to, category, num) {
@@ -11753,6 +11771,11 @@ window.onload = function() {
 			new ViewText(this, 'Play', { width: 320 * 4, height: 48 }, { x: PixelSize * 0, y: PixelSize * 7 }, 'Touch to StartUp!', '48px sans-serif', 'white', 'center', true);
 
 			this.addEventListener('touchstart', function() {
+				TotalRepository.keyName = totalKey;
+				TotalRepository.restore();
+				if (TotalRepository.data.ClearStageNum > 0) {
+					totalStageNum = TotalRepository.data.ClearStageNum;
+				}
 				titleFlg = true;
 				flg = true;
 				new FadeOut(this)
@@ -12019,12 +12042,18 @@ window.onload = function() {
 				if (selCnt > 11) {
 					new ViewMessage(now_scene, 'Message', { width: 960, height: 48 }, { x: PixelSize * 2.5, y: PixelSize * 7.5 }, performance[selCnt][0] + 'は自機として使用できません！', '48px sans-serif', '#f00', 'center', 60).backgroundColor = '#000a';
 				} else if (playerType != selCnt) {
-					let i = playerType;
-					playerType = selCnt;
-					TankColorChange(i, false);
-					TankColorChange(playerType, false);
-					selTank.moveTo(PictureTank.collection[playerType].x - 60, PictureTank.collection[playerType].y + 20);
-					new ViewMessage(now_scene, 'Message', { width: 960, height: 48 }, { x: PixelSize * 2.5, y: PixelSize * 7.5 }, '自機を' + performance[selCnt][0] + 'に変更しました。', '48px sans-serif', '#0ff', 'center', 60).backgroundColor = '#000a';
+					if (changePermitNum[selCnt] == 99){
+						new ViewMessage(now_scene, 'Message', { width: 960, height: 104 }, { x: PixelSize * 2.5, y: PixelSize * 7 }, '現在のバージョンでは' + performance[selCnt][0] + 'を<br><br>自機として使用できません！', '48px sans-serif', '#f00', 'center', 60).backgroundColor = '#000a';
+					}else if (changePermitNum[selCnt] > totalStageNum){
+						new ViewMessage(now_scene, 'Message', { width: 960, height: 104 }, { x: PixelSize * 2.5, y: PixelSize * 7 }, performance[selCnt][0] + 'は自機として使用できません！<br><br>ステージ' + (changePermitNum[selCnt] + 1) + 'を一度クリアしてください。', '48px sans-serif', '#f00', 'center', 60).backgroundColor = '#000a';
+					}else{
+						let i = playerType;
+						playerType = selCnt;
+						TankColorChange(i, false);
+						TankColorChange(playerType, false);
+						selTank.moveTo(PictureTank.collection[playerType].x - 60, PictureTank.collection[playerType].y + 20);
+						new ViewMessage(now_scene, 'Message', { width: 960, height: 48 }, { x: PixelSize * 2.5, y: PixelSize * 7.5 }, '自機を' + performance[selCnt][0] + 'に変更しました。', '48px sans-serif', '#0ff', 'center', 60).backgroundColor = '#000a';
+					}
 				}
 
 			});
@@ -12624,6 +12653,10 @@ window.onload = function() {
 									this.time = 0;
 									new ViewText(this, 'Title', { width: 720, height: 64 }, { x: 360, y: 300 }, 'ミッションクリア！', 'bold 60px "Arial"', 'red', 'left', true);
 									new ViewScore(this);
+								}
+								if(TotalRepository.data.ClearStageNum < stageNum + 1){
+									TotalRepository.data.ClearStageNum = stageNum + 1;
+									TotalRepository.save();
 								}
 							} else if (deadFlgs[0]) {
 								playerLife = 0;

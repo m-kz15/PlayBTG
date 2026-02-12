@@ -9,6 +9,7 @@ const Stage_H = 15;
 const DebugFlg = false;
 
 var key = "BTG_PlayData_Ver4";
+var totalKey = "BTG_TotalData_Ver4";
 var BGM;
 
 var zanki = 5;
@@ -17,6 +18,7 @@ var score = 0;
 var playerType = 0;
 
 var stageNum = 0;
+var totalStageNum = 0;
 var stageData;
 var stageRandom = -1;
 
@@ -95,6 +97,22 @@ let fontColor = [ //各戦車の表示色格納配列
 	'black',
 	'maroon',
 	'darkblue'
+];
+let changePermitNum = [
+	0,	//0
+	0,	//1
+	2,	//2
+	4,	//3
+	7,	//4
+	9,	//5
+	14,	//6
+	15,	//7
+	19,	//8
+	19,	//9
+	19,	//10
+	19,	//11
+	99,	//12
+	99	//13
 ];
 
 var BGMs = [ //bgm指定用配列
@@ -2537,7 +2555,7 @@ window.onload = function() {
 		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
 		ctx.fill();
 		return s;
-	})
+	})();
 
 	var Aim = Class.create(Sprite, {
 		initialize: function(from, to, category, num) {
@@ -2900,12 +2918,13 @@ window.onload = function() {
 			this.hitTime = 0;
 			if (DebugFlg) this.debugColor = 'orange';
 
-			if(num == 0){
+			if (num == 0){
 				this.image = PlayerRefAimSurfaceCache;
-			}else{
+			}
+			else{
 				this.visible = false;
 			}
-
+			
 			this.originX = this.originY = 4;
 
 			const fc = Get_Center(from);
@@ -2914,7 +2933,7 @@ window.onload = function() {
 
 			// 回転方向補正
 			const targetRot = normalizeRotation(this.rad);
-			const sa = adjustAngle(from.rotation - targetRot);
+			const sa = normalizeAngle(from.rotation - targetRot);
 			const speed = Categorys.CannonRotSpeed[category];
 
 			let resultRot = from.rotation;
@@ -2935,48 +2954,24 @@ window.onload = function() {
 				fc.y + 36 * Math.sin(this.rad) - this.height / 2
 			);
 
-			var cngVec = {x: 1, y: 1};
-			var hitPos = {x: fc.x + 36 * Math.cos(this.rad) - this.width / 2, y: fc.y + 36 * Math.sin(this.rad) - this.height / 2};
-			var hitTime = 0;
-
 			this.onenterframe = () => {
 				if (!WorldFlg) return;
 				this.time++;
 				this.x += this.dx;
 				this.y += this.dy;
-				/*this.rad = Rot_to_Rad(from.rotation - 90);
-				this.dx = Math.cos(this.rad) * 20;
-				this.dy = Math.sin(this.rad) * 20;
-				this.x = hitPos.x + (this.dx * cngVec.x) * (this.time - hitTime);
-				this.y = hitPos.y + (this.dy * cngVec.y) * (this.time - hitTime);*/
 
 				RefObstracle.intersectStrict(this).some(elem => {
 					handleReflection.call(this, elem);
 					return true;
 				});
-
-				/*RefObstracle.intersectStrict(this).some(elem => {
-
-					// 円形判定に変更
-					if (!circleHit(this, elem)) return false;
-
-					// 壁の法線を取得
-					const normal = getWallNormal(elem);
-
-					// 反射ベクトル計算
-					const newVec = reflectVector({x: this.dx, y: this.dy}, normal);
-
-					this.dx = newVec.x;
-					this.dy = newVec.y;
-
-					// 反射後の位置補正
-					this.x += this.dx;
-					this.y += this.dy;
-
-					this.ref--;
+				/*Wall.intersectStrict(this).some(elem => {
+					handleReflection.call(this, elem);
+					return true;
+				});
+				Block.intersectStrict(this).some(elem => {
+					handleReflection.call(this, elem);
 					return true;
 				});*/
-
 
 				if (tankEntity[this.num]?.intersectStrict(this)) {
 					now_scene.removeChild(this);
@@ -3005,11 +3000,92 @@ window.onload = function() {
 				return (rot < 0) ? rot + 360 : rot;
 			}
 
-			function adjustAngle(diff) {
-				return (Math.abs(diff) >= 180) ? -diff : diff;
+			function getCollisionSide(ray, wall) {
+				const rayCenterX = ray.x + ray.width / 2;
+				const rayCenterY = ray.y + ray.height / 2;
+				const wallCenterX = wall.x + wall.width / 2;
+				const wallCenterY = wall.y + wall.height / 2;
+
+				const dx = rayCenterX - wallCenterX;
+				const dy = rayCenterY - wallCenterY;
+
+				const absDX = Math.abs(dx);
+				const absDY = Math.abs(dy);
+				const overlapX = (ray.width + wall.width) / 2;
+				const overlapY = (ray.height + wall.height) / 2;
+
+				if (absDX < overlapX && absDY < overlapY) {
+					// 進行方向ベースの優先判定
+					const vx = ray.dx;
+					const vy = ray.dy;
+
+					if (absDX > absDY) {
+						if (dx > 0) {
+							return (vx < 0) ? 'right' : 'left';
+						} else {
+							return (vx > 0) ? 'left' : 'right';
+						}
+					} else {
+						if (dy > 0) {
+							return (vy < 0) ? 'bottom' : 'top';
+						} else {
+							return (vy > 0) ? 'top' : 'bottom';
+						}
+					}
+				}
+				return null;
 			}
 
+			function getPreContactPosition(ray, wall, side, margin = 1) {
+				const rx = ray.x;
+				const ry = ray.y;
+				const rw = ray.width;
+				const rh = ray.height;
+
+				const wx = wall.x;
+				const wy = wall.y;
+				const ww = wall.width;
+				const wh = wall.height;
+
+				switch (side) {
+					case 'top':
+						return {
+							x: rx,
+							y: wy - rh - margin
+						};
+					case 'bottom':
+						return {
+							x: rx,
+							y: wy + wh + margin
+						};
+					case 'left':
+						return {
+							x: wx - rw - margin,
+							y: ry
+						};
+					case 'right':
+						return {
+							x: wx + ww + margin,
+							y: ry
+						};
+					default:
+						return { x: rx, y: ry }; // fallback: 現在位置
+				}
+			}
+
+
 			function handleReflection(elem) {
+				/*const side = getCollisionSide(this, elem);
+				if(side){
+					if(side == 'top' || side == 'bottom'){
+						this.dy *= -1;
+					}else if(side == 'left' || side == 'right'){
+						this.dx *= -1;
+					}
+					const safePos = getPreContactPosition(this, elem, side, 1);
+    				this.moveTo(safePos.x, safePos.y);
+				}*/
+				
 				const v = Rot_to_Vec(this.rotation, 315);
 				const f = Math.atan2(v.x, v.y);
 				const hw = this.width, hh = this.height;
@@ -3018,43 +3094,27 @@ window.onload = function() {
 					case 'RefTop':
 						this.x -= Math.cos(f) * (elem.y - (this.y + hh));
 						this.y = elem.y - hh;
-						//this.dy *= -1;
-						cngVec.y *= -1;
+						this.dy *= -1;
 						break;
 					case 'RefBottom':
 						this.x -= Math.cos(f) * ((this.y - hh / 2) - (elem.y + elem.height));
 						this.y = elem.y + elem.height;
-						//this.dy *= -1;
-						cngVec.y *= -1;
+						this.dy *= -1;
 						break;
 					case 'RefLeft':
 						this.y -= Math.sin(f) * ((this.x + hw) - elem.x);
 						this.x = elem.x - hw;
-						//this.dx *= -1;
-						cngVec.x *= -1;
+						this.dx *= -1;
 						break;
 					case 'RefRight':
 						this.y -= Math.sin(f) * ((elem.x + elem.width) - (this.x + hw));
 						this.x = elem.x + elem.width;
-						//this.dx *= -1;
-						cngVec.x *= -1;
+						this.dx *= -1;
 						break;
 				}
-				hitPos = {x: this.x, y: this.y};
-				hitTime = this.time;
 				this.ref--;
-				this.rotation = (315 + Math.atan2(this.dx * cngVec.x, this.dy * cngVec.y) * 180 / Math.PI) * -1;
+				this.rotation = (315 + Math.atan2(this.dx, this.dy) * 180 / Math.PI) * -1;
 			}
-
-			function getWallNormal(elem) {
-				switch (elem.name) {
-					case 'RefTop':    return {x: 0, y: -1};
-					case 'RefBottom': return {x: 0, y:  1};
-					case 'RefLeft':   return {x: -1, y: 0};
-					case 'RefRight':  return {x:  1, y: 0};
-				}
-			}
-
 		}
 	});
 
@@ -10728,6 +10788,11 @@ window.onload = function() {
 			new ViewText(this, 'Play', { width: 320 * 4, height: 48 }, { x: PixelSize * 0, y: PixelSize * 7 }, 'Touch to StartUp!', '48px sans-serif', 'white', 'center', true);
 
 			this.addEventListener('touchstart', function() {
+				TotalRepository.keyName = totalKey;
+				TotalRepository.restore();
+				if (TotalRepository.data.ClearStageNum > 0) {
+					totalStageNum = TotalRepository.data.ClearStageNum;
+				}
 				titleFlg = true;
 				flg = true;
 				new FadeOut(this)
@@ -10994,12 +11059,18 @@ window.onload = function() {
 				if (selCnt > 11) {
 					new ViewMessage(now_scene, 'Message', { width: 960, height: 48 }, { x: PixelSize * 2.5, y: PixelSize * 7.5 }, performance[selCnt][0] + 'は自機として使用できません！', '48px sans-serif', '#f00', 'center', 60).backgroundColor = '#000a';
 				} else if (playerType != selCnt) {
-					let i = playerType;
-					playerType = selCnt;
-					TankColorChange(i, false);
-					TankColorChange(playerType, false);
-					selTank.moveTo(PictureTank.collection[playerType].x - 60, PictureTank.collection[playerType].y + 20);
-					new ViewMessage(now_scene, 'Message', { width: 960, height: 48 }, { x: PixelSize * 2.5, y: PixelSize * 7.5 }, '自機を' + performance[selCnt][0] + 'に変更しました。', '48px sans-serif', '#0ff', 'center', 60).backgroundColor = '#000a';
+					if (changePermitNum[selCnt] == 99){
+						new ViewMessage(now_scene, 'Message', { width: 960, height: 104 }, { x: PixelSize * 2.5, y: PixelSize * 7 }, '現在のバージョンでは' + performance[selCnt][0] + 'を<br><br>自機として使用できません！', '48px sans-serif', '#f00', 'center', 60).backgroundColor = '#000a';
+					}else if (changePermitNum[selCnt] > totalStageNum){
+						new ViewMessage(now_scene, 'Message', { width: 960, height: 104 }, { x: PixelSize * 2.5, y: PixelSize * 7 }, performance[selCnt][0] + 'は自機として使用できません！<br><br>ステージ' + (changePermitNum[selCnt] + 1) + 'を一度クリアしてください。', '48px sans-serif', '#f00', 'center', 60).backgroundColor = '#000a';
+					}else{
+						let i = playerType;
+						playerType = selCnt;
+						TankColorChange(i, false);
+						TankColorChange(playerType, false);
+						selTank.moveTo(PictureTank.collection[playerType].x - 60, PictureTank.collection[playerType].y + 20);
+						new ViewMessage(now_scene, 'Message', { width: 960, height: 48 }, { x: PixelSize * 2.5, y: PixelSize * 7.5 }, '自機を' + performance[selCnt][0] + 'に変更しました。', '48px sans-serif', '#0ff', 'center', 60).backgroundColor = '#000a';
+					}
 				}
 
 			});
@@ -11584,6 +11655,10 @@ window.onload = function() {
 									this.time = 0;
 									new ViewText(this, 'Title', { width: 720, height: 64 }, { x: 360, y: 300 }, 'ミッションクリア！', 'bold 60px "Arial"', 'red', 'left', true);
 									new ViewScore(this);
+								}
+								if(TotalRepository.data.ClearStageNum < stageNum + 1){
+									TotalRepository.data.ClearStageNum = stageNum + 1;
+									TotalRepository.save();
 								}
 							} else if (deadFlgs[0]) {
 								BGM.stop();
