@@ -2729,9 +2729,15 @@ window.onload = function() {
 				}
 
 				if (this.num !== 0) {
-					TankBase.intersectStrict(this).forEach(elem => {
-						if (elem.num !== 0) now_scene.removeChild(this);
-					});
+					const hit = TankBase.intersectStrict(this);
+					if (hit.length > 0) {
+						for (let i = 0; i < hit.length; i++) {
+							if (hit[i].num !== 0) {
+								now_scene.removeChild(this);
+								break;
+							}
+						}
+					}
 				}
 			};
 
@@ -2924,9 +2930,17 @@ window.onload = function() {
 				}
 
 				// TankBase 衝突
-				TankBase.intersectStrict(this).forEach(elem => {
-					if (elem.num !== 0) now_scene.removeChild(this);
-				});
+				if (this.num !== 0) {
+					const hit = TankBase.intersectStrict(this);
+					if (hit.length > 0) {
+						for (let i = 0; i < hit.length; i++) {
+							if (hit[i].num !== 0) {
+								now_scene.removeChild(this);
+								break;
+							}
+						}
+					}
+				}
 
 				// 生存時間 or 反射回数
 				if (this.time > 150 || this.ref < 0) {
@@ -3733,9 +3747,16 @@ window.onload = function() {
 	var Bullet = Class.create(BulletBase, {
 		initialize: function(from, num, id) {
 			BulletBase.call(this, 12, 18, from, from.category, num, id, from.shotSpeed);
-			
+
 			this.image = game.assets['./image/ObjectImage/R2.png'];
 			this.force = this.computeForce(from);
+			this.halfW = this.width / 2; 
+			this.halfH = this.height / 3; 
+			this.fromH = from.height / 2;
+
+			// 前回の角度を保存するための変数
+			this.prevRad = null;
+
 			this.updateRotation(from.rad);
 			this.updatePosition();
 
@@ -3743,7 +3764,14 @@ window.onload = function() {
 				if (!WorldFlg) return;
 
 				this.time++;
-				this.updateRotation(from.rad);
+
+				// rad が変わったときだけ回転更新
+				const rad = from.rad;
+				if (rad !== this.prevRad) {
+					this.prevRad = rad;
+					this.updateRotation(rad);
+				}
+
 				this.updatePosition();
 
 				if (this.time % 2 === 0) {
@@ -3757,29 +3785,28 @@ window.onload = function() {
 			};
 		},
 
-		// 🔧 力の補正を速度に応じて算出
 		computeForce: function(from) {
-			if (from.shotSpeed >= 14) {
-				let f = from.shotSpeed * (from.shotSpeed / 3) * 2;
+			const sp = from.shotSpeed;
+			if (sp >= 14) {
+				const f = sp * (sp / 3) * 2;
 				return { x: from.vx / f, y: from.vy / f };
 			}
 			return { x: 0, y: 0 };
 		},
 
-		// 🔧 弾丸の表示角度を更新
 		updateRotation: function(rad) {
-			this.rotation = -1 * (180 + Math.atan2(Math.cos(rad), Math.sin(rad)) * 180 / Math.PI);
+			this.rotation = -(180 + Math.atan2(Math.cos(rad), Math.sin(rad)) * 180 / Math.PI);
 		},
 
-		// 🔧 弾丸の位置を発射元から補正付きで更新
 		updatePosition: function() {
-			const { centerX, centerY, height } = this.from;
+			const { centerX, centerY} = this.from;
 			this.moveTo(
-				centerX - this.width / 2 - this.force.x,
-				centerY - (height / 2 + this.height / 3) - this.force.y
+				centerX - this.halfW - this.force.x,
+				centerY - (this.fromH + this.halfH) - this.force.y
 			);
 		}
 	});
+
 
 	var PhysBulletCol = Class.create(BulletBase, {
 		initialize: function(shotSpeed, ref, from, category, num, id, targetEntity) {
@@ -4444,23 +4471,29 @@ window.onload = function() {
 		const sin = Math.sin;
 		const PI2 = Math.PI * 2;
 
-		const debris = [];
-		const debris2 = [];
+		// -------------------------
+		// 事前生成キャッシュ
+		// -------------------------
 
-		// 破片キャッシュ
-		for (let i = 0; i < debrisCount; i++) {
+		// debris
+		const debris = Array.from({ length: debrisCount }, () => {
 			const angle = rand() * PI2;
 			const speed = 30 + rand() * 60;
-			debris.push({
-				vx: cos(angle) * speed + ((Math.floor(rand() * 9) - 4) * 5),
-				vy: sin(angle) * speed - 60,
+			const vx = cos(angle) * speed + ((Math.floor(rand() * 9) - 4) * 5);
+			const vy = sin(angle) * speed - 60;
+
+			return {
+				vx,
+				vy,
 				sizeW: 2 + rand() * 10,
 				sizeH: 2 + rand() * 10,
 				rotation: angle,
+				// rgba の前半を事前生成
 				color: `rgba(${150 + rand() * 100}, ${rand() * 80}, 0,`
-			});
-		}
+			};
+		});
 
+		// カラーパレットの事前生成
 		const palette = [
 			() => `rgba(${10 + rand() * 40}, ${147 + rand() * 60}, 250,`,
 			() => `rgba(250, ${100 + rand() * 40}, 0,`,
@@ -4478,21 +4511,29 @@ window.onload = function() {
 			() => `rgba(0, 0, ${60 + rand() * 60},`
 		];
 
-		for (let i = 0; i < debrisCount2; i++) {
+		// debris2
+		const debris2 = Array.from({ length: debrisCount2 }, () => {
 			const angle = rand() * PI2;
 			const speed = 50 + rand() * 30;
+			const vx = cos(angle) * speed + ((Math.floor(rand() * 3) - 1) * 3);
+			const vy = sin(angle) * speed - 75;
+
 			const usePalette = rand() < 0.5;
-			debris2.push({
-				vx: cos(angle) * speed + ((Math.floor(rand() * 3) - 1) * 3),
-				vy: sin(angle) * speed - 75,
+			const color = usePalette
+				? palette[category % palette.length]()
+				: `rgba(${rand() * 60}, ${rand() * 30}, 0,`;
+
+			return {
+				vx,
+				vy,
 				sizeW: 10 + rand() * 10,
 				sizeH: 10 + rand() * 10,
 				rotation: angle,
-				color: usePalette ? palette[category % palette.length]() : `rgba(${rand() * 60}, ${rand() * 30}, 0,`
-			});
-		}
+				color
+			};
+		});
 
-		// スパイクキャッシュ
+		// spikeCache（ランダムをすべて事前生成）
 		const spikeCache = Array.from({ length: frames }, () =>
 			Array.from({ length: 10 }, () => ({
 				aOffset: rand() * 0.15,
@@ -4502,9 +4543,13 @@ window.onload = function() {
 			}))
 		);
 
+		// -------------------------
+		// フレーム描画
+		// -------------------------
 		for (let frame = 0; frame < frames; frame++) {
 			const t = frame / (frames - 1);
 			const alpha = 1 - t;
+
 			const x = frame * size;
 			const cx = x + size / 2;
 			const cy = size / 2;
@@ -4526,6 +4571,7 @@ window.onload = function() {
 					const s = spikes[i];
 					const a = (PI2 / 10) * i + s.aOffset;
 					const dist = t * 55 + s.distOffset;
+
 					const px = cx + cos(a) * dist;
 					const py = cy + sin(a) * dist;
 
@@ -4543,9 +4589,11 @@ window.onload = function() {
 			// 破片
 			if (frame > 10) {
 				const tvy = 120 * t;
+
 				for (let d of debris) {
 					const dx = cx + d.vx * t;
 					const dy = cy + (d.vy + tvy) * t;
+
 					ctx.save();
 					ctx.translate(dx, dy);
 					ctx.rotate(d.rotation);
@@ -4553,9 +4601,11 @@ window.onload = function() {
 					ctx.fillRect(-d.sizeW / 2, -d.sizeH / 2, d.sizeW, d.sizeH);
 					ctx.restore();
 				}
+
 				for (let d of debris2) {
 					const dx = cx + d.vx * t;
 					const dy = cy + (d.vy + tvy) * t;
+
 					ctx.save();
 					ctx.translate(dx, dy);
 					ctx.rotate(d.rotation);
@@ -4573,6 +4623,7 @@ window.onload = function() {
 					const px = cx + cos(a) * d;
 					const py = cy + sin(a) * d;
 					const r = 8 + rand() * 4;
+
 					ctx.beginPath();
 					ctx.fillStyle = `rgba(60,60,60,${0.5 * alpha})`;
 					ctx.arc(px, py, r, 0, PI2);
@@ -4585,6 +4636,7 @@ window.onload = function() {
 
 		return surface;
 	}
+
 
 
 	var Target = Class.create(Sprite, {
