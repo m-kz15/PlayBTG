@@ -19,7 +19,7 @@ var playerType = 0;
 var playerLife = 0;
 
 var stageNum = 0;
-var totalStageNum = 0;
+var totalStageNum = -1;
 var stageData;
 var stageRandom = -1;
 
@@ -1705,28 +1705,25 @@ class ActBtn {
         let accumulator = 0;
         let lastTime = performance.now();
 
-        // 補間用
+        // 補間用：前フレーム位置を保存
         function storePrevPositions(scene) {
             scene.childNodes.forEach(node => {
-                node.prevX = node.x;
-                node.prevY = node.y;
+                node._prevX = node.x;
+                node._prevY = node.y;
             });
         }
 
-        function applyInterpolation(scene, alpha) {
+        // DOM 版用：補間描画
+        function renderInterpolated(scene, alpha) {
             scene.childNodes.forEach(node => {
-                if (node.prevX !== undefined) {
-                    node.x = node.prevX * (1 - alpha) + node.x * alpha;
-                    node.y = node.prevY * (1 - alpha) + node.y * alpha;
-                }
-            });
-        }
+                if (node._prevX !== undefined && node._element) {
 
-        function restoreCurrentPositions(scene) {
-            scene.childNodes.forEach(node => {
-                if (node.prevX !== undefined) {
-                    node.x = node.x;
-                    node.y = node.y;
+                    const drawX = node._prevX + (node.x - node._prevX) * alpha;
+                    const drawY = node._prevY + (node.y - node._prevY) * alpha;
+
+                    // DOM 版の描画は transform を使う
+                    node._element.style.transform =
+                        'translate(' + drawX + 'px,' + drawY + 'px)';
                 }
             });
         }
@@ -1748,6 +1745,7 @@ class ActBtn {
                 storePrevPositions(scene);
             }
 
+            // 固定ロジック更新（60fps）
             while (accumulator >= FIXED_DT) {
                 core._tick(); // enchant.js のロジック更新
                 accumulator -= FIXED_DT;
@@ -1755,10 +1753,9 @@ class ActBtn {
 
             const alpha = accumulator / FIXED_DT;
 
-            if (core._renderer && scene) {
-                applyInterpolation(scene, alpha);
-                core._renderer.render(scene);
-                restoreCurrentPositions(scene);
+            // DOM 版の補間描画
+            if (scene) {
+                renderInterpolated(scene, alpha);
             }
 
             requestAnimationFrame(core._fixedTick);
@@ -1768,6 +1765,7 @@ class ActBtn {
     };
 
 })();
+
 
 
 window.onload = function() {
@@ -3346,203 +3344,6 @@ window.onload = function() {
 		return relativeAngle < angle || relativeAngle > (360 - angle);
 	}
 
-	// 20251111追加_扇形の爆発関数
-	function removeSpritesInSector(originSprite, radius, angleDeg) {
-		const scene = enchant.Core.instance.currentScene;
-
-		// 扇形描画（赤→こげ茶グラデーション）
-		const sector = new Sprite(radius * 2, radius * 2);
-		const surface = new Surface(radius * 2, radius * 2);
-		const ctx = surface.context;
-
-		const startAngle = -angleDeg / 2 * Math.PI / 180;
-		const endAngle = angleDeg / 2 * Math.PI / 180;
-
-		const gradient = ctx.createRadialGradient(radius, radius, 0, radius, radius, radius);
-		gradient.addColorStop(0, "red");
-		gradient.addColorStop(1, "saddlebrown");
-
-		ctx.fillStyle = gradient;
-		ctx.beginPath();
-		ctx.moveTo(radius, radius);
-		ctx.arc(radius, radius, radius, startAngle, endAngle);
-		ctx.closePath();
-		ctx.fill();
-
-		sector.time = 0;
-		sector.scale(0.1, 0.1);
-		sector.image = surface;
-		sector.x = originSprite.x + originSprite.width / 2 - radius;
-		sector.y = originSprite.y + originSprite.height / 2 - radius;
-		sector.rotation = originSprite.rotation - 90;
-		scene.addChild(sector);
-
-		sector.onenterframe = function(){
-			sector.time++;
-			sector.scaleX += 0.1;
-			sector.scaleY += 0.1;
-			sector.opacity -= 0.1;
-			if(sector.time > 10){
-				scene.removeChild(sector);
-			}
-		}
-
-		// 範囲内のSpriteを削除
-		const originX = originSprite.x + originSprite.width / 2;
-		const originY = originSprite.y + originSprite.height / 2;
-		const angleRad = angleDeg * Math.PI / 180;
-
-		/*allSprites.forEach(sprite => {
-			const targetX = sprite.x + sprite.width / 2;
-			const targetY = sprite.y + sprite.height / 2;
-			const dx = targetX - originX;
-			const dy = targetY - originY;
-			const distance = Math.sqrt(dx * dx + dy * dy);
-
-			if (distance <= radius) {
-				const theta = Math.atan2(dy, dx);
-				const normalizedTheta = (theta + 2 * Math.PI) % (2 * Math.PI);
-				const centerAngle = 0; // 正面方向（右）を基準
-				const minAngle = (centerAngle - angleRad / 2 + 2 * Math.PI) % (2 * Math.PI);
-				const maxAngle = (centerAngle + angleRad / 2 + 2 * Math.PI) % (2 * Math.PI);
-
-				const inSector = minAngle < maxAngle
-					? normalizedTheta >= minAngle && normalizedTheta <= maxAngle
-					: normalizedTheta >= minAngle || normalizedTheta <= maxAngle;
-
-				if (inSector) {
-					sprite.parentNode.removeChild(sprite);
-				}
-			}
-		});*/
-	}
-
-
-	/*var BulletCol = Class.create(PhyCircleSprite, {
-		initialize: function(shotSpeed, ref, from, category, num, id) {
-			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0, 0, 1, true);
-
-			this.time = 0;
-			this.id = id;
-			this.num = num;
-			this.category = category;
-			this.from = from;
-			this.shotSpeed = shotSpeed;
-			this.ref = ref;
-			this.bullet = new Bullet(this, num, id);
-			this.rotation = 0;
-
-			let refFlg = false;
-			let hitTime = 0;
-
-			// 射角にブレを与える
-			const [random0, random1] = this.getRandomOffset(category);
-			this.applyBulletScaling(category);
-
-			this.vec = Rot_to_Vec(from.rotation + random0 + random1, -90);
-			this.rad = Math.atan2(this.vec.y, this.vec.x);
-
-			const pos = Get_Center(from);
-			this.moveTo(pos.x + Math.cos(this.rad) * 60 - 2.25, pos.y + Math.sin(this.rad) * 60 - 3);
-			this.applyImpulse(new b2Vec2(Math.cos(this.rad) * shotSpeed, Math.sin(this.rad) * shotSpeed));
-
-			this.onenterframe = () => {
-				if (!WorldFlg) return;
-
-				this.vec = { x: this.vx, y: this.vy };
-				this.rad = Math.atan2(this.vec.y, this.vec.x);
-				this.time++;
-
-				if (this.time % 10 === 0) new Smoke(this);
-
-				// 衝突判定
-				let hit = this.checkCollision(Wall) + this.checkCollision(Block);
-				if (hit > 0) {
-					hitTime++;
-					if (!refFlg) {
-						this.ref--;
-						refFlg = true;
-						if (gameStatus === 0) game.assets['./sound/s_car_trunk_O.wav'].clone().play();
-					}
-					if (hitTime >= 30) {
-						hitTime = 0;
-						this.ref--;
-					}
-				} else {
-					refFlg = false;
-				}
-
-				// 弾反射限界
-				if (this.ref < 0) this._Destroy();
-
-				// 他の弾と接触
-				Bullet.intersectStrict(this.bullet).forEach(elem => {
-					if (this.bullet.num !== elem.num || this.bullet.id !== elem.id) {
-						elem.from._Destroy();
-						this._Destroy();
-					}
-				});
-			};
-		},
-
-		_Shot: function() {
-			bullets[this.num]++;
-			bulStack[this.num][this.id] = true;
-			now_scene.BulletGroup.addChild(this);
-			now_scene.BulletGroup.addChild(this.bullet);
-			new OpenFire(this.from);
-			game.assets['./sound/s_car_door_O2.wav'].clone().play();
-			if (this.shotSpeed >= 14) {
-				game.assets['./sound/Sample_0003.wav'].clone().play();
-			}
-		},
-
-		_Destroy: function() {
-			bullets[this.num]--;
-			bulStack[this.num][this.id] = false;
-			new TouchFire(this.bullet);
-			Spark_Effect(this.bullet);
-			this.destroy();
-			now_scene.BulletGroup.removeChild(this);
-			now_scene.BulletGroup.removeChild(this.bullet);
-			if (gameStatus === 0) game.assets['./sound/Sample_0000.wav'].clone().play();
-		},
-
-		getRandomOffset: function(category) {
-			const ranges = {
-				4: 10, 9: 6, 13: 4
-			};
-			const r = ranges[category];
-			if (!r) return [0, 0];
-			return [
-				(Math.floor(Math.random() * (r * 2)) - r) / 2,
-				(Math.floor(Math.random() * (r * 2)) - r) / 2
-			];
-		},
-
-		applyBulletScaling: function(category) {
-			const scaleMap = {
-				0: [1.0, 1.0],
-				1: [0.8, 1.0],
-				6: [0.6, 1.0],
-				8: [1.0, 1.0],
-				9: [0.7, 0.7],
-				11: [0.6, 1.0]
-			};
-			const s = scaleMap[category];
-			if (s) this.bullet.scale(...s);
-		},
-
-		checkCollision: function(group) {
-			let count = 0;
-			group.intersectStrict(this.bullet).forEach(elem => {
-				elem.contact(() => {
-					this.contact(() => count++);
-				});
-			});
-			return count;
-		}
-	});*/
 	var BulletCol = Class.create(PhyCircleSprite, {
 		initialize: function (shotSpeed, ref, from, category, num, id) {
 			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0, 0, 1, true);
@@ -3576,57 +3377,6 @@ window.onload = function() {
 			this.applyImpulse(new b2Vec2(Math.cos(this.rad) * shotSpeed,
 										Math.sin(this.rad) * shotSpeed));
 
-			/*this.onenterframe = () => {
-				if (!WorldFlg) return;
-
-				this.vec = { x: this.vx, y: this.vy };
-				this.rad = Math.atan2(this.vec.y, this.vec.x);
-				this.time++;
-
-				if (this.time % 10 === 0) new Smoke(this);
-
-				// --- 衝突判定（高速化） ---
-				const hitCount =
-					Wall.intersectStrict(this.bullet).length +
-					Block.intersectStrict(this.bullet).length;
-
-				const isHit = hitCount > 0;
-
-				// ★ 接触開始（enter）
-				if (isHit && !wasHit) {
-					this.ref--;
-					hitTime = 0;
-					if (gameStatus === 0)
-						game.assets['./sound/s_car_trunk_O.wav'].clone().play();
-				}
-
-				// ★ 接触継続（stay）
-				if (isHit) {
-					hitTime++;
-					if (hitTime >= 30) {
-						this.ref--;
-						hitTime = 0;
-					}
-				}
-
-				// ★ 接触終了（exit）
-				if (!isHit) {
-					hitTime = 0;
-				}
-
-				wasHit = isHit;
-
-				// 反射限界
-				if (this.ref < 0) this._Destroy();
-
-				// 他弾との衝突
-				Bullet.intersectStrict(this.bullet).forEach(elem => {
-					if (this.bullet.num !== elem.num || this.bullet.id !== elem.id) {
-						elem.from._Destroy();
-						this._Destroy();
-					}
-				});
-			};*/
 			this.onenterframe = () => {
 				if (!WorldFlg) return;
 
@@ -4810,134 +4560,6 @@ window.onload = function() {
 			now_scene.FireGroup.addChild(this);
 		}
 	});
-	
-	/*var OpenFire = Class.create(Sprite, {
-		initialize: function(from) {
-			Sprite.call(this, 64, 64); // 大きめに確保
-			this.time = 0;
-
-			// 位置計算
-			let rad = Rot_to_Rad(from.rotation - 90);
-			let dx = Math.cos(rad) * 40;
-			let dy = Math.sin(rad) * 40;
-			let f = Get_Center(from);
-			this.moveTo(f.x - this.width / 2 + dx, f.y - this.height / 2 + dy);
-			this.rotation = from.rotation;
-
-			// Surfaceにトゲトゲを描画
-			let s = new Surface(this.width, this.height);
-			let ctx = s.context;
-			let cx = this.width / 2;
-			let cy = this.height / 2;
-			let spikes = 12; // トゲの数
-			let outer = 30;  // 外側半径
-			let inner = 10;  // 内側半径
-
-			// グラデーションを作成
-			let grad = ctx.createRadialGradient(cx, cy, 7, cx, cy, outer);
-			grad.addColorStop(0, "#fa0");       // 中心
-			grad.addColorStop(0.1, "#f40");       // 中心
-			grad.addColorStop(0.5, "red");        // 中間
-			grad.addColorStop(1, "#800");        // 中間
-			ctx.fillStyle = grad;
-
-			ctx.beginPath();
-			for (let i = 0; i < spikes; i++) {
-				let angle = (i / spikes) * Math.PI * 2;
-				let x1 = cx + Math.cos(angle) * outer;
-				let y1 = cy + Math.sin(angle) * outer;
-				let x2 = cx + Math.cos(angle + Math.PI / spikes) * inner;
-				let y2 = cy + Math.sin(angle + Math.PI / spikes) * inner;
-				if (i === 0) ctx.moveTo(x1, y1);
-				else ctx.lineTo(x1, y1);
-				ctx.lineTo(x2, y2);
-			}
-			ctx.closePath();
-			ctx.fill();
-
-			this.image = s;
-
-			this.scaleX = this.scaleY = 1.0;
-			this.opacity = 1.0;
-
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.x += Math.cos(rad) * 2;
-					this.y += Math.sin(rad) * 2;
-					this.scaleX *= 0.9;   // 徐々に縮小
-					this.scaleY *= 0.9;
-					this.opacity -= 0.1;  // フェードアウト
-					this.time++;
-					if (this.opacity <= 0) {
-						now_scene.FireGroup.removeChild(this);
-					}
-				}
-			};
-			now_scene.FireGroup.addChild(this);
-		}
-	});*/
-
-	/*var OpenFire = Class.create(Sprite, {
-		initialize: function(from) {
-			Sprite.call(this, 64, 64); // 扇形を描くために大きめの領域
-			this.time = 0;
-
-			// Surfaceに扇状のトゲトゲを描画
-			let s = new Surface(this.width, this.height);
-			let ctx = s.context;
-			let cx = this.width / 2;
-			let cy = this.height / 2;
-
-			// 扇状に広がるトゲを描画
-			ctx.fillStyle = "#f40";
-			ctx.beginPath();
-			let spikes = 12; // トゲの数
-			let startAngle = -Math.PI / 6 - Math.PI / 2; // -30° - 90° = -120°
-        	let endAngle   =  Math.PI / 6 - Math.PI / 2; // +30° - 90° = -60°
-			for (let i = 0; i <= spikes; i++) {
-				let angle = startAngle + (i / spikes) * (endAngle - startAngle);
-				let r = 30 + Math.random() * 10; // 外側半径ランダム
-				let x = cx + Math.cos(angle) * r;
-				let y = cy + Math.sin(angle) * r;
-				if (i === 0) ctx.moveTo(cx, cy);
-				ctx.lineTo(x, y);
-			}
-			ctx.closePath();
-			ctx.fill();
-
-			this.image = s;
-
-			// 位置計算（発射方向へ配置）
-			let rad = Rot_to_Rad(from.rotation - 90);
-			let dx = Math.cos(rad) * 40;
-			let dy = Math.sin(rad) * 40;
-			let f = Get_Center(from);
-			this.moveTo(f.x - this.width / 2 + dx, f.y - this.height / 2 + dy);
-			this.rotation = from.rotation;
-
-			this.scaleX = this.scaleY = 1.0;
-			this.opacity = 1.0;
-
-			this.onenterframe = function() {
-				if (WorldFlg) {
-					// 発射方向へ少し移動
-					this.x += Math.cos(rad) * 2;
-					this.y += Math.sin(rad) * 2;
-
-					// 徐々に縮小
-					this.scaleX *= 0.95;
-					this.scaleY *= 0.95;
-
-					this.opacity -= 0.08; // フェードアウト
-					this.time++;
-					if (this.opacity <= 0) {
-						now_scene.FireGroup.removeChild(this);
-					}
-				}
-			};
-			now_scene.FireGroup.addChild(this);
-		}
-	});*/
 
 	var Flash = Class.create(Sprite, {
 		initialize: function(target) {
@@ -11341,10 +10963,12 @@ window.onload = function() {
 
 			if (critical) this.scale(1.5, 1.5);
 
+			const hopX = (Math.random() * 10 - 5); // -5〜+5 のランダム横移動
+
 			// 跳ねるようなアニメーション（上に移動 → 下に落ちる）
 			this.tl
-				.moveBy(0, -10, 6, enchant.Easing.SIN_EASEOUT)  // 上に跳ねる
-				.moveBy(0, 5, 40, enchant.Easing.EXP_EASEOUT)    // 少し戻る
+				.moveBy(hopX, -10, 6, enchant.Easing.SIN_EASEOUT)  // 上に跳ねる
+				.moveBy(hopX, 5, 40, enchant.Easing.EXP_EASEOUT)    // 少し戻る
 				.and()
 				.fadeOut(40)         // フェードアウト
 				.then(() => {
@@ -11825,7 +11449,7 @@ window.onload = function() {
 			this.addEventListener('touchstart', function() {
 				TotalRepository.keyName = totalKey;
 				TotalRepository.restore();
-				if (TotalRepository.data.ClearStageNum > 0) {
+				if (TotalRepository.data.ClearStageNum >= 0) {
 					totalStageNum = TotalRepository.data.ClearStageNum;
 				}
 				titleFlg = true;
@@ -12706,8 +12330,8 @@ window.onload = function() {
 									new ViewText(this, 'Title', { width: 720, height: 64 }, { x: 360, y: 300 }, 'ミッションクリア！', 'bold 60px "Arial"', 'red', 'left', true);
 									new ViewScore(this);
 								}
-								if(TotalRepository.data.ClearStageNum < stageNum + 1){
-									TotalRepository.data.ClearStageNum = stageNum + 1;
+								if(TotalRepository.data.ClearStageNum < stageNum){
+									TotalRepository.data.ClearStageNum = stageNum;
 									TotalRepository.save();
 								}
 							} else if (deadFlgs[0]) {
@@ -12990,7 +12614,7 @@ window.onload = function() {
 		}
 	}
 
-	function startFixedLoop(game) {
+	/*function startFixedLoop(game) {
 		// enchant.js の内部ループを止める
 		game._requestNextFrame = function() {};
 
@@ -13064,7 +12688,7 @@ window.onload = function() {
 		requestAnimationFrame(game._fixedTick);
 
 
-	}
+	}*/
 
 	game.onload = function() {
 		var script = document.createElement("script");
