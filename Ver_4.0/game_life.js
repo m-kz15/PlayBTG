@@ -294,7 +294,7 @@ const Categorys = {
 		8, //elitered
 		5, //pink
 		10, //sand
-		1, //random
+		1.2, //random
 		10, //dazzle
 		15 //abysal
 	],
@@ -2729,11 +2729,8 @@ window.onload = function() {
 				if (this.num !== 0) {
 					const hit = TankBase.intersectStrict(this);
 					if (hit.length > 0) {
-						for (let i = 0; i < hit.length; i++) {
-							if (hit[i].num !== 0) {
-								now_scene.removeChild(this);
-								break;
-							}
+						if (hit[0].num !== 0) {
+							now_scene.removeChild(this);
 						}
 					}
 				}
@@ -2931,11 +2928,8 @@ window.onload = function() {
 				if (this.num !== 0) {
 					const hit = TankBase.intersectStrict(this);
 					if (hit.length > 0) {
-						for (let i = 0; i < hit.length; i++) {
-							if (hit[i].num !== 0) {
-								now_scene.removeChild(this);
-								break;
-							}
+						if (hit[0].num !== 0) {
+							now_scene.removeChild(this);
 						}
 					}
 				}
@@ -3267,8 +3261,6 @@ window.onload = function() {
 			const self = this;
 
 			this.onenterframe = function () {
-				if (!WorldFlg) return;
-
 				self.x += dx;
 				self.y += dy;
 
@@ -3316,8 +3308,6 @@ window.onload = function() {
 			const self = this;
 
 			this.onenterframe = function () {
-				if (!WorldFlg) return;
-
 				self.x += dx;
 				self.y += dy;
 
@@ -3356,9 +3346,6 @@ window.onload = function() {
 			this.shotSpeed = shotSpeed;
 			this.ref = ref;
 			this.bullet = new Bullet(this, num, id);
-
-			let wasHit = false;   // 前フレームで当たっていたか
-			let hitTime = 0;      // 接触継続フレーム数
 
 			this.prevVx = 0;
 			this.prevVy = 0;
@@ -3520,6 +3507,7 @@ window.onload = function() {
 				if (rad !== this.prevRad) {
 					this.prevRad = rad;
 					this.updateRotation(rad);
+					this.force = this.computeForce(from);
 				}
 
 				this.updatePosition();
@@ -4387,8 +4375,6 @@ window.onload = function() {
 		return surface;
 	}
 
-
-
 	var Target = Class.create(Sprite, {
 		initialize: function(from, scene) {
 			Sprite.call(this, 40, 40);
@@ -4471,61 +4457,86 @@ window.onload = function() {
 	var Fire = Class.create(Sprite, {
 		initialize: function(from) {
 			Sprite.call(this, 12, 12);
-			this.backgroundColor = "#f20";
+
+			// --- shotSpeed による色と初期透明度 ---
+			const fastShot = from.from.shotSpeed > 20;
+			this.backgroundColor = fastShot ? "#8cf" : "#f20";
+			this.opacity = fastShot ? 1.0 : 0.8;
 			this.time = 0;
-			let value = 0.8;
-			if (from.from.shotSpeed > 20) {
-				this.backgroundColor = "#8cf";
-				value = 1.0;
+
+			// --- 乱数オフセット（軽量化 & 一時オブジェクトなし） ---
+			let randOffset = 0;
+			if (!fastShot) {
+				// -3〜3 の整数を高速生成し、5倍
+				randOffset = (((Math.random() * 7) | 0) - 3) * 5;
 			}
-			this.opacity = value;
 
-			let randOffset = from.from.shotSpeed > 20 ? 0 : (Math.floor(Math.random() * 7) - 3) * (5);
+			// --- 角度計算（無駄な一時変数を作らない） ---
+			const rad = Rot_to_Rad(from.rotation + 90 + randOffset);
+			const dx = Math.cos(rad) * 9;
+			const dy = Math.sin(rad) * 9;
 
-			let rad = Rot_to_Rad(from.rotation + 90 + randOffset);
-			let dx = Math.cos(rad) * (9);
-			let dy = Math.sin(rad) * (9);
+			// --- 座標計算（オブジェクト生成なし） ---
+			const f = Get_Center(from);
+			const x = f.x - 6 + dx;
+			const y = f.y - 6 + dy;
+
 			this.rotation = from.rotation;
-			let f = Get_Center(from);
-			this.moveTo((f.x - this.width / 2) + dx, (f.y - this.height / 2) + dy);
+			this.moveTo(x, y);
 
+			// --- onenterframe（クロージャ変数を使わず JIT 最適化しやすい） ---
 			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.time++
-					value -= 0.1;
-					this.opacity = value;
-					if (value < 0.1) now_scene.FireGroup.removeChild(this);
+				if (!WorldFlg) return;
+
+				this.time++;
+				this.opacity -= 0.1;
+
+				// 透明度が下がったら即削除（余計な更新をしない）
+				if (this.opacity <= 0.1) {
+					now_scene.FireGroup.removeChild(this);
 				}
-			}
+			};
+
 			now_scene.FireGroup.addChild(this);
 		}
-	})
+	});
+
 
 	var TouchFire = Class.create(Sprite, {
 		initialize: function(from) {
 			Sprite.call(this, 24, 24);
-			this.backgroundColor = "#f30";
-			if (from.from.shotSpeed > 20) this.backgroundColor = "#44f";
+
+			const fastShot = from.from.shotSpeed > 20;
+			this.backgroundColor = fastShot ? "#44f" : "#f30";
+
 			this.time = 0;
-			let value = 0.8;
-			this.opacity = value;
+			this.opacity = 0.8;
 
-			let rad = Rot_to_Rad(from.rotation - 90);
-			let dx = Math.cos(rad) * (3);
-			let dy = Math.sin(rad) * (3);
-			let f = Get_Center(from);
-			this.moveTo((f.x - this.width / 2) + dx, (f.y - this.height / 2) + dy);
+			// --- 角度計算（無駄な一時変数なし） ---
+			const rad = Rot_to_Rad(from.rotation - 90);
+			const dx = Math.cos(rad) * 3;
+			const dy = Math.sin(rad) * 3;
+
+			const f = Get_Center(from);
+			const x = f.x - 12 + dx;
+			const y = f.y - 12 + dy;
+
 			this.rotation = from.rotation;
+			this.moveTo(x, y);
 
+			// --- onenterframe（クロージャ変数を使わない） ---
 			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.time++
-					value -= 0.1;
-					this.opacity = value;
-					this.rotation += this.time;
-					if (value < 0) now_scene.FireGroup.removeChild(this);
+				if (!WorldFlg) return;
+
+				this.time++;
+				this.opacity -= 0.1;
+				this.rotation += this.time;
+
+				if (this.opacity <= 0.1) {
+					now_scene.FireGroup.removeChild(this);
 				}
-			}
+			};
+
 			now_scene.FireGroup.addChild(this);
 		}
 	});
@@ -4533,33 +4544,49 @@ window.onload = function() {
 	var OpenFire = Class.create(Sprite, {
 		initialize: function(from) {
 			Sprite.call(this, 24, 24);
+
 			this.backgroundColor = "#f40";
 			this.time = 0;
+			this.opacity = 1.0;
 
-			let value = 1.0;
-			this.opacity = value;
+			// --- 角度計算 ---
+			const rad = Rot_to_Rad(from.rotation - 90);
+			const dx = Math.cos(rad) * 40;
+			const dy = Math.sin(rad) * 40;
 
-			let rad = Rot_to_Rad(from.rotation - 90);
-			let dx = Math.cos(rad) * (40);
-			let dy = Math.sin(rad) * (40);
-			let f = Get_Center(from);
-			this.moveTo((f.x - this.width / 2) + dx, (f.y - this.height / 2) + dy);
+			const f = Get_Center(from);
+			const x = f.x - 12 + dx;
+			const y = f.y - 12 + dy;
+
 			this.rotation = from.rotation;
+			this.moveTo(x, y);
 
+			// --- onenterframe（軽量化） ---
 			this.onenterframe = function() {
-				if (WorldFlg) {
-					this.scaleX = 1 - (value / 2);
-					this.scaleY = 1 - (value / 2);
-					value -= 0.1;
-					this.x += Math.cos(rad) * 3;
-					this.y += Math.sin(rad) * 3;
-					this.opacity = value;
-					if (value < 0) now_scene.FireGroup.removeChild(this);
+				if (!WorldFlg) return;
+
+				// scale 計算を簡略化
+				const v = this.opacity;
+				const s = 1 - (v / 2);
+				this.scaleX = s;
+				this.scaleY = s;
+
+				// 移動
+				this.x += Math.cos(rad) * 3;
+				this.y += Math.sin(rad) * 3;
+
+				// 透明度減少
+				this.opacity -= 0.1;
+
+				if (this.opacity <= 0.1) {
+					now_scene.FireGroup.removeChild(this);
 				}
-			}
+			};
+
 			now_scene.FireGroup.addChild(this);
 		}
 	});
+
 
 	var Flash = Class.create(Sprite, {
 		initialize: function(target) {
@@ -5542,6 +5569,10 @@ window.onload = function() {
 				this.bomMax = 1;
 			}
 
+			if (this.category == 1 || this.category == 6){
+				this.reload *= 5;
+			}
+
 			if (playerLife != 0) {
 				if ((playerLife % Categorys.Life[this.category]) <= (Categorys.Life[this.category] - 5)) {
 					this.life = playerLife + 5;
@@ -5581,6 +5612,7 @@ window.onload = function() {
 
 							if ((inputManager.checkButton("A") == inputManager.keyStatus.DOWN)) {
 								if (this.category == 9 && (this.fullFireFlg || this.firecnt > 0 || bullets[num] > 0) || this.shotNGflg) return;
+								if (this.shotNGflg) return;
 								this._Attack();
 							}
 
@@ -5606,13 +5638,11 @@ window.onload = function() {
 								}
 							}
 
-							if (playerType == 1 || playerType == 6) {
-								new PlayerRefAim(this.ref, this.cannon, this.cursor, this.category, this.num);
-							} else {
-								let aim = new Aim(this.cannon, this.cursor, this.category, this.num);
-								if (this.category == 9 && (this.bulReloadFlg || bullets[this.num] > 0)) {
-									aim.image = RedAimSurfaceCache;
-								}
+							let aim = playerType == 1 || playerType == 6 ?
+								new PlayerRefAim(this.ref, this.cannon, this.cursor, this.category, this.num) :
+								new Aim(this.cannon, this.cursor, this.category, this.num);
+							if (this.bulReloadFlg){
+								aim.image = RedAimSurfaceCache;
 							}
 
 							if (this.category == 9) {
@@ -5646,7 +5676,21 @@ window.onload = function() {
 									}
 								}
 							}
+							else if (this.category > 0){
+								if (this.bulReloadFlg == false) {
+									if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+								} else {
+									if (this.bulReloadTime < this.reload) {
+										this.bulReloadTime++;
+										if (this.shotNGflg == false) this.shotNGflg = true;
+									} else {
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 
+								}
+							}
 
 							if (!this.shotStopFlg) {
 								switch (inputManager.checkDirection()) {
@@ -5918,6 +5962,33 @@ window.onload = function() {
 				for (let i = 0; i < tankEntity.length; i++) {
 					if (i === this.num || deadFlgs[i]) continue;
 
+					// ③ 距離で早期スキップ
+					const dx = this.x - tankEntity[i].x;
+					const dy = this.y - tankEntity[i].y;
+					if (dx*dx + dy*dy > 200*200) continue;
+
+					// ② rotation から handler を直接取得
+					const handler = collisionHandlers[this.rotation];
+					if (!handler) continue;
+
+					const frame = this.tankFrame[handler.frame];
+					const targetH = tankEntity[i];
+
+					// ① AABB → strict の2段階判定
+					if (!frame.intersect(targetH)) continue;
+
+					if (frame.intersectStrict(targetH)) {
+						this.tankStopFlg = true;
+						this.x += handler.dx * this.moveSpeed;
+						this.y += handler.dy * this.moveSpeed;
+						moveCnt -= this.moveSpeed;
+						break;
+					}
+				}
+
+				/*for (let i = 0; i < tankEntity.length; i++) {
+					if (i === this.num || deadFlgs[i]) continue;
+
 					for (const [rotKey, h] of Object.entries(collisionHandlers)) {
 						if (this.tankFrame[h.frame].intersectStrict(tankEntity[i]) && this.rotation == rotKey) {
 							this.tankStopFlg = true;
@@ -5927,7 +5998,7 @@ window.onload = function() {
 							break;
 						}
 					}
-				}
+				}*/
 
 				// EnemyAim 生成
 				new EnemyAim(this.cannon, this.cursor, this.category, this.num);
@@ -6022,8 +6093,7 @@ window.onload = function() {
 
 				// 射撃
 				if (!this.shotNGflg && this.fireFlg && this.time % this.fireLate === 0) {
-					const idx = Math.floor(Math.random() * this.bulMax);
-					if (!bulStack[this.num][idx] && Math.floor(Math.random() * this.bulMax) > bullets[this.num]) {
+					if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
 						this._Attack();
 					}
 				}
