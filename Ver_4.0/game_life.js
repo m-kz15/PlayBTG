@@ -5603,7 +5603,7 @@ window.onload = function() {
 
 			if (this.category == 1 || this.category == 6){
 				this.reload *= 5;
-			}else{
+			}else if (this.category != 9){
 				this.reload /= 2;
 			}
 
