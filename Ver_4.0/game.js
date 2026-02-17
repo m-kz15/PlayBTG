@@ -5401,7 +5401,7 @@ window.onload = function() {
 			new TankBoom(this);
 			this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1));
 		},
-
+		
 		_Rotation: function (rot) {
 			if (rot < 0) rot += 360;
 
@@ -5410,37 +5410,68 @@ window.onload = function() {
 
 			const currentRot = this.rotation % 360;
 			const diff = Math.abs(currentRot - rot);
+			const speed = this.bodyRotSpeed;
 
-			// 180度反対の角度も許容
+			let rotating = false; // ← 旋回中かどうかを記録する
+
+			// -------------------------
+			// this.rotation の処理（元の構造）
+			// -------------------------
 			if (diff === 0 || diff === 180) {
 				this.rotation = rot;
+
 				if (diff === 180) this.waitFrame = 5;
 
 				if (this.waitFrame > 0) {
 					this.waitFrame--;
-					return false;
+					rotating = true; // ← 旋回中扱い
 				} else {
 					this.waitFrame = 0;
-					return true;
 				}
-			}
-
-			const speed = this.bodyRotSpeed;
-
-			if (Math.abs(sa) > speed) {
-				const rotmove = sa === 0 ? 0 : (sa > 0 ? -speed : speed);
-				if (rotmove !== 0) {
+			} else {
+				if (Math.abs(sa) > speed) {
+					const rotmove = sa > 0 ? -speed : speed;
 					this.rotation += rotmove;
+
 					if (this.rotation < 0) this.rotation += 360;
 					else if (this.rotation > 359) this.rotation -= 360;
+
+					rotating = true; // ← 旋回中扱い
+				} else {
+					if (sa !== 0) this.rotation = rot;
 				}
-				if (this.tank.rotation !== this.rotation) this.tank.rotation = this.rotation;
-				return false;
-			} else {
-				if (sa !== 0) this.rotation = rot;
-				if (this.tank.rotation !== this.rotation) this.tank.rotation = this.rotation;
-				return true;
 			}
+
+			// -------------------------
+			// tank.rotation の追従処理（常に実行する）
+			// -------------------------
+			let tankRot = this.tank.rotation % 360;
+			let bodyRot = this.rotation % 360;
+
+			let tdiff = bodyRot - tankRot;
+			if (tdiff > 180) tdiff -= 360;
+			if (tdiff < -180) tdiff += 360;
+
+			// 180°差なら tank.rotation は動かさない
+			if (Math.abs(tdiff) !== 180) {
+				const tankSpeed = this.bodyRotSpeed;
+
+				if (Math.abs(tdiff) > tankSpeed) {
+					tankRot += (tdiff > 0 ? tankSpeed : -tankSpeed);
+				} else {
+					tankRot = bodyRot;
+				}
+
+				if (tankRot < 0) tankRot += 360;
+				if (tankRot > 359) tankRot -= 360;
+			}
+
+			this.tank.rotation = tankRot;
+
+			// -------------------------
+			// 旋回中なら false を返す
+			// -------------------------
+			return !rotating;
 		},
 
 		_Move: function (rot) {
@@ -5548,6 +5579,8 @@ window.onload = function() {
 
 			if (this.category == 1 || this.category == 6){
 				this.reload *= 5;
+			}else{
+				this.reload /= 2;
 			}
 			
 			this.weak.scale(0.6, 0.6);
@@ -5623,12 +5656,14 @@ window.onload = function() {
 										this.bulReloadTime++;
 										if (this.shotNGflg == false) this.shotNGflg = true;
 									} else {
-										this.shotNGflg = false;
-										this.bulReloadFlg = false;
-										this.bulReloadTime = 0;
-										this.fullFireFlg = false;
-										this.firecnt = 0;
-										this.firstFireFlg = false;
+										if (bullets[this.num] == 0){
+											this.shotNGflg = false;
+											this.bulReloadFlg = false;
+											this.bulReloadTime = 0;
+											this.fullFireFlg = false;
+											this.firecnt = 0;
+											this.firstFireFlg = false;
+										}
 									}
 
 								}
@@ -5652,9 +5687,11 @@ window.onload = function() {
 										this.bulReloadTime++;
 										if (this.shotNGflg == false) this.shotNGflg = true;
 									} else {
-										this.shotNGflg = false;
-										this.bulReloadFlg = false;
-										this.bulReloadTime = 0;
+										if (bullets[this.num] == 0){
+											this.shotNGflg = false;
+											this.bulReloadFlg = false;
+											this.bulReloadTime = 0;
+										}
 									}
 
 								}
@@ -6037,9 +6074,11 @@ window.onload = function() {
 						this.bulReloadTime++;
 						if (!this.shotNGflg) this.shotNGflg = true;
 					} else {
-						this.shotNGflg = false;
-						this.bulReloadFlg = false;
-						this.bulReloadTime = 0;
+						if (bullets[this.num] == 0){
+							this.shotNGflg = false;
+							this.bulReloadFlg = false;
+							this.bulReloadTime = 0;
+						}
 					}
 				}
 
@@ -6399,9 +6438,11 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
+									if (bullets[this.num] == 0){
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 								}
 
 							}
@@ -6815,9 +6856,11 @@ window.onload = function() {
 						this.bulReloadTime++;
 						if (!this.shotNGflg) this.shotNGflg = true;
 					} else {
-						this.shotNGflg = false;
-						this.bulReloadFlg = false;
-						this.bulReloadTime = 0;
+						if (bullets[this.num] == 0){
+							this.shotNGflg = false;
+							this.bulReloadFlg = false;
+							this.bulReloadTime = 0;
+						}
 					}
 				}
 
@@ -7048,9 +7091,11 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
+									if (bullets[this.num] == 0){
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 								}
 
 							}
@@ -7230,9 +7275,11 @@ window.onload = function() {
 							this.bulReloadTime++;
 							if (!this.shotNGflg) this.shotNGflg = true;
 						} else {
-							this.shotNGflg = false;
-							this.bulReloadFlg = false;
-							this.bulReloadTime = 0;
+							if (bullets[this.num] == 0){
+								this.shotNGflg = false;
+								this.bulReloadFlg = false;
+								this.bulReloadTime = 0;
+							}
 						}
 					}
 
@@ -7593,9 +7640,11 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
+									if (bullets[this.num] == 0){
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 								}
 
 							}
@@ -8128,9 +8177,11 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
+									if (bullets[this.num] == 0){
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 								}
 
 							}
@@ -8322,8 +8373,9 @@ window.onload = function() {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			if(gameMode == 2)
-				this.weak.scale(0.6, 0.6);
+			this.weak.scale(0.8, 0.8);
+			this.tank.scale(1.1, 1.1);
+			this.cannon.scale(1.3, 1.1);
 
 			const Around = new InterceptAround(this);
 			const Front = new InterceptFront(this.cannon);
@@ -8582,9 +8634,11 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
+									if (bullets[this.num] == 0){
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 								}
 
 							}
@@ -8768,8 +8822,9 @@ window.onload = function() {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			if(gameMode == 2)
-				this.weak.scale(0.6, 0.6);
+			this.weak.scale(0.8, 0.8);
+			this.tank.scale(1.1, 1.1);
+			this.cannon.scale(1.3, 1.1);
 
 			const Around = new InterceptAround(this);
 			const Front = new InterceptFront(this.cannon);
@@ -9059,9 +9114,11 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
+									if (bullets[this.num] == 0){
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 								}
 
 							}
@@ -9660,9 +9717,11 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									this.shotNGflg = false;
-									this.bulReloadFlg = false;
-									this.bulReloadTime = 0;
+									if (bullets[this.num] == 0){
+										this.shotNGflg = false;
+										this.bulReloadFlg = false;
+										this.bulReloadTime = 0;
+									}
 								}
 
 							}
