@@ -3411,6 +3411,7 @@ window.onload = function() {
 				if (rad !== this.prevRad) {
 					this.prevRad = rad;
 					this.updateRotation(rad);
+					this.force = this.computeForce(from);
 				}
 
 				this.updatePosition();
@@ -5319,6 +5320,28 @@ window.onload = function() {
 			this.fireFlg   = false;
 			this.escapeFlg = false;
 
+			//	射撃後一時停止用
+			this.shotStopFlg = false;
+			this.shotStopTime = 0;
+
+			//	一斉射撃用
+			this.fullFireFlg = false;
+			this.firecnt = 0;
+
+			//	座標管理用
+			this.myPath = [0, 0];
+			this.targetPath = [0, 0];
+
+			//	経路探索用
+			this.map = Object.assign({}, scene.backgroundMap);
+			this.grid = JSON.parse(JSON.stringify(scene.grid));
+			this.root;
+			
+			this.rot = 0;
+			this.dirValue = 0;
+			this.hittingTime = 0;
+			this.moveRandom = 1;
+
 			this.waitFrame = 0;
 
 			if (gameMode > 0) {
@@ -5567,7 +5590,6 @@ window.onload = function() {
 			TankBase.call(this, x, y, category, num, scene);
 			let my = this;
 			this.cursor = new Cursor(scene);
-			this.rot = 0;
 
 			if (this.moveSpeed < 2.0) {
 				this.moveSpeed = 2.0;
@@ -5585,11 +5607,6 @@ window.onload = function() {
 			
 			this.weak.scale(0.6, 0.6);
 
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-
-			this.fullFireFlg = false;
-			this.firecnt = 0;
 			this.firstFireFlg = false;
 
 			for (var i = 0; i < this.bulMax; i++) {
@@ -5813,31 +5830,21 @@ window.onload = function() {
 
 			if (gameMode == 2) this.weak.scale(0.6, 0.6);
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
-			const target = tankEntity[0];
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
+			this.target = tankEntity[0];
 
-			this.attackTarget = target;
+			this.attackTarget = this.target;
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
 
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
 			this.tankStopFlg = false;
-			this.stopTime = 0;
 
-			let myPath = [0, 0];
-			let targetPath = [0, 0];
-
-			let map = Object.assign({}, scene.backgroundMap);
-			let grid = JSON.parse(JSON.stringify(scene.grid));
-			let root;
 			let moveCnt = 0;
 			let moveCmp = 64;
 			let returnFlg = false;
 
-			let rot = 0;
 			let cflg = false;
 
 			for (let i = 0; i < this.bulMax; i++) {
@@ -5880,7 +5887,7 @@ window.onload = function() {
 				const d = directionMap[dir];
 				if (!d) return;
 
-				rot = d.rot;
+				this.rot = d.rot;
 
 				const center = Get_Center(self);
 				const target = {
@@ -5892,10 +5899,10 @@ window.onload = function() {
 			};
 
 			const updatePathAndRotation = (self, grid, scene) => {
-				myPath = getGridCoord(self);
-				root = getPathToGoalOrVisibleTile(myPath, targetPath, grid, map, scene);
-				if (root && root.length > 0) {
-					updateRotationAndDistance(root[0], myPath, self);
+				this.myPath = getGridCoord(self);
+				this.root = getPathToGoalOrVisibleTile(this.myPath, this.targetPath, grid, this.map, scene);
+				if (this.root && this.root.length > 0) {
+					updateRotationAndDistance(this.root[0], this.myPath, self);
 				}
 				moveCnt = 0;
 			};
@@ -5920,34 +5927,34 @@ window.onload = function() {
 
 				// grid / map 更新（60Fごと）
 				if (this.time % 60 === 0) {
-					grid = JSON.parse(JSON.stringify(scene.grid));
-					map = Object.assign({}, scene.backgroundMap);
+					this.grid = JSON.parse(JSON.stringify(scene.grid));
+					this.map = Object.assign({}, scene.backgroundMap);
 
 					if (this.moveSpeed > 0 && !this.tankStopFlg) {
-						myPath = getGridCoord(this);
-						targetPath = getGridCoord(target);
+						this.myPath = getGridCoord(this);
+						this.targetPath = getGridCoord(this.target);
 
-						for (let i = 0; i < grid.length; i++) {
-							for (let j = 0; j < grid[i].length; j++) {
-								if (i === myPath[0] && j === myPath[1]) {
-									grid[i][j] = 'Start';
-								} else if (i === targetPath[0] && j === targetPath[1]) {
-									grid[i][j] = 'Goal';
+						for (let i = 0; i < this.grid.length; i++) {
+							for (let j = 0; j < this.grid[i].length; j++) {
+								if (i === this.myPath[0] && j === this.myPath[1]) {
+									this.grid[i][j] = 'Start';
+								} else if (i === this.targetPath[0] && j === this.targetPath[1]) {
+									this.grid[i][j] = 'Goal';
 								} else {
-									grid[i][j] = map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
+									this.grid[i][j] = this.map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
 								}
 							}
 						}
 
 						if (this.time === 0) {
-							root = findShortestPath(myPath, grid, scene);
-							const dir = directionMap[root?.[0]];
+							this.root = findShortestPath(this.myPath, this.grid, scene);
+							const dir = directionMap[this.root?.[0]];
 							if (dir) {
-								rot = dir.rot;
+								this.rot = dir.rot;
 								const center = Get_Center(this);
 								moveCmp = Math.round(Vec_Distance(center, {
-									x: PixelSize * (myPath[1] + dir.dx) + 32,
-									y: PixelSize * (myPath[0] + dir.dy) + 14
+									x: PixelSize * (this.myPath[1] + dir.dx) + 32,
+									y: PixelSize * (this.myPath[0] + dir.dy) + 14
 								}));
 							}
 						}
@@ -5962,30 +5969,19 @@ window.onload = function() {
 				}
 
 				// 戦車同士の衝突
-				for (let i = 0; i < tankEntity.length; i++) {
-					if (i === this.num || deadFlgs[i]) continue;
-
-					// ③ 距離で早期スキップ
-					const dx = this.x - tankEntity[i].x;
-					const dy = this.y - tankEntity[i].y;
-					if (dx*dx + dy*dy > 200*200) continue;
-
-					// ② rotation から handler を直接取得
+				if ((tankEntity.length - destruction) - 1 > 2) {
 					const handler = collisionHandlers[this.rotation];
-					if (!handler) continue;
-
-					const frame = this.tankFrame[handler.frame];
-					const targetH = tankEntity[i];
-
-					// ① AABB → strict の2段階判定
-					if (!frame.intersect(targetH)) continue;
-
-					if (frame.intersectStrict(targetH)) {
-						this.tankStopFlg = true;
-						this.x += handler.dx * this.moveSpeed;
-						this.y += handler.dy * this.moveSpeed;
-						moveCnt -= this.moveSpeed;
-						break;
+					if (handler){
+						const frame = this.tankFrame[handler.frame];
+						let match = TankBase.intersectStrict(frame);
+						if (match.length > 0){
+							if(match[0].num != this.num && deadFlgs[match[0].num] == false){
+								this.tankStopFlg = true;
+								this.x += handler.dx * this.moveSpeed;
+								this.y += handler.dy * this.moveSpeed;
+								moveCnt -= this.moveSpeed;
+							}
+						}
 					}
 				}
 
@@ -5998,9 +5994,7 @@ window.onload = function() {
 
 				// 前方反射障害物
 				if (this.ref > 0) {
-					if (Front.intersectStrict(RefObstracle).length > 0) {
-						this.shotNGflg = true;
-					}
+					if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 				}
 
 				// 攻撃ターゲットの更新（5Fごと）
@@ -6012,9 +6006,10 @@ window.onload = function() {
 				}
 
 				// 弾迎撃ロジック
-				if (BulletBase.collection.length > 0) {
-					const match1 = PlayerBulAim.intersectStrict(Around);
-					const match2 = BulAim.intersectStrict(Around);
+				this._Defense();
+				/*if (BulletBase.collection.length > 0) {
+					const match1 = PlayerBulAim.intersectStrict(this.around);
+					const match2 = BulAim.intersectStrict(this.around);
 					for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
 						const c = BulletBase.collection[i];
 						if (!bulStack[c.num][c.id]) continue;
@@ -6064,10 +6059,11 @@ window.onload = function() {
 								break;
 						}
 					}
-				}
+				}*/
 
 				// リロード処理
-				if (!this.bulReloadFlg) {
+				this._Reload();
+				/*if (!this.bulReloadFlg) {
 					if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
 				} else {
 					if (this.bulReloadTime < this.reload) {
@@ -6080,7 +6076,7 @@ window.onload = function() {
 							this.bulReloadTime = 0;
 						}
 					}
-				}
+				}*/
 
 				// 射撃
 				if (!this.shotNGflg && this.fireFlg && this.time % this.fireLate === 0) {
@@ -6092,21 +6088,21 @@ window.onload = function() {
 				// 移動処理
 				if (this.moveSpeed > 0) {
 					if (returnFlg) {
-						cflg = this._Move(rot);
+						cflg = this._Move(this.rot);
 						if (cflg) moveCnt += this.moveSpeed;
 
 						if (moveCnt >= moveCmp) {
 							if (moveCnt > moveCmp) {
-								const rad = Rot_to_Rad(rot - 270);
+								const rad = Rot_to_Rad(this.rot - 270);
 								this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
 							}
 							returnFlg = false;
-							updatePathAndRotation(this, grid, scene);
-							markObstacle(rot, myPath, grid);
+							updatePathAndRotation(this, this.grid, scene);
+							markObstacle(this.rot, this.myPath, this.grid);
 						}
 					} else if (!this.shotStopFlg && !this.tankStopFlg) {
-						if (root && !Around.intersect(target)) {
-							cflg = this._Move(rot);
+						if (this.root && !this.around.intersect(this.target)) {
+							cflg = this._Move(this.rot);
 							if (cflg) moveCnt += this.moveSpeed;
 						}
 						if (moveCnt >= moveCmp) {
@@ -6114,12 +6110,12 @@ window.onload = function() {
 								const rad = Rot_to_Rad(this.rotation - 270);
 								this.moveBy(Math.cos(rad) * (moveCnt - moveCmp), Math.sin(rad) * (moveCnt - moveCmp));
 							}
-							updatePathAndRotation(this, grid, scene);
+							updatePathAndRotation(this, this.grid, scene);
 						}
 					}
 
-					if (!root && this.time % 30 === 0) {
-						updatePathAndRotation(this, grid, scene);
+					if (!this.root && this.time % 30 === 0) {
+						updatePathAndRotation(this, this.grid, scene);
 					}
 
 					let obsHit = false;
@@ -6134,8 +6130,8 @@ window.onload = function() {
 					});
 
 					if (cflg && obsHit) {
-						updatePathAndRotation(this, grid, scene);
-						markObstacle(rot, myPath, grid);
+						updatePathAndRotation(this, this.grid, scene);
+						markObstacle(this.rot, this.myPath, this.grid);
 					}
 				}
 
@@ -6166,6 +6162,77 @@ window.onload = function() {
 					}
 				}
 			}
+		},
+		_Defense: function () {
+			if (BulletBase.collection.length > 0) {
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+				for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
+					const c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+
+					const defFlg = Categorys.DefenceFlg[this.category];
+					if ((c.num === 0 && !defFlg[0]) ||
+						(c.num === this.num && !defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+
+					if (dist == null) continue;
+
+					const defRange = Categorys.DefenceRange[this.category];
+
+					switch (c.num) {
+						case 0:
+							if (dist < defRange[0]) {
+								if (match1.some(elem => elem.target === c)) {
+									this.attackTarget = c;
+									this.escapeFlg = true;
+								}
+							}
+							break;
+
+						case this.num:
+							if (this.ref == 0) break;
+							if (dist < defRange[1] && dist > 100) {
+								if (match2.some(elem => elem.target === c)) {
+									this.attackTarget = c;
+									this.escapeFlg = true;
+								}
+							}
+							break;
+
+						default:
+							if (dist < defRange[2]) {
+								if (match2.some(elem => elem.target === c)) {
+									this.attackTarget = c;
+									this.escapeFlg = true;
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		_Reload: function () {
+			if (!this.bulReloadFlg) {
+				if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (!this.shotNGflg) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+			}
 		}
 	});
 
@@ -6178,29 +6245,24 @@ window.onload = function() {
 			if(gameMode == 2)
 				this.weak.scale(0.6, 0.6);
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
-			const target = tankEntity[0];
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
+			this.target = tankEntity[0];
 
 			this.attackTarget = tankEntity[0];
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
 
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-
-			var dirValue = 0;
-			var hittingTime = 0;
-
-			var rot = 0;
 			var h = {x: 0, y: 0};
-
-			var moveRandom = 1;
 
 			var shadow = new Surface(this.width, this.height);
 			shadow.context.beginPath();
-			shadow.context.fillStyle = 'rgba(0, 0, 0, 0.1)';
+			if(gameMode > 0){
+				shadow.context.fillStyle = 'rgba(0, 0, 0, 0.05)';
+			}else{
+				shadow.context.fillStyle = 'rgba(0, 0, 0, 0.1)';
+			}
 			shadow.context.arc(30, 30, 24, 0, Math.PI * 2, true);
 			shadow.context.fill();
 
@@ -6214,7 +6276,7 @@ window.onload = function() {
 				}
 			});
 
-			function Instrumentation(weak, target1, target2) {
+			/*const Instrumentation = (weak, target1, target2) => {
 				let dist1 = Get_Distance(weak, target1);
 				let dist2 = Get_Distance(weak, target2);
 				if (dist1 >= dist2) {
@@ -6222,9 +6284,9 @@ window.onload = function() {
 				} else {
 					return null;
 				}
-			}
+			}*/
 
-			function SelDirection(target1, target2, or) {
+			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3];
 				//	0:	離れる	1:	近寄る
 				//	0:	上
@@ -6260,10 +6322,10 @@ window.onload = function() {
 						}
 					}
 				}
-				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+				if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
-			function resolveCollision(entity, elem, isTank = false){
+			const resolveCollision = (entity, elem, isTank = false) => {
 				switch (elem.name) {
 					case isTank ? 'TankTop' : 'ObsTop':
 						entity.moveTo(entity.x, elem.y - 60);
@@ -6278,7 +6340,7 @@ window.onload = function() {
 						entity.moveTo(elem.x + elem.width, entity.y);
 						break;
 				}
-				if(entity.moveFlg) hittingTime++;
+				if(entity.moveFlg) this.hittingTime++;
 				h = Get_Center(elem);
 			}
 
@@ -6287,7 +6349,7 @@ window.onload = function() {
 				Math.floor((entity.x + entity.width / 2) / PixelSize)
 			];
 
-			function isNear(a, b, range) { 
+			const isNear = (a, b, range) => { 
 				const dx = a.x - b.x; 
 				const dy = a.y - b.y; 
 				return (dx * dx + dy * dy) < (range * range); 
@@ -6317,25 +6379,6 @@ window.onload = function() {
 								this.fireFlg = false;
 							}
 
-							if (hittingTime > 20) {
-								let arr = [];
-								switch (dirValue) {
-									case 0:
-									case 1:
-										arr = [2, 3];
-										break;
-									case 2:
-									case 3:
-										arr = [0, 1];
-										break;
-								}
-								if (arr.indexOf(dirValue) == -1) {
-									dirValue = arr[Math.floor(Math.random() * arr.length)];
-								}
-
-								hittingTime = 0;
-							}
-
 							if (this.shotStopFlg) {
 								this.shotStopTime++;
 								if (this.shotStopTime > 10) {
@@ -6355,10 +6398,7 @@ window.onload = function() {
 							})*/
 
 							if (this.ref > 0) {
-								Front.intersectStrict(RefObstracle).forEach(function() {
-									this.shotNGflg = true;
-									return;
-								})
+								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 							}
 
 							if (this.time % 5 == 0) {
@@ -6366,9 +6406,10 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (BulletBase.collection.length > 0) {
-								const match1 = PlayerBulAim.intersectStrict(Around);
-								const match2 = BulAim.intersectStrict(Around);
+							this._Defense();
+							/*if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(this.around);
+								const match2 = BulAim.intersectStrict(this.around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -6429,23 +6470,22 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
-							if (this.bulReloadFlg == false) {
+							this._Reload();
+							/*if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
 							} else {
 								if (this.bulReloadTime < this.reload) {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									if (bullets[this.num] == 0){
-										this.shotNGflg = false;
-										this.bulReloadFlg = false;
-										this.bulReloadTime = 0;
-									}
+									this.shotNGflg = false;
+									this.bulReloadFlg = false;
+									this.bulReloadTime = 0;
 								}
 
-							}
+							}*/
 
 							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
@@ -6461,11 +6501,11 @@ window.onload = function() {
 									if (this.escapeFlg) {
 										SelDirection(this.weak, this.escapeTarget, 0);
 									} else {
-										if (hittingTime >= 35) {
-											var myPath = getGridCoord(this);
+										if (this.hittingTime >= 35) {
+											this.myPath = getGridCoord(this);
 
 											let arr = [];
-											switch (dirValue) {
+											switch (this.dirValue) {
 												case 0: this.y += this.moveSpeed; break;
 												case 1: this.x -= this.moveSpeed; break;
 												case 2: this.y -= this.moveSpeed; break;
@@ -6475,33 +6515,32 @@ window.onload = function() {
 											h = {x: Math.floor(h.x / PixelSize), y: Math.floor(h.y / PixelSize)};
 
 											if (h.x === 0 || h.y === 0) {
-												arr = dirValue % 2 === 0 ? [1, 3] : [0, 2];
+												arr = this.dirValue % 2 === 0 ? [1, 3] : [0, 2];
 											} else {
-												if (dirValue % 2 === 0) {
-													arr.push(h.x > myPath[1] ? 3 : 1);
+												if (this.dirValue % 2 === 0) {
+													arr.push(h.x > this.myPath[1] ? 3 : 1);
 												} else {
-													arr.push(h.y > myPath[0] ? 0 : 2);
+													arr.push(h.y > this.myPath[0] ? 0 : 2);
 												}
 											}
 
-											if (!arr.includes(dirValue)) {
-												dirValue = arr[Math.floor(Math.random() * arr.length)];
+											if (!arr.includes(this.dirValue)) {
+												this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 											}
-											hittingTime = 0;
-										}else if (isNear(this.weak, this.attackTarget, this.distance)) {
+											this.hittingTime = 0;
+										} else if (isNear(this.weak, this.attackTarget, this.distance)) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 											if (this.time % 10 == 0) {
-												SelDirection(this.weak, this.attackTarget, moveRandom);
+												SelDirection(this.weak, this.attackTarget, this.moveRandom);
 											}
 										}
+										
 										if ((tankEntity.length - destruction) - 1 > 2) {
-											for (var i = 0; i < tankEntity.length; i++) {
-												if (i != this.num && deadFlgs[i] == false) {
-													if (tankEntity[i].intersectStrict(Around)) {
-														SelDirection(this.weak, tankEntity[i], 0);
-														break;
-													}
+											let match = TankBase.intersectStrict(this.around);
+											if (match.length > 0){
+												if(match[0].num != this.num && deadFlgs[match[0].num] == false){
+													SelDirection(this.weak, match[0], 0);
 												}
 											}
 										}
@@ -6517,21 +6556,19 @@ window.onload = function() {
 									}
 								}
 								if (!this.shotStopFlg) {
-									if (dirValue == 0) {
-										rot = 0;
-									} else if (dirValue == 1) {
-										rot = 90;
-									} else if (dirValue == 2) {
-										rot = 180;
-									} else if (dirValue == 3) {
-										rot = 270;
+									if (this.dirValue == 0) {
+										this.rot = 0;
+									} else if (this.dirValue == 1) {
+										this.rot = 90;
+									} else if (this.dirValue == 2) {
+										this.rot = 180;
+									} else if (this.dirValue == 3) {
+										this.rot = 270;
 									}
-									this._Move(rot);
+									this._Move(this.rot);
 								}
 							}
-
 							h = { x: 0, y: 0 };
-
 							// タンクとの衝突処理
 							TankObstracle.intersect(this).forEach(elem => {
 								if (!deadFlgs[elem.num] && elem.num !== this.num) {
@@ -6566,6 +6603,90 @@ window.onload = function() {
 
 				}
 			}
+		},
+		_Defense: function(){
+			if (BulletBase.collection.length > 0) {
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+					const c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+
+					const defFlg = Categorys.DefenceFlg[this.category];
+					if ((c.num === 0 && !defFlg[0]) ||
+						(c.num === this.num && !defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+					if (dist == null) continue;
+
+					const defRange = Categorys.DefenceRange[this.category];
+					const escRange = Categorys.EscapeRange[this.category];
+
+					switch (c.num) {
+						case 0:
+							if (dist < defRange[0]) {
+								if (match1.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+							if (escRange[0] && escRange[1] != 0) {
+									if (dist < escRange[1]) {
+										this.escapeTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+							}
+							break;
+
+						case this.num:
+							if (this.ref == 0) break;
+							if (dist < defRange[1] && dist > 100) {
+								if (match2.some(elem => elem.target === c)) {
+									if (escRange[0] && escRange[2] != 0) {
+										if (dist < escRange[2]) {
+											this.escapeTarget = c;
+											this.escapeFlg = true;
+										}
+									}
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+							}
+							break;
+
+						default:
+							if (dist < defRange[2]) {
+								if (match2.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+								if (escRange[0] && escRange[3] != 0) {
+									if (dist < escRange[3]) {
+										this.escapeTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		_Reload: function(){
+			if (this.bulReloadFlg == false) {
+				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (this.shotNGflg == false) this.shotNGflg = true;
+				} else {
+					this.shotNGflg = false;
+					this.bulReloadFlg = false;
+					this.bulReloadTime = 0;
+				}
+			}
 		}
 	})
 
@@ -6576,37 +6697,22 @@ window.onload = function() {
 
 			if (gameMode == 2) this.weak.scale(0.6, 0.6);
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
 
 			if (this.category === 5) {
-				Around.scale(1.5, 1.5);
+				this.around.scale(1.5, 1.5);
 			}
 
-			const target = tankEntity[0];
+			this.target = tankEntity[0];
 
-			this.attackTarget = target;
+			this.attackTarget = this.target;
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
 
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-			this.tankStopFlg = false;
-			this.stopTime = 0;
-
-			let dirValue = 0;
-			let hittingTime = 0;
-
-			let map = Object.assign({}, scene.backgroundMap);
-			let grid = JSON.parse(JSON.stringify(scene.grid));
-
-			let myPath = [0, 0];
-			let targetPath = [0, 0];
-			let root;
 			let rootFlg = false;
 
-			let rot = 0;
 			let h = { x: 0, y: 0 };
 
 			for (let i = 0; i < this.bulMax; i++) {
@@ -6619,18 +6725,12 @@ window.onload = function() {
 				}
 			});
 
-			function Instrumentation(weak, target1, target2) {
-				const dist1 = Get_Distance(weak, target1);
-				const dist2 = Get_Distance(weak, target2);
-				return dist1 >= dist2 ? dist2 : null;
-			}
-
 			const getGridCoord = (entity) => [
 				(entity.y + entity.height / 2) / PixelSize | 0,
 				(entity.x + entity.width / 2) / PixelSize | 0
 			];
 
-			function NG_root_set(grid, myPath) {
+			const NG_root_set = (grid, myPath) => {
 				const res = [];
 				if (grid[myPath[0] - 1][myPath[1]] === 'Obstacle') res.push(0);
 				if (grid[myPath[0]][myPath[1] + 1] === 'Obstacle') res.push(1);
@@ -6639,7 +6739,7 @@ window.onload = function() {
 				return res;
 			}
 
-			function SelDirection(target1, target2, or, grid, myPath) {
+			const SelDirection = (target1, target2, or, grid, myPath) => {
 				let arr;
 				const t1x = target1.x + target1.width / 2;
 				const t1y = target1.y + target1.height / 2;
@@ -6662,22 +6762,22 @@ window.onload = function() {
 
 				const ng = NG_root_set(grid, myPath);
 				arr = arr.filter(i => ng.indexOf(i) === -1);
-				if (arr.length > 0 && arr.indexOf(dirValue) === -1) {
-					dirValue = arr[(Math.random() * arr.length) | 0];
+				if (arr.length > 0 && arr.indexOf(this.dirValue) === -1) {
+					this.dirValue = arr[(Math.random() * arr.length) | 0];
 				}
 			}
 
-			function getDistanceSq(a, b) {
+			const getDistanceSq = (a, b) => {
 				const dx = a.x - b.x;
 				const dy = a.y - b.y;
 				return dx * dx + dy * dy;
 			}
 
-			function updateDirection(entity, target, mode, grid, myPath) {
+			const updateDirection = (entity, target, mode, grid, myPath) => {
 				SelDirection(entity, target, mode, grid, myPath);
 			}
 
-			function resolveCollision(entity, elem, isTank) {
+			const resolveCollision = (entity, elem, isTank) => {
 				switch (elem.name) {
 					case isTank ? 'TankTop' : 'ObsTop':
 						entity.moveTo(entity.x, elem.y - 60);
@@ -6693,7 +6793,7 @@ window.onload = function() {
 						break;
 				}
 				h = Get_Center(elem);
-				hittingTime++;
+				this.hittingTime++;
 				rootFlg = true;
 			}
 
@@ -6714,26 +6814,26 @@ window.onload = function() {
 
 				if (this.time % 2 === 0) {
 					if (!this.escapeFlg) rootFlg = false;
-					if (this.attackTarget !== target) rootFlg = true;
+					if (this.attackTarget !== this.target) rootFlg = true;
 
 					this.shotNGflg = false;
 					this.fireFlg = false;
 
 					if (this.moveSpeed > 0 && !rootFlg && this.time % 60 === 0) {
-						grid = JSON.parse(JSON.stringify(scene.grid));
-						map = Object.assign({}, scene.backgroundMap);
+						this.grid = JSON.parse(JSON.stringify(scene.grid));
+						this.map = Object.assign({}, scene.backgroundMap);
 
-						myPath = getGridCoord(this);
-						targetPath = getGridCoord(target);
+						this.myPath = getGridCoord(this);
+						this.targetPath = getGridCoord(this.target);
 
-						const colData = map.collisionData;
-						for (let i = 0, gl = grid.length; i < gl; i++) {
-							const gi = grid[i];
+						const colData = this.map.collisionData;
+						for (let i = 0, gl = this.grid.length; i < gl; i++) {
+							const gi = this.grid[i];
 							const ci = colData[i];
 							for (let j = 0, gl2 = gi.length; j < gl2; j++) {
-								if (i === myPath[0] && j === myPath[1]) {
+								if (i === this.myPath[0] && j === this.myPath[1]) {
 									gi[j] = 'Start';
-								} else if (i === targetPath[0] && j === targetPath[1]) {
+								} else if (i === this.targetPath[0] && j === this.targetPath[1]) {
 									gi[j] = 'Goal';
 								} else {
 									gi[j] = ci[j] === 0 ? 'Empty' : 'Obstacle';
@@ -6741,14 +6841,14 @@ window.onload = function() {
 							}
 						}
 
-						root = findShortestPath(myPath, grid, scene);
+						this.root = findShortestPath(this.myPath, this.grid, scene);
 
-						if (root && root.length > 0) {
-							switch (root[0]) {
-								case 'East': dirValue = 1; break;
-								case 'West': dirValue = 3; break;
-								case 'North': dirValue = 0; break;
-								case 'South': dirValue = 2; break;
+						if (this.root && this.root.length > 0) {
+							switch (this.root[0]) {
+								case 'East': this.dirValue = 1; break;
+								case 'West': this.dirValue = 3; break;
+								case 'North': this.dirValue = 0; break;
+								case 'South': this.dirValue = 2; break;
 							}
 						} else {
 							rootFlg = true;
@@ -6774,35 +6874,36 @@ window.onload = function() {
 				}
 
 				if (this.ref > 0) {
-					Front.intersectStrict(RefObstracle).forEach(function () {
-						this.shotNGflg = true;
-						return;
-					}, this);
+					if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 				}
 
 				if (this.time % 3 === 0) {
-					if (this.attackTarget !== target && !this.escapeFlg) this.attackTarget = target;
+					if (this.attackTarget !== this.target && !this.escapeFlg) this.attackTarget = this.target;
 					this.escapeFlg = false;
 				}
 
-				const bulletsCol = BulletBase.collection;
-				if (bulletsCol.length > 0) {
+				this._Defense();
+				/*if (BulletBase.collection.length > 0) {
 					const defFlg = Categorys.DefenceFlg[this.category];
 					const defRange = Categorys.DefenceRange[this.category];
 					const escRange = Categorys.EscapeRange[this.category];
 
-					const match1 = PlayerBulAim.intersectStrict(Around);
-					const match2 = BulAim.intersectStrict(Around);
+					const match1 = PlayerBulAim.intersectStrict(this.around);
+					const match2 = BulAim.intersectStrict(this.around);
 
-					for (let i = 0, l = bulletsCol.length; i < l; i++) {
-						const c = bulletsCol[i];
+					for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
+						const c = BulletBase.collection[i];
 						if (!bulStack[c.num][c.id]) continue;
 
 						if ((c.num === 0 && !defFlg[0]) ||
 							(c.num === this.num && !defFlg[1]) ||
 							(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
 
-						const dist = Instrumentation(this.weak, this.attackTarget, c);
+						const dist = (function Instrumentation(weak, target1, target2) {
+							const dist1 = Get_Distance(weak, target1);
+							const dist2 = Get_Distance(weak, target2);
+							return dist1 >= dist2 ? dist2 : null;
+						})(this.weak, this.attackTarget, c);
 						if (dist == null) continue;
 
 						switch (c.num) {
@@ -6811,7 +6912,7 @@ window.onload = function() {
 									if (match1.some(elem => elem.target === c)) {
 										this.attackTarget = c;
 									} else if (category == 5) {
-										this.attackTarget = target;
+										this.attackTarget = this.target;
 									}
 									if (escRange[0] && escRange[1] !== 0 && dist < escRange[1]) {
 										this.escapeTarget = c;
@@ -6847,9 +6948,10 @@ window.onload = function() {
 							}
 						}
 					}
-				}
+				}*/
 
-				if (!this.bulReloadFlg) {
+				this._Reload();
+				/*if (!this.bulReloadFlg) {
 					if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
 				} else {
 					if (this.bulReloadTime < this.reload) {
@@ -6862,13 +6964,12 @@ window.onload = function() {
 							this.bulReloadTime = 0;
 						}
 					}
-				}
+				}*/
 
-				TankBase.intersectStrict(Front).forEach(elem => {
-					if (elem.num !== this.num && elem.num !== 0 && !deadFlgs[elem.num]) {
-						this.fireFlg = false;
-					}
-				});
+				let matchFront = TankBase.intersectStrict(this.front);
+				if (matchFront.length > 0){
+					if(matchFront[0].num != this.num && !deadFlgs[matchFront[0].num] && matchFront[0].num != 0) this.fireFlg = false;
+				}
 
 				if (!this.shotNGflg && this.time % this.fireLate === 0 && this.fireFlg) {
 					if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
@@ -6878,18 +6979,18 @@ window.onload = function() {
 
 				if (this.moveSpeed > 0 && this.time % 5 === 0) {
 					if (this.escapeFlg) {
-						dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
+						this.dirValue = Escape_Rot4(this, this.escapeTarget, this.dirValue);
 					} else {
 						const distSq = getDistanceSq(this.weak, this.attackTarget);
 						const thresholdSq = this.distance * this.distance;
 
-						if (hittingTime >= 35) {
-							myPath = [
+						if (this.hittingTime >= 35) {
+							this.myPath = [
 								((this.y + this.height / 2) / PixelSize) | 0,
 								((this.x + this.width / 2) / PixelSize) | 0
 							];
 
-							switch (dirValue) {
+							switch (this.dirValue) {
 								case 0: this.y += this.moveSpeed; break;
 								case 1: this.x -= this.moveSpeed; break;
 								case 2: this.y -= this.moveSpeed; break;
@@ -6903,30 +7004,30 @@ window.onload = function() {
 
 							let arr = [];
 							if (h.x === 0 || h.y === 0) {
-								arr = dirValue % 2 === 0 ? [1, 3] : [0, 2];
+								arr = this.dirValue % 2 === 0 ? [1, 3] : [0, 2];
 							} else {
-								if (dirValue % 2 === 0) {
-									arr.push(h.x > myPath[1] ? 3 : 1);
+								if (this.dirValue % 2 === 0) {
+									arr.push(h.x > this.myPath[1] ? 3 : 1);
 								} else {
-									arr.push(h.y > myPath[0] ? 0 : 2);
+									arr.push(h.y > this.myPath[0] ? 0 : 2);
 								}
 							}
 
-							if (arr.length && !arr.includes(dirValue)) {
-								dirValue = arr[(Math.random() * arr.length) | 0];
+							if (arr.length && !arr.includes(this.dirValue)) {
+								this.dirValue = arr[(Math.random() * arr.length) | 0];
 							}
-							hittingTime = 0;
+							this.hittingTime = 0;
 						} else if (distSq < thresholdSq) {
-							updateDirection(this.weak, this.attackTarget, 0, grid, myPath);
+							updateDirection(this.weak, this.attackTarget, 0, this.grid, this.myPath);
 						} else if (rootFlg && this.time % 10 === 0) {
-							updateDirection(this.weak, target, 1, grid, myPath);
+							updateDirection(this.weak, this.target, 1, this.grid, this.myPath);
 						}
 
 						const bomCol = Bom.collection;
 						for (let i = 0, l = bomCol.length; i < l; i++) {
 							const c = bomCol[i];
 							if (getDistanceSq(this.weak, c) < 150 * 150) {
-								updateDirection(this.weak, c, 0, grid, myPath);
+								updateDirection(this.weak, c, 0, this.grid, this.myPath);
 								break;
 							}
 						}
@@ -6934,8 +7035,8 @@ window.onload = function() {
 				}
 
 				if (!this.shotStopFlg) {
-					rot = dirToRot[dirValue];
-					this._Move(rot);
+					this.rot = dirToRot[this.dirValue];
+					this._Move(this.rot);
 				}
 
 				h = { x: 0, y: 0 };
@@ -7012,29 +7113,106 @@ window.onload = function() {
 
 			const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
 			this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+		},
+		_Defense: function(){
+			if (BulletBase.collection.length > 0) {
+				const defFlg = Categorys.DefenceFlg[this.category];
+				const defRange = Categorys.DefenceRange[this.category];
+				const escRange = Categorys.EscapeRange[this.category];
+
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+
+				for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
+					const c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+
+					if ((c.num === 0 && !defFlg[0]) ||
+						(c.num === this.num && !defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+					if (dist == null) continue;
+
+					switch (c.num) {
+						case 0: {
+							if (dist < defRange[0]) {
+								if (match1.some(elem => elem.target === c)) {
+									this.attackTarget = c;
+								} else if (this.category == 5) {
+									this.attackTarget = this.target;
+								}
+								if (escRange[0] && escRange[1] !== 0 && dist < escRange[1]) {
+									this.escapeTarget = c;
+									this.escapeFlg = true;
+								}
+							}
+							break;
+						}
+						case this.num: {
+							if (this.ref === 0) break;
+							if (dist < defRange[1] && dist > 100) {
+								if (match2.some(elem => elem.target === c) && escRange[0] && escRange[2] !== 0 && dist < escRange[2]) {
+									this.escapeTarget = c;
+									this.escapeFlg = true;
+								}
+								if (Search(this.cannon, c, 45, defRange[1]) && c.time > 30) {
+									this.attackTarget = c;
+								}
+							}
+							break;
+						}
+						default: {
+							if (dist < defRange[2]) {
+								if (match2.some(elem => elem.target === c)) {
+									this.attackTarget = c;
+								}
+								if (escRange[0] && escRange[3] !== 0 && dist < escRange[3]) {
+									this.escapeTarget = c;
+									this.escapeFlg = true;
+								}
+							}
+							break;
+						}
+					}
+				}
+			}
+		},
+		_Reload: function(){
+			if (!this.bulReloadFlg) {
+				if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (!this.shotNGflg) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+			}
 		}
 	});
+
 
 	//	弾幕型
 	var Entity_Type4 = Class.create(TankBase, {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
+			this.target = tankEntity[0];
 
 			if(gameMode == 2)
 				this.weak.scale(0.6, 0.6);
 
-			const target = tankEntity[0];
-
-			//this.weak.backgroundColor = 'blue';
-
-			this.attackTarget = target;
+			this.attackTarget = this.target;
 
 			this.cursor = new Target(this, scene);
-
-			this.fullFireFlg = false;
-			this.firecnt = 0;
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
 
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
@@ -7058,8 +7236,6 @@ window.onload = function() {
 								this.fireFlg = false;
 							}
 
-							this.time++;
-
 							if (this.shotStopFlg) {
 								this.shotStopTime++;
 								if (this.shotStopTime > 10) {
@@ -7071,16 +7247,14 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
+							this.time++;
+
 							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
 								this.fireFlg = true; //  発射可能状態にする
 							}
-							/*EnemyAim.intersectStrict(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})*/
 
-
-							if (this.bulReloadFlg == false) {
+							this._Reload();
+							/*if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
@@ -7098,7 +7272,7 @@ window.onload = function() {
 									}
 								}
 
-							}
+							}*/
 
 							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] == 0) || this.fullFireFlg)) {
@@ -7150,6 +7324,26 @@ window.onload = function() {
 					}
 				}
 			}
+		},
+		_Reload: function(){
+			if (this.bulReloadFlg == false) {
+				if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
+					this.bulReloadFlg = true;
+					this.fullFireFlg = false;
+					this.firecnt = 0;
+				}
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (this.shotNGflg == false) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+			}
 		}
 	})
 
@@ -7165,8 +7359,8 @@ window.onload = function() {
 
 			this.y -= 32;
 
-			const target = tankEntity[0];
-			this.attackTarget = target;
+			this.target = tankEntity[0];
+			this.attackTarget = this.target;
 
 			this.cursor = new RefCursor(this, scene);
 
@@ -7180,7 +7374,7 @@ window.onload = function() {
 				bulStack[this.num].push(false);
 			}
 
-			// ★ initialize 内で毎回作らないようにする
+			// クラス定義を毎フレーム作らないように外へ移動
 			const EnemyAim = Class.create(RefAim, {
 				initialize: function (ref, from, category, num) {
 					RefAim.call(this, ref, from, category, num);
@@ -7194,16 +7388,23 @@ window.onload = function() {
 				const right = isTank ? 'TankRight' : 'ObsRight';
 
 				switch (elem.name) {
-					case top:    entity.moveTo(entity.x, elem.y - 60); break;
-					case bottom: entity.moveTo(entity.x, elem.y + elem.height); break;
-					case left:   entity.moveTo(elem.x - 60, entity.y); break;
-					case right:  entity.moveTo(elem.x + elem.width, entity.y); break;
+					case top:
+						entity.moveTo(entity.x, elem.y - 60);
+						break;
+					case bottom:
+						entity.moveTo(entity.x, elem.y + elem.height);
+						break;
+					case left:
+						entity.moveTo(elem.x - 60, entity.y);
+						break;
+					case right:
+						entity.moveTo(elem.x + elem.width, entity.y);
+						break;
 				}
 			};
 
 			this.onenterframe = () => {
 				if (deadFlgs[this.num] || gameStatus !== 0) return;
-
 				if (this.life <= 0) {
 					destruction++;
 					this._Dead();
@@ -7213,7 +7414,7 @@ window.onload = function() {
 
 				this._Damage();
 
-				// --- 照準生成 ---
+				// 照準生成（2フレームに1回）
 				if (this.time % 2 === 0) {
 					this.shotNGflg = false;
 					this.fireFlg = false;
@@ -7224,19 +7425,26 @@ window.onload = function() {
 
 				this.time++;
 
-				// --- 照準ヒット ---
-				const hitList = EnemyAim.intersectStrict(target);
+				// --- 照準ヒットチェック ---
+				const hitList = EnemyAim.intersectStrict(this.target);
 				if (hitList.length > 0) {
 					const elem = hitList[0];
 
-					if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
-						this.cursor.x = elem.tgt[0];
-						this.cursor.y = elem.tgt[1];
-					}
+					if (elem.hitTime === 0) {
+						const diff = normalizeAngle(this.cannon.rotation - normalizeRotation(elem.agl));
+						this.aimRot = diff > 0
+							? -Categorys.CannonRotSpeed[this.category]
+							:  Categorys.CannonRotSpeed[this.category];
 
-					if (elem.hitTime === 0 && this.cannon.rotation !== elem.agl) {
-						this.cannon.rotation = elem.agl;
-						this.cannon2.rotation = elem.agl - this.aimRot * 4;
+						this.cannon2.rotation = elem.agl - this.aimRot * ((1 + Math.floor(Math.random() * 10)) * 2);
+
+						if (this.cannon.rotation !== elem.agl) {
+							if (this.cursor.x !== elem.tgt[0] || this.cursor.y !== elem.tgt[1]) {
+								this.cursor.x = elem.tgt[0];
+								this.cursor.y = elem.tgt[1];
+							}
+							this.cannon.rotation = elem.agl;
+						}
 					}
 
 					if (elem.hitTime < 5 && !this.fireFlg) {
@@ -7251,11 +7459,6 @@ window.onload = function() {
 					if (elem.hitTime >= 5) now_scene.removeChild(elem);
 				}
 
-				// --- エイム反転 ---
-				if (this.aimingTime > 0 && this.fireFlg && this.aimingTime % 10 === 0) {
-					this.aimRot *= -1;
-				}
-
 				// --- エイム回転 ---
 				if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
 					this.cannon2.rotation += (this.cannon.rotation !== this.cannon2.rotation)
@@ -7268,7 +7471,8 @@ window.onload = function() {
 				if (this.time % 5 === 0) {
 					if (this.aimingTime > 0 && !this.fireFlg) this.aimingTime -= 3;
 
-					if (!this.bulReloadFlg) {
+					this._Reload();
+					/*if (!this.bulReloadFlg) {
 						if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
 					} else {
 						if (this.bulReloadTime < this.reload) {
@@ -7281,11 +7485,13 @@ window.onload = function() {
 								this.bulReloadTime = 0;
 							}
 						}
-					}
+					}*/
 
 					if (!this.shotNGflg && this.fireFlg && this.time % this.fireLate === 0) {
 						const idx = Math.floor(Math.random() * this.bulMax);
-						if (!bulStack[this.num][idx]) this._Attack();
+						if (!bulStack[this.num][idx]) {
+							this._Attack();
+						}
 					}
 				}
 
@@ -7329,6 +7535,22 @@ window.onload = function() {
 					}
 				}
 			}
+		},
+		_Reload: function(){
+			if (!this.bulReloadFlg) {
+				if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (!this.shotNGflg) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+			}
 		}
 	});
 
@@ -7343,23 +7565,14 @@ window.onload = function() {
 
 			var that = this;
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
-			const target = tankEntity[0];
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
+			this.target = tankEntity[0];
 
 			this.attackTarget = tankEntity[0];
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
-
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-
-			var dirValue = 0;
-			var hittingTime = 0;
-
-			var rot = 0;
-			this.cflg = true;
 
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
@@ -7371,17 +7584,7 @@ window.onload = function() {
 				}
 			});
 
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			}
-
-			function SelDirection(target1, target2, or) {
+			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
 				//	0:	離れる	1:	近寄る
 				//	0:	上
@@ -7422,22 +7625,21 @@ window.onload = function() {
 					}
 				}
 
-				//if(boms[that.num] != 0){
 				if (target2.name == 'Bom') {
 
 					let rem = [];
-					var myPath = [parseInt((that.y + that.height / 2) / PixelSize), parseInt((that.x + that.width / 2) / PixelSize)];
-					var grid = JSON.parse(JSON.stringify(scene.grid));
+					this.myPath = [parseInt((that.y + that.height / 2) / PixelSize), parseInt((that.x + that.width / 2) / PixelSize)];
+					this.grid = JSON.parse(JSON.stringify(scene.grid));
 					let bk = arr;
 
-					if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-					if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-					if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-					if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
-					if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-					if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-					if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-					if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
+					if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
+					if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
+					if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
+					if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
+					if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
+					if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
+					if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
+					if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
 
 					arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -7446,10 +7648,10 @@ window.onload = function() {
 					}
 				}
 
-				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+				if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
-			function resolveCollision(entity, elem, isTank = false){
+			const resolveCollision = (entity, elem, isTank = false) => {
 				switch (elem.name) {
 					case isTank ? 'TankTop' : 'ObsTop':
 						entity.moveTo(entity.x, elem.y - 60);
@@ -7464,7 +7666,7 @@ window.onload = function() {
 						entity.moveTo(elem.x + elem.width, entity.y);
 						break;
 				}
-				hittingTime++;
+				this.hittingTime++;
 			}
 
 			this.onenterframe = function() {
@@ -7479,58 +7681,6 @@ window.onload = function() {
 							if (this.time % 2 == 0) {
 								this.shotNGflg = false;
 								this.fireFlg = false;
-							}
-
-							if (hittingTime > 15) {
-								let arr = [];
-								switch (dirValue) {
-									case 0:
-									case 2:
-										arr = [1, 3];
-										break;
-									case 1:
-									case 3:
-										arr = [0, 2];
-										break;
-									case 4:
-										arr = [2, 3, 5, 6, 7];
-										break;
-									case 5:
-										arr = [0, 3, 4, 6, 7];
-										break;
-									case 6:
-										arr = [0, 1, 4, 5, 7];
-										break;
-									case 7:
-										arr = [1, 2, 4, 5, 6];
-										break;
-								}
-								//let arr = [0,1,2,3,4,5,6,7];
-								let rem = [];
-								var myPath = [parseInt((that.y + that.height / 2) / PixelSize), parseInt((that.x + that.width / 2) / PixelSize)];
-								var grid = JSON.parse(JSON.stringify(scene.grid));
-
-								/*if(grid[myPath[0]-1][myPath[1]] == 'Obstacle') rem.push(0);
-								if(grid[myPath[0]][myPath[1]+1] == 'Obstacle') rem.push(1);
-								if(grid[myPath[0]+1][myPath[1]] == 'Obstacle') rem.push(2);
-								if(grid[myPath[0]][myPath[1]-1] == 'Obstacle') rem.push(3);*/
-								if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-								if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-								if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-								if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
-
-								arr = arr.filter(i => rem.indexOf(i) == -1);
-
-								if (arr.length == 0) {
-									arr = [0, 1, 2, 3, 4, 5, 6, 7];
-									arr = arr.filter(i => rem.indexOf(i) == -1);
-								}
-
-								if (arr.indexOf(dirValue) == -1) {
-									dirValue = arr[Math.floor(Math.random() * arr.length)];
-								}
-
-								hittingTime = 0;
 							}
 
 							//  爆弾が設置された場合の処理
@@ -7559,8 +7709,8 @@ window.onload = function() {
 								this.fireFlg = false;
 							}
 
-							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
-								this.shotNGflg = true;
+							if (this.ref > 0) {
+								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 							}
 
 							if (this.time % 5 == 0) {
@@ -7568,9 +7718,10 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							if (BulletBase.collection.length > 0) {
-								const match1 = PlayerBulAim.intersectStrict(Around);
-								const match2 = BulAim.intersectStrict(Around);
+							this._Defense();
+							/*if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(this.around);
+								const match2 = BulAim.intersectStrict(this.around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -7580,7 +7731,11 @@ window.onload = function() {
 										(c.num === this.num && !defFlg[1]) ||
 										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
 
-									const dist = Instrumentation(this.weak, this.attackTarget, c);
+									const dist = (function Instrumentation(weak, target1, target2) {
+										const dist1 = Get_Distance(weak, target1);
+										const dist2 = Get_Distance(weak, target2);
+										return dist1 >= dist2 ? dist2 : null;
+									})(this.weak, this.attackTarget, c);
 									if (dist == null) continue;
 
 									const defRange = Categorys.DefenceRange[this.category];
@@ -7631,9 +7786,10 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
-							if (this.bulReloadFlg == false) {
+							this._Reload();
+							/*if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -7647,15 +7803,12 @@ window.onload = function() {
 									}
 								}
 
-							}
+							}*/
 
-							TankBase.intersectStrict(Front).forEach(elem => {
-								if (elem.num != this.num && elem.num != 0) {
-									if (!deadFlgs[elem.num]) {
-										this.fireFlg = false;
-									}
-								}
-							})
+							let matchFront = TankBase.intersectStrict(this.front);
+							if (matchFront.length > 0){
+								if(matchFront[0].num != this.num && !deadFlgs[matchFront[0].num] && matchFront[0].num != 0) this.fireFlg = false;
+							}
 
 							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
@@ -7667,30 +7820,43 @@ window.onload = function() {
 							}
 
 							if (this.time % 60 == 0) {
-								if (Block.collection.length > 0) {
-									if (Math.floor(Math.random() * 2)) {
-										for (var i = 0, l = Block.collection.length; i < l; i++) {
-											let c = Block.collection[i];
-											if (this.within(c, 68) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
-												new Bom(this, this.num, boms[this.num])._SetBom();
-												this.bomReload = 0;
-												this.bomSetFlg = true;
-												this.bulReloadFlg = true;
-												break;
+								let hasCloseTarget = false;
+								if (Bom.collection.length > 0) {
+									for (const c of Bom.collection) {
+										const dx = this.weak.x - c.x;
+										const dy = this.weak.y - c.y;
+										const dSq = dx * dx + dy * dy;
+										if (dSq < 200 * 200) {
+											hasCloseTarget = true;
+											break; // 1件でも該当したら即終了
+										}
+									}
+								}
+								if (!hasCloseTarget){
+									if (Block.collection.length > 0) {
+										if (Math.floor(Math.random() * 2)) {
+											for (var i = 0, l = Block.collection.length; i < l; i++) {
+												let c = Block.collection[i];
+												if (this.within(c, 68) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
+													new Bom(this, this.num, boms[this.num])._SetBom();
+													this.bomReload = 0;
+													this.bomSetFlg = true;
+													this.bulReloadFlg = true;
+													break;
+												}
 											}
 										}
 									}
 								}
-
 							}
 
 							if (this.moveSpeed > 0) {
 								if (this.time % 5 === 0 && this.moveFlg) {
 									if (this.escapeFlg) {
-										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
+										this.dirValue = Escape_Rot8(this, this.escapeTarget, this.dirValue);
 									} else {
 										// 爆弾設置条件
-										if (this.within(target, 160) && !this.bomSetFlg && boms[this.num] < this.bomMax) {
+										if (this.within(this.target, 160) && !this.bomSetFlg && boms[this.num] < this.bomMax) {
 											new Bom(this, this.num, boms[this.num])._SetBom();
 											this.bomReload = 0;
 											this.bomSetFlg = true;
@@ -7706,7 +7872,7 @@ window.onload = function() {
 										if (distSq < thresholdSq) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
-											if (hittingTime > 15) {
+											if (this.hittingTime > 15) {
 												const diagonalObstacleMap = {
 													4: [-1, 1],
 													5: [1, 1],
@@ -7725,20 +7891,20 @@ window.onload = function() {
 													7: [1, 2, 4, 5, 6]
 												};
 
-												let arr = directionCandidates[dirValue] || [];
+												let arr = directionCandidates[this.dirValue] || [];
 
-												const myPath = [
+												this.myPath = [
 													Math.floor((that.y + that.height / 2) / PixelSize),
 													Math.floor((that.x + that.width / 2) / PixelSize)
 												];
 
 												const rem = new Set();
-												const grid = JSON.parse(JSON.stringify(scene.grid));
+												this.grid = JSON.parse(JSON.stringify(scene.grid));
 
 												for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
-													const y = myPath[0] + dy;
-													const x = myPath[1] + dx;
-													if (grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
+													const y = this.myPath[0] + dy;
+													const x = this.myPath[1] + dx;
+													if (this.grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
 												}
 
 												arr = arr.filter(i => !rem.has(i));
@@ -7747,20 +7913,20 @@ window.onload = function() {
 													arr = Array.from({ length: 8 }, (_, i) => i).filter(i => !rem.has(i));
 												}
 
-												if (!arr.includes(dirValue)) {
-													dirValue = arr[Math.floor(Math.random() * arr.length)];
+												if (!arr.includes(this.dirValue)) {
+													this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 												}
-												hittingTime = 0;
+												this.hittingTime = 0;
 											} else if (this.time % 10 === 0) SelDirection(this.weak, this.attackTarget, 1);
 										}
 										
 
 										// 他のタンクとの接近チェック
 										if ((tankEntity.length - destruction) - 1 > 2) {
-											for (let i = 0; i < tankEntity.length; i++) {
-												if (i !== this.num && !deadFlgs[i] && tankEntity[i].intersectStrict(Around)) {
-													SelDirection(this.weak, tankEntity[i], 0);
-													break;
+											let match = TankBase.intersectStrict(this.around);
+											if (match.length > 0){
+												if(match[0].num != this.num && deadFlgs[match[0].num] == false){
+													SelDirection(this.weak, match[0], 0);
 												}
 											}
 										}
@@ -7790,8 +7956,8 @@ window.onload = function() {
 								// 移動処理
 								if (!this.shotStopFlg) {
 									const rotationMap = [0, 90, 180, 270, 45, 135, 225, 315];
-									rot = rotationMap[dirValue] ?? rot;
-									this._Move(rot);
+									this.rot = rotationMap[this.dirValue] ?? this.rot;
+									this._Move(this.rot);
 								}
 							}
 							// タンクとの衝突処理
@@ -7808,7 +7974,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
-						if (this.within(target, 240) == true && !this.bomSetFlg && boms[this.num] < this.bomMax)  new Bom(this, this.num, boms[this.num])._SetBom();
+						if (this.within(this.target, 256) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) new Bom(this, this.num, boms[this.num])._SetBom();
 						this._Dead();
 					}
 				}
@@ -7849,6 +8015,92 @@ window.onload = function() {
 				let rad = Math.atan2(p.y, p.x);
 				this.cannon.rotation = Rad_to_Rot(rad);
 			}
+		},
+		_Defense: function(){
+			if (BulletBase.collection.length > 0) {
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+					const c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+
+					const defFlg = Categorys.DefenceFlg[this.category];
+					if ((c.num === 0 && !defFlg[0]) ||
+						(c.num === this.num && !defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+					if (dist == null) continue;
+
+					const defRange = Categorys.DefenceRange[this.category];
+					const escRange = Categorys.EscapeRange[this.category];
+
+					switch (c.num) {
+						case 0:
+							if (dist < defRange[0]) {
+								if (match1.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+								if (escRange[0] && escRange[1] != 0) {
+									if (dist < escRange[1]) {
+										this.escapeTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+							}
+							break;
+
+						case this.num:
+							if (this.ref == 0) break;
+							if (dist < defRange[1] && dist > 100) {
+								if (match2.some(elem => elem.target === c)) {
+									if (escRange[0] && escRange[2] != 0) {
+										if (dist < escRange[2]) {
+											this.escapeTarget = c;
+											this.escapeFlg = true;
+										}
+									}
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+							}
+							break;
+
+						default:
+							if (dist < defRange[2]) {
+								if (match2.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+								if (escRange[0] && escRange[3] != 0) {
+									if (dist < escRange[3]) {
+										this.escapeTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		_Reload: function(){
+			if (this.bulReloadFlg == false) {
+				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (this.shotNGflg == false) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+			}
 		}
 	})
 
@@ -7862,28 +8114,18 @@ window.onload = function() {
 
 			var that = this;
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
-			const target = tankEntity[0];
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
+			this.target = tankEntity[0];
 
-			Around.scale(1.6, 1.6);
+			this.around.scale(1.6, 1.6);
 
 			this.attackTarget = tankEntity[0];
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
 
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-
 			this.escapeTargets = [];
-
-			var dirValue = 0;
-			var hittingTime = 0;
-
-			var rot = 0;
-
-			var moveRandom = 1;
 
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
@@ -7895,17 +8137,7 @@ window.onload = function() {
 				}
 			});
 
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			}
-
-			function SelDirection(target1, target2, or) {
+			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
 				//	0:	離れる	1:	近寄る
 				//	0:	上
@@ -7947,18 +8179,18 @@ window.onload = function() {
 				}
 
 				let rem = [];
-				var myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
-				var grid = JSON.parse(JSON.stringify(scene.grid));
+				this.myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
+				this.grid = JSON.parse(JSON.stringify(scene.grid));
 				let bk = arr;
 
-				if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-				if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-				if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-				if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
-				if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-				if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-				if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-				if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
+				if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
+				if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
 
 				arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -7966,10 +8198,10 @@ window.onload = function() {
 					arr = bk;
 				}
 
-				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+				if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
-			function resolveCollision(entity, elem, isTank = false){
+			const resolveCollision = (entity, elem, isTank = false) => {
 				switch (elem.name) {
 					case isTank ? 'TankTop' : 'ObsTop':
 						entity.moveTo(entity.x, elem.y - 60);
@@ -7984,7 +8216,7 @@ window.onload = function() {
 						entity.moveTo(elem.x + elem.width, entity.y);
 						break;
 				}
-				hittingTime++;
+				this.hittingTime++;
 			}
 
 			this.onenterframe = function() {
@@ -7997,7 +8229,7 @@ window.onload = function() {
 							this.time++;
 
 							if (this.time % 45 == 0){
-								moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
+								this.moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
 							}
 
 							if (this.time % 2 == 0) {
@@ -8005,9 +8237,9 @@ window.onload = function() {
 								this.fireFlg = false;
 							}
 
-							if (hittingTime > 20) {
+							if (this.hittingTime > 20) {
 								let arr = [];
-								switch (dirValue) {
+								switch (this.dirValue) {
 									case 0:
 									case 2:
 										arr = [1, 3];
@@ -8026,18 +8258,18 @@ window.onload = function() {
 								}
 
 								let rem = [];
-								var myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-								var grid = JSON.parse(JSON.stringify(scene.grid));
+								this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
+								this.grid = JSON.parse(JSON.stringify(scene.grid));
 								let bk = arr;
 
-								if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-								if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-								if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-								if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
-								if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-								if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-								if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-								if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
+								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
+								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
 
 								arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -8045,11 +8277,11 @@ window.onload = function() {
 									arr = bk;
 								}
 
-								if (arr.indexOf(dirValue) == -1) {
-									dirValue = arr[Math.floor(Math.random() * arr.length)];
+								if (arr.indexOf(this.dirValue) == -1) {
+									this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 								}
 
-								hittingTime = 0;
+								this.hittingTime = 0;
 							}
 
 							//  爆弾が設置された場合の処理
@@ -8074,8 +8306,8 @@ window.onload = function() {
 								this.fireFlg = true; //  発射可能状態にする
 							}
 
-							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
-								this.shotNGflg = true;
+							if (this.ref > 0) {
+								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
@@ -8083,12 +8315,13 @@ window.onload = function() {
 								this.escapeFlg = false;
 							}
 
-							this.escapeTargets = [];
+							this._Defense();
+							/*this.escapeTargets = [];
 
 							if (BulletBase.collection.length > 0) {
 								const escapeList = [];
-								const match1 = PlayerBulAim.intersectStrict(Around);
-								const match2 = BulAim.intersectStrict(Around);
+								const match1 = PlayerBulAim.intersectStrict(this.around);
+								const match2 = BulAim.intersectStrict(this.around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -8098,7 +8331,11 @@ window.onload = function() {
 										(c.num === this.num && !defFlg[1]) ||
 										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
 
-									const dist = Instrumentation(this.weak, this.attackTarget, c);
+									const dist = (function Instrumentation(weak, target1, target2) {
+										const dist1 = Get_Distance(weak, target1);
+										const dist2 = Get_Distance(weak, target2);
+										return dist1 >= dist2 ? dist2 : null;
+									})(this.weak, this.attackTarget, c);
 									if (dist == null) continue;
 
 									const defRange = Categorys.DefenceRange[this.category];
@@ -8112,7 +8349,7 @@ window.onload = function() {
 												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}else{
-													this.attackTarget = target;
+													this.attackTarget = this.target;
 												}
 												if (escRange[0] && escRange[1] != 0 && dist < escRange[1]) {
 													if (Search(c, this, 75, escRange[1])) {
@@ -8142,7 +8379,7 @@ window.onload = function() {
 												if (match2.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}else{
-													this.attackTarget = target;
+													this.attackTarget = this.target;
 												}
 												if (escRange[0] && escRange[3] != 0 && dist < escRange[3]) {
 													if (Search(c, this, 60, escRange[3])) {
@@ -8168,9 +8405,10 @@ window.onload = function() {
 							if (this.escapeTargets.length > 0) {
 								this.escapeTarget = this.escapeTargets[0];
 								this.escapeFlg = true;
-							}
+							}*/
 
-							if (this.bulReloadFlg == false) {
+							this._Reload();
+							/*if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -8184,15 +8422,12 @@ window.onload = function() {
 									}
 								}
 
-							}
+							}*/
 
-							TankBase.intersectStrict(Front).forEach(elem => {
-								if (elem.num != this.num && elem.num != 0) {
-									if (!deadFlgs[elem.num]) {
-										this.fireFlg = false;
-									}
-								}
-							})
+							let matchFront = TankBase.intersectStrict(this.front);
+							if (matchFront.length > 0){
+								if(matchFront[0].num != this.num && !deadFlgs[matchFront[0].num] && matchFront[0].num != 0) this.fireFlg = false;
+							}
 
 							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
@@ -8207,24 +8442,24 @@ window.onload = function() {
 								if (this.time % 3 == 0) {
 									if (this.escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
-										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
-										//dirValue = Escape_Rot8_Multi(this, this.escapeTargets, dirValue);
+										this.dirValue = Escape_Rot8(this, this.escapeTarget, this.dirValue);
+										//this.dirValue = Escape_Rot8_Multi(this, this.escapeTargets, this.dirValue);
 									} else if (this.moveFlg) {
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 											if (this.time % 9 == 0) {
-												SelDirection(this.weak, target, moveRandom);
+												SelDirection(this.weak, this.target, this.moveRandom);
 												// 他のタンクとの接近チェック
 												if ((tankEntity.length - destruction) - 1 > 2) {
-													for (let i = 0; i < tankEntity.length; i++) {
-														if (i !== this.num && !deadFlgs[i] && tankEntity[i].intersectStrict(Around)) {
-															SelDirection(this.weak, tankEntity[i], 0);
-															break;
+													let match = TankBase.intersectStrict(this.around);
+													if (match.length > 0){
+														if(match[0].num != this.num && deadFlgs[match[0].num] == false){
+															SelDirection(this.weak, match[0], 0);
 														}
 													}
 												}
-												if (hittingTime > 20) {
+												if (this.hittingTime > 20) {
 													const diagonalObstacleMap = {
 														4: [-1, 1],
 														5: [1, 1],
@@ -8243,20 +8478,20 @@ window.onload = function() {
 														7: [1, 2, 4, 5, 6]
 													};
 
-													let arr = directionCandidates[dirValue] || [];
+													let arr = directionCandidates[this.dirValue] || [];
 
-													const myPath = [
+													this.myPath = [
 														Math.floor((that.y + that.height / 2) / PixelSize),
 														Math.floor((that.x + that.width / 2) / PixelSize)
 													];
 
 													const rem = new Set();
-													const grid = JSON.parse(JSON.stringify(scene.grid));
+													this.grid = JSON.parse(JSON.stringify(scene.grid));
 
 													for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
-														const y = myPath[0] + dy;
-														const x = myPath[1] + dx;
-														if (grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
+														const y = this.myPath[0] + dy;
+														const x = this.myPath[1] + dx;
+														if (this.grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
 													}
 
 													arr = arr.filter(i => !rem.has(i));
@@ -8265,10 +8500,10 @@ window.onload = function() {
 														arr = Array.from({ length: 8 }, (_, i) => i).filter(i => !rem.has(i));
 													}
 
-													if (!arr.includes(dirValue)) {
-														dirValue = arr[Math.floor(Math.random() * arr.length)];
+													if (!arr.includes(this.dirValue)) {
+														this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 													}
-													hittingTime = 0;
+													this.hittingTime = 0;
 												}
 											}
 										}
@@ -8285,8 +8520,8 @@ window.onload = function() {
 								}
 								if (!this.shotStopFlg) {
 									const rotationMap = [0, 90, 180, 270, 45, 135, 225, 315];
-									rot = rotationMap[dirValue] ?? rot;
-									this._Move(rot);
+									this.rot = rotationMap[this.dirValue] ?? this.rot;
+									this._Move(this.rot);
 								}
 							}
 
@@ -8365,6 +8600,114 @@ window.onload = function() {
 					}
 				}
 			}
+		},
+		_Defense: function(){
+			this.escapeTargets = [];
+
+			if (BulletBase.collection.length > 0) {
+				const escapeList = [];
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+					const c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+
+					const defFlg = Categorys.DefenceFlg[this.category];
+					if ((c.num === 0 && !defFlg[0]) ||
+						(c.num === this.num && !defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+					if (dist == null) continue;
+
+					const defRange = Categorys.DefenceRange[this.category];
+					const escRange = Categorys.EscapeRange[this.category];
+
+					let escapeScore = 0;
+
+					switch (c.num) {
+						case 0:
+							if (dist < defRange[0]) {
+								if (match1.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}else{
+									this.attackTarget = this.target;
+								}
+								if (escRange[0] && escRange[1] != 0 && dist < escRange[1]) {
+									if (Search(c, this, 75, escRange[1])) {
+										escapeScore += 1000 - dist;
+									}
+								}
+							}
+							break;
+
+						case this.num:
+							if (this.ref == 0) break;
+							if (dist < defRange[1] && dist > 100) {
+								if (match2.some(elem => elem.target === c)) {
+									if (escRange[0] && escRange[2] != 0 && dist < escRange[2]) {
+										if (Search(c, this, 60, escRange[2])) {
+											escapeScore += 800 - dist;
+										}
+									}
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+							}
+							
+							break;
+
+						default:
+							if (dist < defRange[2]) {
+								if (match2.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}else{
+									this.attackTarget = this.target;
+								}
+								if (escRange[0] && escRange[3] != 0 && dist < escRange[3]) {
+									if (Search(c, this, 60, escRange[3])) {
+									escapeScore += 600 - dist;
+									}
+								}
+							}
+							break;
+					}
+
+					if (escapeScore > 0) {
+						escapeList.push({ bullet: c, score: escapeScore });
+					}
+				}
+				// 優先度順にソート
+				escapeList.sort((a, b) => b.score - a.score);
+
+				// 複数の回避対象を保持
+				this.escapeTargets = escapeList.map(item => item.bullet);
+			}
+
+			// 最も危険な弾を主回避対象に設定（従来互換）
+			if (this.escapeTargets.length > 0) {
+				this.escapeTarget = this.escapeTargets[0];
+				this.escapeFlg = true;
+			}
+		},
+		_Reload: function(){
+			if (this.bulReloadFlg == false) {
+				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (this.shotNGflg == false) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+			}
 		}
 	})
 
@@ -8377,42 +8720,19 @@ window.onload = function() {
 			this.tank.scale(1.1, 1.1);
 			this.cannon.scale(1.3, 1.1);
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
 
-			Around.scale(1.5, 1.5);
+			this.around.scale(1.5, 1.5);
 
-			const target = tankEntity[0];
+			this.target = tankEntity[0];
 
 			//this.weak.backgroundColor = 'blue';
 
-			this.attackTarget = target;
+			this.attackTarget = this.target;
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
-
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-			this.tankStopFlg = false;
-			this.stopTime = 0;
-
-			var dirValue = 0;
-			var hittingTime = 0;
-
-			this.fullFireFlg = false;
-			this.firecnt = 0;
-
-			/*var map = scene.backgroundMap;
-			var grid = scene.grid;
-
-			var myPath = [0, 0];
-			var targetPath = [0, 0];
-			var root;
-			var rootFlg = false;*/
-
-			var rot = 0;
-
-			var moveRandom = 1;
 
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
@@ -8424,17 +8744,7 @@ window.onload = function() {
 				}
 			});
 
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			};
-
-			function SelDirection(target1, target2, or) {
+			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3];
 				if (or == 0) {
 					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) { //	相手より右にいる場合
@@ -8467,7 +8777,7 @@ window.onload = function() {
 				}
 
 				if (arr.length > 0) {
-					if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+					if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 				}
 			}
 
@@ -8479,7 +8789,7 @@ window.onload = function() {
 							if(this._Damage()) this._ResetStatus();
 
 							if (this.time % 45 == 0){
-								moveRandom = Math.floor(Math.random() * 5) ? 1 : 0;
+								this.moveRandom = Math.floor(Math.random() * 5) ? 1 : 0;
 							}
 
 							if (this.time % 2 == 0) {
@@ -8489,10 +8799,10 @@ window.onload = function() {
 
 							this.time++;
 
-							if (hittingTime >= 35) {
+							if (this.hittingTime >= 35) {
 								let arr = [];
 
-								switch (dirValue) {
+								switch (this.dirValue) {
 									case 0:
 										this.y += this.moveSpeed;
 										arr = [1, 3];
@@ -8512,13 +8822,13 @@ window.onload = function() {
 								}
 
 								let rem = [];
-								var myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-								var grid = JSON.parse(JSON.stringify(scene.grid));
+								this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
+								this.grid = JSON.parse(JSON.stringify(scene.grid));
 
-								if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-								if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-								if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-								if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
+								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
+								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
 
 								arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -8527,11 +8837,11 @@ window.onload = function() {
 									arr = arr.filter(i => rem.indexOf(i) == -1);
 								}
 
-								if (arr.indexOf(dirValue) == -1) {
-									dirValue = arr[Math.floor(Math.random() * arr.length)];
+								if (arr.indexOf(this.dirValue) == -1) {
+									this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 								}
 
-								hittingTime = 0;
+								this.hittingTime = 0;
 							}
 
 							if (this.shotStopFlg) {
@@ -8548,18 +8858,19 @@ window.onload = function() {
 								this.fireFlg = true; //  発射可能状態にする
 							}
 
-							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
-								this.shotNGflg = true;
+							if (this.ref > 0) {
+								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
-								if (this.attackTarget != target && !this.escapeFlg) this.attackTarget = target;
+								if (this.attackTarget != this.target && !this.escapeFlg) this.attackTarget = this.target;
 								this.escapeFlg = false;
 							}
 
-							if (BulletBase.collection.length > 0) {
-								const match1 = PlayerBulAim.intersectStrict(Around);
-								const match2 = BulAim.intersectStrict(Around);
+							this._Defense();
+							/*if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(this.around);
+								const match2 = BulAim.intersectStrict(this.around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -8569,7 +8880,11 @@ window.onload = function() {
 										(c.num === this.num && !defFlg[1]) ||
 										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
 
-									const dist = Instrumentation(this.weak, this.attackTarget, c);
+									const dist = (function Instrumentation(weak, target1, target2) {
+										const dist1 = Get_Distance(weak, target1);
+										const dist2 = Get_Distance(weak, target2);
+										return dist1 >= dist2 ? dist2 : null;
+									})(this.weak, this.attackTarget, c);
 									if (dist == null) continue;
 
 									const defRange = Categorys.DefenceRange[this.category];
@@ -8620,14 +8935,15 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
-							if (this.bulReloadFlg == false) {
+							this._Reload();
+							/*if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
-									if(this.life == 1)this.fireLate = Categorys.FireLate[this.category] - 10;
+									if((this.life / Categorys.Life[this.category]) < 0.25)this.fireLate = Categorys.FireLate[this.category] - 10;
 								}
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -8641,15 +8957,12 @@ window.onload = function() {
 									}
 								}
 
-							}
+							}*/
 
-							TankBase.intersectStrict(Front).forEach(elem => {
-								if (elem.num != this.num && elem.num != 0) {
-									if (!deadFlgs[elem.num]) {
-										this.fireFlg = false;
-									}
-								}
-							})
+							let matchFront = TankBase.intersectStrict(this.front);
+							if (matchFront.length > 0){
+								if(matchFront[0].num != this.num && !deadFlgs[matchFront[0].num] && matchFront[0].num != 0) this.fireFlg = false;
+							}
 
 							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
@@ -8673,14 +8986,14 @@ window.onload = function() {
 								if (this.time % 5 == 0) {
 									if (this.escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
-										dirValue = Escape_Rot4(this, this.escapeTarget, dirValue);
+										this.dirValue = Escape_Rot4(this, this.escapeTarget, this.dirValue);
 									} else {
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 
 											if (this.time % 10 == 0) {
-												SelDirection(this.weak, this.attackTarget, moveRandom);
+												SelDirection(this.weak, this.attackTarget, this.moveRandom);
 											}
 
 										}
@@ -8696,16 +9009,16 @@ window.onload = function() {
 									}
 								}
 								if (!this.shotStopFlg) {
-									if (dirValue == 0) {
-										rot = 0;
-									} else if (dirValue == 1) {
-										rot = 90;
-									} else if (dirValue == 2) {
-										rot = 180;
-									} else if (dirValue == 3) {
-										rot = 270;
+									if (this.dirValue == 0) {
+										this.rot = 0;
+									} else if (this.dirValue == 1) {
+										this.rot = 90;
+									} else if (this.dirValue == 2) {
+										this.rot = 180;
+									} else if (this.dirValue == 3) {
+										this.rot = 270;
 									}
-									this._Move(rot);
+									this._Move(this.rot);
 
 								}
 							}
@@ -8726,7 +9039,7 @@ window.onload = function() {
 											this.moveTo(elem.x + (elem.width), this.y);
 											break;
 									}
-									hittingTime++;
+									this.hittingTime++;
 								}
 
 							})
@@ -8746,7 +9059,7 @@ window.onload = function() {
 										this.moveTo(elem.x + (elem.width), this.y)
 										break;
 								}
-								hittingTime++;
+								this.hittingTime++;
 							})
 						}
 					} else {
@@ -8814,6 +9127,98 @@ window.onload = function() {
 				default:
 					break;
 			}
+		},
+		_Defense: function(){
+			if (BulletBase.collection.length > 0) {
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+					const c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+
+					const defFlg = Categorys.DefenceFlg[this.category];
+					if ((c.num === 0 && !defFlg[0]) ||
+						(c.num === this.num && !defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+					if (dist == null) continue;
+
+					const defRange = Categorys.DefenceRange[this.category];
+					const escRange = Categorys.EscapeRange[this.category];
+
+					switch (c.num) {
+						case 0:
+							if (dist < defRange[0]) {
+								if (match1.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+								if (escRange[0] && escRange[1] != 0) {
+									if (dist < escRange[1]) {
+										this.escapeTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+							}
+							break;
+
+						case this.num:
+							if (this.ref == 0) break;
+							if (dist < defRange[1] && dist > 100) {
+								if (match2.some(elem => elem.target === c)) {
+									if (escRange[0] && escRange[2] != 0) {
+										if (dist < escRange[2]) {
+											this.escapeTarget = c;
+											this.escapeFlg = true;
+										}
+									}
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+							}
+							break;
+
+						default:
+							if (dist < defRange[2]) {
+								if (match2.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+								if (escRange[0] && escRange[3] != 0) {
+									if (dist < escRange[3]) {
+										this.escapeTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		_Reload: function(){
+			if (this.bulReloadFlg == false) {
+				if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
+					this.bulReloadFlg = true;
+					this.fullFireFlg = false;
+					this.firecnt = 0;
+					if(this.life == 1)this.fireLate = Categorys.FireLate[this.category] - 10;
+				}
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (this.shotNGflg == false) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
+
+			}
 		}
 	})
 
@@ -8822,47 +9227,24 @@ window.onload = function() {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
+
+			this.around.scale(1.4, 1.4);
 			this.weak.scale(0.8, 0.8);
 			this.tank.scale(1.1, 1.1);
 			this.cannon.scale(1.3, 1.1);
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
-
-			Around.scale(1.25, 1.25);
-
-			const target = tankEntity[0];
+			this.target = tankEntity[0];
 
 			//this.weak.backgroundColor = 'blue';
 
-			this.attackTarget = target;
+			this.attackTarget = this.target;
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
 
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-			this.tankStopFlg = false;
-			this.stopTime = 0;
-
-			var dirValue = 0;
-			var hittingTime = 0;
-
-			this.fullFireFlg = false;
-			this.firecnt = 0;
-
 			this.distance = Categorys.Distances[this.category];
-			this.cflg = true;
-
-			/*var map = scene.backgroundMap;
-			var grid = scene.grid;
-
-			var myPath = [0, 0];
-			var targetPath = [0, 0];
-			var root;
-			var rootFlg = false;*/
-
-			var rot = 0;
 
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
@@ -8874,17 +9256,7 @@ window.onload = function() {
 				}
 			});
 
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			};
-
-			function SelDirection(target1, target2, or) {
+			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
 				//	0:	離れる	1:	近寄る
 				//	0:	上
@@ -8926,18 +9298,18 @@ window.onload = function() {
 				}
 
 				let rem = [];
-				var myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
-				var grid = JSON.parse(JSON.stringify(scene.grid));
+				this.myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
+				this.grid = JSON.parse(JSON.stringify(scene.grid));
 				let bk = arr;
 
-				if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-				if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-				if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-				if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
-				if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-				if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-				if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-				if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
+				if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
+				if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
 
 				arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -8945,7 +9317,7 @@ window.onload = function() {
 					arr = bk;
 				}
 
-				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+				if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
 			this.onenterframe = function() {
@@ -8962,10 +9334,14 @@ window.onload = function() {
 
 							this.time++;
 
-							if (hittingTime >= 35) {
+							if (this.time % 45 == 0){
+								this.moveRandom = Math.floor(Math.random() * 5) ? 1 : 0;
+							}
+
+							if (this.hittingTime >= 35) {
 								let arr = [];
 
-								switch (dirValue) {
+								switch (this.dirValue) {
 									case 0:
 									case 2:
 										arr = [1, 3];
@@ -8984,18 +9360,18 @@ window.onload = function() {
 								}
 
 								let rem = [];
-								var myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-								var grid = JSON.parse(JSON.stringify(scene.grid));
+								this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
+								this.grid = JSON.parse(JSON.stringify(scene.grid));
 								let bk = arr;
 
-								if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') rem.push(0);
-								if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') rem.push(1);
-								if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') rem.push(2);
-								if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') rem.push(3);
-								if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') rem.push(4);
-								if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') rem.push(5);
-								if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') rem.push(6);
-								if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') rem.push(7);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
+								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
+								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
 
 								arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -9003,11 +9379,11 @@ window.onload = function() {
 									arr = bk;
 								}
 
-								if (arr.indexOf(dirValue) == -1) {
-									dirValue = arr[Math.floor(Math.random() * arr.length)];
+								if (arr.indexOf(this.dirValue) == -1) {
+									this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 								}
 
-								hittingTime = 0;
+								this.hittingTime = 0;
 							}
 
 							if (this.shotStopFlg) {
@@ -9024,18 +9400,19 @@ window.onload = function() {
 								this.fireFlg = true; //  発射可能状態にする
 							}
 
-							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
-								this.shotNGflg = true;
+							if (this.ref > 0) {
+								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
-								if (this.attackTarget != target && !this.escapeFlg) this.attackTarget = target;
+								if (this.attackTarget != this.target && !this.escapeFlg) this.attackTarget = this.target;
 								this.escapeFlg = false;
 							}
 
-							if (BulletBase.collection.length > 0) {
-								const match1 = PlayerBulAim.intersectStrict(Around);
-								const match2 = BulAim.intersectStrict(Around);
+							this._Defense();
+							/*if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(this.around);
+								const match2 = BulAim.intersectStrict(this.around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									const c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
@@ -9045,7 +9422,11 @@ window.onload = function() {
 										(c.num === this.num && !defFlg[1]) ||
 										(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
 
-									const dist = Instrumentation(this.weak, this.attackTarget, c);
+									const dist = (function Instrumentation(weak, target1, target2) {
+										const dist1 = Get_Distance(weak, target1);
+										const dist2 = Get_Distance(weak, target2);
+										return dist1 >= dist2 ? dist2 : null;
+									})(this.weak, this.attackTarget, c);
 									if (dist == null) continue;
 
 									const defRange = Categorys.DefenceRange[this.category];
@@ -9057,7 +9438,7 @@ window.onload = function() {
 												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}else{
-													this.attackTarget = target;
+													this.attackTarget = this.target;
 												}
 												if (escRange[0] && escRange[1] != 0) {
 													if (dist < escRange[1]) {
@@ -9100,14 +9481,16 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
-							if (this.bulReloadFlg == false) {
+							this._Reload();
+							/*if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
 									this.bulReloadFlg = true;
 									this.fullFireFlg = false;
 									this.firecnt = 0;
-									if(this.life == 1)this.fireLate = 15;
+									if((this.life / Categorys.Life[this.category]) < 0.35)this.fireLate = 16;
+									this.distance = Categorys.Distances[this.category] + 200;
 								}
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -9118,18 +9501,21 @@ window.onload = function() {
 										this.shotNGflg = false;
 										this.bulReloadFlg = false;
 										this.bulReloadTime = 0;
+										let percent = (this.life / Categorys.Life[this.category]);
+										if (percent < 0.35) this.distance = Categorys.Distances[this.category] + 160;
+										else if (percent < 0.6) this.distance = Categorys.Distances[this.category] + 64;
+										else this.distance = Categorys.Distances[this.category];
 									}
+									
+									
 								}
 
+							}*/
+
+							let matchFront = TankBase.intersectStrict(this.front);
+							if (matchFront.length > 0){
+								if(matchFront[0].num != this.num && !deadFlgs[matchFront[0].num] && matchFront[0].num != 0) this.fireFlg = false;
 							}
-
-							TankBase.intersectStrict(Front).forEach(elem => {
-								if (elem.num != this.num && elem.num != 0) {
-									if (!deadFlgs[elem.num]) {
-										this.fireFlg = false;
-									}
-								}
-							})
 
 							if (!this.shotNGflg) {
 								if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
@@ -9153,15 +9539,14 @@ window.onload = function() {
 								if (this.time % 3 == 0) {
 									if (this.escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
-										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
-									} else if (this.cflg) {
-										//if(!this.cflg) return;
+										this.dirValue = Escape_Rot8(this, this.escapeTarget, this.dirValue);
+									} else if (this.moveFlg) {
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this.weak, this.attackTarget, 0);
 										} else {
 
 											if (this.time % 9 == 0) {
-												SelDirection(this.weak, this.attackTarget, 1);
+												SelDirection(this.weak, this.attackTarget, this.moveRandom);
 											}
 
 										}
@@ -9177,33 +9562,33 @@ window.onload = function() {
 									}
 								}
 								if (!this.shotStopFlg) {
-									switch (dirValue) {
+									switch (this.dirValue) {
 										case 0:
-											rot = 0;
+											this.rot = 0;
 											break;
 										case 1:
-											rot = 90;
+											this.rot = 90;
 											break;
 										case 2:
-											rot = 180;
+											this.rot = 180;
 											break;
 										case 3:
-											rot = 270;
+											this.rot = 270;
 											break;
 										case 4:
-											rot = 45;
+											this.rot = 45;
 											break;
 										case 5:
-											rot = 135;
+											this.rot = 135;
 											break;
 										case 6:
-											rot = 225;
+											this.rot = 225;
 											break;
 										case 7:
-											rot = 315;
+											this.rot = 315;
 											break;
 									}
-									this.cflg = this._Move(rot);
+									this._Move(this.rot);
 
 								}
 							}
@@ -9224,7 +9609,7 @@ window.onload = function() {
 											this.moveTo(elem.x + (elem.width), this.y);
 											break;
 									}
-									hittingTime++;
+									this.hittingTime++;
 								}
 
 							})
@@ -9244,7 +9629,7 @@ window.onload = function() {
 										this.moveTo(elem.x + (elem.width), this.y)
 										break;
 								}
-								hittingTime++;
+								this.hittingTime++;
 							})
 						}
 					} else {
@@ -9335,6 +9720,105 @@ window.onload = function() {
 				default:
 					break;
 			}
+		},
+		_Defense: function(){
+			if (BulletBase.collection.length > 0) {
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+					const c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+
+					const defFlg = Categorys.DefenceFlg[this.category];
+					if ((c.num === 0 && !defFlg[0]) ||
+						(c.num === this.num && !defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+					if (dist == null) continue;
+
+					const defRange = Categorys.DefenceRange[this.category];
+					const escRange = Categorys.EscapeRange[this.category];
+
+					switch (c.num) {
+						case 0:
+							if (dist < defRange[0]) {
+								if (match1.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}else{
+									this.attackTarget = this.target;
+								}
+								if (escRange[0] && escRange[1] != 0) {
+									if (dist < escRange[1]) {
+										if (Search(c, this, 60, escRange[1])) {
+											this.escapeTarget = c;
+											this.escapeFlg = true;
+										}
+									}
+								}
+							}
+							break;
+
+						case this.num:
+							if (this.ref == 0) break;
+							if (dist < defRange[1] && dist > 100) {
+								if (match2.some(elem => elem.target === c)) {
+									if (escRange[0] && escRange[2] != 0) {
+										if (dist < escRange[2]) {
+											this.escapeTarget = c;
+											this.escapeFlg = true;
+										}
+									}
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+							}
+							break;
+
+						default:
+							if (dist < defRange[2]) {
+								if (match2.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+								if (escRange[0] && escRange[3] != 0) {
+									if (dist < escRange[3]) {
+										this.escapeTarget = c;
+										this.escapeFlg = true;
+									}
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		_Reload: function(){
+			if (this.bulReloadFlg == false) {
+				if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
+					this.bulReloadFlg = true;
+					this.fullFireFlg = false;
+					this.firecnt = 0;
+					if(this.life == 1)this.fireLate = 16;
+					this.distance = Categorys.Distances[this.category] + 200;
+				}
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (this.shotNGflg == false) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+						if (this.life == 1) this.distance = Categorys.Distances[this.category] + 160;
+						else if (this.life == 2) this.distance = Categorys.Distances[this.category] + 64;
+						else this.distance = Categorys.Distances[this.category];
+					}	
+				}
+			}
 		}
 	});
 
@@ -9343,40 +9827,25 @@ window.onload = function() {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
+			const self = this;
 			if(gameMode == 2)
 				this.weak.scale(0.6, 0.6);
 
-			const Around = new InterceptAround(this);
-			const Front = new InterceptFront(this.cannon);
+			this.around = new InterceptAround(this);
+			this.front = new InterceptFront(this.cannon);
 
-			const target = tankEntity[0];
+			this.target = tankEntity[0];
 
-			Around.scale(1.5, 1.5);
+			this.around.scale(1.5, 1.5);
 
 			//this.weak.backgroundColor = 'blue';
 
-			this.attackTarget = target;
+			this.attackTarget = this.target;
 			this.escapeTarget = null;
 
 			this.cursor = new Target(this, scene);
 
-			this.shotStopFlg = false;
-			this.shotStopTime = 0;
-			this.tankStopFlg = false;
-			this.stopTime = 0;
-
-			var dirValue = 0;
-			var hittingTime = 0;
-
-			var map = Object.assign({}, scene.backgroundMap);
-			var grid = JSON.parse(JSON.stringify(scene.grid));
-
-			var myPath = [0, 0];
-			var targetPath = [0, 0];
-			var root;
 			var rootFlg = false;
-
-			var rot = 0;
 
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
@@ -9388,37 +9857,20 @@ window.onload = function() {
 				}
 			});
 
-			/*var EnemyAim = Class.create(PlayerRefAim, {
-				initialize: function(ref, cannon, cursor, category, num) {
-					PlayerRefAim.call(this, ref, cannon, cursor, category, num);
-				}
-			});*/
-			//new PlayerRefAim(this.ref, this.cannon, this.cursor, this.category, this.num);
-
-			function Instrumentation(weak, target1, target2) {
-				let dist1 = Get_Distance(weak, target1);
-				let dist2 = Get_Distance(weak, target2);
-				if (dist1 >= dist2) {
-					return dist2;
-				} else {
-					return null;
-				}
-			};
-
-			function NG_root_set() {
+			const NG_root_set = () => {
 				dir = [];
-				if (grid[myPath[0] - 1][myPath[1]] == 'Obstacle') dir.push(0);
-				if (grid[myPath[0]][myPath[1] + 1] == 'Obstacle') dir.push(1);
-				if (grid[myPath[0] + 1][myPath[1]] == 'Obstacle') dir.push(2);
-				if (grid[myPath[0]][myPath[1] - 1] == 'Obstacle') dir.push(3);
-				if (grid[myPath[0] - 1][myPath[1] + 1] == 'Obstacle') dir.push(4);
-				if (grid[myPath[0] + 1][myPath[1] + 1] == 'Obstacle') dir.push(5);
-				if (grid[myPath[0] + 1][myPath[1] - 1] == 'Obstacle') dir.push(6);
-				if (grid[myPath[0] - 1][myPath[1] - 1] == 'Obstacle') dir.push(7);
+				if (self.grid[self.myPath[0] - 1][self.myPath[1]] == 'Obstacle') dir.push(0);
+				if (self.grid[self.myPath[0]][self.myPath[1] + 1] == 'Obstacle') dir.push(1);
+				if (self.grid[self.myPath[0] + 1][self.myPath[1]] == 'Obstacle') dir.push(2);
+				if (self.grid[self.myPath[0]][self.myPath[1] - 1] == 'Obstacle') dir.push(3);
+				if (self.grid[self.myPath[0] - 1][self.myPath[1] + 1] == 'Obstacle') dir.push(4);
+				if (self.grid[self.myPath[0] + 1][self.myPath[1] + 1] == 'Obstacle') dir.push(5);
+				if (self.grid[self.myPath[0] + 1][self.myPath[1] - 1] == 'Obstacle') dir.push(6);
+				if (self.grid[self.myPath[0] - 1][self.myPath[1] - 1] == 'Obstacle') dir.push(7);
 				return dir;
 			};
 
-			function SelDirection(target1, target2, or) {
+			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
 				//	0:	離れる	1:	近寄る
 				//	0:	上
@@ -9459,8 +9911,8 @@ window.onload = function() {
 					}
 				}
 
-				myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
-				grid = JSON.parse(JSON.stringify(scene.grid));
+				self.myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
+				self.grid = JSON.parse(JSON.stringify(scene.grid));
 				let bk = arr;
 
 				let ng = NG_root_set();
@@ -9470,7 +9922,7 @@ window.onload = function() {
 					arr = bk;
 				}
 
-				if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+				if (arr.indexOf(self.dirValue) == -1) self.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
 			this.onenterframe = function() {
@@ -9482,7 +9934,7 @@ window.onload = function() {
 
 							if (this.time % 3 == 0) {
 								if (!this.escapeFlg) rootFlg = false;
-								if (this.attackTarget != target) rootFlg = true;
+								if (this.attackTarget != this.target) rootFlg = true;
 
 								this.shotNGflg = false;
 								this.fireFlg = false;
@@ -9490,93 +9942,93 @@ window.onload = function() {
 								if (this.moveSpeed > 0 && !rootFlg) {
 									
 									if (this.time % 60 == 0 && !this.bomSetFlg) {
-										grid = JSON.parse(JSON.stringify(scene.grid));
-										map = Object.assign({}, scene.backgroundMap);
+										this.grid = JSON.parse(JSON.stringify(scene.grid));
+										this.map = Object.assign({}, scene.backgroundMap);
 
 										//  自身の位置とターゲットの位置をざっくり算出
-										myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)]
-										targetPath = [parseInt((target.y + target.height / 2) / PixelSize), parseInt((target.x + target.width / 2) / PixelSize)]
+										this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)]
+										this.targetPath = [parseInt((this.target.y + this.target.height / 2) / PixelSize), parseInt((this.target.x + this.target.width / 2) / PixelSize)]
 										//  マップの障害物情報に自身とターゲットの位置設定
-										for (var i = 0; i < grid.length; i++) {
-											for (var j = 0; j < grid[i].length; j++) {
-												if (i == myPath[0] && j == myPath[1]) {
-													grid[i][j] = 'Start';
-												} else if (i == targetPath[0] && j == targetPath[1]) {
-													grid[i][j] = 'Goal';
+										for (var i = 0; i < this.grid.length; i++) {
+											for (var j = 0; j < this.grid[i].length; j++) {
+												if (i == this.myPath[0] && j == this.myPath[1]) {
+													this.grid[i][j] = 'Start';
+												} else if (i == this.targetPath[0] && j == this.targetPath[1]) {
+													this.grid[i][j] = 'Goal';
 												} else {
 													//  StartやGoalの位置が更新されている場合の処理
-													if (map.collisionData[i][j] == 0 || map.collisionData[i][j] == 5) {
-														grid[i][j] = 'Empty';
+													if (this.map.collisionData[i][j] == 0 || this.map.collisionData[i][j] == 5) {
+														this.grid[i][j] = 'Empty';
 													} else {
-														grid[i][j] = 'Obstacle';
+														this.grid[i][j] = 'Obstacle';
 													}
 												}
 											}
 										}
 
-										root = findShortestPath([myPath[0], myPath[1]], grid, scene);
-										//root = getPathToGoalOrVisibleTile([myPath[0], myPath[1]], [targetPath[0], targetPath[1]], grid, map, scene);
-										if (root[0] == "East") {
-											dirValue = 1;
-											if (root[1] == "North" && grid[myPath[0] - 1][myPath[1] + 1] != 'Obstacle') {
-												dirValue = 4;
-											} else if (root[1] == "South" && grid[myPath[0] + 1][myPath[1] + 1] != 'Obstacle') {
-												dirValue = 5;
+										this.root = findShortestPath([this.myPath[0], this.myPath[1]], this.grid, scene);
+										//this.root = getPathToGoalOrVisibleTile([this.myPath[0], this.myPath[1]], [this.targetPath[0], this.targetPath[1]], grid, this.map, scene);
+										if (this.root[0] == "East") {
+											this.dirValue = 1;
+											if (this.root[1] == "North" && this.grid[this.myPath[0] - 1][this.myPath[1] + 1] != 'Obstacle') {
+												this.dirValue = 4;
+											} else if (this.root[1] == "South" && this.grid[this.myPath[0] + 1][this.myPath[1] + 1] != 'Obstacle') {
+												this.dirValue = 5;
 											}
-										} else if (root[0] == "West") {
-											dirValue = 3;
-											if (root[1] == "North" && grid[myPath[0] - 1][myPath[1] - 1] != 'Obstacle') {
-												dirValue = 7;
-											} else if (root[1] == "South" && grid[myPath[0] + 1][myPath[1] - 1] != 'Obstacle') {
-												dirValue = 6;
+										} else if (this.root[0] == "West") {
+											this.dirValue = 3;
+											if (this.root[1] == "North" && this.grid[this.myPath[0] - 1][this.myPath[1] - 1] != 'Obstacle') {
+												this.dirValue = 7;
+											} else if (this.root[1] == "South" && this.grid[this.myPath[0] + 1][this.myPath[1] - 1] != 'Obstacle') {
+												this.dirValue = 6;
 											}
-										} else if (root[0] == "North") {
-											dirValue = 0;
-											if (root[1] == "East" && grid[myPath[0] - 1][myPath[1] + 1] != 'Obstacle') {
-												dirValue = 4;
-											} else if (root[1] == "West" && grid[myPath[0] - 1][myPath[1] - 1] != 'Obstacle') {
-												dirValue = 7;
+										} else if (this.root[0] == "North") {
+											this.dirValue = 0;
+											if (this.root[1] == "East" && this.grid[this.myPath[0] - 1][this.myPath[1] + 1] != 'Obstacle') {
+												this.dirValue = 4;
+											} else if (this.root[1] == "West" && this.grid[this.myPath[0] - 1][this.myPath[1] - 1] != 'Obstacle') {
+												this.dirValue = 7;
 											}
-										} else if (root[0] == "South") {
-											dirValue = 2;
-											if (root[1] == "East" && grid[myPath[0] + 1][myPath[1] + 1] != 'Obstacle') {
-												dirValue = 5;
-											} else if (root[1] == "West" && grid[myPath[0] + 1][myPath[1] - 1] != 'Obstacle') {
-												dirValue = 6;
+										} else if (this.root[0] == "South") {
+											this.dirValue = 2;
+											if (this.root[1] == "East" && this.grid[this.myPath[0] + 1][this.myPath[1] + 1] != 'Obstacle') {
+												this.dirValue = 5;
+											} else if (this.root[1] == "West" && this.grid[this.myPath[0] + 1][this.myPath[1] - 1] != 'Obstacle') {
+												this.dirValue = 6;
 											}
 										}
 									}
-									if (root == false) rootFlg = true;
+									if (this.root == false) rootFlg = true;
 								}
 							}
 
 							this.time++;
 
-							if (hittingTime >= 30) {
+							if (this.hittingTime >= 30) {
 								if (!this.bomSetFlg) {
 									let arr = [];
-									switch (dirValue) {
+									switch (this.dirValue) {
 										case 0:
 											arr = [5, 6];
-											if (root[0] == "North") {
+											if (this.root[0] == "North") {
 												arr = [4, 7];
 											}
 											break;
 										case 1:
 											arr = [7, 6];
-											if (root[0] == "East") {
+											if (this.root[0] == "East") {
 												arr = [4, 5];
 											}
 											break;
 										case 2:
 											arr = [4, 7];
-											if (root[0] == "South") {
+											if (this.root[0] == "South") {
 												arr = [5, 6];
 											}
 											break;
 										case 3:
 											arr = [4, 5];
-											if (root[0] == "West") {
+											if (this.root[0] == "West") {
 												arr = [6, 7];
 											}
 											break;
@@ -9593,8 +10045,8 @@ window.onload = function() {
 											arr = [1, 2, 4, 6];
 									}
 
-									myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-									grid = JSON.parse(JSON.stringify(scene.grid));
+									this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
+									this.grid = JSON.parse(JSON.stringify(scene.grid));
 									let bk = arr;
 
 									let ng = NG_root_set();
@@ -9604,11 +10056,11 @@ window.onload = function() {
 										arr = bk;
 									}
 
-									if (arr.indexOf(dirValue) == -1) dirValue = arr[Math.floor(Math.random() * arr.length)];
+									if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 								}
 
 
-								hittingTime = 0;
+								this.hittingTime = 0;
 							}
 
 							//  爆弾が設置された場合の処理
@@ -9634,33 +10086,39 @@ window.onload = function() {
 								if (!rootFlg) rootFlg = true;
 							}
 
-							if (this.ref > 0 && Front.intersectStrict(RefObstracle).length > 0) {
-								this.shotNGflg = true;
+							if (this.ref > 0) {
+								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 							}
 
 							if (this.time % 3 == 0) {
-								if (this.attackTarget != target && !this.escapeFlg) this.attackTarget = target;
+								if (this.attackTarget != this.target && !this.escapeFlg) this.attackTarget = this.target;
 								this.escapeFlg = false;
 							}
 
-							if (BulletBase.collection.length > 0) {
-								const match1 = PlayerBulAim.intersectStrict(Around);
-								const match2 = BulAim.intersectStrict(Around);
+							this._Defense();
+							/*if (BulletBase.collection.length > 0) {
+								const match1 = PlayerBulAim.intersectStrict(this.around);
+								const match2 = BulAim.intersectStrict(this.around);
 								for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 									let c = BulletBase.collection[i];
 									if (!bulStack[c.num][c.id]) continue;
-									if (c.num == target.num && !Categorys.DefenceFlg[this.category][0]) continue;
+									if (c.num == this.target.num && !Categorys.DefenceFlg[this.category][0]) continue;
 									if (c.num == this.num && !Categorys.DefenceFlg[this.category][1]) continue;
-									if (!(c.num == target.num || c.num == this.num) && !Categorys.DefenceFlg[this.category][2]) continue;
-									let dist = Instrumentation(this.weak, this.attackTarget, c);
+									if (!(c.num == this.target.num || c.num == this.num) && !Categorys.DefenceFlg[this.category][2]) continue;
+									const dist = (function Instrumentation(weak, target1, target2) {
+										const dist1 = Get_Distance(weak, target1);
+										const dist2 = Get_Distance(weak, target2);
+										return dist1 >= dist2 ? dist2 : null;
+									})(this.weak, this.attackTarget, c);
+									if (dist == null) continue;
 
 									switch (c.num) {
-										case target.num:
+										case this.target.num:
 											if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
 												if (match1.some(elem => elem.target === c)){
 													this.attackTarget = c; //  迎撃のためにターゲット変更
 												}else{
-													this.attackTarget = target;
+													this.attackTarget = this.target;
 												}
 
 												if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
@@ -9708,9 +10166,10 @@ window.onload = function() {
 											break;
 									}
 								}
-							}
+							}*/
 
-							if (this.bulReloadFlg == false) {
+							this._Reload();
+							/*if (this.bulReloadFlg == false) {
 								if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
 							} else {
 								if (this.bulReloadTime < this.reload) {
@@ -9724,7 +10183,7 @@ window.onload = function() {
 									}
 								}
 
-							}
+							}*/
 
 							if (!this.shotNGflg && !this.bomSetFlg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
@@ -9769,14 +10228,14 @@ window.onload = function() {
 								if (this.time % 3 == 0) {
 									if (this.escapeFlg) {
 										//SelDirection(this.weak, this.escapeTarget, 0);
-										dirValue = Escape_Rot8(this, this.escapeTarget, dirValue);
+										this.dirValue = Escape_Rot8(this, this.escapeTarget, this.dirValue);
 									} else {
 										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 											SelDirection(this, this.attackTarget, 0);
 										} else {
 											if (rootFlg) {
 												if (this.time % 9 == 0) {
-													SelDirection(this, target, 1);
+													SelDirection(this, this.target, 1);
 												}
 
 											} else {
@@ -9789,7 +10248,7 @@ window.onload = function() {
 												let c = Bom.collection[i];
 												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 200) {
 													SelDirection(this, c, 0);
-													//dirValue = Escape_Rot8(this, c, dirValue);
+													//this.dirValue = Escape_Rot8(this, c, this.dirValue);
 													break;
 												}
 											}
@@ -9797,33 +10256,33 @@ window.onload = function() {
 									}
 								}
 								if (!this.shotStopFlg) {
-									switch (dirValue) {
+									switch (this.dirValue) {
 										case 0:
-											rot = 0;
+											this.rot = 0;
 											break;
 										case 1:
-											rot = 90;
+											this.rot = 90;
 											break;
 										case 2:
-											rot = 180;
+											this.rot = 180;
 											break;
 										case 3:
-											rot = 270;
+											this.rot = 270;
 											break;
 										case 4:
-											rot = 45;
+											this.rot = 45;
 											break;
 										case 5:
-											rot = 135;
+											this.rot = 135;
 											break;
 										case 6:
-											rot = 225;
+											this.rot = 225;
 											break;
 										case 7:
-											rot = 315;
+											this.rot = 315;
 											break;
 									}
-									this._Move(rot);
+									this._Move(this.rot);
 								}
 							}
 
@@ -9843,7 +10302,7 @@ window.onload = function() {
 											this.moveTo(elem.x + (elem.width), this.y);
 											break;
 									}
-									hittingTime++;
+									this.hittingTime++;
 									rootFlg = true;
 								}
 
@@ -9864,7 +10323,7 @@ window.onload = function() {
 										this.moveTo(elem.x + (elem.width), this.y)
 										break;
 								}
-								hittingTime++;
+								this.hittingTime++;
 								//rootFlg = true;
 							})
 						}
@@ -9906,9 +10365,13 @@ window.onload = function() {
 				const dvx = bulletVec.x * targetSpeed;
 				const dvy = bulletVec.y * targetSpeed;
 
-				const a = dvx*dvx + dvy*dvy - shotSpeed*shotSpeed;
-				const b = 2 * (dx*dvx + dy*dvy);
-				const c = dx*dx + dy*dy;
+				var a = (dvx*dvx + dvy*dvy) - shotSpeed*shotSpeed;
+				var b = 2 * (dx*dvx + dy*dvy);
+				var c = dx*dx + dy*dy;
+
+				a = Math.round(a * 1000) / 1000;
+				b = Math.round(b * 1000) / 1000;
+				c = Math.round(c * 1000) / 1000;
 
 				// 近すぎると暴れる
 				if (c < 2000) return;
@@ -9923,6 +10386,9 @@ window.onload = function() {
 						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
 						return;
 					}
+					
+					//	完璧すぎたためNG
+					//a = a <= 0 ? 0.0001 : -0.0001; 
 				}
 
 				const discriminant = b*b - 4*a*c;
@@ -9958,9 +10424,13 @@ window.onload = function() {
 				const dvx = bulletVec.x * targetSpeed;
 				const dvy = bulletVec.y * targetSpeed;
 
-				const a = dvx*dvx + dvy*dvy - shotSpeed*shotSpeed;
-				const b = 2 * (dx*dvx + dy*dvy);
-				const c = dx*dx + dy*dy;
+				var a = (dvx*dvx + dvy*dvy) - shotSpeed*shotSpeed;
+				var b = 2 * (dx*dvx + dy*dvy);
+				var c = dx*dx + dy*dy;
+
+				a = Math.round(a * 1000) / 1000;
+				b = Math.round(b * 1000) / 1000;
+				c = Math.round(c * 1000) / 1000;
 
 				// 近すぎると暴れる
 				if (c < 2000) return;
@@ -9975,6 +10445,9 @@ window.onload = function() {
 						this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
 						return;
 					}
+					
+					//	完璧すぎたためNG
+					//a = a <= 0 ? 0.0001 : -0.0001; 
 				}
 
 				const discriminant = b*b - 4*a*c;
@@ -9996,6 +10469,92 @@ window.onload = function() {
 
 				const aimAngle = Math.atan2(futureY - shooterPos.y, futureX - shooterPos.x);
 				this.cannon.rotation = Rad_to_Rot(aimAngle) + 180;
+			}
+		},
+		_Defense: function(){
+			if (BulletBase.collection.length > 0) {
+				const match1 = PlayerBulAim.intersectStrict(this.around);
+				const match2 = BulAim.intersectStrict(this.around);
+				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
+					let c = BulletBase.collection[i];
+					if (!bulStack[c.num][c.id]) continue;
+					if (c.num == this.target.num && !Categorys.DefenceFlg[this.category][0]) continue;
+					if (c.num == this.num && !Categorys.DefenceFlg[this.category][1]) continue;
+					if (!(c.num == this.target.num || c.num == this.num) && !Categorys.DefenceFlg[this.category][2]) continue;
+					const dist = (function Instrumentation(weak, target1, target2) {
+						const dist1 = Get_Distance(weak, target1);
+						const dist2 = Get_Distance(weak, target2);
+						return dist1 >= dist2 ? dist2 : null;
+					})(this.weak, this.attackTarget, c);
+					if (dist == null) continue;
+
+					switch (c.num) {
+						case this.target.num:
+							if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
+								if (match1.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}else{
+									this.attackTarget = this.target;
+								}
+								if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
+									if (dist < Categorys.EscapeRange[this.category][1]) {
+										if (Search(c, this, 90, Categorys.EscapeRange[this.category][1])) {
+											this.escapeTarget = c;
+											this.escapeFlg = true;
+										}
+									}
+								}
+							}
+							break;
+						case this.num:
+							if (this.ref == 0) break;
+							if (dist != null && dist < Categorys.DefenceRange[this.category][1] && dist > 100) {
+								if (match2.some(elem => elem.target === c)){
+									if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][2] != 0) {
+										if (dist < Categorys.EscapeRange[this.category][2]) {
+											if (Search(c, this, 45, Categorys.EscapeRange[this.category][2])) {
+												this.escapeTarget = c;
+												this.escapeFlg = true;
+											}
+										}
+									}
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+							}
+							break;
+						default:
+							if (dist != null && dist < Categorys.DefenceRange[this.category][2]) {
+								if (match2.some(elem => elem.target === c)){
+									this.attackTarget = c; //  迎撃のためにターゲット変更
+								}
+								if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][3] != 0) {
+									if (dist < Categorys.EscapeRange[this.category][3]) {
+										if (Search(c, this, 45, Categorys.EscapeRange[this.category][3])) {
+											this.escapeTarget = c;
+											this.escapeFlg = true;
+										}
+									}
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		_Reload: function(){
+			if (this.bulReloadFlg == false) {
+				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+			} else {
+				if (this.bulReloadTime < this.reload) {
+					this.bulReloadTime++;
+					if (this.shotNGflg == false) this.shotNGflg = true;
+				} else {
+					if (bullets[this.num] == 0){
+						this.shotNGflg = false;
+						this.bulReloadFlg = false;
+						this.bulReloadTime = 0;
+					}
+				}
 			}
 		}
 	})
