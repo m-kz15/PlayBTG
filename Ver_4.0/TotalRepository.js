@@ -17,7 +17,7 @@ var TotalRepository = {
             this.data = storageData;
         }else{
             this.data = {
-                ClearStageNum: 0,
+                ClearStageNum: -1,
                 Zanki: 0,
                 Scores: [],
                 Level: 0,
