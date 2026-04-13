@@ -1800,7 +1800,7 @@ class ActBtn {
 
                     // DOM 版の描画は transform を使う
                     node._element.style.transform =
-                        'translate(' + drawX + 'px,' + drawY + 'px)';
+                        'translate3d(' + drawX + 'px,' + drawY + 'px)';
                 }
             });
         }
@@ -1813,7 +1813,7 @@ class ActBtn {
 
             accumulator += delta;
             if (accumulator > MAX_ACCUM) {
-                accumulator = 0;
+                accumulator = FIXED_DT;
             }
 
             const scene = core.currentScene;
@@ -4972,7 +4972,7 @@ window.onload = function() {
 										this.bulReloadTime++;
 										if (this.shotNGflg == false) this.shotNGflg = true;
 									} else {
-										if (bullets[this.num] == 0){
+										if (bullets[this.num] <= 0){
 											this.shotNGflg = false;
 											this.bulReloadFlg = false;
 											this.bulReloadTime = 0;
@@ -5003,7 +5003,7 @@ window.onload = function() {
 										this.bulReloadTime++;
 										if (this.shotNGflg == false) this.shotNGflg = true;
 									} else {
-										if (bullets[this.num] == 0){
+										if (bullets[this.num] <= 0){
 											this.shotNGflg = false;
 											this.bulReloadFlg = false;
 											this.bulReloadTime = 0;
@@ -5485,7 +5485,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (!this.shotNGflg) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -6279,7 +6279,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (!this.shotNGflg) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -6344,7 +6344,7 @@ window.onload = function() {
 							this._Reload();
 							
 							if (!this.shotNGflg) {
-								if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] == 0) || this.fullFireFlg)) {
+								if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] <= 0) || this.fullFireFlg)) {
 									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
 										this._Attack();
 									}
@@ -6405,7 +6405,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -6598,7 +6598,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (!this.shotNGflg) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -7076,7 +7076,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -7577,7 +7577,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -7983,7 +7983,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -8529,7 +8529,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -9176,7 +9176,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] == 0){
+					if (bullets[this.num] <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -9445,7 +9445,7 @@ window.onload = function() {
 									this.bulReloadTime++;
 									if (this.shotNGflg == false) this.shotNGflg = true;
 								} else {
-									if (bullets[this.num] == 0){
+									if (bullets[this.num] <= 0){
 										this.shotNGflg = false;
 										this.bulReloadFlg = false;
 										this.bulReloadTime = 0;
@@ -9455,7 +9455,7 @@ window.onload = function() {
 							}
 
 							if (!this.shotNGflg) {
-								if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] == 0) || this.fullFireFlg)) {
+								if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] <= 0) || this.fullFireFlg)) {
 									if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
 										this._Attack();
 									}
@@ -10790,8 +10790,10 @@ window.onload = function() {
 		startTransition: function (type) {
 			this.transitionFlag = true;
 			this.nextSceneType = type;
-			BGM.stop();
-			titleFlg = false;
+			if (type !== 3) {
+				BGM.stop();
+				titleFlg = false;
+			}
 			new FadeOut(this);
 		},
 
