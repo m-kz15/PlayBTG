@@ -378,6 +378,22 @@ const Categorys = {
 		210, //dazzle
 		180 //abysal
 	],
+	Critical: [
+		5, //Player
+		8, //brown
+		10, //gray
+		12, //green
+		10, //red
+		10, //elitegray
+		10, //elitegreen
+		8, //snow
+		10, //elitered
+		6, //pink
+		10, //sand
+		12, //random
+		8, //dazzle
+		10 //abysal
+	],
 	DefenceFlg: [
 		[true, true, true], //Player
 		[false, false, false], //brown
@@ -701,96 +717,6 @@ function Rad_to_Tan(rad) {
     return Math.tan(rad);
 }
 
-function Get_RefPoint(from, to) {
-	let t2 = Get_Center(to);
-	let v2 = Rot_to_Vec(to.rotation, 315);
-	let rad2 = Math.atan2(-v2.x, -v2.y);
-	let rect = from.getOrientedBoundingRect(),
-		lt = { x: rect.leftTop[0], y: rect.leftTop[1] },
-		rt = { x: rect.rightTop[0], y: rect.rightTop[1] },
-		lb = { x: rect.leftBottom[0], y: rect.leftBottom[1] },
-		rb = { x: rect.rightBottom[0], y: rect.rightBottom[1] },
-		top = { x: rt.x - lt.x, y: rt.y - lt.y },
-		right = { x: rb.x - rt.x, y: rb.y - rt.y },
-		bottom = { x: lb.x - rb.x, y: lb.y - rb.y },
-		left = { x: lt.x - lb.x, y: lt.y - lb.y };
-	let lines = [
-		top, right, bottom, left
-	]
-	let close = 9999;
-	let closeNum = -1;
-	for (let i = 0; i < 4; i++) {
-		let a = new Vector2().Distance(t2, lines[i]);
-		if (close > a) {
-			close = a;
-			closeNum = i;
-		}
-	}
-	console.log(closeNum)
-	var p1 = new Vector2(lines[closeNum].x, lines[closeNum].y);
-	var p2 = new Vector2(t2.x, t2.y);
-	var n = new Vector2().Normal(p1, p2).Normalize();
-	var point = Nearest(p1, p2, new Vector2(t2.x, t2.y));
-	if (point.Equals(p1) || point.Equals(p2)) {
-		return to;
-	} else {
-		// めり込まないように補正
-		return { x: point.x + n.x * 1, y: point.y + n.y * 1 };
-		to.x = point.x + n.x * 1;
-		to.y = point.y + n.y * 1;
-		// 反射ベクトル適用
-		var r = Vector2.Reflect({ x: to.dx, y: to.dy }, n);
-		to.dx = r.x;
-		to.dy = r.y;
-	}
-};
-
-function Nearest(A, B, P) {
-	var a = new Vector2().Subtract(B, A);
-	var b = new Vector2().Subtract(P, A);
-	// 内積 ÷ |a|^2
-	var r = Vector2.Dot(a, b) / a.LengthSquared();
-	//var r = Vector2.Dot(a, b) / (a.x * a.x + a.y * a.y);
-	if (r <= 0) return A;
-	if (r >= 1) return B;
-	return new Vector2(A.x + r * a.x, A.y + r * a.y);
-}
-
-function Hit_Reflection(from, to) {
-    let t1 = Get_Center(from);
-    let t2 = Get_Center(to);
-
-    let rect1 = from.getOrientedBoundingRect(),
-        lt1 = { x: rect1.leftTop[0], y: rect1.leftTop[1] },
-        rt1 = { x: rect1.rightTop[0], y: rect1.rightTop[1] },
-        lb1 = { x: rect1.leftBottom[0], y: rect1.leftBottom[1] },
-        rb1 = { x: rect1.rightBottom[0], y: rect1.rightBottom[1] };
-
-    let rect2 = to.getOrientedBoundingRect(),
-        lt2 = { x: rect2.leftTop[0], y: rect2.leftTop[1] },
-        rt2 = { x: rect2.rightTop[0], y: rect2.rightTop[1] },
-        lb2 = { x: rect2.leftBottom[0], y: rect2.leftBottom[1] },
-        rb2 = { x: rect2.rightBottom[0], y: rect2.rightBottom[1] };
-
-    let boundWidth = 0,
-        boundHeight = 0;
-
-    if (dx < 0) boundWidth = rt1.x - lt2.x;
-    else if (dx > 0) boundWidth = rt2.x - lt1.x;
-
-    if (dy < 0) boundHeight = lb1.y - rt2.y;
-    else if (dy > 0) boundHeight = lb2.y - rt1.y;
-
-    if (boundWidth <= boundHeight + 3) {
-        if (dx < 0) this._velocityX += -speed;
-        else if (dx > 0) this._velocityX += speed;
-    }
-    if (boundHeight <= boundWidth + 3) {
-        if (dy < 0) this._velocityY += -speed;
-        else if (dy > 0) this._velocityY += speed;
-    }
-}
-
 function Vec_to_Rot(from, to) {
     let rad = Vec_to_Rad({ x: from.x - to.x, y: from.y - to.y });
     let rot = Rad_to_Rot(rad);
@@ -1048,9 +974,6 @@ function Escape_Rot8_Elite(from, to, value) {
 
     return bestDir;
 }
-
-
-
 
 function Escape_Rot8_Multi(from, toList, value) {
     const t1 = Get_Center(from);
@@ -1774,7 +1697,7 @@ class ActBtn {
 
     const FIXED_FPS = 60;
     const FIXED_DT = 1000 / FIXED_FPS;
-    const MAX_ACCUM = 48;
+    const MAX_ACCUM = 200; // ★ ラグ耐性を強化
 
     enchant.Core.prototype.enableFixedLoop = function() {
         const core = this;
@@ -1785,7 +1708,105 @@ class ActBtn {
         let accumulator = 0;
         let lastTime = performance.now();
 
-        // 補間用：前フレーム位置を保存
+        // 前フレーム位置を保存（ロジック更新が走る時だけ）
+        function storePrevPositions(scene) {
+            for (let i = 0; i < scene.childNodes.length; i++) {
+                const node = scene.childNodes[i];
+                node._prevX = node.x;
+                node._prevY = node.y;
+            }
+        }
+
+        // DOM 版：位置が変わったノードだけ transform 更新
+        function renderInterpolated(scene, alpha) {
+            for (let i = 0; i < scene.childNodes.length; i++) {
+                const node = scene.childNodes[i];
+                if (!node._element || node._prevX === undefined) continue;
+
+                const prevX = node._prevX;
+                const prevY = node._prevY;
+
+                // 位置が変わっていないなら transform 更新しない（超重要）
+                if (prevX === node.x && prevY === node.y) continue;
+
+                const drawX = prevX + (node.x - prevX) * alpha;
+                const drawY = prevY + (node.y - prevY) * alpha;
+
+                node._element.style.transform =
+                    `translate3d(${drawX}px,${drawY}px,0)`;
+            }
+        }
+
+        core._fixedTick = function() {
+            const now = performance.now();
+            const delta = now - lastTime;
+            lastTime = now;
+
+            accumulator += delta;
+            if (accumulator > MAX_ACCUM) {
+                accumulator = FIXED_DT; // ★ ラグ後の復帰が滑らかになる
+            }
+
+            const scene = core.currentScene;
+
+            // ロジック更新が走る時だけ prev を保存
+            if (scene && accumulator >= FIXED_DT) {
+                storePrevPositions(scene);
+            }
+
+            // 固定ロジック更新
+            while (accumulator >= FIXED_DT) {
+                core._tick();
+                accumulator -= FIXED_DT;
+            }
+
+            // 補間値
+            const alpha = Math.min(Math.max(accumulator / FIXED_DT, 0), 1);
+
+            // 補間描画（DOM 版）
+            if (scene) {
+                renderInterpolated(scene, alpha);
+            }
+
+            requestAnimationFrame(core._fixedTick);
+        };
+
+        requestAnimationFrame(core._fixedTick);
+    };
+
+})();
+
+/*// ★ enchant.js 読み込み後、enchant() の後に置く
+(function() {
+    // Core の初期化をパッチして CanvasLayer を強制使用
+    var _coreInit = enchant.Core.prototype.initialize;
+    enchant.Core.prototype.initialize = function(width, height) {
+        _coreInit.call(this, width, height);
+
+        // DOM レイヤーを消して Canvas レイヤーを作る
+        this._layers = {};
+        this._layers[0] = new enchant.CanvasLayer();
+        this._layers[0].initialize(this);
+
+        // CanvasRenderer を使う
+        this._layers[0].context = this._layers[0]._element.getContext('2d');
+    };
+})();
+(function() {
+
+    const FIXED_FPS = 60;
+    const FIXED_DT = 1000 / FIXED_FPS;
+    const MAX_ACCUM = 200;
+
+    enchant.Core.prototype.enableFixedLoopCanvas = function() {
+        const core = this;
+
+        core._requestNextFrame = function() {};
+
+        let accumulator = 0;
+        let lastTime = performance.now();
+
+        // 前フレーム位置を保存
         function storePrevPositions(scene) {
             scene.childNodes.forEach(node => {
                 node._prevX = node.x;
@@ -1793,22 +1814,25 @@ class ActBtn {
             });
         }
 
-        // DOM 版用：補間描画
+        // Canvas 版：補間描画
         function renderInterpolated(scene, alpha) {
+            const layer = core._layers[0]; // ★ CanvasRenderer
+			const ctx = layer.context;
+            ctx.clearRect(0, 0, core.width, core.height);
+
             scene.childNodes.forEach(node => {
-                if (node._prevX !== undefined && node._element) {
+                if (!node.image) return;
 
-                    const drawX = node._prevX + (node.x - node._prevX) * alpha;
-                    const drawY = node._prevY + (node.y - node._prevY) * alpha;
+                const px = node._prevX ?? node.x;
+                const py = node._prevY ?? node.y;
 
-                    // DOM 版の描画は transform を使う
-                    node._element.style.transform =
-                        'translate3d(' + drawX + 'px,' + drawY + 'px)';
-                }
+                const drawX = px + (node.x - px) * alpha;
+                const drawY = py + (node.y - py) * alpha;
+
+                ctx.drawImage(node.image._element, drawX, drawY);
             });
         }
 
-        // 固定ロジック＋補間描画ループ
         core._fixedTick = function() {
             const now = performance.now();
             const delta = now - lastTime;
@@ -1821,22 +1845,19 @@ class ActBtn {
 
             const scene = core.currentScene;
 
-            if (scene) {
+            if (scene && accumulator >= FIXED_DT) {
                 storePrevPositions(scene);
             }
 
-            // 固定ロジック更新（60fps）
             while (accumulator >= FIXED_DT) {
-                core._tick(); // enchant.js のロジック更新
+                core._tick();
                 accumulator -= FIXED_DT;
             }
 
-            const alpha = accumulator / FIXED_DT;
-			const interp = Math.min(Math.max(alpha, 0), 1);
+            const alpha = Math.min(Math.max(accumulator / FIXED_DT, 0), 1);
 
-            // DOM 版の補間描画
             if (scene) {
-                renderInterpolated(scene, interp);
+                renderInterpolated(scene, alpha);
             }
 
             requestAnimationFrame(core._fixedTick);
@@ -1845,7 +1866,7 @@ class ActBtn {
         requestAnimationFrame(core._fixedTick);
     };
 
-})();
+})();*/
 
 window.onload = function() {
 	game = new Core(Stage_W * PixelSize, Stage_H * PixelSize);
@@ -1921,6 +1942,7 @@ window.onload = function() {
 		'./sound/ELEVENTH.mp3'
 	);
 	game.enableFixedLoop();
+	//game.enableFixedLoopCanvas();
 
 	inputManager = new InputManager();
 
@@ -4926,12 +4948,9 @@ window.onload = function() {
 			if (from.category === 11){
 				damValue = damValue - 4;
 			}
-			let randomPercent = 10;
+			let randomPercent = Categorys.Critical[this.category];
 
-			if (from.category === 0 || from.category === 9) {
-				randomPercent = 5;
-				if (from.category === 9) this.damTimeMax = 8;
-			} else if (gameMode === 2) {
+			if (this.num != 0 && gameMode === 2) {
 				randomPercent = 4;
 			}
 
@@ -5237,8 +5256,6 @@ window.onload = function() {
 		initialize: function (x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			//if (gameMode == 2) this.weak.scale(0.6, 0.6);
-
 			this.around = new InterceptAround(this);
 			this.front = new InterceptFront(this.cannon);
 			this.target = tankEntity[0];
@@ -5322,24 +5339,6 @@ window.onload = function() {
 				grid[myPath[0] + off[0]][myPath[1] + off[1]] = 'Obstacle';
 			};
 
-			const resolveCollision = (entity, elem, isTank = false) => {
-				switch (elem.name) {
-					case isTank ? 'TankTop' : 'ObsTop':
-						entity.moveTo(entity.x, elem.y - 60);
-						break;
-					case isTank ? 'TankBottom' : 'ObsBottom':
-						entity.moveTo(entity.x, elem.y + elem.height);
-						break;
-					case isTank ? 'TankLeft' : 'ObsLeft':
-						entity.moveTo(elem.x - 60, entity.y);
-						break;
-					case isTank ? 'TankRight' : 'ObsRight':
-						entity.moveTo(elem.x + elem.width, entity.y);
-						break;
-				}
-				if(entity.moveFlg) this.hittingTime++;
-			}
-
 			this.onenterframe = () => {
 				if (deadFlgs[this.num] || gameStatus !== 0) return;
 
@@ -5353,7 +5352,7 @@ window.onload = function() {
 				this._Damage();
 
 				// grid / map 更新（60Fごと）
-				if (this.time % (60 + this.num * 7) === 0) {
+				if (this.time % (60 + this.num) === 0) {
 					this.grid = JSON.parse(JSON.stringify(scene.grid));
 					this.map = Object.assign({}, scene.backgroundMap);
 
@@ -5396,45 +5395,17 @@ window.onload = function() {
 				}
 
 				// 戦車同士の衝突
-				/*for (let i = 0; i < tankEntity.length; i++) {
-					if (i === this.num || deadFlgs[i]) continue;
-
-					// ③ 距離で早期スキップ
-					const dx = this.x - tankEntity[i].x;
-					const dy = this.y - tankEntity[i].y;
-					if (dx*dx + dy*dy > 200*200) continue;
-
-					// ② rotation から handler を直接取得
-					const handler = collisionHandlers[this.rotation];
-					if (!handler) continue;
-
-					const frame = this.tankFrame[handler.frame];
-					const targetH = tankEntity[i];
-
-					// ① AABB → strict の2段階判定
-					if (!frame.intersect(targetH)) continue;
-
-					if (frame.intersectStrict(targetH)) {
-						this.tankStopFlg = true;
-						this.x += handler.dx * this.moveSpeed;
-						this.y += handler.dy * this.moveSpeed;
-						moveCnt -= this.moveSpeed;
-						break;
-					}
-				}*/
-
-				if ((tankEntity.length - destruction) - 1 > 2) {
+				if ((tankEntity.length - destruction) > 2) {
 					const handler = collisionHandlers[this.rotation];
 					if (handler){
 						const frame = this.tankFrame[handler.frame];
-						let match = TankBase.intersectStrict(frame);
+						let match = TankBase.intersectStrict(frame)
+							.filter(t => t.num !== this.num && deadFlgs[t.num] === false);;
 						if (match.length > 0){
-							if(match[0].num != this.num && deadFlgs[match[0].num] == false){
-								this.tankStopFlg = true;
-								this.x += handler.dx * this.moveSpeed;
-								this.y += handler.dy * this.moveSpeed;
-								moveCnt -= this.moveSpeed;
-							}
+							this.tankStopFlg = true;
+							this.x += handler.dx * this.moveSpeed;
+							this.y += handler.dy * this.moveSpeed;
+							moveCnt -= this.moveSpeed;
 						}
 					}
 				}
@@ -5443,8 +5414,10 @@ window.onload = function() {
 				new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 
 				// 照準ヒット
-				const hit = EnemyAim.intersect(this.cursor)[0];
-				if (hit) this.fireFlg = true;
+				if (this.time > 60){
+					const hit = EnemyAim.intersect(this.cursor)[0];
+					if (hit) this.fireFlg = true;
+				}
 
 				// 前方反射障害物
 				if (this.ref > 0) {
@@ -5534,7 +5507,6 @@ window.onload = function() {
 				this.time++;
 			};
 		},
-
 		_Attack: function () {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (!WorldFlg) return;
@@ -5628,8 +5600,6 @@ window.onload = function() {
 	var Entity_Type2 = Class.create(TankBase, {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
-
-			//if(gameMode == 2) this.weak.scale(0.6, 0.6);
 
 			this.around = new InterceptAround(this);
 			this.front = new InterceptFront(this.cannon);
@@ -5766,9 +5736,12 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							if (!this.fireFlg && EnemyAim.intersect(this.cursor).length > 0){
-								this.fireFlg = true; //  発射可能状態にする
+							if (this.time > 60){
+								if (!this.fireFlg && EnemyAim.intersect(this.cursor).length > 0){
+									this.fireFlg = true; //  発射可能状態にする
+								}
 							}
+							
 
 							if (this.ref > 0) {
 								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
@@ -5990,15 +5963,10 @@ window.onload = function() {
 		initialize: function (x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			//if (gameMode == 2) this.weak.scale(0.6, 0.6);
-
 			this.around = new InterceptAround(this);
 			this.front = new InterceptFront(this.cannon);
 
 			this.around.scale.apply(this.around, Categorys.AroundScale[this.category]);
-			/*if (this.category === 5) {
-				this.around.scale(1.5, 1.5);
-			}*/
 
 			this.target = tankEntity[0];
 
@@ -6115,7 +6083,7 @@ window.onload = function() {
 					this.shotNGflg = false;
 					this.fireFlg = false;
 
-					if (this.moveSpeed > 0 && !rootFlg && this.time % (60 + this.num * 7) === 0) {
+					if (this.moveSpeed > 0 && !rootFlg && this.time % (60 + this.num) === 0) {
 						this.grid = JSON.parse(JSON.stringify(scene.grid));
 						this.map = Object.assign({}, scene.backgroundMap);
 
@@ -6163,12 +6131,14 @@ window.onload = function() {
 					new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 				}
 
-				const aimHits = EnemyAim.intersectStrict(this.cursor);
-				if (aimHits.length > 0) {
-					if (!this.fireFlg) this.fireFlg = true;
-					if (!rootFlg) rootFlg = true;
+				if (this.time > 60){
+					const aimHits = EnemyAim.intersectStrict(this.cursor);
+					if (aimHits.length > 0) {
+						if (!this.fireFlg) this.fireFlg = true;
+						if (!rootFlg) rootFlg = true;
+					}
 				}
-
+				
 				if (this.ref > 0) {
 					if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 				}
@@ -6425,8 +6395,6 @@ window.onload = function() {
 			TankBase.call(this, x, y, category, num, scene);
 			this.target = tankEntity[0];
 
-			//if(gameMode == 2) this.weak.scale(0.6, 0.6);
-
 			this.attackTarget = this.target;
 
 			this.cursor = new Target(this, scene);
@@ -6466,10 +6434,12 @@ window.onload = function() {
 
 							this.time++;
 
-							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-								this.fireFlg = true; //  発射可能状態にする
+							if (this.time > 60){
+								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+									this.fireFlg = true; //  発射可能状態にする
+								}
 							}
-
+							
 							this._Reload();
 							
 							if (!this.shotNGflg) {
@@ -6548,8 +6518,6 @@ window.onload = function() {
 	var Entity_Type5 = Class.create(TankBase, {
 		initialize: function (x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
-
-			//if (gameMode == 2) this.weak.scale(0.6, 0.6);
 
 			this.cannon2 = new Cannon(this, this.category);
 			this.cannon2.opacity = 0;
@@ -6896,12 +6864,14 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-								this.fireFlg = true; //  発射可能状態にする
-							}
+							if (this.time > 60){
+								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+									this.fireFlg = true; //  発射可能状態にする
+								}
 
-							if (this.fireFlg && EnemyAim.intersectStrict(Bom).length > 0) {
-								this.fireFlg = false;
+								if (this.fireFlg && EnemyAim.intersectStrict(Bom).length > 0) {
+									this.fireFlg = false;
+								}
 							}
 
 							if (this.ref > 0) {
@@ -7220,15 +7190,12 @@ window.onload = function() {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			//if(gameMode == 2)this.weak.scale(0.6, 0.6);
-
 			var that = this;
 
 			this.around = new InterceptAround(this);
 			this.front = new InterceptFront(this.cannon);
 			this.target = tankEntity[0];
 
-			//this.around.scale(1.6, 1.6);
 			this.around.scale.apply(this.around, Categorys.AroundScale[this.category]);
 
 			this.attackTarget = tankEntity[0];
@@ -7413,10 +7380,12 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-								this.fireFlg = true; //  発射可能状態にする
+							if (this.time > 60){
+								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+									this.fireFlg = true; //  発射可能状態にする
+								}
 							}
-
+							
 							if (this.ref > 0) {
 								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
 							}
@@ -7858,8 +7827,10 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-								this.fireFlg = true; //  発射可能状態にする
+							if (this.time > 60){
+								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+									this.fireFlg = true; //  発射可能状態にする
+								}	
 							}
 
 							if (this.ref > 0) {
@@ -8304,9 +8275,12 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-								this.fireFlg = true; //  発射可能状態にする
+							if (this.time > 60){
+								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
+									this.fireFlg = true; //  発射可能状態にする
+								}
 							}
+							
 
 							if (this.ref > 0) {
 								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
@@ -8920,9 +8894,11 @@ window.onload = function() {
 								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
 
-							if (EnemyAim.intersectStrict(this.cursor).length > 0){
-								if (!this.fireFlg)this.fireFlg = true; //  発射可能状態にする
-								if (!rootFlg) rootFlg = true;
+							if (this.time > 60){
+								if (EnemyAim.intersectStrict(this.cursor).length > 0){
+									if (!this.fireFlg)this.fireFlg = true; //  発射可能状態にする
+									if (!rootFlg) rootFlg = true;
+								}
 							}
 
 							if (this.ref > 0) {
@@ -8940,7 +8916,7 @@ window.onload = function() {
 							
 							if (!this.shotNGflg && !this.bomSetFlg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
-									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false) {
+									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.escapeFlg) {
 										this._Attack();
 									}
 								}
@@ -9473,11 +9449,13 @@ window.onload = function() {
 							}
 
 
-							EnemyAim.intersect(this.cursor).forEach(elem => {
-								if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
-								return;
-							})
-
+							if (this.time > 60){
+								EnemyAim.intersect(this.cursor).forEach(elem => {
+									if (!this.fireFlg) this.fireFlg = true; //  発射可能状態にする
+									return;
+								})
+							}
+							
 							if (this.ref > 0) {
 								this.front.intersectStrict(RefObstracle).forEach(function() {
 									this.shotNGflg = true;
@@ -10650,53 +10628,6 @@ window.onload = function() {
 			now_scene.addChild(this);
 		}
 	})
-
-	var TestText = Class.create(Entity, {
-		initialize: function() {
-			Entity.call(this);
-			this._element = document.createElement('p');
-			this._element.innerHTML = 'Test';
-			this._element.style.color = 'white';
-			this.x = 10;
-			this.y = 50;
-			this._element.style.font = '48px sans-serif';
-			now_scene.addChild(this);
-		}
-	})
-
-	var TestButton = Class.create(Button, {
-		initialize: function() {
-			Button.call(this, "ボタン", "light");
-			this.tag = "ボタン";
-			this.width = 256;
-			this.height = 32;
-			this.moveTo(300, 300);
-			now_scene.addChild(this);
-		}
-	})
-
-	var InputForm = Class.create(Entity, {
-		initialize: function() {
-			Entity.call(this);
-			this._element = document.createElement('input');
-			this._element.setAttribute('type', 'text');
-			this._element.setAttribute('maxlength', '10');
-			this._element.setAttribute('id', 'test');
-			this._element.setAttribute('value', 'test');
-			this.width = 100;
-			this.height = 20;
-			this.x = 10;
-			this.y = 50;
-
-			//console.log(this._element.value);
-
-			now_scene.addChild(this);
-		},
-		_delete: function() {
-			now_scene.removeChild(this);
-		}
-	})
-
 
 	var MainMap = Class.create(Map, {
 		initialize: function(scene) {
