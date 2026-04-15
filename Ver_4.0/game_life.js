@@ -6832,6 +6832,170 @@ window.onload = function() {
 				this.hittingTime++;
 			}
 
+			const RANGE = 3; // 自分を中心に4マス
+
+			function getLocalGrid(sceneGrid, cx, cy) {
+				const local = [];
+				for (let dy = -RANGE; dy <= RANGE; dy++) {
+					const row = [];
+					for (let dx = -RANGE; dx <= RANGE; dx++) {
+						const y = cy + dy;
+						const x = cx + dx;
+						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 'Obstacle');
+					}
+					local.push(row);
+				}
+				return local; // 9×9
+			}
+
+			function findFarthestCell(localGrid, targetLocalPos) {
+				let best = null;
+				let bestDist = -1;
+
+				for (let y = 0; y < localGrid.length; y++) {
+					for (let x = 0; x < localGrid[0].length; x++) {
+						if (localGrid[y][x] === 'Obstacle') continue;
+
+						const dx = x - targetLocalPos.x;
+						const dy = y - targetLocalPos.y;
+						const dist = dx*dx + dy*dy;
+
+						if (dist > bestDist) {
+							bestDist = dist;
+							best = { x, y };
+						}
+					}
+				}
+				return best;
+			}
+
+			function findEdgeFarthestCell(localGrid) {
+				const size = localGrid.length;
+				const edgeCells = [];
+
+				for (let y = 0; y < size; y++) {
+					for (let x = 0; x < size; x++) {
+						const isEdge = (x === 0 || y === 0 || x === size - 1 || y === size - 1);
+						if (!isEdge) continue;
+						if (localGrid[y][x] === 'Obstacle') continue;
+
+						edgeCells.push({ x, y });
+					}
+				}
+
+				if (edgeCells.length === 0) return null;
+
+				// ランダム or 最遠距離で選択（ここではランダム）
+				return edgeCells[Math.floor(Math.random() * edgeCells.length)];
+			}
+
+
+			function astar(grid, start, goal) {
+				const H = grid.length;
+				const W = grid[0].length;
+
+				const open = [];
+				const closed = new Set();
+
+				const startKey = `${start.x},${start.y}`;
+				open.push({
+					x: start.x,
+					y: start.y,
+					g: 0,
+					h: Math.abs(goal.x - start.x) + Math.abs(goal.y - start.y),
+					parent: null
+				});
+
+				while (open.length > 0) {
+					open.sort((a,b)=> (a.g+a.h)-(b.g+b.h));
+					const cur = open.shift();
+					const key = `${cur.x},${cur.y}`;
+					if (closed.has(key)) continue;
+					closed.add(key);
+
+					if (cur.x === goal.x && cur.y === goal.y) {
+						const path = [];
+						let p = cur;
+						while (p) {
+							path.push({x:p.x, y:p.y});
+							p = p.parent;
+						}
+						return path.reverse();
+					}
+
+					const dirs = [
+						{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1},
+						{x:1,y:1},{x:1,y:-1},{x:-1,y:1},{x:-1,y:-1}
+					];
+
+					for (const d of dirs) {
+						const nx = cur.x + d.x;
+						const ny = cur.y + d.y;
+						if (nx<0||ny<0||nx>=W||ny>=H) continue;
+						if (grid[ny][nx] === 'Obstacle') continue;
+
+						const nkey = `${nx},${ny}`;
+						if (closed.has(nkey)) continue;
+
+						open.push({
+							x: nx,
+							y: ny,
+							g: cur.g + 1,
+							h: Math.abs(goal.x - nx) + Math.abs(goal.y - ny),
+							parent: cur
+						});
+					}
+				}
+				return null;
+			}
+
+			function escapeFromTarget(self, target) {
+				const cx = Math.floor(self.x / 64);
+				const cy = Math.floor(self.y / 64);
+
+				const tx = Math.floor(target.x / 64);
+				const ty = Math.floor(target.y / 64);
+
+				const localGrid = getLocalGrid(scene.grid, cx, cy);
+
+				const start = { x: RANGE, y: RANGE };
+				const targetLocal = { 
+					x: RANGE + (tx - cx), 
+					y: RANGE + (ty - cy) 
+				};
+
+				let goal;
+
+				// ★ 対象と同じマスにいる場合の特別処理
+				if (targetLocal.x === start.x && targetLocal.y === start.y) {
+					goal = findEdgeFarthestCell(localGrid);
+				} else {
+					goal = findFarthestCell(localGrid, targetLocal);
+				}
+
+				if (!goal) return null;
+
+				const path = astar(localGrid, start, goal);
+				if (!path || path.length < 2) return null;
+
+				const next = path[1];
+				return dirFromDelta(next.x - start.x, next.y - start.y);
+			}
+
+
+			function dirFromDelta(dx, dy) {
+				if (dx === 0 && dy === -1) return 0; // 上
+				if (dx === 1 && dy === 0) return 1; // 右
+				if (dx === 0 && dy === 1) return 2; // 下
+				if (dx === -1 && dy === 0) return 3; // 左
+				if (dx === 1 && dy === -1) return 4; // 右上
+				if (dx === 1 && dy === 1) return 5; // 右下
+				if (dx === -1 && dy === 1) return 6; // 左下
+				if (dx === -1 && dy === -1) return 7; // 左上
+				return null;
+			}
+
+
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
@@ -7028,7 +7192,8 @@ window.onload = function() {
 											if (closest){
 												this.bomReload = 0;
 												this.bomSetFlg = true;
-												SelDirection(this.weak, closest, 0);
+												//SelDirection(this.weak, closest, 0);
+												this.dirValue = escapeFromTarget(this.weak, closest);
 											}
 										}
 									}
@@ -8738,6 +8903,169 @@ window.onload = function() {
 				if (arr.indexOf(self.dirValue) == -1) self.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
+			const RANGE = 3; // 自分を中心に4マス
+
+			function getLocalGrid(sceneGrid, cx, cy) {
+				const local = [];
+				for (let dy = -RANGE; dy <= RANGE; dy++) {
+					const row = [];
+					for (let dx = -RANGE; dx <= RANGE; dx++) {
+						const y = cy + dy;
+						const x = cx + dx;
+						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 'Obstacle');
+					}
+					local.push(row);
+				}
+				return local; // 9×9
+			}
+
+			function findFarthestCell(localGrid, targetLocalPos) {
+				let best = null;
+				let bestDist = -1;
+
+				for (let y = 0; y < localGrid.length; y++) {
+					for (let x = 0; x < localGrid[0].length; x++) {
+						if (localGrid[y][x] === 'Obstacle') continue;
+
+						const dx = x - targetLocalPos.x;
+						const dy = y - targetLocalPos.y;
+						const dist = dx*dx + dy*dy;
+
+						if (dist > bestDist) {
+							bestDist = dist;
+							best = { x, y };
+						}
+					}
+				}
+				return best;
+			}
+
+			function findEdgeFarthestCell(localGrid) {
+				const size = localGrid.length;
+				const edgeCells = [];
+
+				for (let y = 0; y < size; y++) {
+					for (let x = 0; x < size; x++) {
+						const isEdge = (x === 0 || y === 0 || x === size - 1 || y === size - 1);
+						if (!isEdge) continue;
+						if (localGrid[y][x] === 'Obstacle') continue;
+
+						edgeCells.push({ x, y });
+					}
+				}
+
+				if (edgeCells.length === 0) return null;
+
+				// ランダム or 最遠距離で選択（ここではランダム）
+				return edgeCells[Math.floor(Math.random() * edgeCells.length)];
+			}
+
+
+			function astar(grid, start, goal) {
+				const H = grid.length;
+				const W = grid[0].length;
+
+				const open = [];
+				const closed = new Set();
+
+				const startKey = `${start.x},${start.y}`;
+				open.push({
+					x: start.x,
+					y: start.y,
+					g: 0,
+					h: Math.abs(goal.x - start.x) + Math.abs(goal.y - start.y),
+					parent: null
+				});
+
+				while (open.length > 0) {
+					open.sort((a,b)=> (a.g+a.h)-(b.g+b.h));
+					const cur = open.shift();
+					const key = `${cur.x},${cur.y}`;
+					if (closed.has(key)) continue;
+					closed.add(key);
+
+					if (cur.x === goal.x && cur.y === goal.y) {
+						const path = [];
+						let p = cur;
+						while (p) {
+							path.push({x:p.x, y:p.y});
+							p = p.parent;
+						}
+						return path.reverse();
+					}
+
+					const dirs = [
+						{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1},
+						{x:1,y:1},{x:1,y:-1},{x:-1,y:1},{x:-1,y:-1}
+					];
+
+					for (const d of dirs) {
+						const nx = cur.x + d.x;
+						const ny = cur.y + d.y;
+						if (nx<0||ny<0||nx>=W||ny>=H) continue;
+						if (grid[ny][nx] === 'Obstacle') continue;
+
+						const nkey = `${nx},${ny}`;
+						if (closed.has(nkey)) continue;
+
+						open.push({
+							x: nx,
+							y: ny,
+							g: cur.g + 1,
+							h: Math.abs(goal.x - nx) + Math.abs(goal.y - ny),
+							parent: cur
+						});
+					}
+				}
+				return null;
+			}
+
+			function escapeFromTarget(self, target) {
+				const cx = Math.floor(self.x / 64);
+				const cy = Math.floor(self.y / 64);
+
+				const tx = Math.floor(target.x / 64);
+				const ty = Math.floor(target.y / 64);
+
+				const localGrid = getLocalGrid(scene.grid, cx, cy);
+
+				const start = { x: RANGE, y: RANGE };
+				const targetLocal = { 
+					x: RANGE + (tx - cx), 
+					y: RANGE + (ty - cy) 
+				};
+
+				let goal;
+
+				// ★ 対象と同じマスにいる場合の特別処理
+				if (targetLocal.x === start.x && targetLocal.y === start.y) {
+					goal = findEdgeFarthestCell(localGrid);
+				} else {
+					goal = findFarthestCell(localGrid, targetLocal);
+				}
+
+				if (!goal) return null;
+
+				const path = astar(localGrid, start, goal);
+				if (!path || path.length < 2) return null;
+
+				const next = path[1];
+				return dirFromDelta(next.x - start.x, next.y - start.y);
+			}
+
+
+			function dirFromDelta(dx, dy) {
+				if (dx === 0 && dy === -1) return 0; // 上
+				if (dx === 1 && dy === 0) return 1; // 右
+				if (dx === 0 && dy === 1) return 2; // 下
+				if (dx === -1 && dy === 0) return 3; // 左
+				if (dx === 1 && dy === -1) return 4; // 右上
+				if (dx === 1 && dy === 1) return 5; // 右下
+				if (dx === -1 && dy === 1) return 6; // 左下
+				if (dx === -1 && dy === -1) return 7; // 左上
+				return null;
+			}
+
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
 					if (this.life > 0) {
@@ -8973,7 +9301,8 @@ window.onload = function() {
 											for (var i = 0, l = Bom.collection.length; i < l; i++) {
 												let c = Bom.collection[i];
 												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 200) {
-													SelDirection(this, c, 0);
+													//SelDirection(this, c, 0);
+													this.dirValue = escapeFromTarget(this.weak, c);
 													break;
 												}
 											}
