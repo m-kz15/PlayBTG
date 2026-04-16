@@ -1676,7 +1676,7 @@ class ActBtn {
 	}
 }
 
-(function() {
+/*(function() {
 
     const FIXED_FPS = 60;
     const FIXED_DT = 1000 / FIXED_FPS;
@@ -1757,7 +1757,57 @@ class ActBtn {
         requestAnimationFrame(core._fixedTick);
     };
 
-})();
+})();*/
+/*(function() {
+
+    const FIXED_FPS = 60;
+    const FIXED_DT = 1000 / FIXED_FPS;
+    const MAX_ACCUM = 200; // ラグ耐性
+
+    enchant.Core.prototype.enableFixedTick = function() {
+        const core = this;
+
+        // enchant.js の内部ループを止める
+        core._requestNextFrame = function() {};
+
+        let last = performance.now();
+        let accumulator = 0;
+
+        function loop() {
+            const now = performance.now();
+            let delta = now - last;
+            last = now;
+
+            accumulator += delta;
+
+            // ★ ラグが溜まったら完全リセット（最重要）
+            if (accumulator > MAX_ACCUM) {
+                accumulator = 0;
+            }
+
+            // ★ 固定フレームで _tick() を回す
+            while (accumulator >= FIXED_DT) {
+                core._tick();      // ← enchant.js のロジック更新
+                accumulator -= FIXED_DT;
+            }
+
+            // ★ 補間値（描画用）
+            const alpha = accumulator / FIXED_DT;
+
+            // ★ 補間描画（Canvas なら draw、DOM なら transform）
+            if (core.currentScene && core.currentScene._interpolate) {
+                core.currentScene._interpolate(alpha);
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    };
+
+})();*/
+
+
 /*// ★ enchant.js 読み込み後、enchant() の後に置く
 (function() {
     // Core の初期化をパッチして CanvasLayer を強制使用
@@ -1850,6 +1900,175 @@ class ActBtn {
 
 })();*/
 
+(function() {
+
+    const FIXED_FPS   = 60;
+    const FIXED_DT    = 1000 / FIXED_FPS;
+    const MAX_ACCUM   = 200;   // これ超えたら遅延捨てる
+    const MIN_RENDER_INTERVAL = 1000 / 40; // 描画は最低30fpsを目安
+
+    enchant.Core.prototype.enableHybridFixedLoop = function(options) {
+        const core = this;
+
+        const opt = Object.assign({
+            useCanvas: false,   // true: Canvas描画, false: DOM補間
+            autoRenderSkip: true
+        }, options || {});
+
+        // enchant.js の内部ループを止める
+        core._requestNextFrame = function() {};
+
+        let lastTime   = performance.now();
+        let accumulator = 0;
+
+        let lastRenderTime = 0;
+        let renderSkip = 0; // 負荷が高いときに描画を間引く
+
+        // --- 共通：前フレーム位置保存（ロジック更新が走る時だけ） ---
+        function storePrevPositions(scene) {
+            const children = scene.childNodes;
+            for (let i = 0; i < children.length; i++) {
+                const node = children[i];
+                node._prevX = node.x;
+                node._prevY = node.y;
+            }
+        }
+
+        // --- DOM版：補間描画（transform + dirtyチェック） ---
+        function renderDOM(scene, alpha) {
+			const children = scene.childNodes;
+
+			// ① 更新が必要なノードだけ CSS を組み立てる
+			let css = "";
+
+			for (let i = 0; i < children.length; i++) {
+				const node = children[i];
+				const el = node._element;
+				if (!el || node._prevX == null) continue;
+
+				const prevX = node._prevX;
+				const prevY = node._prevY;
+
+				// 位置が変わっていないならスキップ
+				if (prevX === node.x && prevY === node.y) continue;
+
+				const drawX = prevX + (node.x - prevX) * alpha;
+				const drawY = prevY + (node.y - prevY) * alpha;
+
+				// dirtyチェック（同じ位置ならCSSも書かない）
+				if (node._lastDrawX === drawX && node._lastDrawY === drawY) continue;
+
+				node._lastDrawX = drawX;
+				node._lastDrawY = drawY;
+
+				// ② element に id が無ければ一度だけ振る
+				if (!el.id) {
+					el.id = "_enchant_node_" + (renderDOM._idSeed = (renderDOM._idSeed || 0) + 1);
+				}
+
+				// ③ matrix3d で平行移動（回転・スケールを入れるならここを拡張）
+				const m = `matrix3d(
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		${drawX},${drawY},0,1)`; // ← x,y だけを埋め込む
+
+				css += `#${el.id}{transform:${m};}`;
+			}
+
+			// ④ まとめて1回だけ反映
+			if (!scene._transformStyleTag) {
+				const style = document.createElement("style");
+				style.type = "text/css";
+				document.head.appendChild(style);
+				scene._transformStyleTag = style;
+			}
+
+			scene._transformStyleTag.textContent = css;
+		}
+
+        // --- Canvas版：補間描画（Scene側に任せる想定） ---
+        function renderCanvas(scene, alpha) {
+            if (typeof scene._interpolateDraw === 'function') {
+                scene._interpolateDraw(alpha);
+            } else if (typeof scene._draw === 'function') {
+                // 補間なしの通常描画 fallback
+                scene._draw();
+            }
+        }
+
+        function loop() {
+            const now = performance.now();
+            let delta = now - lastTime;
+            lastTime = now;
+
+            accumulator += delta;
+
+            // ラグが溜まりすぎたら遅延を捨てて現在に同期
+            if (accumulator > MAX_ACCUM) {
+                accumulator = 0;
+            }
+
+            const scene = core.currentScene;
+
+            // ロジック更新が走る前に prev を保存
+            if (scene && accumulator >= FIXED_DT) {
+                storePrevPositions(scene);
+            }
+
+            // 固定フレームでロジック更新
+            while (accumulator >= FIXED_DT) {
+                core._tick();
+                accumulator -= FIXED_DT;
+            }
+
+            // 補間値
+            const alpha = Math.min(Math.max(accumulator / FIXED_DT, 0), 1);
+
+            // 描画頻度制御（負荷が高いときは描画を間引く）
+            let doRender = true;
+
+            if (opt.autoRenderSkip) {
+                const sinceLastRender = now - lastRenderTime;
+
+                // 直近の描画からあまり時間が経っていないならスキップ候補
+                if (sinceLastRender < MIN_RENDER_INTERVAL) {
+                    // 連続で重いようならスキップを増やす
+                    if (renderSkip < 3) {
+                        doRender = false;
+                        renderSkip++;
+                    }
+                } else {
+                    // 余裕があればスキップを減らす
+                    if (renderSkip > 0) renderSkip--;
+                }
+            }
+
+            if (scene && doRender) {
+                if (opt.useCanvas) {
+                    renderCanvas(scene, alpha);
+                } else {
+                    renderDOM(scene, alpha);
+                }
+                lastRenderTime = now;
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    };
+
+	const _initialize = enchant.Node.prototype._initialize;
+    enchant.Node.prototype._initialize = function() {
+        _initialize.call(this);
+
+        if (this._element) {
+            this._element.style.willChange = "transform";
+        }
+    };
+})();
+
 window.onload = function() {
 	game = new Core(Stage_W * PixelSize, Stage_H * PixelSize);
 	game.fps = 60; //画面の更新頻度
@@ -1923,8 +2142,13 @@ window.onload = function() {
 		'./sound/TENTH.mp3',
 		'./sound/ELEVENTH.mp3'
 	);
-	game.enableFixedLoop();
+	//game.enableFixedLoop();
+	//game.enableFixedTick();
 	//game.enableFixedLoopCanvas();
+	game.enableHybridFixedLoop({
+		useCanvas: false,
+        autoRenderSkip: true
+	});
 
 	inputManager = new InputManager();
 
@@ -4728,9 +4952,17 @@ window.onload = function() {
 			if (this.num !== 0) {
 				tankColorCounts[this.category]--;
 			}
-			new Mark(this);
+			setTimeout(() => {
+				new Mark(this);
+				new TankBoom(this);
+			}, 0);
+
+			setTimeout(() => {
+				this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1));
+			}, 0);
+			/*new Mark(this);
 			new TankBoom(this);
-			this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1));
+			this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1));*/
 		},
 
 		_Rotation: function (rot) {
