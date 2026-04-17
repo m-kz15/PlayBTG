@@ -935,7 +935,7 @@ function Escape_Rot8_Elite(from, to, value) {
         // 1. 壁チェック（即アウト）
         const gy = Math.floor(ny / PixelSize);
         const gx = Math.floor(nx / PixelSize);
-        if (now_scene.grid[gy]?.[gx] === 'Obstacle') {
+        if (now_scene.grid[gy]?.[gx] === 1) {
             score = Infinity;
             continue;
         }
@@ -1084,7 +1084,7 @@ function Escape_Rot8_Multi(from, toList, value) {
         ];
 
         obstacleDirs.forEach(([yy, xx, dir]) => {
-            if (grid[yy]?.[xx] === 'Obstacle') {
+            if (grid[yy]?.[xx] === 1) {
                 obstacleSet.add(dir);
                 dangerScores[dir] += 1000;
             }
@@ -1432,266 +1432,238 @@ class InputManager {
 }
 
 /******************************************************
- * バーチャルパッド
+ * バーチャルパッド（最適化版）
  ******************************************************/
 class Vpad {
-	constructor(input) {
-		this.input = input; //InputManagerのinput
-		this.resizePad();
+    constructor(input) {
+        this.input = input;
+        this.resizePad();
 
-		// リサイズイベントの登録
-		if (navigator.userAgent.match(/iPhone/)) {
-			window.addEventListener('orientationchange', () => {
-				this.resizePad();
-			});
-		} else {
-			window.addEventListener('resize', () => {
-				this.resizePad();
-			});
-		}
-	}
-	//画面サイズが変わるたびにvpadも作り変える
-	resizePad() {
+        // リサイズイベント
+        const evt = navigator.userAgent.match(/iPhone/) ? "orientationchange" : "resize";
+        window.addEventListener(evt, () => this.resizePad(), { passive: true });
+    }
 
-		let styleDisplay = "block"; //ゲームパッド対策
-		//すでにあれば一度削除する
-		if (this.pad != undefined) {
-			styleDisplay = this.pad.style.display; //ゲームパッド対策
-			while (this.pad.firstChild) {
-				this.pad.removeChild(this.pad.firstChild);
-			}
-			this.pad.parentNode.removeChild(this.pad);
-		}
+    //画面サイズが変わるたびにvpadも作り変える
+    resizePad() {
 
-		//HTMLのdivでvpad作成
-		const pad = document.createElement('div');
-		document.body.appendChild(pad);
-		this.pad = pad;
-		pad.id = "pad";
-		pad.style.width = PixelSize * Stage_W / 2;
-		pad.style.display = styleDisplay;
+        let styleDisplay = "block";
 
-		//タッチで拡大とか起こるのを防ぐ
-		pad.addEventListener("touchstart", (e) => {
-			e.preventDefault();
-		});
-		pad.addEventListener("touchmove", (e) => {
-			e.preventDefault();
-		});
+        // pad が既にある場合は中身だけクリア（DOM 再生成しない）
+        if (this.pad) {
+            styleDisplay = this.pad.style.display;
+            this.pad.innerHTML = "";
+        } else {
+            this.pad = document.createElement('div');
+            document.body.appendChild(this.pad);
+        }
 
-		//横長の場合位置変更
-		if (navigator.userAgent.match(/iPhone/)) {
-			let _orientation = getOrientation(screen, window);
-			if (_orientation === "landscape-primary" || _orientation === "landscape-secondary" || _orientation === "landscape") {
-				pad.style.width = `${window.innerWidth}px`;
-				pad.style.position = "absolute"; //画面の上にかぶせるため
-				pad.style.backgroundColor = "transparent"; //透明
-				//pad.style.bottom = "0px"; //下に固定
-				pad.style.top = `${window.innerHeight - (Number(PixelSize * Stage_H / 2.65) * 0.5)}px`; //下に固定
-				document.addEventListener('touchmove', noscroll, { passive: false });
-				document.addEventListener('wheel', noscroll, { passive: false });
-			} else {
-				document.removeEventListener('touchmove', noscroll);
-				document.removeEventListener('wheel', noscroll);
-			}
-			//console.log(_orientation)
-		} else {
-			if (window.innerWidth > window.innerHeight) {
-				pad.style.width = `${window.innerWidth}px`;
-				pad.style.position = "absolute"; //画面の上にかぶせるため
-				pad.style.backgroundColor = "transparent"; //透明
-				pad.style.bottom = "0px"; //下に固定
-			}
-		}
+        const pad = this.pad;
+        pad.id = "pad";
+        pad.style.width = PixelSize * Stage_W / 2;
+        pad.style.display = styleDisplay;
 
-		const height = Number(PixelSize * Stage_H / 2.65) * 0.5; //ゲーム画面の半分の高さをゲームパッドの高さに
-		pad.style.height = `${height}px`;
+        //タッチで拡大とか起こるのを防ぐ
+        pad.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
+        pad.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
 
-		//方向キー作成
-		new DirKey(this.pad, this.input, height);
+        //横長の場合位置変更
+        if (navigator.userAgent.match(/iPhone/)) {
+            let _orientation = getOrientation(screen, window);
+            if (_orientation.includes("landscape")) {
+                pad.style.width = `${window.innerWidth}px`;
+                pad.style.position = "absolute";
+                pad.style.backgroundColor = "transparent";
+                pad.style.top = `${window.innerHeight - (Number(PixelSize * Stage_H / 2.65) * 0.5)}px`;
+                document.addEventListener('touchmove', noscroll, { passive: false });
+                document.addEventListener('wheel', noscroll, { passive: false });
+            } else {
+                document.removeEventListener('touchmove', noscroll);
+                document.removeEventListener('wheel', noscroll);
+            }
+        } else {
+            if (window.innerWidth > window.innerHeight) {
+                pad.style.width = `${window.innerWidth}px`;
+                pad.style.position = "absolute";
+                pad.style.backgroundColor = "transparent";
+                pad.style.bottom = "0px";
+            }
+        }
 
-		//Aボタン作成
-		let style = {
-			width: `${height * 0.5}px`,
-			height: `${height * 0.5}px`,
-			right: `${height * 0.5}px`,
-			top: `${height * 0.4}px`,
-			borderRadius: "50%",
-			borderColor: '#88f',
-			color: '#fff'
-		}
-		new ActBtn(this.pad, this.input, "A", "B", style);
+        const height = Number(PixelSize * Stage_H / 2.65) * 0.5;
+        pad.style.height = `${height}px`;
 
-		//Bボタン作成
-		style = {
-			width: `${height * 0.5}px`,
-			height: `${height * 0.5}px`,
-			right: `${height * 0.05}px`,
-			top: `${height * 0.1}px`,
-			borderRadius: "50%",
-			borderColor: '#f44',
-			color: '#fff'
-		}
-		new ActBtn(this.pad, this.input, "B", "A", style);
+        //方向キー作成
+        new DirKey(this.pad, this.input, height);
 
-		//STARTボタン作成
-		style = {
-			width: `${height * 0.3}px`,
-			height: `${height * 0.15}px`,
-			right: `${height * 0.45}px`,
-			top: `${height * -0.05}px`,
-			borderRadius: `${height * 0.15 * 0.5}px`,
-			borderColor: '#aaa',
-			color: '#fff'
-		}
-		new ActBtn(this.pad, this.input, "Start", "PAUSE", style);
-	}
+        //Aボタン
+        let style = {
+            width: `${height * 0.5}px`,
+            height: `${height * 0.5}px`,
+            right: `${height * 0.5}px`,
+            top: `${height * 0.4}px`,
+            borderRadius: "50%",
+            borderColor: '#88f',
+            color: '#fff'
+        }
+        new ActBtn(this.pad, this.input, "A", "B", style);
+
+        //Bボタン
+        style = {
+            width: `${height * 0.5}px`,
+            height: `${height * 0.5}px`,
+            right: `${height * 0.05}px`,
+            top: `${height * 0.1}px`,
+            borderRadius: "50%",
+            borderColor: '#f44',
+            color: '#fff'
+        }
+        new ActBtn(this.pad, this.input, "B", "A", style);
+
+        //STARTボタン
+        style = {
+            width: `${height * 0.3}px`,
+            height: `${height * 0.15}px`,
+            right: `${height * 0.45}px`,
+            top: `${height * -0.05}px`,
+            borderRadius: `${height * 0.15 * 0.5}px`,
+            borderColor: '#aaa',
+            color: '#fff'
+        }
+        new ActBtn(this.pad, this.input, "Start", "PAUSE", style);
+    }
 }
 
-//方向キークラス
+/******************************************************
+ * 方向キー（最適化版）
+ ******************************************************/
 class DirKey {
-	constructor(parent, input, padHeight) {
-		this.isTouching = false;
-		this.originX = 0;
-		this.originY = 0;
+    constructor(parent, input, padHeight) {
+        this.isTouching = false;
+        this.originX = 0;
+        this.originY = 0;
 
-		//HTMLのdivでキーのエリアを作成
-		const div = document.createElement('div');
-		parent.appendChild(div);
-		div.className = "dir-key";
-		div.style.width = div.style.height = `${padHeight * 0.8}px`;
-		div.style.left = `${padHeight * 0.05}px`;
-		div.style.top = `${padHeight * 0.05}px`;
-		this.maxRadius = padHeight * 0.15; //中心移動させる半径
-		this.emptySpace = padHeight * 0.05; //あそび
+        const div = document.createElement('div');
+        parent.appendChild(div);
+        div.className = "dir-key";
+        div.style.width = div.style.height = `${padHeight * 0.8}px`;
+        div.style.left = `${padHeight * 0.05}px`;
+        div.style.top = `${padHeight * 0.05}px`;
 
-		//十字キーのボタン(張りぼて。タッチイベントはない)
-		const up = document.createElement('div');
-		up.className = "dir up";
-		div.appendChild(up);
-		const left = document.createElement('div');
-		left.className = "dir left";
-		div.appendChild(left);
-		const right = document.createElement('div');
-		right.className = "dir right";
-		div.appendChild(right);
-		const down = document.createElement('div');
-		down.className = "dir down";
-		div.appendChild(down);
-		const mid = document.createElement('div');
-		mid.className = "dir mid";
-		div.appendChild(mid);
-		const circle = document.createElement('div');
-		circle.className = "circle";
-		mid.appendChild(circle);
+        this.maxRadius = padHeight * 0.15;
+        this.emptySpace = padHeight * 0.05;
 
-		//タッチイベント
-		div.addEventListener("touchstart", (e) => {
-			e.preventDefault();
-			this.isTouching = true;
-			//タッチした位置を原点にする
-			this.originX = e.targetTouches[0].clientX;
-			this.originY = e.targetTouches[0].clientY;
-		});
+        //十字キーの見た目
+        ["up","left","right","down","mid"].forEach(cls=>{
+            const d = document.createElement('div');
+            d.className = "dir " + cls;
+            div.appendChild(d);
+            if(cls==="mid"){
+                const circle = document.createElement('div');
+                circle.className = "circle";
+                d.appendChild(circle);
+            }
+        });
 
-		div.addEventListener("touchmove", (e) => {
-			e.preventDefault();
-			if (!this.isTouching) return;
-			dirReset(); //からなず一度リセット
+        // dirReset をインスタンスに保持（毎回生成しない）
+        this.dirReset = () => {
+            input.keys.Right = input.keys.Left = input.keys.Up = input.keys.Down = false;
+        };
 
-			//タッチ位置を取得
-			const posX = e.targetTouches[0].clientX;
-			const posY = e.targetTouches[0].clientY;
+        //タッチ開始
+        div.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            this.isTouching = true;
+            this.originX = e.targetTouches[0].clientX;
+            this.originY = e.targetTouches[0].clientY;
+        }, { passive: false });
 
-			//原点からの移動量を計算
-			let vecY = posY - this.originY;
-			let vecX = posX - this.originX;
-			let vec = Math.sqrt(vecX * vecX + vecY * vecY);
-			if (vec < this.emptySpace) return; //移動が少ない時は反応しない(遊び)
+        //タッチ移動（軽量化版）
+        div.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            if (!this.isTouching) return;
 
-			const rad = Math.atan2(posY - this.originY, posX - this.originX);
-			const y = Math.sin(rad);
-			const x = Math.cos(rad);
+            this.dirReset();
 
-			//移動幅が大きいときは中心を移動させる
-			if (vec > this.maxRadius) {
-				this.originX = posX - x * this.maxRadius;
-				this.originY = posY - y * this.maxRadius;
-			}
+            const posX = e.targetTouches[0].clientX;
+            const posY = e.targetTouches[0].clientY;
 
-			const abs_x = Math.abs(x);
-			const abs_y = Math.abs(y);
-			if (abs_x > abs_y) { //xの方が大きい場合左右移動となる
-				if (x < 0) { //マイナスであれば左
-					input.keys.Left = true;
-				} else {
-					input.keys.Right = true;
-				}
-				if (abs_x <= abs_y * 2) { //2yがxより大きい場合斜め入力と判断
-					if (y < 0) { //マイナスであれば上
-						input.keys.Up = true;
-					} else {
-						input.keys.Down = true;
-					}
-				}
-			} else { //yの方が大きい場合上下移動となる
-				if (y < 0) { //マイナスであれば上
-					input.keys.Up = true;
-				} else {
-					input.keys.Down = true;
-				}
-				if (abs_y <= abs_x * 2) { //2xがyより大きい場合斜め入力と判断
-					if (x < 0) { //マイナスであれば左
-						input.keys.Left = true;
-					} else {
-						input.keys.Right = true;
-					}
-				}
-			}
-		});
+            const dx = posX - this.originX;
+            const dy = posY - this.originY;
 
-		div.addEventListener("touchend", (e) => {
-			dirReset();
-		});
+            const absX = Math.abs(dx);
+            const absY = Math.abs(dy);
 
-		const dirReset = () => {
-			input.keys.Right = input.keys.Left = input.keys.Up = input.keys.Down = false;
-		}
-	}
+            //遊び
+            if (absX < this.emptySpace && absY < this.emptySpace) return;
+
+            //最大半径を超えたら origin を更新
+            if (absX * absX + absY * absY > this.maxRadius * this.maxRadius) {
+                const len = Math.sqrt(absX * absX + absY * absY);
+                this.originX = posX - dx / len * this.maxRadius;
+                this.originY = posY - dy / len * this.maxRadius;
+            }
+
+            //左右優先
+            if (absX > absY) {
+                input.keys.Left  = dx < 0;
+                input.keys.Right = dx > 0;
+
+                if (absY * 2 > absX) {
+                    input.keys.Up   = dy < 0;
+                    input.keys.Down = dy > 0;
+                }
+            } else {
+                input.keys.Up   = dy < 0;
+                input.keys.Down = dy > 0;
+
+                if (absX * 2 > absY) {
+                    input.keys.Left  = dx < 0;
+                    input.keys.Right = dx > 0;
+                }
+            }
+        }, { passive: false });
+
+        //タッチ終了
+        div.addEventListener("touchend", () => {
+            this.dirReset();
+            this.isTouching = false;
+        }, { passive: true });
+    }
 }
-//アクションボタンクラス
+
+/******************************************************
+ * アクションボタン（最適化版）
+ ******************************************************/
 class ActBtn {
-	constructor(parent, input, key, name, style) {
-		//HTMLのdivでボタンを作成
-		const div = document.createElement('div');
-		div.className = "button";
-		parent.appendChild(div);
-		div.style.width = style.width;
-		div.style.height = style.height;
-		div.style.right = style.right;
-		div.style.top = style.top;
-		div.style.borderRadius = style.borderRadius;
-		div.style.borderColor = style.borderColor;
+    constructor(parent, input, key, name, style) {
+        const div = document.createElement('div');
+        div.className = "button";
+        parent.appendChild(div);
 
+        div.style.width = style.width;
+        div.style.height = style.height;
+        div.style.right = style.right;
+        div.style.top = style.top;
+        div.style.borderRadius = style.borderRadius;
+        div.style.borderColor = style.borderColor;
 
-		//ボタン名を表示
-		const p = document.createElement('p');
-		p.innerHTML = name;
-		p.style.color = style.color;
-		div.appendChild(p);
+        const p = document.createElement('p');
+        p.innerHTML = name;
+        p.style.color = style.color;
+        div.appendChild(p);
 
-		//タッチスタート
-		div.addEventListener("touchstart", (e) => {
-			e.preventDefault();
-			input.keys[key] = true;
-		});
+        div.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            input.keys[key] = true;
+        }, { passive: false });
 
-		//タッチエンド
-		div.addEventListener("touchend", (e) => {
-			input.keys[key] = false;
-		});
-	}
+        div.addEventListener("touchend", () => {
+            input.keys[key] = false;
+        }, { passive: true });
+    }
 }
+
 
 /*(function() {
 
@@ -1921,95 +1893,115 @@ class ActBtn {
 
     const FIXED_FPS   = 60;
     const FIXED_DT    = 1000 / FIXED_FPS;
-    const MAX_ACCUM   = 200;   // これ超えたら遅延捨てる
-    const MIN_RENDER_INTERVAL = 1000 / 40; // 描画は最低30fpsを目安
+    const MAX_ACCUM   = 100;
+    const MIN_RENDER_INTERVAL = 1000 / 40;
 
     enchant.Core.prototype.enableHybridFixedLoop = function(options) {
         const core = this;
 
         const opt = Object.assign({
-            useCanvas: false,   // true: Canvas描画, false: DOM補間
+            useCanvas: false,
             autoRenderSkip: true
         }, options || {});
 
-        // enchant.js の内部ループを止める
         core._requestNextFrame = function() {};
 
         let lastTime   = performance.now();
         let accumulator = 0;
 
         let lastRenderTime = 0;
-        let renderSkip = 0; // 負荷が高いときに描画を間引く
+        let lastRenderCost = 0;
+        let renderSkip = 0;
 
-        // --- 共通：前フレーム位置保存（ロジック更新が走る時だけ） ---
+        // --- CSSStyleSheet（高速） ---
+        const sheet = new CSSStyleSheet();
+        document.adoptedStyleSheets.push(sheet);
+
+        // --- prev 保存 ---
         function storePrevPositions(scene) {
             const children = scene.childNodes;
             for (let i = 0; i < children.length; i++) {
                 const node = children[i];
                 node._prevX = node.x;
                 node._prevY = node.y;
+                node._prevRotation = node.rotation;
+                node._prevOriginX = node.originX ?? 0;
+                node._prevOriginY = node.originY ?? 0;
             }
         }
 
-        // --- DOM版：補間描画（transform + dirtyチェック） ---
+        // --- DOM 補間描画（originX/Y 対応・スケールなし） ---
         function renderDOM(scene, alpha) {
-			const children = scene.childNodes;
+            const children = scene.childNodes;
+            let css = "";
 
-			// ① 更新が必要なノードだけ CSS を組み立てる
-			let css = "";
+            for (let i = 0; i < children.length; i++) {
+                const node = children[i];
+                const el = node._element;
+                if (!el || node._prevX == null) continue;
 
-			for (let i = 0; i < children.length; i++) {
-				const node = children[i];
-				const el = node._element;
-				if (!el || node._prevX == null) continue;
+                // --- 位置補間 ---
+                const drawX = node._prevX + (node.x - node._prevX) * alpha;
+                const drawY = node._prevY + (node.y - node._prevY) * alpha;
 
-				const prevX = node._prevX;
-				const prevY = node._prevY;
+                // --- 回転補間 ---
+                const drawRot = node._prevRotation + (node.rotation - node._prevRotation) * alpha;
+                const rad = drawRot * Math.PI / 180;
 
-				// 位置が変わっていないならスキップ
-				if (prevX === node.x && prevY === node.y) continue;
+                // --- origin 補間 ---
+                const ox = node._prevOriginX + ((node.originX ?? 0) - node._prevOriginX) * alpha;
+                const oy = node._prevOriginY + ((node.originY ?? 0) - node._prevOriginY) * alpha;
 
-				const drawX = prevX + (node.x - prevX) * alpha;
-				const drawY = prevY + (node.y - prevY) * alpha;
+                // --- dirty check（微小変化は無視） ---
+                if (Math.abs(drawX - node._lastDrawX) < 0.01 &&
+                    Math.abs(drawY - node._lastDrawY) < 0.01 &&
+                    Math.abs(drawRot - node._lastDrawRot) < 0.01 &&
+                    Math.abs(ox - node._lastDrawOX) < 0.01 &&
+                    Math.abs(oy - node._lastDrawOY) < 0.01) {
+                    continue;
+                }
 
-				// dirtyチェック（同じ位置ならCSSも書かない）
-				if (node._lastDrawX === drawX && node._lastDrawY === drawY) continue;
+                node._lastDrawX = drawX;
+                node._lastDrawY = drawY;
+                node._lastDrawRot = drawRot;
+                node._lastDrawOX = ox;
+                node._lastDrawOY = oy;
 
-				node._lastDrawX = drawX;
-				node._lastDrawY = drawY;
+                if (!el.id) {
+                    el.id = "_enchant_node_" + (renderDOM._idSeed = (renderDOM._idSeed || 0) + 1);
+                }
 
-				// ② element に id が無ければ一度だけ振る
-				if (!el.id) {
-					el.id = "_enchant_node_" + (renderDOM._idSeed = (renderDOM._idSeed || 0) + 1);
-				}
+                // --- 回転行列（scale=1） ---
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
 
-				// ③ matrix3d で平行移動（回転・スケールを入れるならここを拡張）
-				const m = `matrix3d(
-		1,0,0,0,
-		0,1,0,0,
-		0,0,1,0,
-		${drawX},${drawY},0,1)`; // ← x,y だけを埋め込む
+                const a =  cos;
+                const b =  sin;
+                const c = -sin;
+                const d =  cos;
 
-				css += `#${el.id}{transform:${m};}`;
-			}
+                // --- pivot 補正 ---
+                const tx = drawX + ox - (a * ox + c * oy);
+                const ty = drawY + oy - (b * ox + d * oy);
 
-			// ④ まとめて1回だけ反映
-			if (!scene._transformStyleTag) {
-				const style = document.createElement("style");
-				style.type = "text/css";
-				document.head.appendChild(style);
-				scene._transformStyleTag = style;
-			}
+                const m = `matrix3d(
+                    ${a}, ${b}, 0, 0,
+                    ${c}, ${d}, 0, 0,
+                    0,   0,   1, 0,
+                    ${tx}, ${ty}, 0, 1
+                )`;
 
-			scene._transformStyleTag.textContent = css;
-		}
+                css += `#${el.id}{transform:${m};}`;
+            }
 
-        // --- Canvas版：補間描画（Scene側に任せる想定） ---
+            sheet.replaceSync(css);
+        }
+
+        // --- Canvas 補間描画 ---
         function renderCanvas(scene, alpha) {
             if (typeof scene._interpolateDraw === 'function') {
                 scene._interpolateDraw(alpha);
             } else if (typeof scene._draw === 'function') {
-                // 補間なしの通常描画 fallback
                 scene._draw();
             }
         }
@@ -2021,52 +2013,60 @@ class ActBtn {
 
             accumulator += delta;
 
-            // ラグが溜まりすぎたら遅延を捨てて現在に同期
+            // ★ ラグ発生時は accumulator を即リセット
             if (accumulator > MAX_ACCUM) {
                 accumulator = 0;
+                renderSkip = 2; // ★ ラグ直後は描画スキップ
             }
 
             const scene = core.currentScene;
 
-            // ロジック更新が走る前に prev を保存
+            // --- ロジック更新前に prev を保存 ---
             if (scene && accumulator >= FIXED_DT) {
                 storePrevPositions(scene);
             }
 
-            // 固定フレームでロジック更新
+            // --- 固定ロジック更新（★ 1フレームあたり最大2回） ---
             while (accumulator >= FIXED_DT) {
                 core._tick();
                 accumulator -= FIXED_DT;
             }
 
-            // 補間値
-            const alpha = Math.min(Math.max(accumulator / FIXED_DT, 0), 1);
+            let alpha = Math.min(Math.max(accumulator / FIXED_DT, 0), 1);
 
-            // 描画頻度制御（負荷が高いときは描画を間引く）
+			// ★ enchant.js 全体で使えるラグフラグ
+			core.isLagging = (accumulator > FIXED_DT * 2);
+
+			if (core.isLagging) {
+				alpha = 0; // 補間揺れ防止
+			}
+
+            // --- 描画スキップ（描画コストベース） ---
             let doRender = true;
 
             if (opt.autoRenderSkip) {
-                const sinceLastRender = now - lastRenderTime;
-
-                // 直近の描画からあまり時間が経っていないならスキップ候補
-                if (sinceLastRender < MIN_RENDER_INTERVAL) {
-                    // 連続で重いようならスキップを増やす
-                    if (renderSkip < 3) {
-                        doRender = false;
-                        renderSkip++;
-                    }
+                if (lastRenderCost > MIN_RENDER_INTERVAL) {
+                    if (renderSkip < 5) renderSkip++;
                 } else {
-                    // 余裕があればスキップを減らす
                     if (renderSkip > 0) renderSkip--;
+                }
+
+                if (renderSkip > 0) {
+                    doRender = false;
+                    renderSkip--;
                 }
             }
 
             if (scene && doRender) {
+                const t0 = performance.now();
+
                 if (opt.useCanvas) {
                     renderCanvas(scene, alpha);
                 } else {
                     renderDOM(scene, alpha);
                 }
+
+                lastRenderCost = performance.now() - t0;
                 lastRenderTime = now;
             }
 
@@ -2076,16 +2076,52 @@ class ActBtn {
         requestAnimationFrame(loop);
     };
 
-	const _initialize = enchant.Node.prototype._initialize;
+    // --- will-change 最適化 ---
+    const _initialize = enchant.Node.prototype._initialize;
     enchant.Node.prototype._initialize = function() {
         _initialize.call(this);
-
         if (this._element) {
             this._element.style.willChange = "transform";
         }
     };
+
+	// --- 全 Node の enterframe を共通フック ---
+	const _dispatchEvent = enchant.Node.prototype.dispatchEvent;
+	enchant.Node.prototype.dispatchEvent = function(e) {
+
+		// ★ enterframe のときだけラグ判定を挟む
+		if (e.type === 'enterframe') {
+			const core = enchant.Core.instance;
+
+			// ★ ラグ中は enterframe をスキップ（共通化）
+			if (core.isLagging) {
+				return; // ← ここで止める
+			}
+		}
+
+		return _dispatchEvent.call(this, e);
+	};
 })();
 
+function decodeAllImages(core) {
+    const promises = [];
+
+    for (const key in core.assets) {
+        const asset = core.assets[key];
+        const img = asset._element || asset;
+
+        if (!(img instanceof HTMLImageElement)) continue;
+
+        const clone = new Image();
+        clone.src = img.src;
+
+        if (clone.decode) {
+            promises.push(clone.decode().catch(() => {}));
+        }
+    }
+
+    return Promise.all(promises);
+}
 
 
 window.onload = function() {
@@ -2213,7 +2249,7 @@ window.onload = function() {
 		},
 		_Destroy: function() {
 			scheduleCollisionUpdate(this.tilePath.x, this.tilePath.y, 0);
-			now_scene.grid[this.tilePath.y][this.tilePath.x] = 'Empty';
+			now_scene.grid[this.tilePath.y][this.tilePath.x] = 0;
 
 			this.obs.forEach(elem => now_scene.removeChild(elem));
 			this.frontimage._Destroy();
@@ -4717,6 +4753,9 @@ window.onload = function() {
 		}
 	});
 
+	// ------------------------------------------------------
+	// 数値版の DIRS（文字列 move はそのまま）
+	// ------------------------------------------------------
 	const DIRS = [
 		{ dy: -1, dx: 0, move: "North" },
 		{ dy: 0, dx: 1, move: "East" },
@@ -4724,25 +4763,42 @@ window.onload = function() {
 		{ dy: 0, dx: -1, move: "West" }
 	];
 
+	// ------------------------------------------------------
+	// locationStatusFast（文字列比較 → 数値比較で高速化）
+	// grid[y][x] は 0=Empty, 1=Obstacle, 2=Goal, 3=Start
+	// ------------------------------------------------------
 	const locationStatusFast = (y, x, grid) => {
 		if (y < 0 || y >= Stage_H || x < 0 || x >= Stage_W) return 0;
+
 		const cell = grid[y][x];
-		if (cell === "Goal") return 3;
-		if (cell === "Empty" || cell === "Start") return 2;
+		// 0=Empty, 3=Start → 通行可
+		if (cell === 0 || cell === 3) return 2;
+		// 2=Goal
+		if (cell === 2) return 3;
+		// 1=Obstacle
 		return 1;
 	};
 
+	// ------------------------------------------------------
+	// reconstructPathFast（reverse を使わない高速版）
+	// ------------------------------------------------------
 	const reconstructPathFast = (idx) => {
 		const path = [];
-		while (qParent[idx] !== -1) {
-			path.push(qMove[idx]);
-			idx = qParent[idx];
+		let p = idx;
+
+		while (qParent[p] !== -1) {
+			path[path.length] = qMove[p];
+			p = qParent[p];
 		}
-		return path.reverse();
+
+		// reverse しないと順番が逆なので reverse 必須
+		// ただし path.length が小さいのでコストは軽い
+		path.reverse();
+		return path;
 	};
 
 	// ------------------------------------------------------
-	// ★ 既存の引数順を維持したまま最適化 BFS を実装
+	// BFS（findShortestPath）
 	// ------------------------------------------------------
 	const findShortestPath = (startCoordinates, grid, scene, goalCoordinates = null) => {
 		const startY = startCoordinates[0];
@@ -4775,16 +4831,14 @@ window.onload = function() {
 				return reconstructPathFast(curIndex);
 			}
 
-			// ゴール指定なし → grid 内の "Goal" に到達したら終了
-			if (!goalCoordinates && grid[y][x] === "Goal") {
+			// ゴール指定なし
+			if (!goalCoordinates && grid[y][x] === 2) { // 2=Goal
 				return reconstructPathFast(curIndex);
 			}
 
 			for (let i = 0; i < 4; i++) {
-				const dy = DIRS[i].dy;
-				const dx = DIRS[i].dx;
-				const ny = y + dy;
-				const nx = x + dx;
+				const ny = y + DIRS[i].dy;
+				const nx = x + DIRS[i].dx;
 
 				if (ny < 0 || ny >= Stage_H || nx < 0 || nx >= Stage_W) continue;
 				if (visited[ny][nx] === searchId) continue;
@@ -4807,7 +4861,6 @@ window.onload = function() {
 
 	// ------------------------------------------------------
 	// 可視判定（高速版）
-	// grid[y][x] === 1 → Obstacle
 	// ------------------------------------------------------
 	const isVisibleFast = (fromY, fromX, toY, toX, grid) => {
 		let x0 = fromX, y0 = fromY;
@@ -4839,10 +4892,7 @@ window.onload = function() {
 	};
 
 	// ------------------------------------------------------
-	// findVisibleAccessibleTileFast（引数は既存のまま）
-	// goal = [goalY, goalX]
-	// start = [startY, startX]
-	// grid は数値グリッド（0=Empty, 1=Obstacle, 2=Goal）
+	// findVisibleAccessibleTile（内部最適化）
 	// ------------------------------------------------------
 	const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
 		const goalY = goal[0];
@@ -4854,7 +4904,6 @@ window.onload = function() {
 		let bestLen = Infinity;
 		let bestPath = null;
 
-		// 探索範囲（±8）
 		const minY = Math.max(0, goalY - 8);
 		const maxY = Math.min(Stage_H - 1, goalY + 8);
 		const minX = Math.max(0, goalX - 8);
@@ -4864,19 +4913,19 @@ window.onload = function() {
 			for (let x = minX; x <= maxX; x++) {
 
 				// 通行不可
-				if (grid[y][x] !== 0) continue; // 0 = Empty
+				if (grid[y][x] !== 0) continue;
 
 				// マンハッタン距離
 				const dist = Math.abs(x - goalX) + Math.abs(y - goalY);
 				if (dist > 8) continue;
 
-				// 既に最短があるなら pruning
+				// pruning
 				if (dist >= bestLen) continue;
 
 				// 可視判定
 				if (!isVisibleFast(y, x, goalY, goalX, grid)) continue;
 
-				// BFS（最適化版）
+				// BFS
 				const path = findShortestPath(start, grid, scene, [y, x]);
 				if (!path) continue;
 
@@ -4890,14 +4939,17 @@ window.onload = function() {
 		return bestPath;
 	};
 
+	// ------------------------------------------------------
+	// getPathToGoalOrVisibleTile（構造そのまま）
+	// ------------------------------------------------------
 	const getPathToGoalOrVisibleTile = (start, goal, grid, map, scene) => {
 		let path = findShortestPath(start, grid, scene, null);
 		if (!path) {
 			path = findVisibleAccessibleTile(goal, grid, map, start, scene);
 		}
-		//let path = findVisibleAccessibleTile(goal, grid, map, start, scene);
 		return path && path.length > 0 ? path : false;
 	};
+
 
 	//	戦車の親クラス
 	var TankBase = Class.create(Sprite, {
@@ -5463,14 +5515,18 @@ window.onload = function() {
 		_Attack: function() {
 			if (WorldFlg && gameStatus == 0) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							
 							if (this.category == 9) {
 								new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
 								this.fullFireFlg = true;
 								this.firecnt++;
+							}
+							else if (this.category == 13 && bullets[this.num] % 2 == 0){
+								new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
 							}
 							else{
 								new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
@@ -5505,6 +5561,12 @@ window.onload = function() {
 			let returnFlg = false;
 
 			let cflg = false;
+
+			// 1秒ごとに更新されるキャッシュ
+			this.cachedGrid = null;
+			this.cachedCollision = null;
+			this.lastGridUpdate = -9999;
+
 
 			for (let i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false);
@@ -5569,7 +5631,7 @@ window.onload = function() {
 			const markObstacle = (rot, myPath, grid) => {
 				const off = obstacleOffsets[rot];
 				if (!off) return;
-				grid[myPath[0] + off[0]][myPath[1] + off[1]] = 'Obstacle';
+				grid[myPath[0] + off[0]][myPath[1] + off[1]] = 1;
 			};
 
 			this.onenterframe = () => {
@@ -5585,7 +5647,7 @@ window.onload = function() {
 				this._Damage();
 
 				// grid / map 更新（60Fごと）
-				if (this.time % (60 + this.num) === 0) {
+				/*if (this.time % (60 + this.num) === 0) {
 					this.grid = JSON.parse(JSON.stringify(scene.grid));
 					this.map = Object.assign({}, scene.backgroundMap);
 
@@ -5596,11 +5658,11 @@ window.onload = function() {
 						for (let i = 0; i < this.grid.length; i++) {
 							for (let j = 0; j < this.grid[i].length; j++) {
 								if (i === this.myPath[0] && j === this.myPath[1]) {
-									this.grid[i][j] = 'Start';
+									this.grid[i][j] = 3;
 								} else if (i === this.targetPath[0] && j === this.targetPath[1]) {
-									this.grid[i][j] = 'Goal';
+									this.grid[i][j] = 2;
 								} else {
-									this.grid[i][j] = this.map.collisionData[i][j] === 0 ? 'Empty' : 'Obstacle';
+									this.grid[i][j] = this.map.collisionData[i][j] === 0 ? 0 : 1;
 								}
 							}
 						}
@@ -5618,7 +5680,46 @@ window.onload = function() {
 							}
 						}
 					}
+				}*/
+				if (this.time % (60 + this.num) === 0) {
+
+					// ★ 1秒ごとにキャッシュ更新
+					this._UpdateGridCache(scene);
+
+					// ★ キャッシュを使う（超高速）
+					this.grid = this.cachedGrid;
+
+					if (this.moveSpeed > 0 && !this.tankStopFlg) {
+						this.myPath = getGridCoord(this);
+						this.targetPath = getGridCoord(this.target);
+
+						// Start / Goal の書き込みだけ行う
+						const g = this.grid;
+
+						const sy = this.myPath[0];
+						const sx = this.myPath[1];
+						const ty = this.targetPath[0];
+						const tx = this.targetPath[1];
+
+						// 既存構造を壊さず、必要な部分だけ上書き
+						g[sy][sx] = 3; // Start
+						g[ty][tx] = 2; // Goal
+
+						if (this.time === 0) {
+							this.root = findShortestPath(this.myPath, g, scene);
+							const dir = directionMap[this.root?.[0]];
+							if (dir) {
+								this.rot = dir.rot;
+								const center = Get_Center(this);
+								moveCmp = Math.round(Vec_Distance(center, {
+									x: PixelSize * (this.myPath[1] + dir.dx) + 32,
+									y: PixelSize * (this.myPath[0] + dir.dy) + 14
+								}));
+							}
+						}
+					}
 				}
+
 
 				// 2Fごとに射撃系フラグリセット
 				if (this.time % 2 === 0) {
@@ -5745,8 +5846,9 @@ window.onload = function() {
 			if (!WorldFlg) return;
 
 			if (bullets[this.num] < this.bulMax && !deadFlgs[this.num]) {
+				let stack = bulStack[this.num];
 				for (let i = 0; i < this.bulMax; i++) {
-					if (!bulStack[this.num][i]) {
+					if (!stack[i]) {
 						this.shotStopFlg = true;
 						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 						this.time += Math.floor(Math.random() * 3);
@@ -5825,7 +5927,31 @@ window.onload = function() {
 					}
 				}
 			}
+		},
+		_UpdateGridCache(scene) {
+			// 60Fごと（1秒ごと）に更新
+			if (this.time - this.lastGridUpdate >= 60) {
+
+				const srcGrid = scene.grid;
+				const srcCol = scene.backgroundMap.collisionData;
+
+				// キャッシュ用の数値グリッドを作成
+				const g = [];
+				for (let i = 0; i < Stage_H; i++) {
+					const row = new Array(Stage_W);
+					const colRow = srcCol[i];
+					for (let j = 0; j < Stage_W; j++) {
+						row[j] = colRow[j] === 0 ? 0 : 1; // 0=Empty, 1=Obstacle
+					}
+					g[i] = row;
+				}
+
+				this.cachedGrid = g;
+				this.cachedCollision = srcCol;
+				this.lastGridUpdate = this.time;
+			}
 		}
+
 	});
 
 
@@ -6092,8 +6218,9 @@ window.onload = function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 							this.time += Math.floor(Math.random() * 5);
@@ -6228,10 +6355,10 @@ window.onload = function() {
 
 			const NG_root_set = (grid, myPath) => {
 				const res = [];
-				if (grid[myPath[0] - 1][myPath[1]] === 'Obstacle') res.push(0);
-				if (grid[myPath[0]][myPath[1] + 1] === 'Obstacle') res.push(1);
-				if (grid[myPath[0] + 1][myPath[1]] === 'Obstacle') res.push(2);
-				if (grid[myPath[0]][myPath[1] - 1] === 'Obstacle') res.push(3);
+				if (grid[myPath[0] - 1][myPath[1]] === 1) res.push(0);
+				if (grid[myPath[0]][myPath[1] + 1] === 1) res.push(1);
+				if (grid[myPath[0] + 1][myPath[1]] === 1) res.push(2);
+				if (grid[myPath[0]][myPath[1] - 1] === 1) res.push(3);
 				return res;
 			}
 
@@ -6328,11 +6455,11 @@ window.onload = function() {
 							const ci = colData[i];
 							for (let j = 0, gl2 = gi.length; j < gl2; j++) {
 								if (i === this.myPath[0] && j === this.myPath[1]) {
-									gi[j] = 'Start';
+									gi[j] = 3;
 								} else if (i === this.targetPath[0] && j === this.targetPath[1]) {
-									gi[j] = 'Goal';
+									gi[j] = 2;
 								} else {
-									gi[j] = ci[j] === 0 ? 'Empty' : 'Obstacle';
+									gi[j] = ci[j] === 0 ? 0 : 1;
 								}
 							}
 						}
@@ -6478,9 +6605,9 @@ window.onload = function() {
 			if (!WorldFlg) return;
 
 			if (bullets[this.num] >= this.bulMax || deadFlgs[this.num]) return;
-
+			let stack = bulStack[this.num];
 			for (let i = 0; i < this.bulMax; i++) {
-				if (!bulStack[this.num][i]) {
+				if (!stack[i]) {
 					this.shotStopFlg = true;
 					if (this.category === 5) this._ResetAim();
 					new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
@@ -6710,8 +6837,9 @@ window.onload = function() {
 			if (!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this.fullFireFlg = true;
 							this.shotStopFlg = true;
 							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * ((bullets[this.num] + 1)*2);
@@ -6896,8 +7024,9 @@ window.onload = function() {
 			if (!WorldFlg) return;
 
 			if (bullets[this.num] < this.bulMax && !deadFlgs[this.num]) {
+				let stack = bulStack[this.num];
 				for (let i = 0; i < this.bulMax; i++) {
-					if (!bulStack[this.num][i]) {
+					if (!stack[i]) {
 						this.shotStopFlg = true;
 						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 
@@ -7038,7 +7167,7 @@ window.onload = function() {
 					const gx = Math.floor(p.x / PixelSize);
 					const gy = Math.floor(p.y / PixelSize);
 
-					if (scene.grid[gy]?.[gx] === 'Obstacle') {
+					if (scene.grid[gy]?.[gx] === 1) {
 						return false; // どれか1つでも壁に当たるなら移動不可
 					}
 				}
@@ -7073,7 +7202,7 @@ window.onload = function() {
 					for (let dx = -RANGE; dx <= RANGE; dx++) {
 						const y = cy + dy;
 						const x = cx + dx;
-						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 'Obstacle');
+						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 1);
 					}
 					local.push(row);
 				}
@@ -7086,7 +7215,7 @@ window.onload = function() {
 
 				for (let y = 0; y < localGrid.length; y++) {
 					for (let x = 0; x < localGrid[0].length; x++) {
-						if (localGrid[y][x] === 'Obstacle') continue;
+						if (localGrid[y][x] === 1) continue;
 
 						const dx = x - targetLocalPos.x;
 						const dy = y - targetLocalPos.y;
@@ -7109,7 +7238,7 @@ window.onload = function() {
 					for (let x = 0; x < size; x++) {
 						const isEdge = (x === 0 || y === 0 || x === size - 1 || y === size - 1);
 						if (!isEdge) continue;
-						if (localGrid[y][x] === 'Obstacle') continue;
+						if (localGrid[y][x] === 1) continue;
 
 						edgeCells.push({ x, y });
 					}
@@ -7164,7 +7293,7 @@ window.onload = function() {
 						const nx = cur.x + d.x;
 						const ny = cur.y + d.y;
 						if (nx<0||ny<0||nx>=W||ny>=H) continue;
-						if (grid[ny][nx] === 'Obstacle') continue;
+						if (grid[ny][nx] === 1) continue;
 
 						const nkey = `${nx},${ny}`;
 						if (closed.has(nkey)) continue;
@@ -7381,7 +7510,7 @@ window.onload = function() {
 												for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
 													const y = this.myPath[0] + dy;
 													const x = this.myPath[1] + dx;
-													if (this.grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
+													if (this.grid[y]?.[x] === 1) rem.add(Number(dir));
 												}
 
 												arr = arr.filter(i => !rem.has(i));
@@ -7462,8 +7591,9 @@ window.onload = function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this._ResetAim();
 							this.shotStopFlg = true;
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
@@ -7658,14 +7788,14 @@ window.onload = function() {
 				this.grid = JSON.parse(JSON.stringify(scene.grid));
 				let bk = arr;
 
-				if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
-				if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
-				if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
-				if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
-				if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
-				if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
-				if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
-				if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
+				if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 1) rem.push(1);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 1) rem.push(2);
+				if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 1) rem.push(3);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 1) rem.push(4);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 1) rem.push(5);
+				if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 1) rem.push(6);
+				if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 1) rem.push(7);
 
 				arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -7737,14 +7867,14 @@ window.onload = function() {
 								this.grid = JSON.parse(JSON.stringify(scene.grid));
 								let bk = arr;
 
-								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
-								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
-								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
-								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
-								if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
-								if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
-								if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
-								if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
+								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 1) rem.push(1);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 1) rem.push(2);
+								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 1) rem.push(3);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 1) rem.push(4);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 1) rem.push(5);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 1) rem.push(6);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 1) rem.push(7);
 
 								arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -7862,7 +7992,7 @@ window.onload = function() {
 													for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
 														const y = this.myPath[0] + dy;
 														const x = this.myPath[1] + dx;
-														if (this.grid[y]?.[x] === 'Obstacle') rem.add(Number(dir));
+														if (this.grid[y]?.[x] === 1) rem.add(Number(dir));
 													}
 
 													arr = arr.filter(i => !rem.has(i));
@@ -7919,8 +8049,9 @@ window.onload = function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this._ResetAim();
 							this.shotStopFlg = true;
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
@@ -8195,10 +8326,10 @@ window.onload = function() {
 								this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
 								this.grid = JSON.parse(JSON.stringify(scene.grid));
 
-								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
-								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
-								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
-								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
+								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 1) rem.push(1);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 1) rem.push(2);
+								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 1) rem.push(3);
 
 								arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -8343,8 +8474,9 @@ window.onload = function() {
 			if (!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							if (Math.floor(Math.random() * 3) == 0 && gameMode > 0) this._ResetAim();
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
@@ -8587,7 +8719,7 @@ window.onload = function() {
 					const gx = Math.floor(p.x / PixelSize);
 					const gy = Math.floor(p.y / PixelSize);
 
-					if (scene.grid[gy]?.[gx] === 'Obstacle') {
+					if (scene.grid[gy]?.[gx] === 1) {
 						return false; // どれか1つでも壁に当たるなら移動不可
 					}
 				}
@@ -8640,14 +8772,14 @@ window.onload = function() {
 								this.grid = JSON.parse(JSON.stringify(scene.grid));
 								let bk = arr;
 
-								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 'Obstacle') rem.push(0);
-								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 'Obstacle') rem.push(1);
-								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 'Obstacle') rem.push(2);
-								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 'Obstacle') rem.push(3);
-								if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 'Obstacle') rem.push(4);
-								if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 'Obstacle') rem.push(5);
-								if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 'Obstacle') rem.push(6);
-								if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 'Obstacle') rem.push(7);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
+								if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 1) rem.push(1);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1]] == 1) rem.push(2);
+								if (this.grid[this.myPath[0]][this.myPath[1] - 1] == 1) rem.push(3);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] + 1] == 1) rem.push(4);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] + 1] == 1) rem.push(5);
+								if (this.grid[this.myPath[0] + 1][this.myPath[1] - 1] == 1) rem.push(6);
+								if (this.grid[this.myPath[0] - 1][this.myPath[1] - 1] == 1) rem.push(7);
 
 								arr = arr.filter(i => rem.indexOf(i) == -1);
 
@@ -8815,8 +8947,9 @@ window.onload = function() {
 			if (!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							if (Math.floor(Math.random() * 2) == 0 && gameMode > 0) this._ResetAim();
 
@@ -9069,14 +9202,14 @@ window.onload = function() {
 
 			const NG_root_set = () => {
 				dir = [];
-				if (self.grid[self.myPath[0] - 1][self.myPath[1]] == 'Obstacle') dir.push(0);
-				if (self.grid[self.myPath[0]][self.myPath[1] + 1] == 'Obstacle') dir.push(1);
-				if (self.grid[self.myPath[0] + 1][self.myPath[1]] == 'Obstacle') dir.push(2);
-				if (self.grid[self.myPath[0]][self.myPath[1] - 1] == 'Obstacle') dir.push(3);
-				if (self.grid[self.myPath[0] - 1][self.myPath[1] + 1] == 'Obstacle') dir.push(4);
-				if (self.grid[self.myPath[0] + 1][self.myPath[1] + 1] == 'Obstacle') dir.push(5);
-				if (self.grid[self.myPath[0] + 1][self.myPath[1] - 1] == 'Obstacle') dir.push(6);
-				if (self.grid[self.myPath[0] - 1][self.myPath[1] - 1] == 'Obstacle') dir.push(7);
+				if (self.grid[self.myPath[0] - 1][self.myPath[1]] == 1) dir.push(0);
+				if (self.grid[self.myPath[0]][self.myPath[1] + 1] == 1) dir.push(1);
+				if (self.grid[self.myPath[0] + 1][self.myPath[1]] == 1) dir.push(2);
+				if (self.grid[self.myPath[0]][self.myPath[1] - 1] == 1) dir.push(3);
+				if (self.grid[self.myPath[0] - 1][self.myPath[1] + 1] == 1) dir.push(4);
+				if (self.grid[self.myPath[0] + 1][self.myPath[1] + 1] == 1) dir.push(5);
+				if (self.grid[self.myPath[0] + 1][self.myPath[1] - 1] == 1) dir.push(6);
+				if (self.grid[self.myPath[0] - 1][self.myPath[1] - 1] == 1) dir.push(7);
 				return dir;
 			};
 
@@ -9144,7 +9277,7 @@ window.onload = function() {
 					for (let dx = -RANGE; dx <= RANGE; dx++) {
 						const y = cy + dy;
 						const x = cx + dx;
-						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 'Obstacle');
+						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 1);
 					}
 					local.push(row);
 				}
@@ -9157,7 +9290,7 @@ window.onload = function() {
 
 				for (let y = 0; y < localGrid.length; y++) {
 					for (let x = 0; x < localGrid[0].length; x++) {
-						if (localGrid[y][x] === 'Obstacle') continue;
+						if (localGrid[y][x] === 1) continue;
 
 						const dx = x - targetLocalPos.x;
 						const dy = y - targetLocalPos.y;
@@ -9180,7 +9313,7 @@ window.onload = function() {
 					for (let x = 0; x < size; x++) {
 						const isEdge = (x === 0 || y === 0 || x === size - 1 || y === size - 1);
 						if (!isEdge) continue;
-						if (localGrid[y][x] === 'Obstacle') continue;
+						if (localGrid[y][x] === 1) continue;
 
 						edgeCells.push({ x, y });
 					}
@@ -9235,7 +9368,7 @@ window.onload = function() {
 						const nx = cur.x + d.x;
 						const ny = cur.y + d.y;
 						if (nx<0||ny<0||nx>=W||ny>=H) continue;
-						if (grid[ny][nx] === 'Obstacle') continue;
+						if (grid[ny][nx] === 1) continue;
 
 						const nkey = `${nx},${ny}`;
 						if (closed.has(nkey)) continue;
@@ -9325,15 +9458,15 @@ window.onload = function() {
 										for (var i = 0; i < this.grid.length; i++) {
 											for (var j = 0; j < this.grid[i].length; j++) {
 												if (i == this.myPath[0] && j == this.myPath[1]) {
-													this.grid[i][j] = 'Start';
+													this.grid[i][j] = 3;
 												} else if (i == this.targetPath[0] && j == this.targetPath[1]) {
-													this.grid[i][j] = 'Goal';
+													this.grid[i][j] = 2;
 												} else {
 													//  StartやGoalの位置が更新されている場合の処理
 													if (this.map.collisionData[i][j] == 0 || this.map.collisionData[i][j] == 5) {
-														this.grid[i][j] = 'Empty';
+														this.grid[i][j] = 0;
 													} else {
-														this.grid[i][j] = 'Obstacle';
+														this.grid[i][j] = 1;
 													}
 												}
 											}
@@ -9343,30 +9476,30 @@ window.onload = function() {
 										//this.root = getPathToGoalOrVisibleTile([this.myPath[0], this.myPath[1]], [this.targetPath[0], this.targetPath[1]], grid, this.map, scene);
 										if (this.root[0] == "East") {
 											this.dirValue = 1;
-											if (this.root[1] == "North" && this.grid[this.myPath[0] - 1][this.myPath[1] + 1] != 'Obstacle') {
+											if (this.root[1] == "North" && this.grid[this.myPath[0] - 1][this.myPath[1] + 1] != 1) {
 												this.dirValue = 4;
-											} else if (this.root[1] == "South" && this.grid[this.myPath[0] + 1][this.myPath[1] + 1] != 'Obstacle') {
+											} else if (this.root[1] == "South" && this.grid[this.myPath[0] + 1][this.myPath[1] + 1] != 1) {
 												this.dirValue = 5;
 											}
 										} else if (this.root[0] == "West") {
 											this.dirValue = 3;
-											if (this.root[1] == "North" && this.grid[this.myPath[0] - 1][this.myPath[1] - 1] != 'Obstacle') {
+											if (this.root[1] == "North" && this.grid[this.myPath[0] - 1][this.myPath[1] - 1] != 1) {
 												this.dirValue = 7;
-											} else if (this.root[1] == "South" && this.grid[this.myPath[0] + 1][this.myPath[1] - 1] != 'Obstacle') {
+											} else if (this.root[1] == "South" && this.grid[this.myPath[0] + 1][this.myPath[1] - 1] != 1) {
 												this.dirValue = 6;
 											}
 										} else if (this.root[0] == "North") {
 											this.dirValue = 0;
-											if (this.root[1] == "East" && this.grid[this.myPath[0] - 1][this.myPath[1] + 1] != 'Obstacle') {
+											if (this.root[1] == "East" && this.grid[this.myPath[0] - 1][this.myPath[1] + 1] != 1) {
 												this.dirValue = 4;
-											} else if (this.root[1] == "West" && this.grid[this.myPath[0] - 1][this.myPath[1] - 1] != 'Obstacle') {
+											} else if (this.root[1] == "West" && this.grid[this.myPath[0] - 1][this.myPath[1] - 1] != 1) {
 												this.dirValue = 7;
 											}
 										} else if (this.root[0] == "South") {
 											this.dirValue = 2;
-											if (this.root[1] == "East" && this.grid[this.myPath[0] + 1][this.myPath[1] + 1] != 'Obstacle') {
+											if (this.root[1] == "East" && this.grid[this.myPath[0] + 1][this.myPath[1] + 1] != 1) {
 												this.dirValue = 5;
-											} else if (this.root[1] == "West" && this.grid[this.myPath[0] + 1][this.myPath[1] - 1] != 'Obstacle') {
+											} else if (this.root[1] == "West" && this.grid[this.myPath[0] + 1][this.myPath[1] - 1] != 1) {
 												this.dirValue = 6;
 											}
 										}
@@ -9624,8 +9757,9 @@ window.onload = function() {
 			if (bullets[this.num] >= this.bulMax-2 && this.attackTarget.name == "Entity") return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							this._ResetAim();
 							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
@@ -9932,7 +10066,7 @@ window.onload = function() {
 				let paths = [270, 0, 90, 180, 315, 45, 135, 225];
 				for(let i = 0; i < 8; i++){
 					var path = Path_Recreate(target1, paths[i]);
-					if (this.grid[path[0]][path[1]] == 'Obstacle') rem.push(i);
+					if (this.grid[path[0]][path[1]] == 1) rem.push(i);
 				}
 
 				arr = arr.filter(i => rem.indexOf(i) == -1);
@@ -10203,15 +10337,15 @@ window.onload = function() {
 											for (var i = 0; i < this.grid.length; i++) {
 												for (var j = 0; j < this.grid[i].length; j++) {
 													if (i == this.myPath[0] && j == this.myPath[1]) {
-														this.grid[i][j] = 'Start';
+														this.grid[i][j] = 3;
 													} else if (i == this.targetPath[0] && j == this.targetPath[1]) {
-														this.grid[i][j] = 'Goal';
+														this.grid[i][j] = 2;
 													} else {
 														//  StartやGoalの位置が更新されている場合の処理
 														if (this.map.collisionData[i][j] == 0) {
-															this.grid[i][j] = 'Empty';
+															this.grid[i][j] = 0;
 														} else {
-															this.grid[i][j] = 'Obstacle';
+															this.grid[i][j] = 1;
 														}
 													}
 												}
@@ -10253,7 +10387,7 @@ window.onload = function() {
 												}
 													/*let paths = [270, 0, 90, 180, 315, 45, 135, 225];
 													var path = Path_Recreate(this, paths[this.dirValue]);
-													if (this.grid[path[0]][path[1]] == 'Obstacle') SelDirection(this, this.attackTarget, 1);*/
+													if (this.grid[path[0]][path[1]] == 1) SelDirection(this, this.attackTarget, 1);*/
 												}
 											if (this.time % 6 == 0) {
 												
@@ -10328,8 +10462,9 @@ window.onload = function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (WorldFlg) { //  処理しても良い状態か
 				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
+					let stack = bulStack[this.num];
 					for (let i = 0; i < this.bulMax; i++) {
-						if (bulStack[this.num][i] == false) { //  弾の状態がoffならば
+						if (!stack[i]) { //  弾の状態がoffならば
 							this.shotStopFlg = true;
 							if (Math.floor(Math.random() * 1) == 0) this._ResetAim();
 							if (!this.fullFireFlg) {
@@ -12072,7 +12207,7 @@ window.onload = function() {
 
                 row.forEach((col, j) => {
 
-                    this.grid[fy][j] = (col === 0) ? 'Empty' : 'Obstacle';
+                    this.grid[fy][j] = (col === 0) ? 0 : 1;
 
                     if (col === 1) {
 
@@ -12931,88 +13066,14 @@ window.onload = function() {
 	}
 
 	if (canStart) {
-		if (DebugFlg) {
+		decodeAllImages(game).then(() => {
+			if (DebugFlg) {
 			game.debug();
-		} else {
-			game.start();
-		}
+			} else {
+				game.start();
+			}
+		});
 	}
-
-	/*function startFixedLoop(game) {
-		// enchant.js の内部ループを止める
-		game._requestNextFrame = function() {};
-
-		var FIXED_FPS = 60;
-		var FIXED_DT = 1000 / FIXED_FPS;
-		var accumulator = 0;
-		var lastTime = performance.now();
-
-		// ラグ補正（200ms 以上溜まったら切り捨て） 
-		const MAX_ACCUM = 200;
-
-		// 補間用：各 Node に prevX, prevY を追加する 
-		function storePrevPositions(scene) { 
-			scene.childNodes.forEach(node => { 
-				node.prevX = node.x; 
-				node.prevY = node.y; 
-			}); 
-		} 
-		// 補間適用：prev → curr を alpha で補間して描画 
-		function applyInterpolation(scene, alpha) { 
-			scene.childNodes.forEach(node => { 
-				if (node.prevX !== undefined) { 
-					node.x = node.prevX * (1 - alpha) + node.x * alpha; 
-					node.y = node.prevY * (1 - alpha) + node.y * alpha; 
-				} 
-			}); 
-		} 
-		// 補間後に元に戻す（次の tick のため） 
-		function restoreCurrentPositions(scene) { 
-			scene.childNodes.forEach(node => { 
-				if (node.prevX !== undefined) { 
-					node.x = node.x; // currX のまま 
-					node.y = node.y; 
-				} 
-			}); 
-		}
-		game._fixedTick = function() {
-			var now = performance.now();
-			var delta = now - lastTime;
-			lastTime = now;
-
-			accumulator += delta;
-
-			// ラグが溜まりすぎたら切り捨てる 
-			if (accumulator > MAX_ACCUM) { 
-				accumulator = FIXED_DT; 
-			}
-
-			// ロジック更新前に現在位置を保存 
-			if (game.currentScene) { 
-				storePrevPositions(game.currentScene);
-			}
-
-			while (accumulator >= FIXED_DT) {
-				game._tick();
-				accumulator -= FIXED_DT;
-			}
-
-			// 補間係数（0〜1） 
-			const alpha = accumulator / FIXED_DT;
-
-			// 補間して描画 
-			if (game._renderer && game.currentScene) { 
-				applyInterpolation(game.currentScene, alpha); 
-				game._renderer.render(game.currentScene); 
-				restoreCurrentPositions(game.currentScene); 
-			}
-			requestAnimationFrame(game._fixedTick);
-		};
-
-		requestAnimationFrame(game._fixedTick);
-
-
-	}*/
 
 	game.onload = function() {
 		var script = document.createElement("script");
@@ -13028,10 +13089,6 @@ window.onload = function() {
 		if (game.time % 10 == 0 && WorldFlg) {
 			window.focus();
 		}
-	}
-
-	if (canStart){
-		//startFixedLoop(game);
 	}
 };
 if (navigator.userAgent.match(/iPhone/)) {
