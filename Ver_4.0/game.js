@@ -7066,64 +7066,93 @@ window.onload = function() {
 				this.hittingTime++;
 			}
 
-			const RANGE = 3; // 自分を中心に4マス
+			// ===============================
+			// 爆弾回避ロジック 完全版
+			// ===============================
 
+			const RANGE = 4; // 自分を中心に4マス → 9×9
+
+			// --- ローカルグリッド取得 ---
 			function getLocalGrid(sceneGrid, cx, cy) {
 				const local = [];
+				const H = sceneGrid.length;      // 15
+				const W = sceneGrid[0].length;   // 20
+
 				for (let dy = -RANGE; dy <= RANGE; dy++) {
 					const row = [];
 					for (let dx = -RANGE; dx <= RANGE; dx++) {
 						const y = cy + dy;
 						const x = cx + dx;
-						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 1);
+
+						if (y < 0 || y >= H || x < 0 || x >= W) {
+							row.push(1); // 範囲外は壁扱い
+						} else {
+							row.push(sceneGrid[y][x]);
+						}
 					}
 					local.push(row);
 				}
-				return local; // 9×9
+				return local;
 			}
 
-			function findFarthestCell(localGrid, targetLocalPos) {
-				let best = null;
-				let bestDist = -1;
 
-				for (let y = 0; y < localGrid.length; y++) {
-					for (let x = 0; x < localGrid[0].length; x++) {
+			// --- 爆風範囲外の安全セル ---
+			function getSafeCells(localGrid, targetLocalPos, safeRange = 3) {
+				const safe = [];
+				const size = localGrid.length;
+
+				for (let y = 0; y < size; y++) {
+					for (let x = 0; x < size; x++) {
 						if (localGrid[y][x] === 1) continue;
 
 						const dx = x - targetLocalPos.x;
 						const dy = y - targetLocalPos.y;
-						const dist = dx*dx + dy*dy;
 
-						if (dist > bestDist) {
-							bestDist = dist;
-							best = { x, y };
+						if (Math.abs(dx) > safeRange || Math.abs(dy) > safeRange) {
+							safe.push({ x, y });
 						}
 					}
 				}
-				return best;
+				return safe;
 			}
 
-			function findEdgeFarthestCell(localGrid) {
-				const size = localGrid.length;
-				const edgeCells = [];
 
-				for (let y = 0; y < size; y++) {
-					for (let x = 0; x < size; x++) {
-						const isEdge = (x === 0 || y === 0 || x === size - 1 || y === size - 1);
-						if (!isEdge) continue;
-						if (localGrid[y][x] === 1) continue;
+			// --- 危険度コスト（1マス隙間を避ける） ---
+			function dangerCost(grid, x, y) {
+				let cost = 1;
 
-						edgeCells.push({ x, y });
+				const dirs = [
+					{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
+				];
+
+				let wallCount = 0;
+
+				for (const d of dirs) {
+					const nx = x + d.x;
+					const ny = y + d.y;
+
+					// ★ 範囲外は壁扱い
+					if (ny < 0 || ny >= grid.length || nx < 0 || nx >= grid[0].length) {
+						wallCount++;
+						continue;
+					}
+
+					if (grid[ny][nx] === 1) {
+						wallCount++;
 					}
 				}
 
-				if (edgeCells.length === 0) return null;
+				if (wallCount >= 2) {
+					cost += 5;
+				} else if (wallCount === 1) {
+					cost += 2;
+				}
 
-				// ランダム or 最遠距離で選択（ここではランダム）
-				return edgeCells[Math.floor(Math.random() * edgeCells.length)];
+				return cost;
 			}
 
 
+			// --- A*（危険度コスト付き） ---
 			function astar(grid, start, goal) {
 				const H = grid.length;
 				const W = grid[0].length;
@@ -7131,7 +7160,6 @@ window.onload = function() {
 				const open = [];
 				const closed = new Set();
 
-				const startKey = `${start.x},${start.y}`;
 				open.push({
 					x: start.x,
 					y: start.y,
@@ -7165,16 +7193,21 @@ window.onload = function() {
 					for (const d of dirs) {
 						const nx = cur.x + d.x;
 						const ny = cur.y + d.y;
-						if (nx<0||ny<0||nx>=W||ny>=H) continue;
+
+						// ★ 範囲外は無視
+						if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+
 						if (grid[ny][nx] === 1) continue;
 
 						const nkey = `${nx},${ny}`;
 						if (closed.has(nkey)) continue;
 
+						const moveCost = dangerCost(grid, nx, ny);
+
 						open.push({
 							x: nx,
 							y: ny,
-							g: cur.g + 1,
+							g: cur.g + moveCost,
 							h: Math.abs(goal.x - nx) + Math.abs(goal.y - ny),
 							parent: cur
 						});
@@ -7183,12 +7216,52 @@ window.onload = function() {
 				return null;
 			}
 
-			function escapeFromTarget(self, target) {
-				const cx = Math.floor(self.x / 64);
-				const cy = Math.floor(self.y / 64);
 
-				const tx = Math.floor(target.x / 64);
-				const ty = Math.floor(target.y / 64);
+			// --- 最遠セル（フォールバック用） ---
+			function findFarthestCell(localGrid, targetLocalPos) {
+				let best = null;
+				let bestDist = -1;
+
+				for (let y = 0; y < localGrid.length; y++) {
+					for (let x = 0; x < localGrid[0].length; x++) {
+						if (localGrid[y][x] === 1) continue;
+
+						const dx = x - targetLocalPos.x;
+						const dy = y - targetLocalPos.y;
+						const dist = dx*dx + dy*dy;
+
+						if (dist > bestDist) {
+							bestDist = dist;
+							best = { x, y };
+						}
+					}
+				}
+				return best;
+			}
+
+			// --- 方向変換 ---
+			function dirFromDelta(dx, dy) {
+				if (dx === 0 && dy === -1) return 0;
+				if (dx === 1 && dy === 0) return 1;
+				if (dx === 0 && dy === 1) return 2;
+				if (dx === -1 && dy === 0) return 3;
+				if (dx === 1 && dy === -1) return 4;
+				if (dx === 1 && dy === 1) return 5;
+				if (dx === -1 && dy === 1) return 6;
+				if (dx === -1 && dy === -1) return 7;
+				return null;
+			}
+
+			// --- escapeFromTarget（完全版） ---
+			function escapeFromTarget(self, target) {
+				const selfCenter = Get_Center(self);
+				const targetCenter = Get_Center(target);
+
+				const cx = Math.floor(selfCenter.x / 64);
+				const cy = Math.floor(selfCenter.y / 64);
+
+				const tx = Math.floor(targetCenter.x / 64);
+				const ty = Math.floor(targetCenter.y / 64);
 
 				const localGrid = getLocalGrid(scene.grid, cx, cy);
 
@@ -7198,15 +7271,29 @@ window.onload = function() {
 					y: RANGE + (ty - cy) 
 				};
 
-				let goal;
+				// ① 安全セルを列挙
+				const safeCells = getSafeCells(localGrid, targetLocal, 4);
 
-				// ★ 対象と同じマスにいる場合の特別処理
-				if (targetLocal.x === start.x && targetLocal.y === start.y) {
-					goal = findEdgeFarthestCell(localGrid);
-				} else {
-					goal = findFarthestCell(localGrid, targetLocal);
+				let bestPath = null;
+
+				// ② 安全セルの中から最短で行ける場所を探す
+				for (const cell of safeCells) {
+					const path = astar(localGrid, start, cell);
+					if (!path) continue;
+
+					if (!bestPath || path.length < bestPath.length) {
+						bestPath = path;
+					}
 				}
 
+				// ③ 安全セルへ行けるならその方向へ
+				if (bestPath && bestPath.length >= 2) {
+					const next = bestPath[1];
+					return dirFromDelta(next.x - start.x, next.y - start.y);
+				}
+
+				// ④ 安全セルが無い → 最遠セルへフォールバック
+				const goal = findFarthestCell(localGrid, targetLocal);
 				if (!goal) return null;
 
 				const path = astar(localGrid, start, goal);
@@ -7216,18 +7303,6 @@ window.onload = function() {
 				return dirFromDelta(next.x - start.x, next.y - start.y);
 			}
 
-
-			function dirFromDelta(dx, dy) {
-				if (dx === 0 && dy === -1) return 0; // 上
-				if (dx === 1 && dy === 0) return 1; // 右
-				if (dx === 0 && dy === 1) return 2; // 下
-				if (dx === -1 && dy === 0) return 3; // 左
-				if (dx === 1 && dy === -1) return 4; // 右上
-				if (dx === 1 && dy === 1) return 5; // 右下
-				if (dx === -1 && dy === 1) return 6; // 左下
-				if (dx === -1 && dy === -1) return 7; // 左上
-				return null;
-			}
 
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
@@ -7395,38 +7470,42 @@ window.onload = function() {
 													this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 												}
 												this.hittingTime = 0;
-											} else if (this.time % 10 === 0) SelDirection(this.weak, this.attackTarget, 1);
-										}
-										
-
-										// 他のタンクとの接近チェック
-										if ((tankEntity.length - destruction) - 1 > 2) {
-											let match = TankBase.intersectStrict(this.around);
-											if (match.length > 0){
-												if(match[0].num != this.num && deadFlgs[match[0].num] == false){
-													SelDirection(this.weak, match[0], 0);
+											} else{
+												if (this.time % 10 === 0) SelDirection(this.weak, this.attackTarget, 1);
+												// 他のタンクとの接近チェック
+												if ((tankEntity.length - destruction) - 1 > 2) {
+													let match = TankBase.intersectStrict(this.around);
+													if (match.length > 0){
+														if(match[0].num != this.num && deadFlgs[match[0].num] == false){
+															SelDirection(this.weak, match[0], 0);
+														}
+													}
 												}
-											}
-										}
+												// 爆弾との距離チェック
+												if (Bom.collection.length > 0) {
+													let closest = null;
+													let minDistSq = Infinity; // ← ここが重要
 
-										// 爆弾との距離チェック
-										if (Bom.collection.length > 0) {
-											let closest = null;
-											let minDistSq = 200 * 200;
-											for (const c of Bom.collection) {
-												const dx = this.weak.x - c.x;
-												const dy = this.weak.y - c.y;
-												const dSq = dx * dx + dy * dy;
-												if (dSq < minDistSq) {
-													minDistSq = dSq;
-													closest = c;
+													for (const c of Bom.collection) {
+														const dx = this.weak.x - c.x;
+														const dy = this.weak.y - c.y;
+														const dSq = dx * dx + dy * dy;
+
+														if (dSq < minDistSq) {
+															minDistSq = dSq;
+															closest = c;
+														}
+													}
+
+													// 200px以内なら回避
+													if (closest && minDistSq <= 200 * 200) {
+														this.bomReload = 0;
+														this.bomSetFlg = true;
+														this.dirValue = escapeFromTarget(this.weak, closest);
+													}
 												}
-											}
-											if (closest){
-												this.bomReload = 0;
-												this.bomSetFlg = true;
-												//SelDirection(this.weak, closest, 0);
-												this.dirValue = escapeFromTarget(this.weak, closest);
+
+												
 											}
 										}
 									}
@@ -9150,64 +9229,93 @@ window.onload = function() {
 				if (arr.indexOf(self.dirValue) == -1) self.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
-			const RANGE = 3; // 自分を中心に4マス
+			// ===============================
+			// 爆弾回避ロジック 完全版
+			// ===============================
 
+			const RANGE = 4; // 自分を中心に4マス → 9×9
+
+			// --- ローカルグリッド取得 ---
 			function getLocalGrid(sceneGrid, cx, cy) {
 				const local = [];
+				const H = sceneGrid.length;      // 15
+				const W = sceneGrid[0].length;   // 20
+
 				for (let dy = -RANGE; dy <= RANGE; dy++) {
 					const row = [];
 					for (let dx = -RANGE; dx <= RANGE; dx++) {
 						const y = cy + dy;
 						const x = cx + dx;
-						row.push(sceneGrid[y] && sceneGrid[y][x] ? sceneGrid[y][x] : 1);
+
+						if (y < 0 || y >= H || x < 0 || x >= W) {
+							row.push(1); // 範囲外は壁扱い
+						} else {
+							row.push(sceneGrid[y][x]);
+						}
 					}
 					local.push(row);
 				}
-				return local; // 9×9
+				return local;
 			}
 
-			function findFarthestCell(localGrid, targetLocalPos) {
-				let best = null;
-				let bestDist = -1;
 
-				for (let y = 0; y < localGrid.length; y++) {
-					for (let x = 0; x < localGrid[0].length; x++) {
+			// --- 爆風範囲外の安全セル ---
+			function getSafeCells(localGrid, targetLocalPos, safeRange = 3) {
+				const safe = [];
+				const size = localGrid.length;
+
+				for (let y = 0; y < size; y++) {
+					for (let x = 0; x < size; x++) {
 						if (localGrid[y][x] === 1) continue;
 
 						const dx = x - targetLocalPos.x;
 						const dy = y - targetLocalPos.y;
-						const dist = dx*dx + dy*dy;
 
-						if (dist > bestDist) {
-							bestDist = dist;
-							best = { x, y };
+						if (Math.abs(dx) > safeRange || Math.abs(dy) > safeRange) {
+							safe.push({ x, y });
 						}
 					}
 				}
-				return best;
+				return safe;
 			}
 
-			function findEdgeFarthestCell(localGrid) {
-				const size = localGrid.length;
-				const edgeCells = [];
 
-				for (let y = 0; y < size; y++) {
-					for (let x = 0; x < size; x++) {
-						const isEdge = (x === 0 || y === 0 || x === size - 1 || y === size - 1);
-						if (!isEdge) continue;
-						if (localGrid[y][x] === 1) continue;
+			// --- 危険度コスト（1マス隙間を避ける） ---
+			function dangerCost(grid, x, y) {
+				let cost = 1;
 
-						edgeCells.push({ x, y });
+				const dirs = [
+					{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
+				];
+
+				let wallCount = 0;
+
+				for (const d of dirs) {
+					const nx = x + d.x;
+					const ny = y + d.y;
+
+					// ★ 範囲外は壁扱い
+					if (ny < 0 || ny >= grid.length || nx < 0 || nx >= grid[0].length) {
+						wallCount++;
+						continue;
+					}
+
+					if (grid[ny][nx] === 1) {
+						wallCount++;
 					}
 				}
 
-				if (edgeCells.length === 0) return null;
+				if (wallCount >= 2) {
+					cost += 5;
+				} else if (wallCount === 1) {
+					cost += 2;
+				}
 
-				// ランダム or 最遠距離で選択（ここではランダム）
-				return edgeCells[Math.floor(Math.random() * edgeCells.length)];
+				return cost;
 			}
 
 
+			// --- A*（危険度コスト付き） ---
 			function astar(grid, start, goal) {
 				const H = grid.length;
 				const W = grid[0].length;
@@ -9215,7 +9323,6 @@ window.onload = function() {
 				const open = [];
 				const closed = new Set();
 
-				const startKey = `${start.x},${start.y}`;
 				open.push({
 					x: start.x,
 					y: start.y,
@@ -9249,16 +9356,21 @@ window.onload = function() {
 					for (const d of dirs) {
 						const nx = cur.x + d.x;
 						const ny = cur.y + d.y;
-						if (nx<0||ny<0||nx>=W||ny>=H) continue;
+
+						// ★ 範囲外は無視
+						if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+
 						if (grid[ny][nx] === 1) continue;
 
 						const nkey = `${nx},${ny}`;
 						if (closed.has(nkey)) continue;
 
+						const moveCost = dangerCost(grid, nx, ny);
+
 						open.push({
 							x: nx,
 							y: ny,
-							g: cur.g + 1,
+							g: cur.g + moveCost,
 							h: Math.abs(goal.x - nx) + Math.abs(goal.y - ny),
 							parent: cur
 						});
@@ -9267,12 +9379,52 @@ window.onload = function() {
 				return null;
 			}
 
-			function escapeFromTarget(self, target) {
-				const cx = Math.floor(self.x / 64);
-				const cy = Math.floor(self.y / 64);
 
-				const tx = Math.floor(target.x / 64);
-				const ty = Math.floor(target.y / 64);
+			// --- 最遠セル（フォールバック用） ---
+			function findFarthestCell(localGrid, targetLocalPos) {
+				let best = null;
+				let bestDist = -1;
+
+				for (let y = 0; y < localGrid.length; y++) {
+					for (let x = 0; x < localGrid[0].length; x++) {
+						if (localGrid[y][x] === 1) continue;
+
+						const dx = x - targetLocalPos.x;
+						const dy = y - targetLocalPos.y;
+						const dist = dx*dx + dy*dy;
+
+						if (dist > bestDist) {
+							bestDist = dist;
+							best = { x, y };
+						}
+					}
+				}
+				return best;
+			}
+
+			// --- 方向変換 ---
+			function dirFromDelta(dx, dy) {
+				if (dx === 0 && dy === -1) return 0;
+				if (dx === 1 && dy === 0) return 1;
+				if (dx === 0 && dy === 1) return 2;
+				if (dx === -1 && dy === 0) return 3;
+				if (dx === 1 && dy === -1) return 4;
+				if (dx === 1 && dy === 1) return 5;
+				if (dx === -1 && dy === 1) return 6;
+				if (dx === -1 && dy === -1) return 7;
+				return null;
+			}
+
+			// --- escapeFromTarget（完全版） ---
+			function escapeFromTarget(self, target) {
+				const selfCenter = Get_Center(self);
+				const targetCenter = Get_Center(target);
+
+				const cx = Math.floor(selfCenter.x / 64);
+				const cy = Math.floor(selfCenter.y / 64);
+
+				const tx = Math.floor(targetCenter.x / 64);
+				const ty = Math.floor(targetCenter.y / 64);
 
 				const localGrid = getLocalGrid(scene.grid, cx, cy);
 
@@ -9282,15 +9434,29 @@ window.onload = function() {
 					y: RANGE + (ty - cy) 
 				};
 
-				let goal;
+				// ① 安全セルを列挙
+				const safeCells = getSafeCells(localGrid, targetLocal, 4);
 
-				// ★ 対象と同じマスにいる場合の特別処理
-				if (targetLocal.x === start.x && targetLocal.y === start.y) {
-					goal = findEdgeFarthestCell(localGrid);
-				} else {
-					goal = findFarthestCell(localGrid, targetLocal);
+				let bestPath = null;
+
+				// ② 安全セルの中から最短で行ける場所を探す
+				for (const cell of safeCells) {
+					const path = astar(localGrid, start, cell);
+					if (!path) continue;
+
+					if (!bestPath || path.length < bestPath.length) {
+						bestPath = path;
+					}
 				}
 
+				// ③ 安全セルへ行けるならその方向へ
+				if (bestPath && bestPath.length >= 2) {
+					const next = bestPath[1];
+					return dirFromDelta(next.x - start.x, next.y - start.y);
+				}
+
+				// ④ 安全セルが無い → 最遠セルへフォールバック
+				const goal = findFarthestCell(localGrid, targetLocal);
 				if (!goal) return null;
 
 				const path = astar(localGrid, start, goal);
@@ -9298,19 +9464,6 @@ window.onload = function() {
 
 				const next = path[1];
 				return dirFromDelta(next.x - start.x, next.y - start.y);
-			}
-
-
-			function dirFromDelta(dx, dy) {
-				if (dx === 0 && dy === -1) return 0; // 上
-				if (dx === 1 && dy === 0) return 1; // 右
-				if (dx === 0 && dy === 1) return 2; // 下
-				if (dx === -1 && dy === 0) return 3; // 左
-				if (dx === 1 && dy === -1) return 4; // 右上
-				if (dx === 1 && dy === 1) return 5; // 右下
-				if (dx === -1 && dy === 1) return 6; // 左下
-				if (dx === -1 && dy === -1) return 7; // 左上
-				return null;
 			}
 
 			this.onenterframe = function() {
@@ -9392,64 +9545,7 @@ window.onload = function() {
 
 							this.time++;
 
-							if (this.hittingTime >= 30) {
-								if (!this.bomSetFlg) {
-									let arr = [];
-									switch (this.dirValue) {
-										case 0:
-											arr = [5, 6];
-											if (this.root[0] == "North") {
-												arr = [4, 7];
-											}
-											break;
-										case 1:
-											arr = [7, 6];
-											if (this.root[0] == "East") {
-												arr = [4, 5];
-											}
-											break;
-										case 2:
-											arr = [4, 7];
-											if (this.root[0] == "South") {
-												arr = [5, 6];
-											}
-											break;
-										case 3:
-											arr = [4, 5];
-											if (this.root[0] == "West") {
-												arr = [6, 7];
-											}
-											break;
-										case 4:
-											arr = [2, 3, 5, 7];
-											break;
-										case 5:
-											arr = [0, 3, 4, 6];
-											break;
-										case 6:
-											arr = [0, 1, 5, 7];
-											break;
-										case 7:
-											arr = [1, 2, 4, 6];
-									}
-
-									this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-									this.grid = JSON.parse(JSON.stringify(scene.grid));
-									let bk = arr;
-
-									let ng = NG_root_set();
-									arr = arr.filter(i => ng.indexOf(i) == -1);
-
-									if (arr.length == 0) {
-										arr = bk;
-									}
-
-									if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
-								}
-
-
-								this.hittingTime = 0;
-							}
+							
 
 							//  爆弾が設置された場合の処理
 							if (this.bomSetFlg) {
@@ -9491,7 +9587,7 @@ window.onload = function() {
 							
 							if (!this.shotNGflg && !this.bomSetFlg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
-									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false) {
+									if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.escapeFlg) {
 										this._Attack();
 									}
 								}
@@ -9533,27 +9629,96 @@ window.onload = function() {
 									if (this.escapeFlg) {
 										this.dirValue = Escape_Rot8(this, this.escapeTarget, this.dirValue);
 									} else {
-										if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
-											SelDirection(this, this.attackTarget, 0);
-										} else {
-											if (rootFlg) {
-												if (this.time % 9 == 0) {
-													SelDirection(this, this.target, 1);
+										if (this.hittingTime >= 30) {
+											if (!this.bomSetFlg) {
+												let arr = [];
+												switch (this.dirValue) {
+													case 0:
+														arr = [5, 6];
+														if (this.root[0] == "North") {
+															arr = [4, 7];
+														}
+														break;
+													case 1:
+														arr = [7, 6];
+														if (this.root[0] == "East") {
+															arr = [4, 5];
+														}
+														break;
+													case 2:
+														arr = [4, 7];
+														if (this.root[0] == "South") {
+															arr = [5, 6];
+														}
+														break;
+													case 3:
+														arr = [4, 5];
+														if (this.root[0] == "West") {
+															arr = [6, 7];
+														}
+														break;
+													case 4:
+														arr = [2, 3, 5, 7];
+														break;
+													case 5:
+														arr = [0, 3, 4, 6];
+														break;
+													case 6:
+														arr = [0, 1, 5, 7];
+														break;
+													case 7:
+														arr = [1, 2, 4, 6];
 												}
-											} else {
 
+												this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
+												this.grid = JSON.parse(JSON.stringify(scene.grid));
+												let bk = arr;
+
+												let ng = NG_root_set();
+												arr = arr.filter(i => ng.indexOf(i) == -1);
+
+												if (arr.length == 0) {
+													arr = bk;
+												}
+
+												if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 											}
-										}
-										if (Bom.collection.length > 0) {
-											for (var i = 0, l = Bom.collection.length; i < l; i++) {
-												let c = Bom.collection[i];
-												if (Math.sqrt(Math.pow(this.weak.x - c.x, 2) + Math.pow(this.weak.y - c.y, 2)) < 200) {
-													//SelDirection(this, c, 0);
-													this.dirValue = escapeFromTarget(this.weak, c);
-													break;
+
+
+											this.hittingTime = 0;
+										}else{
+											if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
+												SelDirection(this, this.attackTarget, 0);
+											} else {
+												if (rootFlg) {
+													if (this.time % 9 == 0) {
+														SelDirection(this, this.target, 1);
+													}
+												} else {
+
+												}
+											}
+											// 爆弾との距離チェック
+											if (Bom.collection.length > 0) {
+												let closest = null;
+												let minDistSq = 200 * 200;
+												for (const c of Bom.collection) {
+													const dx = this.weak.x - c.x;
+													const dy = this.weak.y - c.y;
+													const dSq = dx * dx + dy * dy;
+													if (dSq < minDistSq) {
+														minDistSq = dSq;
+														closest = c;
+													}
+												}
+												if (closest){
+													this.bomReload = 0;
+													this.bomSetFlg = true;
+													this.dirValue = escapeFromTarget(this.weak, closest);
 												}
 											}
 										}
+										
 									}
 								}
 								if (!this.shotStopFlg) {
