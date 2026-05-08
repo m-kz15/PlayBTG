@@ -1664,231 +1664,6 @@ class ActBtn {
     }
 }
 
-
-/*(function() {
-
-    const FIXED_FPS = 60;
-    const FIXED_DT = 1000 / FIXED_FPS;
-    const MAX_ACCUM = 200; // ★ ラグ耐性を強化
-
-    enchant.Core.prototype.enableFixedLoop = function() {
-        const core = this;
-
-        // enchant.js の内部ループを完全停止
-        core._requestNextFrame = function() {};
-
-        let accumulator = 0;
-        let lastTime = performance.now();
-
-        // 前フレーム位置を保存（ロジック更新が走る時だけ）
-        function storePrevPositions(scene) {
-            for (let i = 0; i < scene.childNodes.length; i++) {
-                const node = scene.childNodes[i];
-                node._prevX = node.x;
-                node._prevY = node.y;
-            }
-        }
-
-        // DOM 版：位置が変わったノードだけ transform 更新
-        function renderInterpolated(scene, alpha) {
-            for (let i = 0; i < scene.childNodes.length; i++) {
-                const node = scene.childNodes[i];
-                if (!node._element || node._prevX === undefined) continue;
-
-                const prevX = node._prevX;
-                const prevY = node._prevY;
-
-                // 位置が変わっていないなら transform 更新しない（超重要）
-                if (prevX === node.x && prevY === node.y) continue;
-
-                const drawX = prevX + (node.x - prevX) * alpha;
-                const drawY = prevY + (node.y - prevY) * alpha;
-
-                node._element.style.transform =
-                    `translate3d(${drawX}px,${drawY}px,0)`;
-            }
-        }
-
-        core._fixedTick = function() {
-            const now = performance.now();
-            const delta = now - lastTime;
-            lastTime = now;
-
-            accumulator += delta;
-            if (accumulator > MAX_ACCUM) {
-                accumulator = FIXED_DT; // ★ ラグ後の復帰が滑らかになる
-            }
-
-            const scene = core.currentScene;
-
-            // ロジック更新が走る時だけ prev を保存
-            if (scene && accumulator >= FIXED_DT) {
-                storePrevPositions(scene);
-            }
-
-            // 固定ロジック更新
-            while (accumulator >= FIXED_DT) {
-                core._tick();
-                accumulator -= FIXED_DT;
-            }
-
-            // 補間値
-            const alpha = Math.min(Math.max(accumulator / FIXED_DT, 0), 1);
-
-            // 補間描画（DOM 版）
-            if (scene) {
-                renderInterpolated(scene, alpha);
-            }
-
-            requestAnimationFrame(core._fixedTick);
-        };
-
-        requestAnimationFrame(core._fixedTick);
-    };
-
-})();*/
-/*(function() {
-
-    const FIXED_FPS = 60;
-    const FIXED_DT = 1000 / FIXED_FPS;
-    const MAX_ACCUM = 200; // ラグ耐性
-
-    enchant.Core.prototype.enableFixedTick = function() {
-        const core = this;
-
-        // enchant.js の内部ループを止める
-        core._requestNextFrame = function() {};
-
-        let last = performance.now();
-        let accumulator = 0;
-
-        function loop() {
-            const now = performance.now();
-            let delta = now - last;
-            last = now;
-
-            accumulator += delta;
-
-            // ★ ラグが溜まったら完全リセット（最重要）
-            if (accumulator > MAX_ACCUM) {
-                accumulator = 0;
-            }
-
-            // ★ 固定フレームで _tick() を回す
-            while (accumulator >= FIXED_DT) {
-                core._tick();      // ← enchant.js のロジック更新
-                accumulator -= FIXED_DT;
-            }
-
-            // ★ 補間値（描画用）
-            const alpha = accumulator / FIXED_DT;
-
-            // ★ 補間描画（Canvas なら draw、DOM なら transform）
-            if (core.currentScene && core.currentScene._interpolate) {
-                core.currentScene._interpolate(alpha);
-            }
-
-            requestAnimationFrame(loop);
-        }
-
-        requestAnimationFrame(loop);
-    };
-
-})();*/
-
-
-/*// ★ enchant.js 読み込み後、enchant() の後に置く
-(function() {
-    // Core の初期化をパッチして CanvasLayer を強制使用
-    var _coreInit = enchant.Core.prototype.initialize;
-    enchant.Core.prototype.initialize = function(width, height) {
-        _coreInit.call(this, width, height);
-
-        // DOM レイヤーを消して Canvas レイヤーを作る
-        this._layers = {};
-        this._layers[0] = new enchant.CanvasLayer();
-        this._layers[0].initialize(this);
-
-        // CanvasRenderer を使う
-        this._layers[0].context = this._layers[0]._element.getContext('2d');
-    };
-})();
-(function() {
-
-    const FIXED_FPS = 60;
-    const FIXED_DT = 1000 / FIXED_FPS;
-    const MAX_ACCUM = 200;
-
-    enchant.Core.prototype.enableFixedLoopCanvas = function() {
-        const core = this;
-
-        core._requestNextFrame = function() {};
-
-        let accumulator = 0;
-        let lastTime = performance.now();
-
-        // 前フレーム位置を保存
-        function storePrevPositions(scene) {
-            scene.childNodes.forEach(node => {
-                node._prevX = node.x;
-                node._prevY = node.y;
-            });
-        }
-
-        // Canvas 版：補間描画
-        function renderInterpolated(scene, alpha) {
-            const layer = core._layers[0]; // ★ CanvasRenderer
-			const ctx = layer.context;
-            ctx.clearRect(0, 0, core.width, core.height);
-
-            scene.childNodes.forEach(node => {
-                if (!node.image) return;
-
-                const px = node._prevX ?? node.x;
-                const py = node._prevY ?? node.y;
-
-                const drawX = px + (node.x - px) * alpha;
-                const drawY = py + (node.y - py) * alpha;
-
-                ctx.drawImage(node.image._element, drawX, drawY);
-            });
-        }
-
-        core._fixedTick = function() {
-            const now = performance.now();
-            const delta = now - lastTime;
-            lastTime = now;
-
-            accumulator += delta;
-            if (accumulator > MAX_ACCUM) {
-                accumulator = FIXED_DT;
-            }
-
-            const scene = core.currentScene;
-
-            if (scene && accumulator >= FIXED_DT) {
-                storePrevPositions(scene);
-            }
-
-            while (accumulator >= FIXED_DT) {
-                core._tick();
-                accumulator -= FIXED_DT;
-            }
-
-            const alpha = Math.min(Math.max(accumulator / FIXED_DT, 0), 1);
-
-            if (scene) {
-                renderInterpolated(scene, alpha);
-            }
-
-            requestAnimationFrame(core._fixedTick);
-        };
-
-        requestAnimationFrame(core._fixedTick);
-    };
-
-})();*/
-
 (function() {
 
     const FIXED_FPS   = 60;
@@ -2123,6 +1898,249 @@ function decodeAllImages(core) {
     return Promise.all(promises);
 }
 
+var AudioManager = {
+    bgmVolume: 0.5,
+    seVolume: 0.5,
+    muted: false,
+    currentBgm: null,
+    fadeInterval: null,
+    tempBgmRate: 1.0,   // 一時的なBGM音量倍率
+
+    // -------------------------
+    // 設定の読み込み / 保存
+    // -------------------------
+    loadSettings: function() {
+        var bgm = localStorage.getItem("bgmVolume");
+        var se  = localStorage.getItem("seVolume");
+        var mute = localStorage.getItem("muted");
+
+        if (bgm !== null)  this.bgmVolume = parseFloat(bgm);
+        if (se !== null)   this.seVolume  = parseFloat(se);
+        if (mute !== null) this.muted     = (mute === "true");
+    },
+
+    saveSettings: function() {
+        localStorage.setItem("bgmVolume", this.bgmVolume);
+        localStorage.setItem("seVolume",  this.seVolume);
+        localStorage.setItem("muted",     this.muted);
+    },
+
+    // -------------------------
+    // 音量設定
+    // -------------------------
+    setBgmVolume: function(v) {
+        this.bgmVolume = v;
+        this.saveSettings();
+
+        if (this.currentBgm) {
+            this.currentBgm._element.volume = this.muted ? 0 : v * this.tempBgmRate;
+        }
+    },
+
+    setSeVolume: function(v) {
+        this.seVolume = v;
+        this.saveSettings();
+    },
+
+    toggleMute: function() {
+        this.muted = !this.muted;
+        this.saveSettings();
+
+        if (this.currentBgm) {
+            this.currentBgm._element.volume =
+                this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
+        }
+    },
+
+    // -------------------------
+    // BGM 再生
+    // -------------------------
+    playBgm: function(sound, volumeRate) {
+        volumeRate = volumeRate || 1.0;
+
+        var finalVolume = this.muted
+            ? 0
+            : (this.bgmVolume * this.tempBgmRate * volumeRate);
+
+        if (this.currentBgm) {
+            this.currentBgm.stop();
+        }
+
+        this.currentBgm = sound;
+
+        var elem = sound._element;
+        elem.volume = finalVolume;
+
+        // Safari / iOS 対策（念のため）
+        elem.preload = "auto";
+        elem.load();
+
+        sound.play();
+    },
+
+    // -------------------------
+    // BGM 停止
+    // -------------------------
+    stopBgm: function() {
+        if (this.currentBgm) {
+            this.currentBgm.stop();
+            this.currentBgm = null;
+        }
+    },
+
+    // -------------------------
+    // BGM フェードイン
+    // -------------------------
+    fadeInBgm: function(sound, duration) {
+        duration = duration || 1000;
+
+        if (this.currentBgm) this.currentBgm.stop();
+
+        this.currentBgm = sound;
+        var elem = sound._element;
+
+        elem.volume = 0;
+
+        elem.preload = "auto";
+        elem.load();
+        sound.play();
+
+        var targetVolume = this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
+        var step = (targetVolume / (duration / 50));
+        var self = this;
+
+        clearInterval(this.fadeInterval);
+        this.fadeInterval = setInterval(function() {
+            if (elem.volume < targetVolume) {
+                elem.volume += step;
+                if (elem.volume > targetVolume) elem.volume = targetVolume;
+            } else {
+                elem.volume = targetVolume;
+                clearInterval(self.fadeInterval);
+            }
+        }, 50);
+    },
+
+    // -------------------------
+    // BGM フェードアウト
+    // -------------------------
+    fadeOutBgm: function(duration) {
+        duration = duration || 1000;
+        if (!this.currentBgm) return;
+
+        var elem = this.currentBgm._element;
+        var step = (elem.volume / (duration / 50));
+        var self = this;
+
+        clearInterval(this.fadeInterval);
+        this.fadeInterval = setInterval(function() {
+            if (elem.volume > 0) {
+                elem.volume -= step;
+                if (elem.volume < 0) elem.volume = 0;
+            } else {
+                elem.volume = 0;
+                self.currentBgm.stop();
+                self.currentBgm = null;
+                clearInterval(self.fadeInterval);
+            }
+        }, 50);
+    },
+
+    // -------------------------
+    // BGM クロスフェード
+    // -------------------------
+    crossFade: function(newSound, duration) {
+        this.fadeOutBgm(duration);
+        this.fadeInBgm(newSound, duration);
+    },
+
+    // -------------------------
+    // SE 再生（完全最適化版・無制限同時再生）
+    // -------------------------
+    playSe: function(sound, volumeRate) {
+        volumeRate = volumeRate || 1.0;
+        var finalVolume = this.muted ? 0 : (this.seVolume * volumeRate);
+
+        // 毎回 clone() して新しい Audio を生成
+        var se   = sound.clone();
+        var elem = se._element;
+
+        // Safari / iOS 対策：preload を強制
+        elem.preload = "auto";
+        elem.load();
+
+        // readyState に応じて currentTime を安全にリセット
+        if (elem.readyState >= 2) {
+            elem.currentTime = 0;
+        } else {
+            elem.addEventListener("loadeddata", function handler() {
+                elem.removeEventListener("loadeddata", handler);
+                elem.currentTime = 0;
+            });
+        }
+
+        elem.volume = finalVolume;
+
+        // 再生終了後に完全破棄
+        elem.addEventListener("ended", function handler() {
+            elem.removeEventListener("ended", handler);
+
+            elem.pause();
+            elem.removeAttribute("src");
+            elem.load();
+
+            se = null;
+        }, { once: true });
+
+        se.play();
+    },
+
+    // -------------------------
+    // BGM 一時停止 / 再開
+    // -------------------------
+    pauseBgm: function() {
+        if (this.currentBgm) {
+            this.currentBgm._element.pause();
+        }
+    },
+
+    resumeBgm: function() {
+        if (this.currentBgm) {
+            this.currentBgm._element.play();
+        }
+    },
+
+    // -------------------------
+    // 一時的なBGM音量倍率
+    // -------------------------
+    setBgmTemporaryVolume: function(rate) {
+        this.tempBgmRate = rate;
+
+        if (this.currentBgm) {
+            this.currentBgm._element.volume =
+                (this.muted ? 0 : this.bgmVolume * this.tempBgmRate);
+        }
+    },
+
+    resetBgmTemporaryVolume: function() {
+        this.tempBgmRate = 1.0;
+
+        if (this.currentBgm) {
+            this.currentBgm._element.volume =
+                (this.muted ? 0 : this.bgmVolume);
+        }
+    }
+};
+
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        // 画面が非表示になった（タブ移動 / ホームボタンなど）
+        AudioManager.pauseBgm();
+    } else {
+        // 画面が再表示された
+        AudioManager.resumeBgm();
+    }
+});
 
 window.onload = function() {
 	game = new Core(Stage_W * PixelSize, Stage_H * PixelSize);
@@ -2197,9 +2215,6 @@ window.onload = function() {
 		'./sound/TENTH.mp3',
 		'./sound/ELEVENTH.mp3'
 	);
-	//game.enableFixedLoop();
-	//game.enableFixedTick();
-	//game.enableFixedLoopCanvas();
 	game.enableHybridFixedLoop({
 		useCanvas: false,
         autoRenderSkip: true
@@ -3608,14 +3623,14 @@ window.onload = function() {
 
 			const dx = aim.tgt[0] - target.x;
 			const dy = aim.tgt[1] - target.y;
-			const distToTarget = Math.hypot(dx, dy);
+			const distToTarget = dx * dx + dy * dy;
 			if (!isFinite(distToTarget)) {
 				return -Infinity;
 			}
 
 			// --- スコア ---
 			const score =
-				-distToTarget * 1.0 +
+				-distToTarget * 0.001 +
 				distToFirstWall * 0.05 -
 				reflectCount * 5;
 
@@ -3660,6 +3675,8 @@ window.onload = function() {
 			}
 		}
 
+		aim.remove();
+
 		// --- 元の角度に戻す ---
 		from.rotation = originalRot;
 
@@ -3672,8 +3689,6 @@ window.onload = function() {
 		if (Math.abs(bestScore) < 50) {
 			return NaN;
 		}
-
-		aim.remove();
 
 		return fineBest;
 	}
@@ -3929,7 +3944,8 @@ window.onload = function() {
 				if (angleChanged) {
 					this.ref--;
 					if (gameStatus === 0)
-						game.assets['./sound/s_car_trunk_O.wav'].clone().play();
+						AudioManager.playSe(game.assets['./sound/s_car_trunk_O.wav']);
+						//game.assets['./sound/s_car_trunk_O.wav'].clone().play();
 				}
 
 
@@ -3953,9 +3969,11 @@ window.onload = function() {
 			now_scene.BulletGroup.addChild(this);
 			now_scene.BulletGroup.addChild(this.bullet);
 			new OpenFire(this.from);
-			game.assets['./sound/s_car_door_O2.wav'].clone().play();
+			//game.assets['./sound/s_car_door_O2.wav'].clone().play();
+			AudioManager.playSe(game.assets['./sound/s_car_door_O2.wav']);
 			if (this.shotSpeed >= 14)
-				game.assets['./sound/Sample_0003.wav'].clone().play();
+				AudioManager.playSe(game.assets['./sound/Sample_0003.wav']);
+				//game.assets['./sound/Sample_0003.wav'].clone().play();
 		},
 
 		_Destroy: function () {
@@ -3967,7 +3985,8 @@ window.onload = function() {
 			now_scene.BulletGroup.removeChild(this);
 			now_scene.BulletGroup.removeChild(this.bullet);
 			if (gameStatus === 0)
-				game.assets['./sound/Sample_0000.wav'].clone().play();
+				AudioManager.playSe(game.assets['./sound/Sample_0000.wav']);
+				//game.assets['./sound/Sample_0000.wav'].clone().play();
 		},
 
 		getRandomOffset: function (category) {
@@ -4117,10 +4136,12 @@ window.onload = function() {
 			now_scene.BulletGroup.addChild(this);
 
 			new OpenFire(this.from);
-			game.assets['./sound/s_car_door_O2.wav'].clone().play();
+			AudioManager.playSe(game.assets['./sound/s_car_door_O2.wav']);
+			//game.assets['./sound/s_car_door_O2.wav'].clone().play();
 
 			if (this.shotSpeed > 7) {
-				game.assets['./sound/Sample_0003.wav'].clone().play();
+				AudioManager.playSe(game.assets['./sound/Sample_0003.wav']);
+				//game.assets['./sound/Sample_0003.wav'].clone().play();
 			}
 
 			this._startMotion();
@@ -4217,9 +4238,10 @@ window.onload = function() {
 		// ★★★ 爆発処理（範囲ダメージ） ★★★
 		_Explode: function() {
 			if (gameStatus === 0) {
-				let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
+				/*let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
 				sound.play();
-				sound.volume = 0.2;
+				sound.volume = 0.2;*/
+				AudioManager.playSe(game.assets['./sound/mini_bomb2.mp3'], 0.2);
 			}
 
 			new TouchFire(this);
@@ -4271,7 +4293,8 @@ window.onload = function() {
 								(this.time % 2 === 0) ? this.imageYellow : this.image;
 
 					if (this.time % 6 === 0 && gameStatus === 0) {
-						game.assets['./sound/Sample_0010.wav'].clone().play();
+						//game.assets['./sound/Sample_0010.wav'].clone().play();
+						AudioManager.playSe(game.assets['./sound/Sample_0010.wav']);
 					}
 					if (gameStatus === 0 && this.time === 45) {
 						this._Destroy();
@@ -4312,7 +4335,8 @@ window.onload = function() {
 		_SetBom: function() {
 			boms[this.num]++;
 			now_scene.BomGroup.addChild(this);
-			game.assets['./sound/Sample_0009.wav'].clone().play();
+			//game.assets['./sound/Sample_0009.wav'].clone().play();
+			AudioManager.playSe(game.assets['./sound/Sample_0009.wav']);
 			this.explosionRange = new ExplosionRange(125);
 			now_scene.MarkGroup.addChild(this.explosionRange);
 		},
@@ -4322,7 +4346,8 @@ window.onload = function() {
 			new BombExplosion(this);
 			this.moveTo(-900, -900);
 			now_scene.BomGroup.removeChild(this);
-			game.assets['./sound/mini_bomb2.mp3'].play();
+			AudioManager.playSe(game.assets['./sound/mini_bomb2.mp3']);
+			//game.assets['./sound/mini_bomb2.mp3'].play();
 			now_scene.MarkGroup.removeChild(this.explosionRange);
 		},
 
@@ -5702,8 +5727,9 @@ window.onload = function() {
 			const elem = hits[0];
 			const from = elem.from;
 
-			const damageSound = game.assets['./sound/mini_bomb2.mp3'].clone();
-			damageSound.play();
+			const damageSound = game.assets['./sound/mini_bomb2.mp3'];
+			AudioManager.playSe(damageSound);
+			//damageSound.play();
 
 			let damValue = Math.round(from.shotSpeed * ((elem.scaleX + elem.scaleY) / 2));
 			if (from.category === 11){
@@ -10821,37 +10847,6 @@ window.onload = function() {
 		}
 	})
 
-	var TestSurface = Class.create(Sprite, {
-		initialize: function(scene) {
-			Sprite.call(this, 64, 64);
-			this.moveTo(128, 128);
-
-			var image = new Surface(64, 64);
-			image.context.fillRect(0, 0, 64, 64);
-			image.context.clearRect(8, 8, 48, 48);
-			image.context.lineWidth = 4;
-			image.context.strokeStyle = 'rgba(255, 255, 255, 1)';
-			image.context.strokeRect(16, 15, 32, 32);
-
-
-
-			this.image = image;
-
-			/*var a_color = new Surface(PixelSize / 2, PixelSize / 2);
-				a_color.context.beginPath();
-				a_color.context.fillStyle = 'rgba(255, 0, 0, 1)';
-				a_color.context.arc(Quarter, Quarter, Quarter, 0, Math.PI * 2, true);
-				a_color.context.fill();*/
-
-			/*ctx.fillRect(25, 25, 100, 100);
-			ctx.clearRect(45, 45, 60, 60);
-			ctx.strokeRect(50, 50, 50, 50);*/
-			scene.addChild(this);
-		}
-	})
-
-
-
 	var FadeIn = Class.create(Sprite, {
 		initialize: function(scene) {
 			Sprite.call(this, scene.width, scene.height)
@@ -11497,6 +11492,198 @@ window.onload = function() {
 		}
 	})
 
+	var VolumeSettingUI = enchant.Class.create(Group, {
+		initialize: function() {
+			Group.call(this);
+
+			var am = AudioManager;
+
+			// 背景パネル
+			var bg = new Sprite(530, 240);
+			bg.backgroundColor = "rgba(0,0,0,0.0)";
+			this.addChild(bg);
+
+			// -------------------------
+			// BGM Volume Label
+			// -------------------------
+			var bgmLabel = new Label("BGM 音量");
+			bgmLabel.color = "white";
+			bgmLabel.x = 10;
+			bgmLabel.y = 10;
+			bgmLabel.font = '40px sans-serif';
+			this.addChild(bgmLabel);
+
+			// -------------------------
+			// BGM Slider
+			// -------------------------
+			var bgmSlider = new Slider(400, am.bgmVolume);
+			bgmSlider.x = 100;
+			bgmSlider.y = 60;
+			this.addChild(bgmSlider);
+
+			bgmSlider.onchange = function() {
+				am.setBgmVolume(this.value);
+			};
+
+			// -------------------------
+			// SE Volume Label
+			// -------------------------
+			var seLabel = new Label("SE 音量");
+			seLabel.color = "white";
+			seLabel.x = 10;
+			seLabel.y = 120;
+			seLabel.font = '40px sans-serif';
+			this.addChild(seLabel);
+
+			// -------------------------
+			// SE Slider
+			// -------------------------
+			var seSlider = new Slider(400, am.seVolume);
+			seSlider.x = 100;
+			seSlider.y = 180;
+			this.addChild(seSlider);
+
+			seSlider.onchange = function() {
+				am.setSeVolume(this.value);
+			};
+		}
+	});
+
+	var Slider = enchant.Class.create(Group, {
+		initialize: function(width, volume) {
+			Group.call(this);
+
+			this.width = width || 200;
+			this.height = 30;
+			this.value = (volume != null) ? volume : 0.5;
+
+			this.barHeight = 12;
+			this.knobSize = 30;
+
+			// 数値表示
+			this.valueLabel = new Label("50%");
+			this.valueLabel.color = "white";
+			this.valueLabel.font = "32px sans-serif";
+			this.valueLabel.x = -90;
+			this.valueLabel.y = 8;
+			this.addChild(this.valueLabel);
+
+			// バー
+			var bar = new Sprite(this.width, this.barHeight);
+			bar.backgroundColor = "#888";
+			bar.y = (this.height - this.barHeight) / 2;
+			this.addChild(bar);
+
+			// つまみ
+			this.knob = new Sprite(this.knobSize, this.knobSize);
+			this.knob.backgroundColor = "#fff";
+			this.knob.y = (this.height - this.knobSize) / 2;
+			this.knob.x = this.value * (this.width - this.knobSize);
+			this.addChild(this.knob);
+
+			var self = this;
+			this._dragging = false;
+			this._lastX = 0;
+
+			// ドラッグ開始
+			this.knob.addEventListener("touchstart", function(e) {
+				self._dragging = true;
+				self._lastX = e.x;
+			});
+
+			// ドラッグ中
+			this.knob.addEventListener("touchmove", function(e) {
+				if (!self._dragging) return;
+
+				var dx = e.x - self._lastX;   // 前フレームからの移動量
+				self._lastX = e.x;
+
+				var knobX = self.knob.x + dx;
+
+				if (knobX < 0) knobX = 0;
+				if (knobX > self.width - self.knobSize)
+					knobX = self.width - self.knobSize;
+
+				self.knob.x = knobX;
+
+				self.value = knobX / (self.width - self.knobSize);
+				self.valueLabel.text = Math.round(self.value * 100) + "%";
+
+				if (self.onchange) {
+					self.onchange(self.value);
+				}
+			});
+
+			// ドラッグ終了
+			this.knob.addEventListener("touchend", function(e) {
+				self._dragging = false;
+			});
+
+			// 初期値表示
+			this.valueLabel.text = Math.round(this.value * 100) + "%";
+		}
+	});
+
+	var SettingsWindow = Class.create(ViewArea, {
+		initialize: function(position, name) {
+			ViewArea.call(this, position, name);
+			var my = this;
+
+			ActiveFlg = true;
+
+			// -------------------------
+			// ウィンドウ本体
+			// -------------------------
+			new ViewFrame(this.head, 'Window', { width: 960, height: 540 }, { x: 0, y: 0 }, "rgba(0,0,0,0.9)");
+			new ViewText(this.head, 'Title', { width: 200, height: 48 }, { x: 8, y: 8 },
+				'音量設定', '48px sans-serif', 'white', 'center', true);
+
+			// -------------------------
+			// VolumeSettingUI を配置
+			// -------------------------
+			var volumeUI = new VolumeSettingUI();
+			volumeUI.x = 200;
+			volumeUI.y = 120;
+			this.addChild(volumeUI);
+
+			// -------------------------
+			// ミュート切り替え
+			// -------------------------
+			var muteBtn = new ViewButton(
+				this.head, 'Mute',
+				{ width: 240, height: 48 },
+				{ x: 202, y: 400 },
+				AudioManager.muted ? 'ミュート解除' : 'ミュート',
+				'40px sans-serif', 'white', 'center',
+				'rgba(255, 255, 255, 0.8)', 'rgba(255, 255, 255, 0.1)'
+			);
+
+			muteBtn.addEventListener(Event.TOUCH_START, function() {
+				AudioManager.toggleMute();
+				muteBtn.text.text = AudioManager.muted ? 'ミュート解除' : 'ミュート';
+			});
+
+			// -------------------------
+			// 戻るボタン
+			// -------------------------
+			this.back = new ViewText(
+				this.head, 'Back',
+				{ width: 64, height: 64 },
+				{ x: 896, y: 0 },
+				'×', '64px sans-serif', 'white', 'center', true
+			);
+			this.back.backgroundColor = 'red';
+
+			this.back.addEventListener(Event.TOUCH_START, function() {
+				ActiveFlg = false;
+				now_scene.removeChild(my);
+			});
+
+			now_scene.addChild(this);
+		}
+	});
+
+
 	var MainMap = Class.create(Map, {
 		initialize: function(scene) {
 			Map.call(this, PixelSize, PixelSize);
@@ -11597,7 +11784,8 @@ window.onload = function() {
 					this.time++;
 
 					if (this.time == 30) {
-						BGM.play();
+						AudioManager.playBgm(BGM);
+						//BGM.play();
 						game.replaceScene(new TitleScene());
 					}
 				}
@@ -11668,6 +11856,11 @@ window.onload = function() {
 				{ width: 48 * 8, height: 48 },
 				{ x: PixelSize * 5, y: PixelSize * 8.25 },
 				'➡　戦車一覧へ', '48px sans-serif', '#ebe799', 'left', true);
+			
+			this.btnAudio = new ViewText(a.head, 'Mode',
+				{ width: 48 * 4, height: 48 },
+				{ x: PixelSize * 13, y: PixelSize * 11 },
+				'⚙設定', '48px sans-serif', '#ebe799', 'left', true);
 		},
 
 		// ============================================================
@@ -11678,6 +11871,7 @@ window.onload = function() {
 			this.btnContinue.addEventListener(Event.TOUCH_START, this.onContinue.bind(this));
 			this.btnMode.addEventListener(Event.TOUCH_START, this.onModeSelect.bind(this));
 			this.btnList.addEventListener(Event.TOUCH_START, this.onList.bind(this));
+			this.btnAudio.addEventListener(Event.TOUCH_START, this.onAudioSelect.bind(this));
 
 			this.onenterframe = this.update.bind(this);
 		},
@@ -11742,6 +11936,15 @@ window.onload = function() {
 		},
 
 		// ============================================================
+		// 「音量設定画面」
+		// ============================================================
+		onAudioSelect: function () {
+			if (!ActiveFlg) {
+				new SettingsWindow ({ x: PixelSize * 2.5, y: PixelSize * 4 }, 'Mode');
+			}
+		},
+
+		// ============================================================
 		// 「戦車一覧へ」
 		// ============================================================
 		onList: function () {
@@ -11772,7 +11975,8 @@ window.onload = function() {
 			this.transitionFlag = true;
 			this.nextSceneType = type;
 			if (type !== 3) {
-				BGM.stop();
+				//BGM.stop();
+				AudioManager.stopBgm();
 				titleFlg = false;
 			}
 			new FadeOut(this);
@@ -11789,7 +11993,8 @@ window.onload = function() {
 			}
 
 			if (titleFlg && BGM.currentTime === BGM.duration) {
-				BGM.play();
+				//BGM.play();
+				AudioManager.playBgm(BGM);
 			}
 
 			if (this.transitionFlag) {
@@ -12042,7 +12247,8 @@ window.onload = function() {
 
 			this.onenterframe = function() {
 				if (!flg && BGM.currentTime == BGM.duration) {
-					BGM.play();
+					//BGM.play();
+					AudioManager.playBgm(BGM);
 				}
 
 				if (flg) {
@@ -12138,7 +12344,8 @@ window.onload = function() {
 			this.onenterframe = function() {
 				this.time++
 				if (this.time == 15){
-					game.assets['./sound/RoundStart.mp3'].play();
+					//game.assets['./sound/RoundStart.mp3'].play();
+					AudioManager.playBgm(game.assets['./sound/RoundStart.mp3']);
 					if((stageNum+1) % 20 == 0){
 						showEmergencyAlert(this);
 					}
@@ -12182,7 +12389,9 @@ window.onload = function() {
 
 			this.onenterframe = function() {
 				this.time++
-				if (this.time == 15) game.assets['./sound/ExtraTank.mp3'].play()
+				if (this.time == 15) 
+					AudioManager.playBgm(game.assets['./sound/ExtraTank.mp3']);
+					//game.assets['./sound/ExtraTank.mp3'].play()
 				if (this.time >= 85 && this.time < 90) {
 					zankiLabel.opacity -= 0.2;
 					if (zankiLabel.opacity <= 0) {
@@ -12301,7 +12510,7 @@ window.onload = function() {
 
             return this;
         },
-            // -----------------------------
+        // -----------------------------
         // 可視状態変化イベント登録
         // -----------------------------
         setupVisibilityHandler: function () {
@@ -12311,9 +12520,11 @@ window.onload = function() {
                 if (document.hidden) {
 
                     // BGM 停止
-                    if (BGM && !BGM.paused) {
-                        BGM.pause();
-                    }
+                    /*if (BGM && !BGM.paused) {
+                        //BGM.pause();
+						AudioManager.pauseBgm();
+                    }*/
+					//AudioManager.pauseBgm();
 
                     // ポーズ条件
                     if (gameStatus == 0 && game.time > 250) {
@@ -12325,9 +12536,11 @@ window.onload = function() {
                 } else {
 
                     // タブ復帰時 BGM 再開
-                    if (BGM && BGM.paused && gameStatus == 0) {
-                        BGM.play();
-                    }
+                    /*if (BGM && BGM.paused && gameStatus == 0) {
+                        //BGM.play();
+						AudioManager.resumeBgm();
+                    }*/
+					//AudioManager.resumeBgm();
                 }
             };
 
@@ -12552,7 +12765,6 @@ window.onload = function() {
         // UI 生成
         // -----------------------------
         createUI: function () {
-
             new PlayerLabel(tankEntity[0]);
 
             // カウントダウン
@@ -12586,8 +12798,9 @@ window.onload = function() {
         // -----------------------------
         startBGM: function () {
             BGM = game.assets['./sound/start.mp3'];
-            BGM.play();
-            BGM.volume = 0.2;
+            //BGM.play();
+            //BGM.volume = 0.2;
+			AudioManager.playBgm(BGM, 0.2);
         },
         // -----------------------------
         // メインループ
@@ -12687,7 +12900,8 @@ window.onload = function() {
                 if (BGM.currentTime == BGM.duration) {
                     BGM = game.assets[BGMs[BNum]];
                     BGM.currentTime = 0;
-                    BGM.play();
+                    //BGM.play();
+					AudioManager.playBgm(BGM);
                     if (game.time > 250) BGM.currentTime = 0.01;
                 }
             }
@@ -12745,7 +12959,8 @@ window.onload = function() {
         handleVictory: function () {
 
             playerLife = tankEntity[0].life % Categorys.Life[tankEntity[0].category];
-            BGM.stop();
+            //BGM.stop();
+			AudioManager.stopBgm();
 
             // 色カウント加算
             for (let i = 4; i < Object.keys(stageData).length; i++) {
@@ -12818,7 +13033,8 @@ window.onload = function() {
         handleDefeat: function () {
 
             playerLife = 0;
-            BGM.stop();
+            //BGM.stop();
+			AudioManager.stopBgm();
             defeat = true;
             gameStatus = 2;
 
@@ -12864,7 +13080,9 @@ window.onload = function() {
         handleVictoryTransition: function () {
 
             if (this.time == 15) {
-                BGM = game.assets['./sound/success.mp3'].play();
+                //BGM = game.assets['./sound/success.mp3'].play();
+				BGM = game.assets['./sound/success.mp3'];
+				AudioManager.playBgm(BGM);
             }
 
             if (this.time == 150) {
@@ -12895,7 +13113,9 @@ window.onload = function() {
         handleDefeatTransition: function () {
 
             if (this.time == 15) {
-                BGM = game.assets['./sound/failed.mp3'].play();
+                //BGM = game.assets['./sound/failed.mp3'].play();
+				BGM = game.assets['./sound/failed.mp3'];
+				AudioManager.playBgm(BGM);
             }
 
             if (this.time == 150) {
@@ -12940,22 +13160,26 @@ window.onload = function() {
 
             if (this.time == 15) {
                 BGM = game.assets['./sound/end.mp3'];
-                BGM.play();
+                //BGM.play();
+				AudioManager.playBgm(BGM);
                 this.chgBgm = true;
             }
 
             else if (this.time > 100 && this.chgBgm && BGM.currentTime == BGM.duration) {
                 BGM.currentTime = 0;
-                BGM.stop();
+                //BGM.stop();
+				AudioManager.stopBgm();
                 BGM = game.assets['./sound/result.mp3'];
-                BGM.play();
+                //BGM.play();
+				AudioManager.playBgm(BGM);
                 this.chgBgm = false;
             }
 
             else if (this.time > 100 && !this.chgBgm && BGM.currentTime == BGM.duration) {
                 BGM = game.assets['./sound/result.mp3'];
                 BGM.currentTime = 0;
-                BGM.play();
+                //BGM.play();
+				AudioManager.playBgm(BGM);
             }
         },
 
@@ -13075,7 +13299,8 @@ window.onload = function() {
 
                 toProceed.addEventListener(Event.TOUCH_START, function () {
                     complete = false;
-                    BGM.stop();
+                    //BGM.stop();
+					AudioManager.stopBgm();
                     new FadeOut(now_scene);
                     stageNum++;
                     now_scene._Remove();
@@ -13138,7 +13363,8 @@ window.onload = function() {
 			this.backgroundColor = '#0008';
 			this.time = 0;
 
-			BGM.volume = 0.5;
+			//BGM.volume = 0.5;
+			AudioManager.setBgmTemporaryVolume(0.5);
 
 			new ViewText(this, 'Title', { width: 640, height: 96 }, { x: 64 * 5, y: 64 * 1.5 }, 'PAUSE', '96px sans-serif', 'white', 'center', true);
 
@@ -13206,7 +13432,8 @@ window.onload = function() {
 			});
 
 			back.addEventListener(Event.TOUCH_START, function() {
-				BGM.volume = 1.0;
+				//BGM.volume = 1.0;
+				AudioManager.resetBgmTemporaryVolume();
 				that._Remove();
 			});
 
@@ -13215,12 +13442,14 @@ window.onload = function() {
 				if (gameStatus == 0) {
 					if (BGM.currentTime == BGM.duration) {
 						BGM.currentTime = 0;
-						BGM.play();
-						BGM.volume = 0.5;
+						//BGM.play();
+						//BGM.volume = 0.5;
+						AudioManager.playBgm(BGM);
 					}
 				}
 				if (inputManager.checkButton("Start") == inputManager.keyStatus.DOWN) {
-					BGM.volume = 1.0;
+					//BGM.volume = 1.0;
+					AudioManager.resetBgmTemporaryVolume();
 					this._Remove();
 				}
 			}
@@ -13266,6 +13495,8 @@ window.onload = function() {
 		head[0].appendChild(script);
 
 		BGM = game.assets['./sound/TITLE.mp3'];
+		// 起動時に設定を読み込む
+		AudioManager.loadSettings();
 
 		game.replaceScene(new SetUpScene());
 	};
