@@ -11860,7 +11860,7 @@ window.onload = function() {
 			this.btnAudio = new ViewText(a.head, 'Mode',
 				{ width: 48 * 4, height: 48 },
 				{ x: PixelSize * 13, y: PixelSize * 11 },
-				'⚙設定', '48px sans-serif', '#ebe799', 'left', true);
+				'設定', '48px sans-serif', '#ebe799', 'left', true);
 		},
 
 		// ============================================================
