@@ -1910,9 +1910,9 @@ var AudioManager = {
     // 設定の読み込み / 保存
     // -------------------------
     loadSettings: function() {
-        var bgm = localStorage.getItem("bgmVolume");
-        var se  = localStorage.getItem("seVolume");
-        var mute = localStorage.getItem("muted");
+        var bgm = localStorage.getItem("bgmVolume") ?? this.bgmVolume;
+        var se  = localStorage.getItem("seVolume") ?? this.seVolume;
+        var mute = localStorage.getItem("muted") ?? this.muted;
 
         if (bgm !== null)  this.bgmVolume = parseFloat(bgm);
         if (se !== null)   this.seVolume  = parseFloat(se);
