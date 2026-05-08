@@ -1972,8 +1972,8 @@ var AudioManager = {
         elem.volume = finalVolume;
 
         // Safari / iOS 対策（念のため）
-        elem.preload = "auto";
-        elem.load();
+        //elem.preload = "auto";
+        //elem.load();
 
         sound.play();
     },
@@ -2001,8 +2001,8 @@ var AudioManager = {
 
         elem.volume = 0;
 
-        elem.preload = "auto";
-        elem.load();
+        //elem.preload = "auto";
+        //elem.load();
         sound.play();
 
         var targetVolume = this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
@@ -2066,8 +2066,8 @@ var AudioManager = {
         var elem = se._element;
 
         // Safari / iOS 対策：preload を強制
-        elem.preload = "auto";
-        elem.load();
+        //elem.preload = "auto";
+        //elem.load();
 
         // readyState に応じて currentTime を安全にリセット
         if (elem.readyState >= 2) {
