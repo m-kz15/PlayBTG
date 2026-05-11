@@ -1926,28 +1926,6 @@ var AudioManager = {
     },
 
     // -------------------------
-    // play() 後に volume を直接設定
-    // -------------------------
-    _setVolumeAfterPlay: function(sound, volume, playPromise) {
-        var elem = sound._element;
-        if (!elem) return;
-
-        if (playPromise && playPromise.then) {
-            playPromise.then(() => {
-                elem.volume = volume;
-            }).catch(() => {
-                requestAnimationFrame(() => {
-                    elem.volume = volume;
-                });
-            });
-        } else {
-            requestAnimationFrame(() => {
-                elem.volume = volume;
-            });
-        }
-    },
-
-    // -------------------------
     // BGM 再生
     // -------------------------
     playBgm: function(sound, volumeRate) {
@@ -1959,13 +1937,10 @@ var AudioManager = {
 
         this.currentBgm = sound;
 
-        var finalVolume = this.muted
+        sound.play();
+        sound.volume = this.muted
             ? 0
             : (this.bgmVolume * this.tempBgmRate * volumeRate);
-
-        var p = sound.play();
-
-        this._setVolumeAfterPlay(sound, finalVolume, p);
     },
 
     // -------------------------
@@ -1987,23 +1962,19 @@ var AudioManager = {
         if (this.currentBgm) this.currentBgm.stop();
 
         this.currentBgm = sound;
-        var elem = sound._element;
 
-        elem.volume = 0;
-
-        var p = sound.play();
+        sound.volume = 0;
+        sound.play();
 
         var targetVolume = this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
         var step = targetVolume / (duration / 50);
         var self = this;
 
-        this._setVolumeAfterPlay(sound, 0, p);
-
         clearInterval(this.fadeInterval);
         this.fadeInterval = setInterval(function() {
-            if (elem.volume < targetVolume) {
-                elem.volume += step;
-                if (elem.volume > targetVolume) elem.volume = targetVolume;
+            if (sound.volume < targetVolume) {
+                sound.volume += step;
+                if (sound.volume > targetVolume) sound.volume = targetVolume;
             } else {
                 clearInterval(self.fadeInterval);
             }
@@ -2017,18 +1988,18 @@ var AudioManager = {
         duration = duration || 1000;
         if (!this.currentBgm) return;
 
-        var elem = this.currentBgm._element;
-        var step = elem.volume / (duration / 50);
+        var sound = this.currentBgm;
+        var step = sound.volume / (duration / 50);
         var self = this;
 
         clearInterval(this.fadeInterval);
         this.fadeInterval = setInterval(function() {
-            if (elem.volume > 0) {
-                elem.volume -= step;
-                if (elem.volume < 0) elem.volume = 0;
+            if (sound.volume > 0) {
+                sound.volume -= step;
+                if (sound.volume < 0) sound.volume = 0;
             } else {
-                elem.volume = 0;
-                self.currentBgm.stop();
+                sound.volume = 0;
+                sound.stop();
                 self.currentBgm = null;
                 clearInterval(self.fadeInterval);
             }
@@ -2048,25 +2019,28 @@ var AudioManager = {
     // -------------------------
     playSe: function(sound, volumeRate) {
         volumeRate = volumeRate || 1.0;
-        var finalVolume = this.muted ? 0 : (this.seVolume * volumeRate);
 
         var se = sound.clone();
-        var elem = se._element;
+        se.play();
+        se.volume = this.muted
+            ? 0
+            : (this.seVolume * volumeRate);
 
-        var p = se.play();
-
-        this._setVolumeAfterPlay(se, finalVolume, p);
+        se.addEventListener("ended", function handler() {
+            se.removeEventListener("ended", handler);
+            se.stop();
+        }, { once: true });
     },
 
     // -------------------------
     // 一時停止 / 再開
     // -------------------------
     pauseBgm: function() {
-        if (this.currentBgm) this.currentBgm._element.pause();
+        if (this.currentBgm) this.currentBgm.pause();
     },
 
     resumeBgm: function() {
-        if (this.currentBgm) this.currentBgm._element.play();
+        if (this.currentBgm) this.currentBgm.play();
     },
 
     // -------------------------
@@ -2076,8 +2050,9 @@ var AudioManager = {
         this.tempBgmRate = rate;
 
         if (this.currentBgm) {
-            var v = this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
-            this._setVolumeAfterPlay(this.currentBgm, v, Promise.resolve());
+            this.currentBgm.volume = this.muted
+                ? 0
+                : (this.bgmVolume * this.tempBgmRate);
         }
     },
 
@@ -2085,12 +2060,12 @@ var AudioManager = {
         this.tempBgmRate = 1.0;
 
         if (this.currentBgm) {
-            var v = this.muted ? 0 : this.bgmVolume;
-            this._setVolumeAfterPlay(this.currentBgm, v, Promise.resolve());
+            this.currentBgm.volume = this.muted
+                ? 0
+                : this.bgmVolume;
         }
     }
 };
-
 
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
