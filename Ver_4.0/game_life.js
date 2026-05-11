@@ -1903,12 +1903,8 @@ var AudioManager = {
     seVolume: 0.5,
     muted: false,
     currentBgm: null,
-    fadeInterval: null,
     tempBgmRate: 1.0,
 
-    // -------------------------
-    // 設定の読み込み / 保存
-    // -------------------------
     loadSettings: function() {
         var bgm = localStorage.getItem("bgmVolume");
         var se  = localStorage.getItem("seVolume");
@@ -1926,14 +1922,58 @@ var AudioManager = {
     },
 
     // -------------------------
-    // 音量設定
+    // BGM 再生（enchant.js に任せる）
+    // -------------------------
+    playBgm: function(sound, volumeRate) {
+        volumeRate = volumeRate || 1.0;
+
+        if (this.currentBgm) {
+            this.currentBgm.stop();
+        }
+
+        this.currentBgm = sound;
+
+        var elem = sound._element;
+        elem.volume = this.muted
+            ? 0
+            : (this.bgmVolume * this.tempBgmRate * volumeRate);
+
+        sound.play();  // ← enchant.js に任せる
+    },
+
+    stopBgm: function() {
+        if (this.currentBgm) {
+            this.currentBgm.stop();
+            this.currentBgm = null;
+        }
+    },
+
+    // -------------------------
+    // SE 再生（clone() をそのまま使う）
+    // -------------------------
+    playSe: function(sound, volumeRate) {
+        volumeRate = volumeRate || 1.0;
+
+        var se = sound.clone();  // ← enchant.js に任せる
+        var elem = se._element;
+
+        elem.volume = this.muted
+            ? 0
+            : (this.seVolume * volumeRate);
+
+        se.play();
+    },
+
+    // -------------------------
+    // 音量変更
     // -------------------------
     setBgmVolume: function(v) {
         this.bgmVolume = v;
         this.saveSettings();
 
         if (this.currentBgm) {
-            this.currentBgm.volume = this.muted ? 0 : v * this.tempBgmRate;
+            this.currentBgm._element.volume =
+                this.muted ? 0 : v * this.tempBgmRate;
         }
     },
 
@@ -1947,164 +1987,15 @@ var AudioManager = {
         this.saveSettings();
 
         if (this.currentBgm) {
-            this.currentBgm.volume =
+            this.currentBgm._element.volume =
                 this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
         }
     },
 
-    // -------------------------
-    // BGM 再生（スマホ完全対応）
-    // -------------------------
-    playBgm: function(sound, volumeRate) {
-        volumeRate = volumeRate || 1.0;
-
-        if (this.currentBgm) {
-            this.currentBgm.pause();
-            this.currentBgm = null;
-        }
-
-        // enchant.js の sound._element を直接使わず、
-        // スマホで安全な Audio を自前生成
-        var elem = new Audio(sound._element.src);
-        elem.loop = true;
-
-        var finalVolume = this.muted
-            ? 0
-            : (this.bgmVolume * this.tempBgmRate * volumeRate);
-
-        elem.volume = finalVolume;
-
-        // iOS は load() が例外になるので禁止
-        // elem.load(); ← 絶対に呼ばない
-
-        this.currentBgm = elem;
-
-        // 再生は try-catch（iOS 自動再生制限対策）
-        try {
-            elem.play();
-        } catch (e) {
-            // ユーザー操作後に再生すれば OK
-            console.warn("BGM 再生はユーザー操作後に可能になります");
-        }
-    },
-
-    // -------------------------
-    // BGM 停止
-    // -------------------------
-    stopBgm: function() {
-        if (this.currentBgm) {
-            this.currentBgm.pause();
-            this.currentBgm = null;
-        }
-    },
-
-    // -------------------------
-    // BGM フェードイン
-    // -------------------------
-    fadeInBgm: function(sound, duration) {
-        duration = duration || 1000;
-
-        if (this.currentBgm) this.stopBgm();
-
-        var elem = new Audio(sound._element.src);
-        elem.loop = true;
-        elem.volume = 0;
-
-        this.currentBgm = elem;
-
-        try { elem.play(); } catch(e){}
-
-        var targetVolume = this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
-        var step = targetVolume / (duration / 50);
-        var self = this;
-
-        clearInterval(this.fadeInterval);
-        this.fadeInterval = setInterval(function() {
-            if (elem.volume < targetVolume) {
-                elem.volume += step;
-                if (elem.volume > targetVolume) elem.volume = targetVolume;
-            } else {
-                clearInterval(self.fadeInterval);
-            }
-        }, 50);
-    },
-
-    // -------------------------
-    // BGM フェードアウト
-    // -------------------------
-    fadeOutBgm: function(duration) {
-        duration = duration || 1000;
-        if (!this.currentBgm) return;
-
-        var elem = this.currentBgm;
-        var step = elem.volume / (duration / 50);
-        var self = this;
-
-        clearInterval(this.fadeInterval);
-        this.fadeInterval = setInterval(function() {
-            if (elem.volume > 0) {
-                elem.volume -= step;
-                if (elem.volume < 0) elem.volume = 0;
-            } else {
-                elem.volume = 0;
-                elem.pause();
-                self.currentBgm = null;
-                clearInterval(self.fadeInterval);
-            }
-        }, 50);
-    },
-
-    // -------------------------
-    // クロスフェード
-    // -------------------------
-    crossFade: function(newSound, duration) {
-        this.fadeOutBgm(duration);
-        this.fadeInBgm(newSound, duration);
-    },
-
-    // -------------------------
-    // SE 再生（clone 不使用・スマホ完全安定）
-    // -------------------------
-    playSe: function(sound, volumeRate) {
-        volumeRate = volumeRate || 1.0;
-
-        var finalVolume = this.muted ? 0 : (this.seVolume * volumeRate);
-
-        // enchant.js の clone() は使わず、
-        // スマホで安全な Audio を自前生成
-        var elem = new Audio(sound._element.src);
-
-        elem.volume = finalVolume;
-
-        // readyState に関係なく安全に再生
-        elem.addEventListener("ended", function() {
-            elem.pause();
-            elem.src = "";
-        });
-
-        try { elem.play(); } catch(e){}
-    },
-
-    // -------------------------
-    // 一時停止 / 再開
-    // -------------------------
-    pauseBgm: function() {
-        if (this.currentBgm) this.currentBgm.pause();
-    },
-
-    resumeBgm: function() {
-        if (this.currentBgm) {
-            try { this.currentBgm.play(); } catch(e){}
-        }
-    },
-
-    // -------------------------
-    // 一時的なBGM音量倍率
-    // -------------------------
     setBgmTemporaryVolume: function(rate) {
         this.tempBgmRate = rate;
         if (this.currentBgm) {
-            this.currentBgm.volume =
+            this.currentBgm._element.volume =
                 (this.muted ? 0 : this.bgmVolume * this.tempBgmRate);
         }
     },
@@ -2112,7 +2003,7 @@ var AudioManager = {
     resetBgmTemporaryVolume: function() {
         this.tempBgmRate = 1.0;
         if (this.currentBgm) {
-            this.currentBgm.volume =
+            this.currentBgm._element.volume =
                 (this.muted ? 0 : this.bgmVolume);
         }
     }
