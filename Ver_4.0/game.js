@@ -2039,12 +2039,6 @@ var AudioManager = {
         var p = se.play();
 
         this._setVolumeAfterPlay(se, finalVolume, p);
-
-        elem.addEventListener("ended", function handler() {
-            elem.removeEventListener("ended", handler);
-            elem.pause();
-            elem.src = "";
-        }, { once: true });
     },
 
     // -------------------------
