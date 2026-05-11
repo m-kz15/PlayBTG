@@ -2026,6 +2026,34 @@ var AudioManager = {
         if (this.currentBgm) this.currentBgm.play();
     },
 
+	// -------------------------
+    // 音量変更
+    // -------------------------
+    setBgmVolume: function(v) {
+        this.bgmVolume = v;
+        this.saveSettings();
+
+        if (this.currentBgm) {
+            this.currentBgm._element.volume =
+                this.muted ? 0 : v * this.tempBgmRate;
+        }
+    },
+
+    setSeVolume: function(v) {
+        this.seVolume = v;
+        this.saveSettings();
+    },
+
+    toggleMute: function() {
+        this.muted = !this.muted;
+        this.saveSettings();
+
+        if (this.currentBgm) {
+            this.currentBgm._element.volume =
+                this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
+        }
+    },
+
     // -------------------------
     // 一時的なBGM音量倍率
     // -------------------------
