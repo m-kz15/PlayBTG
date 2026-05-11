@@ -1926,9 +1926,12 @@ var AudioManager = {
     },
 
     // -------------------------
-    // play() 後に直接 volume 設定（reject 時は 1フレーム遅延）
+    // play() 後に volume を直接設定
     // -------------------------
-    _setVolumeAfterPlay: function(elem, volume, playPromise) {
+    _setVolumeAfterPlay: function(sound, volume, playPromise) {
+        var elem = sound._element;
+        if (!elem) return;
+
         if (playPromise && playPromise.then) {
             playPromise.then(() => {
                 elem.volume = volume;
@@ -1956,14 +1959,13 @@ var AudioManager = {
 
         this.currentBgm = sound;
 
-        var elem = sound._element;
         var finalVolume = this.muted
             ? 0
             : (this.bgmVolume * this.tempBgmRate * volumeRate);
 
         var p = sound.play();
 
-        this._setVolumeAfterPlay(elem, finalVolume, p);
+        this._setVolumeAfterPlay(sound, finalVolume, p);
     },
 
     // -------------------------
@@ -1995,7 +1997,7 @@ var AudioManager = {
         var step = targetVolume / (duration / 50);
         var self = this;
 
-        this._setVolumeAfterPlay(elem, 0, p);
+        this._setVolumeAfterPlay(sound, 0, p);
 
         clearInterval(this.fadeInterval);
         this.fadeInterval = setInterval(function() {
@@ -2053,7 +2055,7 @@ var AudioManager = {
 
         var p = se.play();
 
-        this._setVolumeAfterPlay(elem, finalVolume, p);
+        this._setVolumeAfterPlay(se, finalVolume, p);
 
         elem.addEventListener("ended", function handler() {
             elem.removeEventListener("ended", handler);
@@ -2080,9 +2082,8 @@ var AudioManager = {
         this.tempBgmRate = rate;
 
         if (this.currentBgm) {
-            var elem = this.currentBgm._element;
             var v = this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
-            this._setVolumeAfterPlay(elem, v, Promise.resolve());
+            this._setVolumeAfterPlay(this.currentBgm, v, Promise.resolve());
         }
     },
 
@@ -2090,12 +2091,12 @@ var AudioManager = {
         this.tempBgmRate = 1.0;
 
         if (this.currentBgm) {
-            var elem = this.currentBgm._element;
             var v = this.muted ? 0 : this.bgmVolume;
-            this._setVolumeAfterPlay(elem, v, Promise.resolve());
+            this._setVolumeAfterPlay(this.currentBgm, v, Promise.resolve());
         }
     }
 };
+
 
 document.addEventListener("visibilitychange", function() {
     if (document.hidden) {
