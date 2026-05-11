@@ -5663,7 +5663,6 @@ window.onload = function() {
 			const from = elem.from;
 
 			const damageSound = game.assets['./sound/mini_bomb2.mp3'];
-			AudioManager.playSe(damageSound);
 			//damageSound.play();
 
 			let damValue = Math.round(from.shotSpeed * ((elem.scaleX + elem.scaleY) / 2));
@@ -5687,8 +5686,12 @@ window.onload = function() {
 			if (this.life > 0) {
 				this.lifeBar.opacity = 1.0;
 				this.lifeBar.Change(this.life);
-				damageSound.volume = 0.5;
+				AudioManager.playSe(damageSound, 0.5);
+				//damageSound.volume = 0.5;
 				this.damFlg = true;
+			}
+			else{
+				AudioManager.playSe(damageSound);
 			}
 
 			this._DamageEffect();
