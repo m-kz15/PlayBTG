@@ -1887,7 +1887,7 @@ var AudioManager = {
     muted: false,
     currentBgm: null,
     fadeInterval: null,
-    tempBgmRate: 1.0,   // 一時的なBGM音量倍率
+    tempBgmRate: 1.0,
 
     // -------------------------
     // 設定の読み込み / 保存
@@ -1916,7 +1916,7 @@ var AudioManager = {
         this.saveSettings();
 
         if (this.currentBgm) {
-            this.currentBgm._element.volume = this.muted ? 0 : v * this.tempBgmRate;
+            this.currentBgm.volume = this.muted ? 0 : v * this.tempBgmRate;
         }
     },
 
@@ -1930,35 +1930,45 @@ var AudioManager = {
         this.saveSettings();
 
         if (this.currentBgm) {
-            this.currentBgm._element.volume =
+            this.currentBgm.volume =
                 this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
         }
     },
 
     // -------------------------
-    // BGM 再生
+    // BGM 再生（スマホ完全対応）
     // -------------------------
     playBgm: function(sound, volumeRate) {
         volumeRate = volumeRate || 1.0;
+
+        if (this.currentBgm) {
+            this.currentBgm.pause();
+            this.currentBgm = null;
+        }
+
+        // enchant.js の sound._element を直接使わず、
+        // スマホで安全な Audio を自前生成
+        var elem = new Audio(sound._element.src);
+        elem.loop = true;
 
         var finalVolume = this.muted
             ? 0
             : (this.bgmVolume * this.tempBgmRate * volumeRate);
 
-        if (this.currentBgm) {
-            this.currentBgm.stop();
-        }
-
-        this.currentBgm = sound;
-
-        var elem = sound._element;
         elem.volume = finalVolume;
 
-        // Safari / iOS 対策（念のため）
-        elem.preload = "auto";
-        elem.load();
+        // iOS は load() が例外になるので禁止
+        // elem.load(); ← 絶対に呼ばない
 
-        sound.play();
+        this.currentBgm = elem;
+
+        // 再生は try-catch（iOS 自動再生制限対策）
+        try {
+            elem.play();
+        } catch (e) {
+            // ユーザー操作後に再生すれば OK
+            console.warn("BGM 再生はユーザー操作後に可能になります");
+        }
     },
 
     // -------------------------
@@ -1966,7 +1976,7 @@ var AudioManager = {
     // -------------------------
     stopBgm: function() {
         if (this.currentBgm) {
-            this.currentBgm.stop();
+            this.currentBgm.pause();
             this.currentBgm = null;
         }
     },
@@ -1977,19 +1987,18 @@ var AudioManager = {
     fadeInBgm: function(sound, duration) {
         duration = duration || 1000;
 
-        if (this.currentBgm) this.currentBgm.stop();
+        if (this.currentBgm) this.stopBgm();
 
-        this.currentBgm = sound;
-        var elem = sound._element;
-
+        var elem = new Audio(sound._element.src);
+        elem.loop = true;
         elem.volume = 0;
 
-        elem.preload = "auto";
-        elem.load();
-        sound.play();
+        this.currentBgm = elem;
+
+        try { elem.play(); } catch(e){}
 
         var targetVolume = this.muted ? 0 : (this.bgmVolume * this.tempBgmRate);
-        var step = (targetVolume / (duration / 50));
+        var step = targetVolume / (duration / 50);
         var self = this;
 
         clearInterval(this.fadeInterval);
@@ -1998,7 +2007,6 @@ var AudioManager = {
                 elem.volume += step;
                 if (elem.volume > targetVolume) elem.volume = targetVolume;
             } else {
-                elem.volume = targetVolume;
                 clearInterval(self.fadeInterval);
             }
         }, 50);
@@ -2011,8 +2019,8 @@ var AudioManager = {
         duration = duration || 1000;
         if (!this.currentBgm) return;
 
-        var elem = this.currentBgm._element;
-        var step = (elem.volume / (duration / 50));
+        var elem = this.currentBgm;
+        var step = elem.volume / (duration / 50);
         var self = this;
 
         clearInterval(this.fadeInterval);
@@ -2022,7 +2030,7 @@ var AudioManager = {
                 if (elem.volume < 0) elem.volume = 0;
             } else {
                 elem.volume = 0;
-                self.currentBgm.stop();
+                elem.pause();
                 self.currentBgm = null;
                 clearInterval(self.fadeInterval);
             }
@@ -2030,7 +2038,7 @@ var AudioManager = {
     },
 
     // -------------------------
-    // BGM クロスフェード
+    // クロスフェード
     // -------------------------
     crossFade: function(newSound, duration) {
         this.fadeOutBgm(duration);
@@ -2038,58 +2046,38 @@ var AudioManager = {
     },
 
     // -------------------------
-    // SE 再生（完全最適化版・無制限同時再生）
+    // SE 再生（clone 不使用・スマホ完全安定）
     // -------------------------
     playSe: function(sound, volumeRate) {
         volumeRate = volumeRate || 1.0;
+
         var finalVolume = this.muted ? 0 : (this.seVolume * volumeRate);
 
-        // 毎回 clone() して新しい Audio を生成
-        var se   = sound.clone();
-        var elem = se._element;
-
-        // Safari / iOS 対策：preload を強制
-        elem.preload = "auto";
-        elem.load();
-
-        // readyState に応じて currentTime を安全にリセット
-        if (elem.readyState >= 2) {
-            elem.currentTime = 0;
-        } else {
-            elem.addEventListener("loadeddata", function handler() {
-                elem.removeEventListener("loadeddata", handler);
-                elem.currentTime = 0;
-            });
-        }
+        // enchant.js の clone() は使わず、
+        // スマホで安全な Audio を自前生成
+        var elem = new Audio(sound._element.src);
 
         elem.volume = finalVolume;
 
-        // 再生終了後に完全破棄
-        elem.addEventListener("ended", function handler() {
-            elem.removeEventListener("ended", handler);
-
+        // readyState に関係なく安全に再生
+        elem.addEventListener("ended", function() {
             elem.pause();
-            elem.removeAttribute("src");
-            elem.load();
+            elem.src = "";
+        });
 
-            se = null;
-        }, { once: true });
-
-        se.play();
+        try { elem.play(); } catch(e){}
     },
 
     // -------------------------
-    // BGM 一時停止 / 再開
+    // 一時停止 / 再開
     // -------------------------
     pauseBgm: function() {
-        if (this.currentBgm) {
-            this.currentBgm._element.pause();
-        }
+        if (this.currentBgm) this.currentBgm.pause();
     },
 
     resumeBgm: function() {
         if (this.currentBgm) {
-            this.currentBgm._element.play();
+            try { this.currentBgm.play(); } catch(e){}
         }
     },
 
@@ -2098,18 +2086,16 @@ var AudioManager = {
     // -------------------------
     setBgmTemporaryVolume: function(rate) {
         this.tempBgmRate = rate;
-
         if (this.currentBgm) {
-            this.currentBgm._element.volume =
+            this.currentBgm.volume =
                 (this.muted ? 0 : this.bgmVolume * this.tempBgmRate);
         }
     },
 
     resetBgmTemporaryVolume: function() {
         this.tempBgmRate = 1.0;
-
         if (this.currentBgm) {
-            this.currentBgm._element.volume =
+            this.currentBgm.volume =
                 (this.muted ? 0 : this.bgmVolume);
         }
     }
