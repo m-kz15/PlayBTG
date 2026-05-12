@@ -11382,27 +11382,39 @@ window.onload = function() {
 			this.addChild(bar);
 
 			// つまみ
+			// つまみ本体（見た目はそのまま）
 			this.knob = new Sprite(this.knobSize, this.knobSize);
 			this.knob.backgroundColor = "#fff";
 			this.knob.y = (this.height - this.knobSize) / 2;
 			this.knob.x = this.value * (this.width - this.knobSize);
 			this.addChild(this.knob);
 
+			// ★ 当たり判定用の透明 Sprite（3倍サイズ）
+			this.knobHit = new Sprite(this.knobSize * 3, this.knobSize * 3);
+			this.knobHit.backgroundColor = "rgba(0,0,0,0)"; // 完全透明
+
+			// knob の中心に合わせる
+			this.knobHit.x = this.knob.x - this.knobSize;
+			this.knobHit.y = this.knob.y - this.knobSize;
+
+			this.addChild(this.knobHit);
+
+
 			var self = this;
 			this._dragging = false;
 			this._lastX = 0;
 
 			// ドラッグ開始
-			this.knob.addEventListener("touchstart", function(e) {
+			this.knobHit.addEventListener("touchstart", function(e) {
 				self._dragging = true;
 				self._lastX = e.x;
 			});
 
 			// ドラッグ中
-			this.knob.addEventListener("touchmove", function(e) {
+			this.knobHit.addEventListener("touchmove", function(e) {
 				if (!self._dragging) return;
 
-				var dx = e.x - self._lastX;   // 前フレームからの移動量
+				var dx = e.x - self._lastX;
 				self._lastX = e.x;
 
 				var knobX = self.knob.x + dx;
@@ -11411,7 +11423,11 @@ window.onload = function() {
 				if (knobX > self.width - self.knobSize)
 					knobX = self.width - self.knobSize;
 
+				// 本体を動かす
 				self.knob.x = knobX;
+
+				// 当たり判定も追従
+				self.knobHit.x = knobX - self.knobSize;
 
 				self.value = knobX / (self.width - self.knobSize);
 				self.valueLabel.text = Math.round(self.value * 100) + "%";
@@ -11422,7 +11438,7 @@ window.onload = function() {
 			});
 
 			// ドラッグ終了
-			this.knob.addEventListener("touchend", function(e) {
+			this.knobHit.addEventListener("touchend", function(e) {
 				self._dragging = false;
 			});
 
@@ -12322,29 +12338,13 @@ window.onload = function() {
             const onHidden = () => {
 
                 if (document.hidden) {
-
-                    // BGM 停止
-                    /*if (BGM && !BGM.paused) {
-                        //BGM.pause();
-						AudioManager.pauseBgm();
-                    }*/
-					//AudioManager.pauseBgm();
-
                     // ポーズ条件
                     if (gameStatus == 0 && game.time > 250) {
                         if (!(game.currentScene instanceof PauseScene)) {
-                            new PauseScene();
+                            new PauseScene(this);
                         }
                     }
 
-                } else {
-
-                    // タブ復帰時 BGM 再開
-                    /*if (BGM && BGM.paused && gameStatus == 0) {
-                        //BGM.play();
-						AudioManager.resumeBgm();
-                    }*/
-					//AudioManager.resumeBgm();
                 }
             };
 
@@ -12721,7 +12721,7 @@ window.onload = function() {
                 gameStatus == 0 &&
                 game.time > 250) {
 
-                new PauseScene();
+                new PauseScene(this);
             }
         },
 
@@ -13162,11 +13162,13 @@ window.onload = function() {
     });
 
 	var PauseScene = Class.create(Scene, {
-		initialize: function() {
+		initialize: function(scene) {
 			Scene.call(this);
 			var that = this;
 			this.backgroundColor = '#0008';
 			this.time = 0;
+			now_scene = this;
+			this.fromScene = scene;
 
 			//BGM.volume = 0.5;
 			AudioManager.setBgmTemporaryVolume(0.5);
@@ -13177,6 +13179,10 @@ window.onload = function() {
 			var retire = new ViewButton(this, 'Title', { width: 640, height: 64 }, { x: 64 * 5, y: 64 * 6.5 }, 'RETIRE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
 			var back = new ViewButton(this, 'Title', { width: 640, height: 64 }, { x: 64 * 5, y: 64 * 9 }, 'CONTINUE', '64px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
 
+			var btnAudio = new ViewButton(this, 'Title',
+				{ width: 48 * 4, height: 48 },
+				{ x: PixelSize * 16, y: PixelSize * 1 },
+				'⚙設定', '48px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
 			//let area = new SetArea({x: 0, y: 0}, 'Pause');
 
 			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
@@ -13238,6 +13244,12 @@ window.onload = function() {
 				that._Remove();
 			});
 
+			btnAudio.addEventListener(Event.TOUCH_START, function() {
+				if (!ActiveFlg) {
+					new SettingsWindow ({ x: PixelSize * 2.5, y: PixelSize * 4 }, 'Mode');
+				}
+			});
+
 			this.onenterframe = function() {
 				this.time++;
 				if (gameStatus == 0) {
@@ -13263,6 +13275,7 @@ window.onload = function() {
 				} else {}
 				this.removeChild(this.firstChild);
 			}
+			now_scene = this.fromScene;
 			game.popScene(this);
 		}
 	})
@@ -13307,31 +13320,6 @@ window.onload = function() {
 			window.focus();
 		}
 	}
-	/*let drawFps = 0;
-	let drawCount = 0;
-	let lastDraw = performance.now();
-
-	function measureDrawFps() {
-		drawCount++;
-
-		const now = performance.now();
-		const diff = now - lastDraw;
-
-		if (diff >= 1000) {
-			drawFps = (drawCount / diff) * 1000;
-			drawCount = 0;
-			lastDraw = now;
-
-			const elem = document.getElementById("fpsLabel");
-			if (elem) elem.textContent = "FPS: " + drawFps.toFixed(1);
-		}
-
-		requestAnimationFrame(measureDrawFps);
-	}
-
-	// ★ ゲーム開始時に一度だけ呼ぶ
-	requestAnimationFrame(measureDrawFps);*/
-
 };
 if (navigator.userAgent.match(/iPhone/)) {
 	window.addEventListener('orientationchange', function() {
