@@ -9,7 +9,8 @@ var Repository = {
         Scores: [],
         Level: 0,
         Type: 0,
-        Pattern: -1
+        Pattern: -1,
+        UseLife: false
     },
 
     restore: function() {
@@ -24,27 +25,19 @@ var Repository = {
                 Scores: [],
                 Level: 0,
                 Type: 0,
-                Pattern: -1
+                Pattern: -1,
+                UseLife: false
             }
         }
     },
     save: function() {
         WebStorage.save(this.keyName, this.data);
     },
-    /*isRestored : function() {
-        return this.data.MsgList.length > 0;
-    },*/
     initialize : function () {
         this.restore();
     },
     remove: function() {
         WebStorage.remove(this.keyName);
-        /*this.data = {
-            Title: "",
-            UserName: "",
-            MsgList: [],
-            MsgHistory: []
-        }*/
     },
     /*getName : function(){
         return this.data.Name;
@@ -66,6 +59,9 @@ var Repository = {
     },
     getPattern: function(){
         return this.data.Pattern;
+    },
+    getUseLife: function(){
+        return this.data.UseLife;
     }
     /*getCircleName : function(cd) {
         var item = getItemfromList(this.data.CircleNameList, 'xxxxx', cd);
