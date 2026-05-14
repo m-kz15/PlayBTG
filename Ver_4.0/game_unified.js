@@ -442,7 +442,7 @@ const Categorys = {
 		[360, 250, 200], //elitegray
 		[0, 0, 0], //elitegreen
 		[300, 200, 200], //snow
-		[320, 280, 200], //elitered
+		[420, 280, 200], //elitered
 		[0, 0, 0], //pink
 		[250, 0, 0], //sand
 		[500, 0, 300], //random
@@ -458,7 +458,7 @@ const Categorys = {
 		[true, 320, 230, 180], //elitegray
 		[false, 0, 0, 0], //elitegreen
 		[true, 200, 200, 180], //snow
-		[true, 280, 240, 180], //elitered
+		[true, 380, 240, 180], //elitered
 		[false, 0, 0, 0], //pink
 		[true, 280, 0, 0], //sand
 		[true, 400, 0, 280], //random
@@ -3019,11 +3019,12 @@ window.onload = function() {
 
 	class AimLite {
 		static list = [];
-		constructor(from, to, category, num, ref) {
+		constructor(from, to, category, num, ref, speed) {
 			this.from = from;
 			this.to = to;
 			this.category = category;
 			this.num = num;
+			this.speed = speed;
 
 			// 設定
 			this.maxLength = 3600;     // 照準線の最大距離
@@ -3049,10 +3050,9 @@ window.onload = function() {
 
 			let rot = normalizeRotation(Rad_to_Rot(rad));
 			let diff = normalizeAngle(from.rotation - rot);
-			let speed = Categorys.CannonRotSpeed[this.category];
 
-			if (Math.abs(diff) >= speed) {
-				from.rotation = normalizeRotation(from.rotation + (diff > 0 ? -speed : speed));
+			if (Math.abs(diff) >= this.speed) {
+				from.rotation = normalizeRotation(from.rotation + (diff > 0 ? -this.speed : this.speed));
 			} else {
 				from.rotation = rot;
 			}
@@ -3583,102 +3583,82 @@ window.onload = function() {
 		const aim = new RefAimLite(ref, from, category, num);
 		aim.color = null;
 
-		// --- 角度評価関数（1角度分） ---
 		function evaluateAngle(deg) {
 			from.rotation = deg;
-
 			aim.update(from);
 
 			const segments = aim.segments;
-
-			if (!segments || segments.length === 0) {
-				
-				return -Infinity;
-			}
+			if (!segments || segments.length === 0) return -Infinity;
 
 			const first = segments[0];
-			if (!first || !isFinite(first.dist)) {
-				return -Infinity;
-			}
+			if (!first || !isFinite(first.dist)) return -Infinity;
 
 			const distToFirstWall = first.dist;
 			const reflectCount = segments.length - 1;
-			if (reflectCount < 0) {
-				return -Infinity;
-			}
 
 			const dx = aim.tgt[0] - target.x;
 			const dy = aim.tgt[1] - target.y;
 			const distToTarget = dx * dx + dy * dy;
-			if (!isFinite(distToTarget)) {
-				return -Infinity;
-			}
 
-			// --- スコア ---
-			const score =
+			if (!isFinite(distToTarget)) return -Infinity;
+
+			return (
 				-distToTarget * 0.001 +
 				distToFirstWall * 0.05 -
-				reflectCount * 5;
-
-			return score;
+				reflectCount * 5
+			);
 		}
 
 		// --- Step 1: 粗スキャン（10°刻み） ---
 		let bestDeg = null;
-		let bestScore = -Infinity;
+		let bestScoreCoarse = -Infinity; // ← ここを保持する
 
 		for (let deg = 0; deg < 360; deg += 10) {
 			const score = evaluateAngle(deg);
-			if (score > bestScore) {
-				bestScore = score;
+			if (score > bestScoreCoarse) {
+				bestScoreCoarse = score;
 				bestDeg = deg;
 			}
 		}
 
 		// --- Step 2: 中スキャン（3°刻み） ---
 		let midBest = bestDeg;
-		bestScore = -Infinity;
+		let bestScoreMid = -Infinity;
 
 		for (let d = bestDeg - 10; d <= bestDeg + 10; d += 3) {
 			const deg = (d + 360) % 360;
 			const score = evaluateAngle(deg);
-			if (score > bestScore) {
-				bestScore = score;
+			if (score > bestScoreMid) {
+				bestScoreMid = score;
 				midBest = deg;
 			}
 		}
 
 		// --- Step 3: 細スキャン（1°刻み） ---
 		let fineBest = midBest;
-		bestScore = -Infinity;
+		let bestScoreFine = -Infinity;
 
 		for (let d = midBest - 3; d <= midBest + 3; d++) {
 			const deg = (d + 360) % 360;
 			const score = evaluateAngle(deg);
-			if (score > bestScore) {
-				bestScore = score;
+			if (score > bestScoreFine) {
+				bestScoreFine = score;
 				fineBest = deg;
 			}
 		}
 
 		aim.remove();
-
-		// --- 元の角度に戻す ---
 		from.rotation = originalRot;
 
-		// --- どの角度も評価できなかった ---
-		if (fineBest == null) {
-			return NaN;
-		}
+		if (fineBest == null) return NaN;
 
-		// --- スコアが極端に低い場合はフォールバック ---
-		if (Math.abs(bestScore) < 50) {
+		// --- フォールバックは粗スキャンのスコアで判定 ---
+		if (Math.abs(bestScoreCoarse) < 50) {
 			return NaN;
 		}
 
 		return fineBest;
 	}
-
 
 	function clampDeg(angle, center, range) {
 		let diff = normalizeAngle(angle - center);
@@ -3706,6 +3686,7 @@ window.onload = function() {
 
 		constructor(from) {
 			this.time = 0;
+			this.target = from;
 			this.num = from.num;
 			this.id = from.id;
 
@@ -3715,6 +3696,8 @@ window.onload = function() {
 			const fc = Get_Center(from);
 			const rad = Rot_to_Rad(from.rotation - 90);
 
+			this.rad = rad;
+
 			const cos = Math.cos(rad);
 			const sin = Math.sin(rad);
 
@@ -3723,35 +3706,18 @@ window.onload = function() {
 			this.dy = sin * 24;
 
 			// 初期位置（Sprite と同じ）
-			this.x = fc.x + cos - this.w / 2;
-			this.y = fc.y + sin - this.h / 2;
+			this.x = fc.x + cos - this.w;
+			this.y = fc.y + sin - this.h;
+
+			// RayCast 用
+			this.maxLength = 3600;
+			this.segments = []; // {x1,y1,x2,y2}
 
 			BulAimLite.list.push(this);
 		}
 
-		// --- AABB 衝突 ---
-		hitAABB(obj) {
-			return !(
-				this.x + this.w <= obj.x ||
-				this.x >= obj.x + obj.width ||
-				this.y + this.h <= obj.y ||
-				this.y >= obj.y + obj.height
-			);
-		}
-
 		update() {
-			if (!WorldFlg) return;
-
-			if (DebugFlg)
-				new Point({ x: this.x, y: this.y });
-
 			this.time++;
-
-			const vx = this.dx;
-			const vy = this.dy;
-
-			this.x += vx;
-			this.y += vy;
 
 			// 弾が消えていたら終了
 			if (!bulStack[this.num][this.id]) {
@@ -3759,19 +3725,144 @@ window.onload = function() {
 				return;
 			}
 
-			// 壁 or ブロックに当たったら終了
-			const hitWall = Wall.collection.find(e => this.hitAABB(e));
-			const hitBlock = Block.collection.find(e => this.hitAABB(e));
+			const fc = Get_Center(this.target);
+			const rad = Rot_to_Rad(this.target.rotation - 90);
 
-			if (hitWall || hitBlock) {
-				this.remove();
-				return;
+			this.rad = rad;
+
+			const cos = Math.cos(rad);
+			const sin = Math.sin(rad);
+
+			// BulAim と同じ速度
+			this.dx = cos * 24;
+			this.dy = sin * 24;
+
+			// 初期位置（Sprite と同じ）
+			this.x = fc.x + cos - this.w;
+			this.y = fc.y + sin - this.h;
+
+			// RayCast で軌道を計算
+			this.computeRay();
+		}
+
+		// --- RayCast で 1 本の軌道を計算 ---
+		computeRay() {
+			this.segments = [];
+
+			const x1 = this.x + this.w / 2;
+			const y1 = this.y + this.h / 2;
+
+			const dx = this.dx / 24; // 方向ベクトル（正規化）
+			const dy = this.dy / 24;
+
+			const hit = this.raycast(x1, y1, dx, dy, this.maxLength);
+			//new Point({ x: x1, y: y1 });
+			//new Point({ x: hit.x, y: hit.y });
+
+			this.segments.push({
+				x1: x1,
+				y1: y1,
+				x2: hit.x,
+				y2: hit.y
+			});
+		}
+
+		// --- RayCast（壁・ブロック） ---
+		raycast(x, y, dx, dy, maxDist) {
+			let nearest = null;
+
+			for (const w of Wall.collection) {
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
+			}
+			for (const w of Block.collection) {
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
 			}
 
-			// 寿命
-			if (this.time > 90) {
-				this.remove();
+			if (!nearest) {
+				return {
+					x: x + dx * maxDist,
+					y: y + dy * maxDist,
+					dist: maxDist
+				};
 			}
+
+			return {
+				x: nearest.x,
+				y: nearest.y,
+				dist: nearest.dist
+			};
+		}
+
+		// --- Ray vs Rect ---
+		rayRect(x, y, dx, dy, rect) {
+			const x1 = rect.x;
+			const y1 = rect.y;
+			const x2 = rect.x + rect.width;
+			const y2 = rect.y + rect.height;
+
+			let tMin = Infinity;
+			let hitX = 0, hitY = 0;
+
+			// 左
+			if (dx !== 0) {
+				const t = (x1 - x) / dx;
+				const yy = y + dy * t;
+				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
+					tMin = t; hitX = x1; hitY = yy;
+				}
+			}
+
+			// 右
+			if (dx !== 0) {
+				const t = (x2 - x) / dx;
+				const yy = y + dy * t;
+				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
+					tMin = t; hitX = x2; hitY = yy;
+				}
+			}
+
+			// 上
+			if (dy !== 0) {
+				const t = (y1 - y) / dy;
+				const xx = x + dx * t;
+				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
+					tMin = t; hitX = xx; hitY = y1;
+				}
+			}
+
+			// 下
+			if (dy !== 0) {
+				const t = (y2 - y) / dy;
+				const xx = x + dx * t;
+				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
+					tMin = t; hitX = xx; hitY = y2;
+				}
+			}
+
+			if (tMin === Infinity) return null;
+
+			return { x: hitX, y: hitY, dist: tMin };
+		}
+
+		// --- 線分 vs AABB ---
+		intersectsAABB(rect) {
+			if (this.segments.length === 0) return false;
+
+			const s = this.segments[0];
+
+			// AABB の外側に完全にある場合は即 false
+			if (s.x1 < rect.x && s.x2 < rect.x) return false;
+			if (s.x1 > rect.x + rect.width && s.x2 > rect.x + rect.width) return false;
+			if (s.y1 < rect.y && s.y2 < rect.y) return false;
+			if (s.y1 > rect.y + rect.height && s.y2 > rect.y + rect.height) return false;
+
+			return lineIntersectsRect(s.x1, s.y1, s.x2, s.y2, rect);
 		}
 
 		remove() {
@@ -3795,40 +3886,28 @@ window.onload = function() {
 			const fc = Get_Center(from);
 			const rad = Rot_to_Rad(from.rotation - 90);
 
+			this.rad = rad;
+
 			const cos = Math.cos(rad);
 			const sin = Math.sin(rad);
 
+			// BulAim と同じ速度
 			this.dx = cos * 24;
 			this.dy = sin * 24;
 
 			// 初期位置（Sprite と同じ）
-			this.x = fc.x + cos - this.w / 2;
-			this.y = fc.y + sin - this.h / 2;
+			this.x = fc.x + cos - this.w;
+			this.y = fc.y + sin - this.h;
+
+			// RayCast 用
+			this.maxLength = 3600;
+			this.segments = []; // {x1,y1,x2,y2}
 
 			PlayerBulAimLite.list.push(this);
 		}
 
-		// --- AABB 衝突 ---
-		hitAABB(obj) {
-			return !(
-				this.x + this.w <= obj.x ||
-				this.x >= obj.x + obj.width ||
-				this.y + this.h <= obj.y ||
-				this.y >= obj.y + obj.height
-			);
-		}
-
 		update() {
-			if (DebugFlg)
-				new Point({ x: this.x, y: this.y });
-
 			this.time++;
-
-			const vx = this.dx;
-			const vy = this.dy;
-
-			this.x += vx;
-			this.y += vy;
 
 			// 弾が消えていたら終了
 			if (!bulStack[this.num][this.id]) {
@@ -3836,18 +3915,145 @@ window.onload = function() {
 				return;
 			}
 
-			// 壁・ブロック衝突
-			const hitWall  = Array.from(Wall.collection).find(e => this.hitAABB(e));
-			const hitBlock = Array.from(Block.collection).find(e => this.hitAABB(e));
+			const fc = Get_Center(this.target);
+			const rad = Rot_to_Rad(this.target.rotation - 90);
 
-			if (hitWall || hitBlock) {
-				this.remove();
-				return;
+			this.rad = rad;
+
+			const cos = Math.cos(rad);
+			const sin = Math.sin(rad);
+
+			// BulAim と同じ速度
+			this.dx = cos * 24;
+			this.dy = sin * 24;
+
+			// 初期位置（Sprite と同じ）
+			this.x = fc.x + cos - this.w;
+			this.y = fc.y + sin - this.h;
+
+
+			// RayCast で軌道を計算
+			this.computeRay();
+		}
+
+		// --- RayCast で 1 本の軌道を計算 ---
+		computeRay() {
+			this.segments = [];
+
+			const x1 = this.x + this.w / 2;
+			const y1 = this.y + this.h / 2;
+
+			const dx = this.dx / 24; // 方向ベクトル（正規化）
+			const dy = this.dy / 24;
+
+			const hit = this.raycast(x1, y1, dx, dy, this.maxLength);
+			//new Point({ x: x1, y: y1 });
+			//new Point({ x: hit.x, y: hit.y });
+
+			this.segments.push({
+				x1: x1,
+				y1: y1,
+				x2: hit.x,
+				y2: hit.y
+			});
+		}
+
+		// --- RayCast（壁・ブロック） ---
+		raycast(x, y, dx, dy, maxDist) {
+			let nearest = null;
+
+			for (const w of Wall.collection) {
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
+			}
+			for (const w of Block.collection) {
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
 			}
 
-			if (this.time > 90) {
-				this.remove();
+			if (!nearest) {
+				return {
+					x: x + dx * maxDist,
+					y: y + dy * maxDist,
+					dist: maxDist
+				};
 			}
+
+			return {
+				x: nearest.x,
+				y: nearest.y,
+				dist: nearest.dist
+			};
+		}
+
+		// --- Ray vs Rect ---
+		rayRect(x, y, dx, dy, rect) {
+			const x1 = rect.x;
+			const y1 = rect.y;
+			const x2 = rect.x + rect.width;
+			const y2 = rect.y + rect.height;
+
+			let tMin = Infinity;
+			let hitX = 0, hitY = 0;
+
+			// 左
+			if (dx !== 0) {
+				const t = (x1 - x) / dx;
+				const yy = y + dy * t;
+				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
+					tMin = t; hitX = x1; hitY = yy;
+				}
+			}
+
+			// 右
+			if (dx !== 0) {
+				const t = (x2 - x) / dx;
+				const yy = y + dy * t;
+				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
+					tMin = t; hitX = x2; hitY = yy;
+				}
+			}
+
+			// 上
+			if (dy !== 0) {
+				const t = (y1 - y) / dy;
+				const xx = x + dx * t;
+				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
+					tMin = t; hitX = xx; hitY = y1;
+				}
+			}
+
+			// 下
+			if (dy !== 0) {
+				const t = (y2 - y) / dy;
+				const xx = x + dx * t;
+				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
+					tMin = t; hitX = xx; hitY = y2;
+				}
+			}
+
+			if (tMin === Infinity) return null;
+
+			return { x: hitX, y: hitY, dist: tMin };
+		}
+
+		// --- 線分 vs AABB ---
+		intersectsAABB(rect) {
+			if (this.segments.length === 0) return false;
+
+			const s = this.segments[0];
+
+			// AABB の外側に完全にある場合は即 false
+			if (s.x1 < rect.x && s.x2 < rect.x) return false;
+			if (s.x1 > rect.x + rect.width && s.x2 > rect.x + rect.width) return false;
+			if (s.y1 < rect.y && s.y2 < rect.y) return false;
+			if (s.y1 > rect.y + rect.height && s.y2 > rect.y + rect.height) return false;
+
+			return lineIntersectsRect(s.x1, s.y1, s.x2, s.y2, rect);
 		}
 
 		remove() {
@@ -4023,6 +4229,7 @@ window.onload = function() {
 			this.halfW = this.width / 2; 
 			this.halfH = this.height / 3; 
 			this.fromH = from.height / 2;
+			this.bulAim = this.num === 0 ? new PlayerBulAimLite(this) : new BulAimLite(this);
 
 			// 前回の角度を保存するための変数
 			this.prevRad = null;
@@ -4048,9 +4255,6 @@ window.onload = function() {
 				if (this.time % 2 === 0) {
 					if (this.from.shotSpeed >= 14) {
 						new Fire(this);
-					}
-					if (this.time % 4 === 0) {
-						this.num === 0 ? new PlayerBulAimLite(this) : new BulAimLite(this);
 					}
 				}
 			};
@@ -4083,6 +4287,7 @@ window.onload = function() {
 			BulletBase.call(this, 12, 18, from, category, num, id, Math.round(((shotSpeed + 0.5) / 2)*10)/10);
 
 			this.name = 'PhyBullet';
+			this.bulAim = this.num === 0 ? new PlayerBulAimLite(this) : new BulAimLite(this);
 
 			// 見た目（Bullet と同じ画像）
 			this.image = game.assets['./image/ObjectImage/R3.png'];
@@ -4189,9 +4394,6 @@ window.onload = function() {
 				// ⑤ エフェクト（Bullet と同じ）
 				if (this.time % 2 === 0) {
 					if (this.shotSpeed > 7) new Fire(this);
-					if (this.time % 4 === 0) {
-						this.num === 0 ? new PlayerBulAimLite(this) : new BulAimLite(this);//new BulAim(this);
-					}
 				}
 			};
 		},
@@ -5467,7 +5669,12 @@ window.onload = function() {
 			this.moveSpeed  = Categorys.MoveSpeed[this.category];
 			this.reload     = Categorys.Reload[this.category];
 			this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category];
+			this.cannonRotSpeed = Categorys.CannonRotSpeed[this.category];
 			this.distance   = Categorys.Distances[this.category];
+			//	迎撃ステータス
+			this.defFlg = Categorys.DefenceFlg[this.category];
+			this.defRange = Categorys.DefenceRange[this.category];
+			this.escRange = Categorys.EscapeRange[this.category];
 
 			this.bomSetFlg    = false;
 			this.bomReload    = 0;
@@ -5509,6 +5716,9 @@ window.onload = function() {
 			this.moveRandom = 1;
 
 			this.waitFrame = 0;
+
+			this._match1 = [];
+			this._match2 = [];
 
 			//	追加ステータス付与
 			if (gameMode > 0) {
@@ -5827,8 +6037,8 @@ window.onload = function() {
 			}
 
 			this.aim = playerType == 1 || playerType == 6 ?
-				new AimLite(this.cannon, this.cursor, this.category, this.num, this.ref) :
-				new AimLite(this.cannon, this.cursor, this.category, this.num, 0);
+				new AimLite(this.cannon, this.cursor, this.category, this.num, this.ref, this.cannonRotSpeed * 2) :
+				new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
 
 			this.firstFireFlg = false;
 
@@ -5879,13 +6089,6 @@ window.onload = function() {
 								}
 							}
 
-							/*let aim = playerType == 1 || playerType == 6 ?
-								new PlayerRefAim(this.ref, this.cannon, this.cursor, this.category, this.num) :
-								new Aim(this.cannon, this.cursor, this.category, this.num);
-							if (this.bulReloadFlg){
-								aim.image = RedAimSurfaceCache;
-							}*/
-							
 							// AimLite を毎フレーム更新 & 描画
 							if (this.bulReloadFlg){
 								this.aim.debugColor = "rgba(255, 0, 0, 0.4)";
@@ -6375,26 +6578,31 @@ window.onload = function() {
 		},
 		_Defense: function () {
 			if (BulletBase.collection.length > 0) {
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
 
-					const defFlg = Categorys.DefenceFlg[this.category];
-					if ((c.num === 0 && !defFlg[0]) ||
-						(c.num === this.num && !defFlg[1]) ||
-						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+					
+					if ((c.num === 0 && !this.defFlg[0]) ||
+						(c.num === this.num && !this.defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
@@ -6404,12 +6612,10 @@ window.onload = function() {
 
 					if (dist == null) continue;
 
-					const defRange = Categorys.DefenceRange[this.category];
-
 					switch (c.num) {
 						case 0:
-							if (dist < defRange[0]) {
-								if (match1.some(elem => elem.target === c)) {
+							if (dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)) {
 									this.attackTarget = c;
 									this.escapeFlg = true;
 								}
@@ -6418,8 +6624,8 @@ window.onload = function() {
 
 						case this.num:
 							if (this.ref == 0) break;
-							if (dist < defRange[1] && dist > 100) {
-								if (match2.some(elem => elem.target === c)) {
+							if (dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c)) {
 									this.attackTarget = c;
 									this.escapeFlg = true;
 								}
@@ -6427,8 +6633,8 @@ window.onload = function() {
 							break;
 
 						default:
-							if (dist < defRange[2]) {
-								if (match2.some(elem => elem.target === c)) {
+							if (dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)) {
 									this.attackTarget = c;
 									this.escapeFlg = true;
 								}
@@ -6759,26 +6965,30 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
 
-					const defFlg = Categorys.DefenceFlg[this.category];
-					if ((c.num === 0 && !defFlg[0]) ||
-						(c.num === this.num && !defFlg[1]) ||
-						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+					if ((c.num === 0 && !this.defFlg[0]) ||
+						(c.num === this.num && !this.defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
@@ -6787,17 +6997,14 @@ window.onload = function() {
 					})(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
-					const defRange = Categorys.DefenceRange[this.category];
-					const escRange = Categorys.EscapeRange[this.category];
-
 					switch (c.num) {
 						case 0:
-							if (dist < defRange[0]) {
-								if (match1.some(elem => elem.target === c)){
+							if (dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-							if (escRange[0] && escRange[1] != 0) {
-									if (dist < escRange[1]) {
+							if (this.escRange[0] && this.escRange[1] != 0) {
+									if (dist < this.escRange[1]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -6807,10 +7014,10 @@ window.onload = function() {
 
 						case this.num:
 							if (this.ref == 0) break;
-							if (dist < defRange[1] && dist > 100) {
-								if (match2.some(elem => elem.target === c)) {
-									if (escRange[0] && escRange[2] != 0) {
-										if (dist < escRange[2]) {
+							if (dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c)) {
+									if (this.escRange[0] && this.escRange[2] != 0) {
+										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
 											this.escapeFlg = true;
 										}
@@ -6821,12 +7028,12 @@ window.onload = function() {
 							break;
 
 						default:
-							if (dist < defRange[2]) {
-								if (match2.some(elem => elem.target === c)){
+							if (dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-								if (escRange[0] && escRange[3] != 0) {
-									if (dist < escRange[3]) {
+								if (this.escRange[0] && this.escRange[3] != 0) {
+									if (dist < this.escRange[3]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -7199,20 +7406,21 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				const defFlg = Categorys.DefenceFlg[this.category];
-				const defRange = Categorys.DefenceRange[this.category];
-				const escRange = Categorys.EscapeRange[this.category];
-
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
@@ -7220,9 +7428,9 @@ window.onload = function() {
 					const c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
 
-					if ((c.num === 0 && !defFlg[0]) ||
-						(c.num === this.num && !defFlg[1]) ||
-						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+					if ((c.num === 0 && !this.defFlg[0]) ||
+						(c.num === this.num && !this.defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
@@ -7233,13 +7441,13 @@ window.onload = function() {
 
 					switch (c.num) {
 						case 0: {
-							if (dist < defRange[0]) {
-								if (match1.some(elem => elem.target === c)) {
+							if (dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)) {
 									this.attackTarget = c;
 								} else if (this.category == 5) {
 									this.attackTarget = this.target;
 								}
-								if (escRange[0] && escRange[1] !== 0 && dist < escRange[1]) {
+								if (this.escRange[0] && this.escRange[1] !== 0 && dist < this.escRange[1]) {
 									this.escapeTarget = c;
 									this.escapeFlg = true;
 								}
@@ -7248,23 +7456,23 @@ window.onload = function() {
 						}
 						case this.num: {
 							if (this.ref === 0) break;
-							if (dist < defRange[1] && dist > 100) {
-								if (match2.some(elem => elem.target === c) && escRange[0] && escRange[2] !== 0 && dist < escRange[2]) {
+							if (dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c) && this.escRange[0] && this.escRange[2] !== 0 && dist < this.escRange[2]) {
 									this.escapeTarget = c;
 									this.escapeFlg = true;
 								}
-								if (Search(this.cannon, c, 45, defRange[1]) && c.time > 30) {
+								if (Search(this.cannon, c, 45, this.defRange[1]) && c.time > 30) {
 									this.attackTarget = c;
 								}
 							}
 							break;
 						}
 						default: {
-							if (dist < defRange[2]) {
-								if (match2.some(elem => elem.target === c)) {
+							if (dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)) {
 									this.attackTarget = c;
 								}
-								if (escRange[0] && escRange[3] !== 0 && dist < escRange[3]) {
+								if (this.escRange[0] && this.escRange[3] !== 0 && dist < this.escRange[3]) {
 									this.escapeTarget = c;
 									this.escapeFlg = true;
 								}
@@ -7589,7 +7797,8 @@ window.onload = function() {
 
 							if (Math.abs(diffNow) >= rangeDeg) {
 								this.swingDir *= -1;
-							} else if (Math.abs(diffNow) < this.aimRot) {
+							}
+							if (Math.abs(diffNow) < this.aimRot * 2) {
 								// ★ 中心付近で反転させない
 								const dir = (this.swingDir >= 0 ? 1 : -1);
 								this.cannon.rotation += this.aimRot * dir;
@@ -8307,26 +8516,30 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
 
-					const defFlg = Categorys.DefenceFlg[this.category];
-					if ((c.num === 0 && !defFlg[0]) ||
-						(c.num === this.num && !defFlg[1]) ||
-						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+					if ((c.num === 0 && !this.defFlg[0]) ||
+						(c.num === this.num && !this.defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
@@ -8335,17 +8548,14 @@ window.onload = function() {
 					})(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
-					const defRange = Categorys.DefenceRange[this.category];
-					const escRange = Categorys.EscapeRange[this.category];
-
 					switch (c.num) {
 						case 0:
-							if (dist < defRange[0]) {
-								if (match1.some(elem => elem.target === c)){
+							if (dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-								if (escRange[0] && escRange[1] != 0) {
-									if (dist < escRange[1]) {
+								if (this.escRange[0] && this.escRange[1] != 0) {
+									if (dist < this.escRange[1]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -8355,10 +8565,10 @@ window.onload = function() {
 
 						case this.num:
 							if (this.ref == 0) break;
-							if (dist < defRange[1] && dist > 100) {
-								if (match2.some(elem => elem.target === c)) {
-									if (escRange[0] && escRange[2] != 0) {
-										if (dist < escRange[2]) {
+							if (dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c)) {
+									if (this.escRange[0] && this.escRange[2] != 0) {
+										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
 											this.escapeFlg = true;
 										}
@@ -8369,12 +8579,12 @@ window.onload = function() {
 							break;
 
 						default:
-							if (dist < defRange[2]) {
-								if (match2.some(elem => elem.target === c)){
+							if (dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-								if (escRange[0] && escRange[3] != 0) {
-									if (dist < escRange[3]) {
+								if (this.escRange[0] && this.escRange[3] != 0) {
+									if (dist < this.escRange[3]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -8799,26 +9009,30 @@ window.onload = function() {
 
 			if (BulletBase.collection.length > 0) {
 				const escapeList = [];
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
 
-					const defFlg = Categorys.DefenceFlg[this.category];
-					if ((c.num === 0 && !defFlg[0]) ||
-						(c.num === this.num && !defFlg[1]) ||
-						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+					if ((c.num === 0 && !this.defFlg[0]) ||
+						(c.num === this.num && !this.defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
@@ -8827,21 +9041,18 @@ window.onload = function() {
 					})(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
-					const defRange = Categorys.DefenceRange[this.category];
-					const escRange = Categorys.EscapeRange[this.category];
-
 					let escapeScore = 0;
 
 					switch (c.num) {
 						case 0:
-							if (dist < defRange[0]) {
-								if (match1.some(elem => elem.target === c)){
+							if (dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
 								}
-								if (escRange[0] && escRange[1] != 0 && dist < escRange[1]) {
-									if (Search(c, this, 75, escRange[1])) {
+								if (this.escRange[0] && this.escRange[1] != 0 && dist < this.escRange[1]) {
+									if (Search(c, this, 75, this.escRange[1])) {
 										escapeScore += 1000 - dist;
 									}
 								}
@@ -8850,10 +9061,10 @@ window.onload = function() {
 
 						case this.num:
 							if (this.ref == 0) break;
-							if (dist < defRange[1] && dist > 100) {
-								if (match2.some(elem => elem.target === c)) {
-									if (escRange[0] && escRange[2] != 0 && dist < escRange[2]) {
-										if (Search(c, this, 60, escRange[2])) {
+							if (dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c)) {
+									if (this.escRange[0] && this.escRange[2] != 0 && dist < this.escRange[2]) {
+										if (Search(c, this, 60, this.escRange[2])) {
 											escapeScore += 800 - dist;
 										}
 									}
@@ -8864,14 +9075,14 @@ window.onload = function() {
 							break;
 
 						default:
-							if (dist < defRange[2]) {
-								if (match2.some(elem => elem.target === c)){
+							if (dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
 								}
-								if (escRange[0] && escRange[3] != 0 && dist < escRange[3]) {
-									if (Search(c, this, 60, escRange[3])) {
+								if (this.escRange[0] && this.escRange[3] != 0 && dist < this.escRange[3]) {
+									if (Search(c, this, 60, this.escRange[3])) {
 									escapeScore += 600 - dist;
 									}
 								}
@@ -8919,14 +9130,9 @@ window.onload = function() {
 		initialize: function(x, y, category, num, scene) {
 			TankBase.call(this, x, y, category, num, scene);
 
-			/*this.weak.scale(0.8, 0.8);
-			this.tank.scale(1.1, 1.1);
-			this.cannon.scale(1.3, 1.1);*/
-
 			this.around = new InterceptAround(this);
 			this.front = new InterceptFront(this.cannon);
 
-			//this.around.scale(1.5, 1.5);
 			this.around.scale.apply(this.around, Categorys.AroundScale[this.category]);
 
 			this.target = tankEntity[0];
@@ -9227,26 +9433,30 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
 
-					const defFlg = Categorys.DefenceFlg[this.category];
-					if ((c.num === 0 && !defFlg[0]) ||
-						(c.num === this.num && !defFlg[1]) ||
-						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+					if ((c.num === 0 && !this.defFlg[0]) ||
+						(c.num === this.num && !this.defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
@@ -9255,17 +9465,14 @@ window.onload = function() {
 					})(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
-					const defRange = Categorys.DefenceRange[this.category];
-					const escRange = Categorys.EscapeRange[this.category];
-
 					switch (c.num) {
 						case 0:
-							if (dist < defRange[0]) {
-								if (match1.some(elem => elem.target === c)){
+							if (dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-								if (escRange[0] && escRange[1] != 0) {
-									if (dist < escRange[1]) {
+								if (this.escRange[0] && this.escRange[1] != 0) {
+									if (dist < this.escRange[1]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -9275,10 +9482,10 @@ window.onload = function() {
 
 						case this.num:
 							if (this.ref == 0) break;
-							if (dist < defRange[1] && dist > 100) {
-								if (match2.some(elem => elem.target === c)) {
-									if (escRange[0] && escRange[2] != 0) {
-										if (dist < escRange[2]) {
+							if (dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c)) {
+									if (this.escRange[0] && this.escRange[2] != 0) {
+										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
 											this.escapeFlg = true;
 										}
@@ -9289,12 +9496,12 @@ window.onload = function() {
 							break;
 
 						default:
-							if (dist < defRange[2]) {
-								if (match2.some(elem => elem.target === c)){
+							if (dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-								if (escRange[0] && escRange[3] != 0) {
-									if (dist < escRange[3]) {
+								if (this.escRange[0] && this.escRange[3] != 0) {
+									if (dist < this.escRange[3]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -9778,26 +9985,30 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
-
-					const defFlg = Categorys.DefenceFlg[this.category];
-					if ((c.num === 0 && !defFlg[0]) ||
-						(c.num === this.num && !defFlg[1]) ||
-						(c.num !== 0 && c.num !== this.num && !defFlg[2])) continue;
+					
+					if ((c.num === 0 && !this.defFlg[0]) ||
+						(c.num === this.num && !this.defFlg[1]) ||
+						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
@@ -9806,20 +10017,17 @@ window.onload = function() {
 					})(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
-					const defRange = Categorys.DefenceRange[this.category];
-					const escRange = Categorys.EscapeRange[this.category];
-
 					switch (c.num) {
 						case 0:
-							if (dist < defRange[0]) {
-								if (match1.some(elem => elem.target === c)){
+							if (dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
 								}
-								if (escRange[0] && escRange[1] != 0) {
-									if (dist < escRange[1]) {
-										if (Search(c, this, 80, escRange[1])) {
+								if (this.escRange[0] && this.escRange[1] != 0) {
+									if (dist < this.escRange[1]) {
+										if (Search(c, this, 80, this.escRange[1])) {
 											this.escapeTarget = c;
 											this.escapeFlg = true;
 										}
@@ -9830,10 +10038,10 @@ window.onload = function() {
 
 						case this.num:
 							if (this.ref == 0) break;
-							if (dist < defRange[1] && dist > 100) {
-								if (match2.some(elem => elem.target === c)) {
-									if (escRange[0] && escRange[2] != 0) {
-										if (dist < escRange[2]) {
+							if (dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c)) {
+									if (this.escRange[0] && this.escRange[2] != 0) {
+										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
 											this.escapeFlg = true;
 										}
@@ -9844,12 +10052,12 @@ window.onload = function() {
 							break;
 
 						default:
-							if (dist < defRange[2]) {
-								if (match2.some(elem => elem.target === c)){
+							if (dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-								if (escRange[0] && escRange[3] != 0) {
-									if (dist < escRange[3]) {
+								if (this.escRange[0] && this.escRange[3] != 0) {
+									if (dist < this.escRange[3]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
 									}
@@ -10699,24 +10907,29 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				const match1 = [];
-				for (const a of PlayerBulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match1.push(a);
+				this._match1.length = 0;
+				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
+					const a = PlayerBulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match1.push(a);
+						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
-				const match2 = [];
-				for (const a of BulAimLite.list) {
-					if (a.hitAABB(this.around)) {
-						match2.push(a);
+
+				this._match2.length = 0;
+				for (let i = 0; i < BulAimLite.list.length; i++) {
+					const a = BulAimLite.list[i];
+					if (a.intersectsAABB(this.around)) {
+						this._match2.push(a);
+						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					let c = BulletBase.collection[i];
 					if (!bulStack[c.num][c.id]) continue;
-					if (c.num == this.target.num && !Categorys.DefenceFlg[this.category][0]) continue;
-					if (c.num == this.num && !Categorys.DefenceFlg[this.category][1]) continue;
-					if (!(c.num == this.target.num || c.num == this.num) && !Categorys.DefenceFlg[this.category][2]) continue;
+					if (c.num == this.target.num && !this.defFlg[0]) continue;
+					if (c.num == this.num && !this.defFlg[1]) continue;
+					if (!(c.num == this.target.num || c.num == this.num) && !this.defFlg[2]) continue;
 					const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
@@ -10726,15 +10939,15 @@ window.onload = function() {
 
 					switch (c.num) {
 						case this.target.num:
-							if (dist != null && dist < Categorys.DefenceRange[this.category][0]) {
-								if (match1.some(elem => elem.target === c)){
+							if (dist != null && dist < this.defRange[0]) {
+								if (this._match1.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
 								}
-								if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][1] != 0) {
-									if (dist < Categorys.EscapeRange[this.category][1]) {
-										if (Search(c, this, 90, Categorys.EscapeRange[this.category][1])) {
+								if (this.escRange[0] == true && this.escRange[1] != 0) {
+									if (dist < this.escRange[1]) {
+										if (Search(c, this, 90, this.escRange[1])) {
 											this.escapeTarget = c;
 											this.escapeFlg = true;
 										}
@@ -10744,11 +10957,11 @@ window.onload = function() {
 							break;
 						case this.num:
 							if (this.ref == 0) break;
-							if (dist != null && dist < Categorys.DefenceRange[this.category][1] && dist > 100) {
-								if (match2.some(elem => elem.target === c)){
-									if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][2] != 0) {
-										if (dist < Categorys.EscapeRange[this.category][2]) {
-											if (Search(c, this, 45, Categorys.EscapeRange[this.category][2])) {
+							if (dist != null && dist < this.defRange[1] && dist > 100) {
+								if (this._match2.some(elem => elem.target === c)){
+									if (this.escRange[0] == true && this.escRange[2] != 0) {
+										if (dist < this.escRange[2]) {
+											if (Search(c, this, 45, this.escRange[2])) {
 												this.escapeTarget = c;
 												this.escapeFlg = true;
 											}
@@ -10759,13 +10972,13 @@ window.onload = function() {
 							}
 							break;
 						default:
-							if (dist != null && dist < Categorys.DefenceRange[this.category][2]) {
-								if (match2.some(elem => elem.target === c)){
+							if (dist != null && dist < this.defRange[2]) {
+								if (this._match2.some(elem => elem.target === c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-								if (Categorys.EscapeRange[this.category][0] == true && Categorys.EscapeRange[this.category][3] != 0) {
-									if (dist < Categorys.EscapeRange[this.category][3]) {
-										if (Search(c, this, 45, Categorys.EscapeRange[this.category][3])) {
+								if (this.escRange[0] == true && this.escRange[3] != 0) {
+									if (dist < this.escRange[3]) {
+										if (Search(c, this, 45, this.escRange[3])) {
 											this.escapeTarget = c;
 											this.escapeFlg = true;
 										}
@@ -11493,7 +11706,7 @@ window.onload = function() {
 			})
 
 			this.back.addEventListener(Event.TOUCH_START, function() {
-				console.log('remove')
+				//console.log('remove')
 				ActiveFlg = false;
 				now_scene.removeChild(my);
 			})
@@ -12878,7 +13091,6 @@ window.onload = function() {
                 // 衝突更新
                 this.handleCollisionUpdates();
 
-				//RefAimLite.list.forEach(a => a.update());
 				BulAimLite.list.forEach(a => a.update());
 				PlayerBulAimLite.list.forEach(a => a.update());
 				AimLite.list.forEach(a => a.update(a.from, a.to));
