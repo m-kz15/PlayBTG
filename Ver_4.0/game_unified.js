@@ -212,7 +212,7 @@ const Categorys = {
 		[1.5, 1.5], //elitegray
 		[1.0, 1.0], //elitegreen
 		[1.0, 1.0], //snow
-		[1.5, 1.5], //elitered
+		[1.8, 1.8], //elitered
 		[1.0, 1.0], //pink
 		[1.0, 1.0], //sand
 		[1.6, 1.6], //random
@@ -442,7 +442,7 @@ const Categorys = {
 		[360, 250, 200], //elitegray
 		[0, 0, 0], //elitegreen
 		[300, 200, 200], //snow
-		[420, 280, 200], //elitered
+		[420, 360, 360], //elitered
 		[0, 0, 0], //pink
 		[250, 0, 0], //sand
 		[500, 0, 300], //random
@@ -458,7 +458,7 @@ const Categorys = {
 		[true, 320, 230, 180], //elitegray
 		[false, 0, 0, 0], //elitegreen
 		[true, 200, 200, 180], //snow
-		[true, 380, 240, 180], //elitered
+		[true, 380, 300, 300], //elitered
 		[false, 0, 0, 0], //pink
 		[true, 280, 0, 0], //sand
 		[true, 400, 0, 280], //random
@@ -4836,7 +4836,7 @@ window.onload = function() {
 
 		damageNearbyTanks: function(range) {
 			let damage = this.from.damage;
-			if (this.time > 0){
+			if (this.time > 0 && useLifeSystem){
 				damage = 2;
 				range += 20;
 			}
@@ -4854,13 +4854,15 @@ window.onload = function() {
 						new ViewDamage(elem, damage, false);
 						elem.life -= damage;
 						elem.lifeBar.Change(elem.life);
+						if (this.from.category == 9){
+							elem.damTimeMax = 4;
+						} 
 					} else {
-						elem.life = 0;
+						elem.life -= 1;
 					}
+
 					elem.damFlg = true;
-					if (this.from.category == 9){
-						elem.damTimeMax = 4;
-					} 
+					
 					elem._DamageEffect();
 					if (elem.category >= 12){
 						elem._ResetStatus();
@@ -8440,7 +8442,10 @@ window.onload = function() {
 													if (closest && minDistSq <= 200 * 200) {
 														this.bomReload = 0;
 														this.bomSetFlg = true;
-														this.dirValue = escapeFromTarget(this.weak, closest);
+														if(this.hittingTime > 8)
+															SelDirection(this.weak, closest, 0);
+														else
+															this.dirValue = escapeFromTarget(this.weak, closest);
 													}
 												}
 
@@ -10540,10 +10545,6 @@ window.onload = function() {
 								}
 							}
 
-							if (this.ref > 0) {
-								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
-							}
-
 							if (this.time % 3 == 0) {
 								if (this.attackTarget != this.target && !this.escapeFlg) this.attackTarget = this.target;
 								this.escapeFlg = false;
@@ -10552,6 +10553,10 @@ window.onload = function() {
 							this._Defense();
 							
 							this._Reload();
+
+							if (this.ref > 0) {
+								if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+							}
 							
 							if (!this.shotNGflg && !this.bomSetFlg) {
 								if (this.time % this.fireLate == 0 && this.fireFlg) {
@@ -10682,7 +10687,10 @@ window.onload = function() {
 												if (closest){
 													this.bomReload = 0;
 													this.bomSetFlg = true;
-													this.dirValue = escapeFromTarget(this.weak, closest);
+													if (this.hittingTime >= 20)
+														SelDirection(this, closest, 0);
+													else
+														this.dirValue = escapeFromTarget(this.weak, closest);
 												}
 											}
 										}
