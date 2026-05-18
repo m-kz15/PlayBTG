@@ -2899,124 +2899,6 @@ window.onload = function() {
 		}
 	});
 
-	// Aim 用のキャッシュ（1回だけ生成）
-	const AimSurfaceCache = (() => {
-		const s = new Surface(8, 8);
-		const ctx = s.context;
-		ctx.beginPath();
-		ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
-		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
-		ctx.fill();
-		return s;
-	})();
-
-	const RedAimSurfaceCache = (() => {
-		const s = new Surface(8, 8);
-		const ctx = s.context;
-		ctx.beginPath();
-		ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
-		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
-		ctx.fill();
-		return s;
-	})();
-
-	const PlayerRefAimSurfaceCache = (() => {
-		// 可視エフェクト設定
-		const s = new Surface(8, 8);
-		const ctx = s.context;
-		ctx.beginPath();
-		ctx.fillStyle = 'rgba(170, 255, 255, 0.3)';
-		ctx.arc(4, 4, 4, 0, Math.PI * 2, true);
-		ctx.fill();
-		return s;
-	})();
-
-	var Aim = Class.create(Sprite, {
-		initialize: function(from, to, category, num) {
-			Sprite.call(this, 8, 8);
-			this.time = 0;
-			this.category = category;
-			this.num = num;
-			if (DebugFlg) this.debugColor = 'orange';
-
-			let angle = normalizeRotation(Vec_to_Rot(Get_Center(from), Get_Center(to)) + 90);
-			this.rad = Rot_to_Rad(angle);
-
-			// ビジュアル設定
-			if (num === 0) {
-				this.image = AimSurfaceCache;
-			} else{
-				this.visible = false;
-				if (Categorys.MaxRef[category] === 0) {
-					this.scale(2.0, 2.0);
-				}
-			}
-
-			// 大砲回転処理
-			let rot = normalizeRotation(Rad_to_Rot(this.rad));
-			let diff = normalizeAngle(from.rotation - rot);
-			let speed = Categorys.CannonRotSpeed[category];
-			if (Math.abs(diff) >= speed) {
-				from.rotation = normalizeRotation(from.rotation + (diff > 0 ? -speed : speed));
-			} else {
-				from.rotation = rot;
-			}
-
-			// 発射角度と座標
-			this.rad = Rot_to_Rad(from.rotation - 90);
-			var pos = Get_Center(from);
-			this.moveTo(
-				pos.x - 3.45 + Math.cos(this.rad) * 56,
-				pos.y - 4.5 + Math.sin(this.rad) * 56
-			);
-
-			this.dx = Math.cos(this.rad) * 28;
-			this.dy = Math.sin(this.rad) * 28;
-
-			this.onenterframe = () => {
-				if (!WorldFlg) return;
-
-				this.time++;
-				if (this.time % 360 === 0) {
-					now_scene.removeChild(this);
-					return;
-				}
-
-				pos = Get_Center(from);
-				rad = Rot_to_Rad(from.rotation - 90);
-				// 任意：移動ベクトルも更新したい場合
-				this.dx = Math.cos(rad) * 28;
-				this.dy = Math.sin(rad) * 28;
-
-				this.x = pos.x - 3.45 + Math.cos(rad) * 56 + (this.dx * this.time);
-				this.y = pos.y - 4.5 + Math.sin(rad) * 56 + (this.dy * this.time);
-
-				//this.x += this.dx;
-				//this.y += this.dy;
-
-				// 壁 or ブロックヒット時に削除
-				if (
-					Wall.intersectStrict(this).length > 0 ||
-					Block.intersectStrict(this).length > 0
-				) {
-					now_scene.removeChild(this);
-					return;
-				}
-
-				if (this.num !== 0) {
-					const hit = TankBase.intersectStrict(this);
-					if (hit.length > 0) {
-						if (hit[0].num !== 0) {
-							now_scene.removeChild(this);
-						}
-					}
-				}
-			};
-
-			now_scene.addChild(this);
-		}
-	});
-
 	class AimLite {
 		static list = [];
 		constructor(from, to, category, num, ref, speed) {
@@ -3235,6 +3117,21 @@ window.onload = function() {
 			}
 		}
 
+		// --- 線分 vs AABB ---
+		intersectsAABB(rect) {
+			if (this.segments.length === 0) return false;
+
+			const s = this.segments[0];
+
+			// AABB の外側に完全にある場合は即 false
+			if (s.x1 < rect.x && s.x2 < rect.x) return false;
+			if (s.x1 > rect.x + rect.width && s.x2 > rect.x + rect.width) return false;
+			if (s.y1 < rect.y && s.y2 < rect.y) return false;
+			if (s.y1 > rect.y + rect.height && s.y2 > rect.y + rect.height) return false;
+
+			return lineIntersectsRect(s.x1, s.y1, s.x2, s.y2, rect);
+		}
+
 		remove() {
 			this.domLines?.forEach(l => l.remove());
 			this.domLines = [];
@@ -3306,6 +3203,8 @@ window.onload = function() {
 			// 当たり判定用（点扱い）
 			this.w = 4;
 			this.h = 4;
+
+			//this.debugColor = "rgba(255, 0, 0, 0.4)";
 
 			RefAimLite.collection.push(this);
 		}
@@ -3381,6 +3280,8 @@ window.onload = function() {
 
 			this.x = lastX;
 			this.y = lastY;
+
+			//this.drawDebug();
 		}
 
 		raycast(x, y, dx, dy, maxDist) {
@@ -3538,6 +3439,19 @@ window.onload = function() {
 			};
 		}
 
+		drawDebug() {
+			if (this.debugColor == null)
+				return;
+			// 既存の線を削除
+			this.domLines?.forEach(l => l.remove());
+			this.domLines = [];
+
+			for (const s of this.segments) {
+				const line = createLine(s.x1, s.y1, s.x2, s.y2, this.debugColor, this.lineWidth);
+				this.domLines.push(line);
+			}
+		}
+
 		remove() {
 			this.domLines.forEach(l => l.remove());
 			this.domLines = [];
@@ -3577,13 +3491,111 @@ window.onload = function() {
 		);
 	}
 
+	function checkHit(deg, aim, from, target) {
+		from.rotation = deg;
+		aim.update(from);
+
+		const segments = aim.segments;
+		if (!segments || segments.length === 0) return null;
+
+		const last = segments[segments.length - 1];
+
+		// ★ AABB命中判定
+		if (!lineIntersectsRect(last.x1, last.y1, last.x2, last.y2, target)) {
+			return null;
+		}
+
+		return {
+			deg,
+			reflectCount: segments.length - 1
+		};
+	}
+
+	function findBestHitAngle(ref, from, category, num, target) {
+
+		const originalRot = from.rotation;
+		const aim = new RefAimLite(ref, from, category, num);
+		aim.color = null;
+
+		let hitAngles = [];
+
+		// --- Step1: 粗スキャン（10°刻み） ---
+		for (let deg = 0; deg < 360; deg += 10) {
+			const hit = checkHit(deg, aim, from, target);
+			if (hit) hitAngles.push(hit);
+		}
+
+		// 粗スキャンで命中角度が無ければ終了
+		if (hitAngles.length === 0) {
+			aim.remove();
+			from.rotation = originalRot;
+			return NaN;
+		}
+
+		// --- Step2: 中スキャン（5°刻み） ---
+		let midAngles = [];
+		for (const h of hitAngles) {
+			for (let d = h.deg - 10; d <= h.deg + 10; d += 5) {
+				const deg = (d + 360) % 360;
+				const hit = checkHit(deg, aim, from, target);
+				if (hit) midAngles.push(hit);
+			}
+		}
+
+		if (midAngles.length === 0) midAngles = hitAngles;
+
+		// --- Step3: 細スキャン（砲塔の回転速度刻み） ---
+		let fineAngles = [];
+		const rotSpeed = Categorys.CannonRotSpeed[category]; // ★ 砲塔の回転速度
+
+		for (const h of midAngles) {
+			for (let d = h.deg - 5; d <= h.deg + 5; d += rotSpeed) {
+				const deg = (d + 360) % 360;
+				const hit = checkHit(deg, aim, from, target);
+				if (hit) fineAngles.push(hit);
+			}
+		}
+
+		if (fineAngles.length === 0) fineAngles = midAngles;
+
+		aim.remove();
+		from.rotation = originalRot;
+
+		// --- 命中角度の中から最適角度を選ぶ ---
+		return selectBestAngle(fineAngles, originalRot);
+	}
+
+	function selectBestAngle(hitAngles, currentRot) {
+
+		// ① 反射回数が最小の角度だけ残す
+		const minReflect = Math.min(...hitAngles.map(h => h.reflectCount));
+		const filtered = hitAngles.filter(h => h.reflectCount === minReflect);
+
+		// ② 現在角度からの旋回量が最小の角度を選ぶ
+		let best = filtered[0];
+		let bestTurn = Infinity;
+
+		for (const h of filtered) {
+			const turn = Math.min(
+				Math.abs(h.deg - currentRot),
+				360 - Math.abs(h.deg - currentRot)
+			);
+			if (turn < bestTurn) {
+				bestTurn = turn;
+				best = h;
+			}
+		}
+
+		return best.deg;
+	}
+
 	function findBestPreAimAngle(ref, from, category, num, target) {
 
 		const originalRot = from.rotation;
 		const aim = new RefAimLite(ref, from, category, num);
 		aim.color = null;
 
-		function evaluateAngle(deg) {
+		/*function evaluateAngle(deg) {
 			from.rotation = deg;
 			aim.update(from);
 
@@ -3607,7 +3619,29 @@ window.onload = function() {
 				distToFirstWall * 0.05 -
 				reflectCount * 5
 			);
+		}*/
+		function evaluateAngle(deg) {
+			from.rotation = deg;
+			aim.update(from);
+
+			const segments = aim.segments;
+			if (!segments || segments.length === 0) return -Infinity;
+
+			const last = segments[segments.length - 1];
+
+			// ★ ターゲットAABBと交差するか
+			if (lineIntersectsRect(last.x1, last.y1, last.x2, last.y2, target)) {
+				return 999999; // 当たる角度は最優先
+			}
+
+			// 当たらない場合は距離で評価
+			const dx = last.x2 - target.x;
+			const dy = last.y2 - target.y;
+			const dist = dx*dx + dy*dy;
+
+			return -dist; // 近いほど良い
 		}
+
 
 		// --- Step 1: 粗スキャン（10°刻み） ---
 		let bestDeg = null;
@@ -6090,6 +6124,9 @@ window.onload = function() {
 									this.shotStopTime = 0;
 								}
 							}
+							else{
+								this.aim.update(this.aim.from, this.aim.to);
+							}
 
 							// AimLite を毎フレーム更新 & 描画
 							if (this.bulReloadFlg){
@@ -6228,6 +6265,7 @@ window.onload = function() {
 						}
 					} else {
 						zanki--;
+						this.aim.remove();
 						this._Dead();
 					}
 				}
@@ -6288,16 +6326,12 @@ window.onload = function() {
 			this.cachedCollision = null;
 			this.lastGridUpdate = -9999;
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
 
 			for (let i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false);
 			}
-
-			const EnemyAim = Class.create(Aim, {
-				initialize: function (cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const getGridCoord = (entity) => [
 				Math.floor((entity.y + entity.height / 2) / PixelSize),
@@ -6360,6 +6394,7 @@ window.onload = function() {
 
 				if (this.life <= 0) {
 					destruction++;
+					this.aim.remove();
 					this._Dead();
 					return;
 				}
@@ -6368,40 +6403,6 @@ window.onload = function() {
 				this._Damage();
 
 				// grid / map 更新（60Fごと）
-				/*if (this.time % (60 + this.num) === 0) {
-					this.grid = JSON.parse(JSON.stringify(scene.grid));
-					this.map = Object.assign({}, scene.backgroundMap);
-
-					if (this.moveSpeed > 0 && !this.tankStopFlg) {
-						this.myPath = getGridCoord(this);
-						this.targetPath = getGridCoord(this.target);
-
-						for (let i = 0; i < this.grid.length; i++) {
-							for (let j = 0; j < this.grid[i].length; j++) {
-								if (i === this.myPath[0] && j === this.myPath[1]) {
-									this.grid[i][j] = 3;
-								} else if (i === this.targetPath[0] && j === this.targetPath[1]) {
-									this.grid[i][j] = 2;
-								} else {
-									this.grid[i][j] = this.map.collisionData[i][j] === 0 ? 0 : 1;
-								}
-							}
-						}
-
-						if (this.time === 0) {
-							this.root = findShortestPath(this.myPath, this.grid, scene);
-							const dir = directionMap[this.root?.[0]];
-							if (dir) {
-								this.rot = dir.rot;
-								const center = Get_Center(this);
-								moveCmp = Math.round(Vec_Distance(center, {
-									x: PixelSize * (this.myPath[1] + dir.dx) + 32,
-									y: PixelSize * (this.myPath[0] + dir.dy) + 14
-								}));
-							}
-						}
-					}
-				}*/
 				if (this.time % (60 + this.num) === 0) {
 
 					// ★ 1秒ごとにキャッシュ更新
@@ -6465,12 +6466,20 @@ window.onload = function() {
 					}
 				}
 
-				// EnemyAim 生成
-				new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+				// ショット停止フラグの時間管理
+				if (this.shotStopFlg) {
+					this.shotStopTime++;
+					if (this.shotStopTime > 10) {
+						this.shotStopFlg = false;
+						this.shotStopTime = 0;
+					}
+				}else{
+					this.aim.update(this.aim.from, this.aim.to);
+				}
 
 				// 照準ヒット
 				if (this.time > 60){
-					const hit = EnemyAim.intersect(this.cursor)[0];
+					const hit = this.aim.intersectsAABB(this.cursor);
 					if (hit) this.fireFlg = true;
 				}
 
@@ -6547,15 +6556,6 @@ window.onload = function() {
 					if (cflg && obsHit) {
 						updatePathAndRotation(this, this.grid, scene);
 						markObstacle(this.rot, this.myPath, this.grid);
-					}
-				}
-
-				// ショット停止フラグの時間管理
-				if (this.shotStopFlg) {
-					this.shotStopTime++;
-					if (this.shotStopTime > 10) {
-						this.shotStopFlg = false;
-						this.shotStopTime = 0;
 					}
 				}
 
@@ -6705,6 +6705,9 @@ window.onload = function() {
 
 			var h = {x: 0, y: 0};
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			var shadow = new Surface(this.width, this.height);
 			shadow.context.beginPath();
 			if(gameMode > 0){
@@ -6718,12 +6721,6 @@ window.onload = function() {
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3];
@@ -6826,13 +6823,13 @@ window.onload = function() {
 									this.shotStopTime = 0;
 								}
 							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+								this.aim.update(this.aim.from, this.aim.to);
 							}
 
+							// 照準ヒット
 							if (this.time > 60){
-								if (!this.fireFlg && EnemyAim.intersect(this.cursor).length > 0){
-									this.fireFlg = true; //  発射可能状態にする
-								}
+								const hit = this.aim.intersectsAABB(this.cursor);
+								if (hit) this.fireFlg = true;
 							}
 
 							if (this.ref > 0) {
@@ -6943,6 +6940,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						this.aim.remove();
 						this._Dead();
 					}
 				}
@@ -7083,15 +7081,12 @@ window.onload = function() {
 
 			let h = { x: 0, y: 0 };
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			for (let i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false);
 			}
-
-			const EnemyAim = Class.create(Aim, {
-				initialize: function (cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const getGridCoord = (entity) => [
 				(entity.y + entity.height / 2) / PixelSize | 0,
@@ -7172,6 +7167,7 @@ window.onload = function() {
 
 				if (this.life <= 0) {
 					destruction++;
+					this.aim.remove();
 					this._Dead();
 					return;
 				}
@@ -7232,12 +7228,13 @@ window.onload = function() {
 						this.shotStopTime = 0;
 					}
 				} else {
-					new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+					this.aim.update(this.aim.from, this.aim.to);
 				}
 
+				// 照準ヒット
 				if (this.time > 60){
-					const aimHits = EnemyAim.intersectStrict(this.cursor);
-					if (aimHits.length > 0) {
+					const hit = this.aim.intersectsAABB(this.cursor);
+					if (hit) {
 						if (!this.fireFlg) this.fireFlg = true;
 						if (!rootFlg) rootFlg = true;
 					}
@@ -7514,15 +7511,12 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			this.onenterframe = function() {
 				if (!deadFlgs[this.num] && gameStatus == 0) {
@@ -7542,16 +7536,16 @@ window.onload = function() {
 									this.shotStopFlg = false;
 									this.shotStopTime = 0;
 								}
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
-							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
 							}
+							this.aim.update(this.aim.from, this.aim.to);
 
 							this.time++;
 
+							// 照準ヒット
 							if (this.time > 60){
-								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-									this.fireFlg = true; //  発射可能状態にする
+								const hit = this.aim.intersectsAABB(this.cursor);
+								if (hit) {
+									this.fireFlg = true;
 								}
 							}
 							
@@ -7584,6 +7578,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						this.aim.remove();
 						this._Dead();
 					}
 				}
@@ -7754,8 +7749,7 @@ window.onload = function() {
 					}
 				}
 				else if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
-
-					this.bestDeg = findBestPreAimAngle(
+					/*this.bestDeg = findBestHitAngle(
 						this.ref, this.cannon, this.category, this.num, this.target
 					);
 
@@ -7799,14 +7793,73 @@ window.onload = function() {
 
 							if (Math.abs(diffNow) >= rangeDeg) {
 								this.swingDir *= -1;
-							}
-							if (Math.abs(diffNow) < this.aimRot * 2) {
+							} else if (Math.abs(diffNow) < this.aimRot) {
 								// ★ 中心付近で反転させない
 								const dir = (this.swingDir >= 0 ? 1 : -1);
 								this.cannon.rotation += this.aimRot * dir;
 								this.cannon2.rotation += this.aimRot * dir;
 							}
 						}
+					}*/
+					// --- 命中角度の取得 ---
+					this.bestDeg = findBestHitAngle(
+						this.ref, this.cannon, this.category, this.num, this.target
+					);
+
+					// --- 命中角度がある場合 ---
+					if (isFinite(this.bestDeg)) {
+
+						const center = this.bestDeg;
+						const current = this.cannon.rotation;
+						const rangeDeg = 45; // ±45°など
+						const rotSpeed = Categorys.CannonRotSpeed[this.category];
+
+						// --- 範囲内かどうか ---
+						const diffToCenter = normalizeAngle(center - current);
+						const isInside = Math.abs(diffToCenter) <= rangeDeg;
+
+						// --- 範囲外：中心へ寄せる ---
+						if (!isInside) {
+
+							const dir = diffToCenter > 0 ? 1 : -1;
+
+							if (Math.abs(diffToCenter) <= rotSpeed) {
+								this.cannon.rotation = center;
+								this.cannon2.rotation = center;
+							} else {
+								this.cannon.rotation += rotSpeed * dir;
+								this.cannon2.rotation += rotSpeed * -dir;
+							}
+
+						} else {
+
+							// --- 範囲内：メトロノーム揺れ ---
+							if (this.swingDir === undefined) this.swingDir = 1;
+
+							this.cannon.rotation += rotSpeed * this.swingDir;
+							this.cannon2.rotation += rotSpeed * -this.swingDir;
+
+							const diffNow = normalizeAngle(this.cannon.rotation - center);
+
+							// 範囲端で反転
+							if (Math.abs(diffNow) >= rangeDeg) {
+								this.swingDir *= -1;
+							}
+
+							// 中心付近で反転しない（自然な揺れ）
+							if (Math.abs(diffNow) < rotSpeed) {
+								const dir = this.swingDir >= 0 ? 1 : -1;
+								this.cannon.rotation += rotSpeed * dir;
+								this.cannon2.rotation += rotSpeed * -dir;
+							}
+						}
+					}else{
+						// --- 命中角度が無い場合：既存の回転処理 ---
+						this.cannon2.rotation += (this.cannon.rotation !== this.cannon2.rotation)
+							? -this.aimRot
+							:  this.aimRot;
+
+						this.cannon.rotation += this.aimRot;
 					}
 				}
 
@@ -7899,15 +7952,12 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -8274,16 +8324,20 @@ window.onload = function() {
 									this.shotStopTime = 0;
 								}
 							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+								this.aim.update(this.aim.from, this.aim.to);
 							}
 
+							// 照準ヒット
 							if (this.time > 60){
-								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-									this.fireFlg = true; //  発射可能状態にする
+								if (this.aim.intersectsAABB(this.cursor)) {
+									this.fireFlg = true;
 								}
-
-								if (this.fireFlg && EnemyAim.intersectStrict(Bom).length > 0) {
-									this.fireFlg = false;
+								for (let i = 0; i < Bom.collection.length; i++){
+									var c = Bom.collection[i];
+									if (this.aim.intersectsAABB(c)) {
+										this.fireFlg = false;
+										break;
+									}
 								}
 							}
 
@@ -8476,6 +8530,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						this.aim.remove();
 						if (this.within(this.target, 256) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) new Bom(this, this.num, boms[this.num])._SetBom();
 						this._Dead();
 					}
@@ -8638,15 +8693,12 @@ window.onload = function() {
 
 			this.escapeTargets = [];
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -8810,12 +8862,13 @@ window.onload = function() {
 									this.shotStopTime = 0;
 								}
 							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+								this.aim.update(this.aim.from, this.aim.to);
 							}
 
+							// 照準ヒット
 							if (this.time > 60){
-								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-									this.fireFlg = true; //  発射可能状態にする
+								if (this.aim.intersectsAABB(this.cursor)) {
+									this.fireFlg = true;
 								}
 							}
 							
@@ -8946,6 +8999,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						this.aim.remove();
 						this._Dead();
 					}
 				}
@@ -9147,15 +9201,12 @@ window.onload = function() {
 
 			this.cursor = new Target(this, scene);
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3];
@@ -9264,13 +9315,14 @@ window.onload = function() {
 									this.shotStopTime = 0;
 								}
 							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+								this.aim.update(this.aim.from, this.aim.to);
 							}
 
+							// 照準ヒット
 							if (this.time > 60){
-								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-									this.fireFlg = true; //  発射可能状態にする
-								}	
+								if (this.aim.intersectsAABB(this.cursor)) {
+									this.fireFlg = true;
+								}
 							}
 
 							if (this.ref > 0) {
@@ -9377,6 +9429,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						this.aim.remove();
 						this._Dead();
 					}
 				}
@@ -9560,15 +9613,12 @@ window.onload = function() {
 
 			this.distance = Categorys.Distances[this.category];
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -9724,12 +9774,13 @@ window.onload = function() {
 									this.shotStopTime = 0;
 								}
 							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+								this.aim.update(this.aim.from, this.aim.to);
 							}
 
+							// 照準ヒット
 							if (this.time > 60){
-								if (!this.fireFlg && EnemyAim.intersectStrict(this.cursor).length > 0){
-									this.fireFlg = true; //  発射可能状態にする
+								if (this.aim.intersectsAABB(this.cursor)) {
+									this.fireFlg = true;
 								}
 							}
 							
@@ -9861,6 +9912,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						this.aim.remove();
 						this._Dead();
 					}
 				}
@@ -10124,15 +10176,12 @@ window.onload = function() {
 
 			var rootFlg = false;
 
+			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
+			
+
 			for (var i = 0; i < this.bulMax; i++) {
 				bulStack[this.num].push(false); //  弾の状態をoff
 			}
-
-			var EnemyAim = Class.create(Aim, {
-				initialize: function(cannon, cursor, category, num) {
-					Aim.call(this, cannon, cursor, category, num, scene);
-				}
-			});
 
 			const NG_root_set = () => {
 				dir = [];
@@ -10535,11 +10584,12 @@ window.onload = function() {
 									this.shotStopTime = 0;
 								}
 							} else {
-								new EnemyAim(this.cannon, this.cursor, this.category, this.num);
+								this.aim.update(this.aim.from, this.aim.to);
 							}
 
+							// 照準ヒット
 							if (this.time > 60){
-								if (EnemyAim.intersectStrict(this.cursor).length > 0){
+								if (this.aim.intersectsAABB(this.cursor)) {
 									if (!this.fireFlg)this.fireFlg = true; //  発射可能状態にする
 									if (!rootFlg) rootFlg = true;
 								}
@@ -10770,6 +10820,7 @@ window.onload = function() {
 						}
 					} else {
 						destruction++;
+						this.aim.remove();
 						this._Dead();
 					}
 				}
@@ -13101,7 +13152,7 @@ window.onload = function() {
 
 				BulAimLite.list.forEach(a => a.update());
 				PlayerBulAimLite.list.forEach(a => a.update());
-				AimLite.list.forEach(a => a.update(a.from, a.to));
+				//AimLite.list.forEach(a => a.update(a.from, a.to));
             }
         },
 
