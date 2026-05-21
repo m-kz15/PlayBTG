@@ -56,7 +56,6 @@ const qMove = new Array(Stage_H * Stage_W);
 
 var tankEntity = []; //敵味方の戦車情報を保持する配列
 var deadFlgs = [];
-var bulStack = []; //弾の状態を判定する配列
 var bullets = []; //戦車の弾情報を保持する配列
 var boms = []; //爆弾の情報を保持する配列
 var avoids = [];
@@ -3753,12 +3752,6 @@ window.onload = function() {
 		update() {
 			this.time++;
 
-			// 弾が消えていたら終了
-			if (!bulStack[this.num][this.id]) {
-				this.remove();
-				return;
-			}
-
 			const fc = Get_Center(this.target);
 			const rad = Rot_to_Rad(this.target.rotation - 90);
 
@@ -3943,12 +3936,6 @@ window.onload = function() {
 		update() {
 			this.time++;
 
-			// 弾が消えていたら終了
-			if (!bulStack[this.num][this.id]) {
-				this.remove();
-				return;
-			}
-
 			const fc = Get_Center(this.target);
 			const rad = Rot_to_Rad(this.target.rotation - 90);
 
@@ -4105,17 +4092,16 @@ window.onload = function() {
 	}
 
 	var BulletCol = Class.create(PhyCircleSprite, {
-		initialize: function (shotSpeed, ref, from, category, num, id) {
+		initialize: function (shotSpeed, ref, from, category, num) {
 			PhyCircleSprite.call(this, 2.5, enchant.box2d.DYNAMIC_SPRITE, 0, 0, 1, true);
 
 			this.time = 0;
-			this.id = id;
 			this.num = num;
 			this.category = category;
 			this.from = from;
 			this.shotSpeed = shotSpeed;
 			this.ref = ref;
-			this.bullet = new Bullet(this, num, id);
+			this.bullet = new Bullet(this, num);
 
 			this.prevVx = 0;
 			this.prevVy = 0;
@@ -4176,22 +4162,23 @@ window.onload = function() {
 
 
 				// 反射限界
-				if (this.ref < 0) this._Destroy();
+				if (this.ref < 0) this.bullet._Destroy();
 
-				// 他弾との衝突
-				Bullet.intersectStrict(this.bullet).forEach(elem => {
-					if (this.bullet.num !== elem.num || this.bullet.id !== elem.id) {
-						elem.from._Destroy();
-						this._Destroy();
-					}
-				});
+				const hits = BulletBase.intersectStrict(this.bullet);
+
+				// ★ 自分自身を除外
+				const hit = hits.find(elem => elem !== this.bullet);
+				if (hit){
+					hit._Destroy();
+					this.bullet._Destroy();
+					return;
+				}
 			};
 
 		},
 
 		_Shot: function () {
 			bullets[this.num]++;
-			bulStack[this.num][this.id] = true;
 			now_scene.BulletGroup.addChild(this);
 			now_scene.BulletGroup.addChild(this.bullet);
 			new OpenFire(this.from);
@@ -4203,16 +4190,8 @@ window.onload = function() {
 		},
 
 		_Destroy: function () {
-			bullets[this.num]--;
-			bulStack[this.num][this.id] = false;
-			new TouchFire(this.bullet);
-			Spark_Effect(this.bullet);
 			this.destroy();
 			now_scene.BulletGroup.removeChild(this);
-			now_scene.BulletGroup.removeChild(this.bullet);
-			if (gameStatus === 0)
-				AudioManager.playSe(game.assets['./sound/Sample_0000.wav']);
-				//game.assets['./sound/Sample_0000.wav'].clone().play();
 		},
 
 		getRandomOffset: function (category) {
@@ -4240,30 +4219,29 @@ window.onload = function() {
 	});
 
 	var BulletBase = Class.create(Sprite, {
-		initialize: function(width, height, from, category, num, id, shotSpeed) {
+		initialize: function(width, height, from, category, num, shotSpeed) {
 			Sprite.call(this, width, height);
 
 			this.from = from;
 			this.category = category;
 			this.num = num;
-			this.id = id;
 			this.shotSpeed = shotSpeed;
 			this.name = 'Bullet';
+			this.bulAim = this.num === 0 ? new PlayerBulAimLite(this) : new BulAimLite(this);
 
 			this.time = 0;
 		}
 	});
 
 	var Bullet = Class.create(BulletBase, {
-		initialize: function(from, num, id) {
-			BulletBase.call(this, 12, 18, from, from.category, num, id, from.shotSpeed);
+		initialize: function(from, num) {
+			BulletBase.call(this, 12, 18, from, from.category, num, from.shotSpeed);
 
 			this.image = game.assets['./image/ObjectImage/R2.png'];
 			this.force = this.computeForce(from);
 			this.halfW = this.width / 2; 
 			this.halfH = this.height / 3; 
 			this.fromH = from.height / 2;
-			this.bulAim = this.num === 0 ? new PlayerBulAimLite(this) : new BulAimLite(this);
 
 			// 前回の角度を保存するための変数
 			this.prevRad = null;
@@ -4313,15 +4291,24 @@ window.onload = function() {
 				centerX - this.halfW - this.force.x,
 				centerY - (this.fromH + this.halfH) - this.force.y
 			);
+		},
+		_Destroy: function() {
+			bullets[this.num]--;
+			new TouchFire(this);
+			Spark_Effect(this);
+			this.from._Destroy();
+			if (gameStatus === 0)
+				AudioManager.playSe(game.assets['./sound/Sample_0000.wav']);
+			this.bulAim.remove();
+			now_scene.BulletGroup.removeChild(this);
 		}
 	});
 
 	var PhysBulletCol = Class.create(BulletBase, {
-		initialize: function(shotSpeed, ref, from, category, num, id, targetEntity) {
-			BulletBase.call(this, 12, 18, from, category, num, id, Math.round(((shotSpeed + 0.5) / 2)*10)/10);
+		initialize: function(shotSpeed, ref, from, category, num, targetEntity) {
+			BulletBase.call(this, 12, 18, from, category, num, Math.round(((shotSpeed + 0.5) / 2)*10)/10);
 
 			this.name = 'PhyBullet';
-			this.bulAim = this.num === 0 ? new PlayerBulAimLite(this) : new BulAimLite(this);
 
 			// 見た目（Bullet と同じ画像）
 			this.image = game.assets['./image/ObjectImage/R3.png'];
@@ -4352,7 +4339,6 @@ window.onload = function() {
 			this.damage = Math.round(shotSpeed * ((this.scaleX + this.scaleY) / 2)) - 2;
 
 			// 弾 ON
-			bulStack[this.num][this.id] = true;
 			bullets[this.num]++;
 		},
 
@@ -4390,14 +4376,14 @@ window.onload = function() {
 
 				// ★ ターゲットと同じ距離だけ進んだら爆発
 				if (this.travelDistance >= this.targetDistance) {
-					this._Explode();
+					this._Destroy();
 					return;
 				}
 
 				// ② 壁に衝突したら爆発
 				if (Block.intersectStrict(this).length > 0 ||
 					Wall.intersectStrict(this).length > 0) {
-					this._Explode();
+					this._Destroy();
 					return;
 				}
 
@@ -4405,25 +4391,19 @@ window.onload = function() {
 				TankBase.intersectStrict(this).forEach(elem => {
 					if (elem.num !== this.num) {
 						elem._Damage();
-						this._Explode();
+						this._Destroy();
 					}
 				});
 
-				// ④ 他の弾と衝突したら爆発
-				Bullet.intersectStrict(this).forEach(elem => {
-					if (this.num !== elem.num || this.id !== elem.id) {
-						elem.from._Destroy();
-						this._Explode();
-					}
-				});
+				const hits = BulletBase.intersectStrict(this);
 
-				// ④ 他の弾と衝突したら爆発
-				PhysBulletCol.intersectStrict(this).forEach(elem => {
-					if (this.num !== elem.num || this.id !== elem.id) {
-						elem._Explode();
-						this._Explode();
-					}
-				});
+				// ★ 自分自身を除外
+				const hit = hits.find(elem => elem !== this);
+				if (hit){
+					hit._Destroy();
+					this._Destroy();
+					return;
+				}
 
 				// ⑤ エフェクト（Bullet と同じ）
 				if (this.time % 2 === 0) {
@@ -4458,11 +4438,8 @@ window.onload = function() {
 		},
 
 		// ★★★ 爆発処理（範囲ダメージ） ★★★
-		_Explode: function() {
+		_Destroy: function() {
 			if (gameStatus === 0) {
-				/*let sound = game.assets['./sound/mini_bomb2.mp3'].clone();
-				sound.play();
-				sound.volume = 0.2;*/
 				AudioManager.playSe(game.assets['./sound/mini_bomb2.mp3'], 0.2);
 			}
 
@@ -4470,13 +4447,9 @@ window.onload = function() {
 			Spark_Effect(this);
 			new BulletExplosion(this);
 
-			this._Destroy();
-		},
-
-		_Destroy: function() {
 			bullets[this.num]--;
-			bulStack[this.num][this.id] = false;
 
+			this.bulAim.remove();
 			now_scene.BulletGroup.removeChild(this);
 		}
 	});
@@ -4525,22 +4498,15 @@ window.onload = function() {
 
 				// 弾との接触処理
 				if (WorldFlg) {
-					Bullet.intersectStrict(this).some(elem => {
-						if (bulStack[elem.num]?.[elem.id]) {
-							elem.from._Destroy();
-							this._Destroy();
-							return true;
-						}
-						return false;
-					});
-					PhysBulletCol.intersectStrict(this).some(elem => {
-						if (bulStack[elem.num]?.[elem.id]) {
-							elem._Explode();
-							this._Destroy();
-							return true;
-						}
-						return false;
-					});
+					const hits = BulletBase.intersectStrict(this);
+
+					// ★ 自分自身を除外
+					const hit = hits.find(elem => elem !== this);
+					if (hit){
+						hit._Destroy();
+						this._Destroy();
+						return;
+					}
 
 					// 一定時間または戦車接近で爆発準備状態へ
 					if (this.time > 180 && !this.bombFlg) {
@@ -5829,7 +5795,6 @@ window.onload = function() {
 			if (useLifeSystem) this.lifeBar = new LifeBar(this, this.life);
 
 			bullets.push(0);
-			bulStack.push([]);
 			boms.push(0);
 			deadFlgs.push(false);
 			deadTank[this.num] = false;
@@ -5983,7 +5948,7 @@ window.onload = function() {
 				if (isCritical) damValue *= 2;
 				this.life -= damValue;
 				new ViewDamage(this, damValue, isCritical);
-				from._Destroy();
+				elem._Destroy();
 				if (this.life > 0) {
 					this.lifeBar.opacity = 1.0;
 					this.lifeBar.Change(this.life);
@@ -5997,7 +5962,7 @@ window.onload = function() {
 			} else {
 				// --- 撃破制ダメージ処理 ---
 				this.life--;
-				from._Destroy();
+				elem._Destroy();
 				if (this.life > 0) {
 					AudioManager.playSe(damageSound, 0.5);
 					//damageSound.volume = 0.5;
@@ -6077,10 +6042,6 @@ window.onload = function() {
 				new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
 
 			this.firstFireFlg = false;
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			if (!navigator.userAgent.match(/iPhone|iPad|Android/)) {
 				scene.addEventListener('touchstart', function() {
@@ -6279,27 +6240,21 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (WorldFlg && gameStatus == 0) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							
-							if (this.category == 9) {
-								new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
-								this.fullFireFlg = true;
-								this.firecnt++;
-							}
-							else if (this.category == 13 && bullets[this.num] % 2 == 0){
-								new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
-							}
-							else{
-								new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							}
-							break;
-						}
+				const count = BulletBase.collection.filter(b => b.num === this.num).length;
+				if (count < this.bulMax && deadFlgs[this.num] == false){
+					this.shotStopFlg = true;
+					
+					if (this.category == 9) {
+						new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, this.cursor)._Shot();
+						this.fullFireFlg = true;
+						this.firecnt++;
 					}
-
+					else if (this.category == 13 && count % 2 == 0){
+						new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, this.cursor)._Shot();
+					}
+					else{
+						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
+					}
 				}
 			}
 		}
@@ -6333,11 +6288,6 @@ window.onload = function() {
 			this.lastGridUpdate = -9999;
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (let i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false);
-			}
 
 			const getGridCoord = (entity) => [
 				Math.floor((entity.y + entity.height / 2) / PixelSize),
@@ -6583,17 +6533,11 @@ window.onload = function() {
 		_Attack: function () {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (!WorldFlg) return;
-
-			if (bullets[this.num] < this.bulMax && !deadFlgs[this.num]) {
-				let stack = bulStack[this.num];
-				for (let i = 0; i < this.bulMax; i++) {
-					if (!stack[i]) {
-						this.shotStopFlg = true;
-						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-						this.time += Math.floor(Math.random() * 3);
-						break;
-					}
-				}
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this.shotStopFlg = true;
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
+				this.time += Math.floor(Math.random() * 3);
 			}
 		},
 		_Defense: function () {
@@ -6617,8 +6561,6 @@ window.onload = function() {
 				}
 				for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
-
 					
 					if ((c.num === 0 && !this.defFlg[0]) ||
 						(c.num === this.num && !this.defFlg[1]) ||
@@ -6735,10 +6677,6 @@ window.onload = function() {
 			}
 			shadow.context.arc(30, 30, 24, 0, Math.PI * 2, true);
 			shadow.context.fill();
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3];
@@ -6972,19 +6910,11 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							this.time += Math.floor(Math.random() * 5);
-							break;
-						}
-					}
-
-				}
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this.shotStopFlg = true;
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
+				this.time += Math.floor(Math.random() * 5);
 			}
 		},
 		_Defense: function(){
@@ -7008,7 +6938,6 @@ window.onload = function() {
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
 
 					if ((c.num === 0 && !this.defFlg[0]) ||
 						(c.num === this.num && !this.defFlg[1]) ||
@@ -7106,11 +7035,6 @@ window.onload = function() {
 			let h = { x: 0, y: 0 };
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (let i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false);
-			}
 
 			const getGridCoord = (entity) => [
 				(entity.y + entity.height / 2) / PixelSize | 0,
@@ -7375,17 +7299,12 @@ window.onload = function() {
 		_Attack: function () {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
 			if (!WorldFlg) return;
-
-			if (bullets[this.num] >= this.bulMax || deadFlgs[this.num]) return;
-			let stack = bulStack[this.num];
-			for (let i = 0; i < this.bulMax; i++) {
-				if (!stack[i]) {
-					this.shotStopFlg = true;
-					if (this.category === 5) this._ResetAim();
-					new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-					this.time += (Math.random() * 3) | 0;
-					break;
-				}
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this.shotStopFlg = true;
+				if (this.category === 5) this._ResetAim();
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
+				this.time += (Math.random() * 3) | 0;
 			}
 		},
 
@@ -7455,7 +7374,6 @@ window.onload = function() {
 
 				for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
 
 					if ((c.num === 0 && !this.defFlg[0]) ||
 						(c.num === this.num && !this.defFlg[1]) ||
@@ -7542,11 +7460,6 @@ window.onload = function() {
 			this.cursor = new Target(this, scene);
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			this.onenterframe = function() {
 				try{
@@ -7584,7 +7497,7 @@ window.onload = function() {
 								
 								if (!this.shotNGflg) {
 									if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] <= 0) || this.fullFireFlg)) {
-										if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
 											this._Attack();
 										}
 									}
@@ -7622,21 +7535,15 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this.fullFireFlg = true;
-							this.shotStopFlg = true;
-							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * ((bullets[this.num] + 1)*2);
-							//new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
-							this.firecnt++;
-							break;
-						}
-					}
-				}
+			if (!WorldFlg) return;
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this.fullFireFlg = true;
+				this.shotStopFlg = true;
+				this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * ((bullets[this.num] + 1)*2);
+				//new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
+				new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, this.cursor)._Shot();
+				this.firecnt++;
 			}
 		},
 		_Reload: function(){
@@ -7688,10 +7595,6 @@ window.onload = function() {
 
 			if (Math.random() < 0.5) this.aimRot *= -1;
 
-			for (let i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false);
-			}
-
 			const resolveCollision = (entity, elem, isTank = false) => {
 				const top = isTank ? 'TankTop' : 'ObsTop';
 				const bottom = isTank ? 'TankBottom' : 'ObsBottom';
@@ -7734,119 +7637,6 @@ window.onload = function() {
 					this.aim.update(useCannon);
 
 					this.time++;
-
-					/*let hit = false;
-
-					for (const s of this.aim.segments) {
-						if (lineIntersectsRect(s.x1, s.y1, s.x2, s.y2, this.target)) {
-							hit = true;
-							break;
-						}
-					}
-
-					if (hit) {
-						this.aimHitCnt++;
-						// ★ 砲塔回転（物理反射版）
-						const diff = normalizeAngle(
-							this.cannon.rotation - normalizeRotation(this.aim.agl)
-						);
-
-						this.aimRot = diff > 0
-							? -Categorys.CannonRotSpeed[this.category]
-							:  Categorys.CannonRotSpeed[this.category];
-
-						// ★ 砲塔の微調整（ランダムブレも維持）
-						this.cannon2.rotation = this.aim.agl -
-							this.aimRot * ((1 + Math.floor(Math.random() * 6)) * 2);
-
-						// ★ 照準カーソルを tgt に合わせる
-						if (this.cannon.rotation !== this.aim.agl) {
-							this.cannon.rotation = this.aim.agl;
-						}
-						if (this.cursor.x !== this.aim.tgt[0] || this.cursor.y !== this.aim.tgt[1]) {
-							this.cursor.x = this.aim.tgt[0];
-							this.cursor.y = this.aim.tgt[1];
-						}
-
-						// ★ 発射タイミング
-						if (!this.fireFlg && this.aimHitCnt > 6 + bullets[this.num] * 5) {
-							this.fireFlg = true;
-						}
-
-						// ★ 照準完了時間
-						if (this.aimingTime < this.aimCmpTime + 15) {
-							this.aimingTime += 6;
-						}
-					}
-
-					if (this.shotStopFlg) {
-						if (++this.shotStopTime > 5) {
-							this.shotStopFlg = false;
-							this.shotStopTime = 0;
-						}
-					}
-					else if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
-						// --- 命中角度の取得 ---
-						this.bestDeg = findBestHitAngle(
-							this.ref, this.cannon, this.category, this.num, this.target
-						);
-
-						// --- 命中角度がある場合 ---
-						if (isFinite(this.bestDeg)) {
-
-							const center = this.bestDeg;
-							const current = this.cannon.rotation;
-							const rangeDeg = 45; // ±45°など
-							const rotSpeed = Categorys.CannonRotSpeed[this.category];
-
-							// --- 範囲内かどうか ---
-							const diffToCenter = normalizeAngle(center - current);
-							const isInside = Math.abs(diffToCenter) <= rangeDeg;
-
-							// --- 範囲外：中心へ寄せる ---
-							if (!isInside) {
-
-								const dir = diffToCenter > 0 ? 1 : -1;
-
-								if (Math.abs(diffToCenter) <= rotSpeed) {
-									this.cannon.rotation = center;
-									this.cannon2.rotation = center;
-								} else {
-									this.cannon.rotation += rotSpeed * dir;
-									this.cannon2.rotation += rotSpeed * -dir;
-								}
-
-							} else {
-
-								// --- 範囲内：メトロノーム揺れ ---
-								if (this.swingDir === undefined) this.swingDir = 1;
-
-								this.cannon.rotation += rotSpeed * this.swingDir;
-								this.cannon2.rotation += rotSpeed * -this.swingDir;
-
-								const diffNow = normalizeAngle(this.cannon.rotation - center);
-
-								// 範囲端で反転
-								if (Math.abs(diffNow) >= rangeDeg) {
-									this.swingDir *= -1;
-								}
-
-								// 中心付近で反転しない（自然な揺れ）
-								if (Math.abs(diffNow) < rotSpeed) {
-									const dir = this.swingDir >= 0 ? 1 : -1;
-									this.cannon.rotation += rotSpeed * dir;
-									this.cannon2.rotation += rotSpeed * -dir;
-								}
-							}
-						}else{
-							// --- 命中角度が無い場合：既存の回転処理 ---
-							this.cannon2.rotation += (this.cannon.rotation !== this.cannon2.rotation)
-								? -this.aimRot
-								:  this.aimRot;
-
-							this.cannon.rotation += this.aimRot;
-						}
-					}*/
 
 					// --- 索敵（照準線がターゲットに当たっているか） ---
 					let hit = false;
@@ -7930,7 +7720,8 @@ window.onload = function() {
 						// --- ここから砲塔回転（索敵中でも常に実行） ---
 						if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
 
-							const rotSpeed = Categorys.CannonRotSpeed[this.category];
+							const baseSpeed = Categorys.CannonRotSpeed[this.category];
+							//const rotSpeed = Categorys.CannonRotSpeed[this.category];
 							const rangeDeg = 45;
 
 							// --- cannon の回転処理（最適角度中心） ---
@@ -7942,6 +7733,9 @@ window.onload = function() {
 								const current = this.cannon.rotation;
 								const diffToCenter = normalizeAngle(center - current);
 								const inside = Math.abs(diffToCenter) <= rangeDeg;
+
+								let t = Math.min(Math.abs(diffToCenter) / rangeDeg, 1);  
+								let rotSpeed = baseSpeed + 0.3 * t;
 
 								if (!inside) {
 
@@ -7983,11 +7777,11 @@ window.onload = function() {
 							if (!hit) {
 
 								// ★ hit していない時：cannon の逆方向へ回転
-								this.cannon2.rotation -= rotSpeed * cannonDir;
+								this.cannon2.rotation -= baseSpeed * cannonDir;
 
 								// ★ cannon と同じ角度になったら追従モード
 								const diffC = Math.abs(normalizeAngle(this.cannon2.rotation - this.cannon.rotation));
-								if (diffC < rotSpeed) {
+								if (diffC < baseSpeed) {
 									this.cannon2.rotation = this.cannon.rotation;
 								}
 							}
@@ -8002,7 +7796,8 @@ window.onload = function() {
 
 						if (!this.shotNGflg && this.fireFlg && this.time % this.fireLate === 0) {
 							const idx = Math.floor(Math.random() * this.bulMax);
-							if (!bulStack[this.num][idx]) {
+							const count = BulletBase.collection.filter(b => b.num === this.num).length;
+							if (idx >= count){
 								this._Attack();
 							}
 						}
@@ -8028,27 +7823,19 @@ window.onload = function() {
 
 		_Attack: function () {
 			if (gameMode == -1 && Math.random() < 0.33) return;
-			if (!WorldFlg) return;
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this.shotStopFlg = true;
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
 
-			if (bullets[this.num] < this.bulMax && !deadFlgs[this.num]) {
-				let stack = bulStack[this.num];
-				for (let i = 0; i < this.bulMax; i++) {
-					if (!stack[i]) {
-						this.shotStopFlg = true;
-						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
+				this.aimingTime = 0;
+				this.aimHitCnt = 0;
+				this.aimCmpTime = (this.category != 1)
+					? Math.floor(Math.random() * 60) + 20
+					: Math.floor(Math.random() * 30) + 30;
 
-						this.aimingTime = 0;
-						this.aimHitCnt = 0;
-						this.aimCmpTime = (this.category != 1)
-							? Math.floor(Math.random() * 60) + 20
-							: Math.floor(Math.random() * 30) + 30;
-
-						this.cannon.rotation += this.aimRot / 2;
-						this.cannon2.rotation += this.aimRot / 2;
-
-						break;
-					}
-				}
+				this.cannon.rotation += this.aimRot / 2;
+				this.cannon2.rotation += this.aimRot / 2;
 			}
 		},
 		_Reload: function(){
@@ -8089,11 +7876,6 @@ window.onload = function() {
 			this.cursor = new Target(this, scene);
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -8681,20 +8463,12 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this._ResetAim();
-							this.shotStopFlg = true;
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							this.time += Math.floor(Math.random() * 5);
-							break;
-						}
-					}
-
-				}
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this._ResetAim();
+				this.shotStopFlg = true;
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
+				this.time += Math.floor(Math.random() * 5);
 			}
 		},
 		_ResetAim: function() {
@@ -8737,7 +8511,6 @@ window.onload = function() {
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
 
 					if ((c.num === 0 && !this.defFlg[0]) ||
 						(c.num === this.num && !this.defFlg[1]) ||
@@ -8836,11 +8609,6 @@ window.onload = function() {
 			this.escapeTargets = [];
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -9155,19 +8923,11 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this._ResetAim();
-							this.shotStopFlg = true;
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							break;
-						}
-					}
-
-				}
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this._ResetAim();
+				this.shotStopFlg = true;
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
 			}
 		},
 		_ResetAim: function () {
@@ -9235,7 +8995,6 @@ window.onload = function() {
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
 
 					if ((c.num === 0 && !this.defFlg[0]) ||
 						(c.num === this.num && !this.defFlg[1]) ||
@@ -9350,11 +9109,6 @@ window.onload = function() {
 			this.cursor = new Target(this, scene);
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3];
@@ -9494,7 +9248,7 @@ window.onload = function() {
 
 								if (!this.shotNGflg) {
 									if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
-										if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.fullFireFlg) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
 											this._Attack();
 										}
 									}
@@ -9591,23 +9345,15 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							if (Math.floor(Math.random() * 3) == 0 && gameMode > 0) this._ResetAim();
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							if ((this.life / Categorys.Life[this.category]) < 0.25) {
-								this.fullFireFlg = true;
-								this.firecnt++;
-								this.fireLate = (Math.floor(Math.random() * 4) + 1) * 10;
-							}
-							break;
-						}
-					}
-
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this.shotStopFlg = true;
+				if (Math.floor(Math.random() * 3) == 0 && gameMode > 0) this._ResetAim();
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
+				if ((this.life / Categorys.Life[this.category]) < 0.25) {
+					this.fullFireFlg = true;
+					this.firecnt++;
+					this.fireLate = (Math.floor(Math.random() * 4) + 1) * 10;
 				}
 			}
 		},
@@ -9664,7 +9410,6 @@ window.onload = function() {
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
 
 					if ((c.num === 0 && !this.defFlg[0]) ||
 						(c.num === this.num && !this.defFlg[1]) ||
@@ -9768,11 +9513,6 @@ window.onload = function() {
 			this.distance = Categorys.Distances[this.category];
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -10080,37 +9820,29 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							if (Math.floor(Math.random() * 2) == 0 && gameMode > 0) this._ResetAim();
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				this.shotStopFlg = true;
+				if (Math.floor(Math.random() * 2) == 0 && gameMode > 0) this._ResetAim();
 
-							if ((this.life / Categorys.Life[this.category]) < 0.35) {
-								if (!this.fullFireFlg) {
-									if (Math.floor(Math.random() * 7) == 0) {
-										this.fullFireFlg = true;
-										this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
-										this.firecnt++;
-										this.fireLate = 8;
-									}
-								} else {
-									this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
-									this.firecnt++;
-								}
-							}
-							if (bullets[this.num] % 2 == 1){
-								new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i, this.cursor)._Shot();
-							}
-							else{
-								new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							}
-							break;
+				if ((this.life / Categorys.Life[this.category]) < 0.35) {
+					if (!this.fullFireFlg) {
+						if (Math.floor(Math.random() * 7) == 0) {
+							this.fullFireFlg = true;
+							this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
+							this.firecnt++;
+							this.fireLate = 8;
 						}
+					} else {
+						this.cannon.rotation += (Math.floor(Math.random() * 3) - 1);
+						this.firecnt++;
 					}
-
+				}
+				if (bullets[this.num] % 2 == 1){
+					new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, this.cursor)._Shot();
+				}
+				else{
+					new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
 				}
 			}
 		},
@@ -10221,7 +9953,6 @@ window.onload = function() {
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					const c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
 					
 					if ((c.num === 0 && !this.defFlg[0]) ||
 						(c.num === this.num && !this.defFlg[1]) ||
@@ -10337,11 +10068,6 @@ window.onload = function() {
 			var rootFlg = false;
 
 			this.aim = new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
-			
-
-			for (var i = 0; i < this.bulMax; i++) {
-				bulStack[this.num].push(false); //  弾の状態をoff
-			}
 
 			const NG_root_set = () => {
 				dir = [];
@@ -10771,7 +10497,7 @@ window.onload = function() {
 								
 								if (!this.shotNGflg && !this.bomSetFlg) {
 									if (this.time % this.fireLate == 0 && this.fireFlg) {
-										if (bulStack[this.num][Math.floor(Math.random() * this.bulMax)] == false || this.escapeFlg) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.escapeFlg) {
 											this._Attack();
 										}
 									}
@@ -10994,20 +10720,12 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (bullets[this.num] >= this.bulMax-2 && this.attackTarget.name == "Entity") return;
-			if (WorldFlg) { //  処理しても良い状態か
-				if (bullets[this.num] < this.bulMax && deadFlgs[this.num] == false) { //  発射最大数に到達していないか＆死んでいないか
-					let stack = bulStack[this.num];
-					for (let i = 0; i < this.bulMax; i++) {
-						if (!stack[i]) { //  弾の状態がoffならば
-							this.shotStopFlg = true;
-							this._ResetAim();
-							new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
-							break;
-						}
-					}
-
-				}
+			const count = BulletBase.collection.filter(b => b.num === this.num).length;
+			if (count < this.bulMax && !deadFlgs[this.num]){
+				if (count >= this.bulMax-2 && this.attackTarget.name == "Entity") return;
+				this.shotStopFlg = true;
+				this._ResetAim();
+				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, i)._Shot();
 			}
 		},
 		_ResetAim: function() {
@@ -11151,7 +10869,6 @@ window.onload = function() {
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
 					let c = BulletBase.collection[i];
-					if (!bulStack[c.num][c.id]) continue;
 					if (c.num == this.target.num && !this.defFlg[0]) continue;
 					if (c.num == this.num && !this.defFlg[1]) continue;
 					if (!(c.num == this.target.num || c.num == this.num) && !this.defFlg[2]) continue;
@@ -12792,7 +12509,6 @@ window.onload = function() {
 
 			tankEntity = []; //敵味方の戦車情報を保持する配列
 			deadFlgs = [];
-			bulStack = []; //弾の状態を判定する配列
 			bullets = []; //戦車の弾情報を保持する配列
 			boms = []; //爆弾の情報を保持する配列
 			avoids = [];
@@ -13233,7 +12949,6 @@ window.onload = function() {
                 // ダミーを置いておく
                 tankEntity.push(new Sprite({ width: 1, height: 1, x: -100, y: -100 }));
                 bullets.push(0);
-                bulStack.push([]);
                 boms.push(0);
                 deadFlgs.push(true);
                 destruction++;
