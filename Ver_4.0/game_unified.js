@@ -2392,12 +2392,12 @@ window.onload = function() {
 	var Obstracle = Class.create(Sprite, {
 		initialize: function(name, scene) {
 			switch (name) {
-				case 'ObsTop':
-				case 'ObsBottom':
+				case 0:
+				case 2:
 					Sprite.call(this, 60, 4);
 					break;
-				case 'ObsRight':
-				case 'ObsLeft':
+				case 1:
+				case 3:
 					Sprite.call(this, 4, 60);
 					break;
 			}
@@ -2425,7 +2425,7 @@ window.onload = function() {
 				if (g1[i][j] == 1 || g1[i][j] == 3 || g1[i][j] == 4) {
 					if (wsp1 == null) {
 						if (i > 0 && !(g1[i - 1][j] == 1 || g1[i - 1][j] == 3 || g1[i - 1][j] == 4)) {
-							wsp1 = new Obstracle('ObsTop', scene);
+							wsp1 = new Obstracle(0, scene);
 							wsp1.moveTo(PixelSize * j + 2, PixelSize * i - 20);
 							wcnt1++;
 						}
@@ -2442,7 +2442,7 @@ window.onload = function() {
 					}
 					if (wsp2 == null) {
 						if (i < g1.length - 1 && !(g1[i + 1][j] == 1 || g1[i + 1][j] == 3 || g1[i + 1][j] == 4)) {
-							wsp2 = new Obstracle('ObsBottom', scene);
+							wsp2 = new Obstracle(2, scene);
 							wsp2.moveTo(PixelSize * j + 2, PixelSize * i + 44);
 							wcnt2++;
 						}
@@ -2475,7 +2475,7 @@ window.onload = function() {
 				if (g2[i][j] == 1 || g2[i][j] == 3 || g2[i][j] == 4) {
 					if (hsp1 == null) {
 						if (i > 0 && !(g2[i - 1][j] == 1 || g2[i - 1][j] == 3 || g2[i - 1][j] == 4)) {
-							hsp1 = new Obstracle('ObsLeft', scene);
+							hsp1 = new Obstracle(3, scene);
 							hsp1.moveTo(PixelSize * i - 2, PixelSize * j - 16);
 							hcnt1++;
 						}
@@ -2492,7 +2492,7 @@ window.onload = function() {
 					}
 					if (hsp2 == null) {
 						if (i < g2.length - 1 && !(g2[i + 1][j] == 1 || g2[i + 1][j] == 3 || g2[i + 1][j] == 4)) {
-							hsp2 = new Obstracle('ObsRight', scene);
+							hsp2 = new Obstracle(1, scene);
 							hsp2.moveTo(PixelSize * i + 62, PixelSize * j - 16);
 							hcnt2++;
 						}
@@ -2524,10 +2524,10 @@ window.onload = function() {
 	function BlockObs(from) {
 		var arr = [];
 
-		arr.push(new Obstracle('ObsTop', now_scene));
-		arr.push(new Obstracle('ObsBottom', now_scene));
-		arr.push(new Obstracle('ObsLeft', now_scene));
-		arr.push(new Obstracle('ObsRight', now_scene));
+		arr.push(new Obstracle(0, now_scene));
+		arr.push(new Obstracle(2, now_scene));
+		arr.push(new Obstracle(3, now_scene));
+		arr.push(new Obstracle(1, now_scene));
 
 		arr[0].moveTo(from.x + 2, from.y - 4);
 		arr[1].moveTo(from.x + 2, from.y + 60);
@@ -2678,12 +2678,12 @@ window.onload = function() {
 	var TankObstracle = Class.create(Sprite, {
 		initialize: function(from, num, name, scene) {
 			switch (name) {
-				case 'TankTop':
-				case 'TankBottom':
+				case 0:
+				case 2:
 					Sprite.call(this, PixelSize - 12, 2);
 					break;
-				case 'TankRight':
-				case 'TankLeft':
+				case 1:
+				case 3:
 					Sprite.call(this, 2, PixelSize - 12);
 					break;
 			}
@@ -2696,7 +2696,7 @@ window.onload = function() {
 				if (WorldFlg) {
 					if (deadFlgs[num]) scene.removeChild(this);
 					switch (name) {
-						case 'TankTop':
+						case 0:
 							if (from.rotation == 0) {
 								this.x = from.x + 4;
 								this.y = from.y - 1;
@@ -2714,7 +2714,7 @@ window.onload = function() {
 								}
 							}
 							break;
-						case 'TankBottom':
+						case 2:
 							if (from.tank.rotation == 180) {
 								this.x = from.x + 4;
 								this.y = from.y + 60;
@@ -2731,7 +2731,7 @@ window.onload = function() {
 								}
 							}
 							break;
-						case 'TankRight':
+						case 1:
 							if (from.tank.rotation == 90) {
 								this.x = from.x + 60;
 								this.y = from.y + 4;
@@ -2748,7 +2748,7 @@ window.onload = function() {
 								}
 							}
 							break;
-						case 'TankLeft':
+						case 3:
 							if (from.tank.rotation == 270) {
 								this.x = from.x - 2;
 								this.y = from.y + 4;
@@ -2775,10 +2775,10 @@ window.onload = function() {
 
 	function TankFrame(from, num, scene) {
 		let arr = [];
-		arr.push(new TankObstracle(from, num, 'TankTop', scene));
-		arr.push(new TankObstracle(from, num, 'TankBottom', scene));
-		arr.push(new TankObstracle(from, num, 'TankLeft', scene));
-		arr.push(new TankObstracle(from, num, 'TankRight', scene));
+		arr.push(new TankObstracle(from, num, 0, scene));
+		arr.push(new TankObstracle(from, num, 2, scene));
+		arr.push(new TankObstracle(from, num, 3, scene));
+		arr.push(new TankObstracle(from, num, 1, scene));
 		return arr;
 	}
 
@@ -2819,16 +2819,12 @@ window.onload = function() {
 			//this.backgroundColor = "#fff";
 			this.image = game.assets[Categorys.Image[category].tank];
 			this.pos = { x: (area.width - this.width) / 2, y: (area.height - this.height) / 2 };
-			//this.x = area.x + 2;
-			//this.y = area.y - 5;
 			this.x = area.x + this.pos.x;
 			this.y = area.y + this.pos.y;
 			this.scaleX = 0.95;
 			this.scaleY = 0.87;
 			this.rotation = 0;
 			this.onenterframe = function() {
-				//this.x = area.x + 2;
-				//this.y = area.y - 5;
 				this.x = area.x + this.pos.x;
 				this.y = area.y + this.pos.y;
 			}
@@ -2848,8 +2844,6 @@ window.onload = function() {
 			this._setSize();
 
 			this.onenterframe = function() {
-				/*this.x = area.x - 6.5;
-				this.y = area.y - 41.5;*/
 				this.x = (area.x + area.width / 2) - this.width / 2;
 				this.y = (area.y + area.height / 2) - this.height / 2;
 			}
@@ -2876,9 +2870,6 @@ window.onload = function() {
 					let f = Get_Center(from);
 					this.x = f.x - this.width / 2;
 					this.y = f.y - this.height / 2;
-					/*BombExplosion.intersect(this).forEach(elem => {
-						if (victory == false && defeat == false && complete == false) deadFlgs[num] = true;
-					});*/
 				}
 
 			}
@@ -3003,6 +2994,20 @@ window.onload = function() {
 				const hit = this.rayRect(x, y, dx, dy, w);
 				if (hit && hit.dist <= maxDist) {
 					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
+			}
+			// ★ 戦車で遮る（自分以外 & 生存のみ）
+			if (this.num !== 0) {
+				for (let i = 1; i < tankEntity.length; i++) {
+					const t = tankEntity[i];
+					if (t.num === this.num) continue;
+					if (deadFlgs[t.num]) continue;
+
+					// t は {x,y,width,height} を持っている前提
+					const hit = this.rayRect(x, y, dx, dy, t);
+					if (hit && hit.dist <= maxDist) {
+						if (!nearest || hit.dist < nearest.dist) nearest = hit;
+					}
 				}
 			}
 
@@ -3213,7 +3218,6 @@ window.onload = function() {
 				this.remove();
 				return;
 			}
-			if (!WorldFlg) return;
 
 			this.domLines.forEach(l => l.remove());
 			this.domLines = [];
@@ -3594,31 +3598,6 @@ window.onload = function() {
 		const aim = new RefAimLite(ref, from, category, num);
 		aim.color = null;
 
-		/*function evaluateAngle(deg) {
-			from.rotation = deg;
-			aim.update(from);
-
-			const segments = aim.segments;
-			if (!segments || segments.length === 0) return -Infinity;
-
-			const first = segments[0];
-			if (!first || !isFinite(first.dist)) return -Infinity;
-
-			const distToFirstWall = first.dist;
-			const reflectCount = segments.length - 1;
-
-			const dx = aim.tgt[0] - target.x;
-			const dy = aim.tgt[1] - target.y;
-			const distToTarget = dx * dx + dy * dy;
-
-			if (!isFinite(distToTarget)) return -Infinity;
-
-			return (
-				-distToTarget * 0.001 +
-				distToFirstWall * 0.05 -
-				reflectCount * 5
-			);
-		}*/
 		function evaluateAngle(deg) {
 			from.rotation = deg;
 			aim.update(from);
@@ -3810,6 +3789,18 @@ window.onload = function() {
 					if (!nearest || hit.dist < nearest.dist) nearest = hit;
 				}
 			}
+			// ★ 戦車で遮る（生存のみ）
+			for (let i = 0; i < tankEntity.length; i++) {
+				const t = tankEntity[i];
+				//if (t.num === this.num) continue;
+				if (deadFlgs[t.num]) continue;
+
+				// t は {x,y,width,height} を持っている前提
+				const hit = this.rayRect(x, y, dx, dy, t);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
+			}
 
 			if (!nearest) {
 				return {
@@ -3995,6 +3986,18 @@ window.onload = function() {
 					if (!nearest || hit.dist < nearest.dist) nearest = hit;
 				}
 			}
+			// ★ 戦車で遮る（生存のみ）
+			for (let i = 0; i < tankEntity.length; i++) {
+				const t = tankEntity[i];
+				//if (t.num === this.num) continue;
+				if (deadFlgs[t.num]) continue;
+
+				// t は {x,y,width,height} を持っている前提
+				const hit = this.rayRect(x, y, dx, dy, t);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
+			}
 
 			if (!nearest) {
 				return {
@@ -4121,8 +4124,6 @@ window.onload = function() {
 										Math.sin(this.rad) * shotSpeed));
 
 			this.onenterframe = () => {
-				if (!WorldFlg) return;
-
 				// 前フレーム速度を保存
 				const lastVx = this.prevVx;
 				const lastVy = this.prevVy;
@@ -4157,7 +4158,6 @@ window.onload = function() {
 					this.ref--;
 					if (gameStatus === 0)
 						AudioManager.playSe(game.assets['./sound/s_car_trunk_O.wav']);
-						//game.assets['./sound/s_car_trunk_O.wav'].clone().play();
 				}
 
 
@@ -4182,11 +4182,9 @@ window.onload = function() {
 			now_scene.BulletGroup.addChild(this);
 			now_scene.BulletGroup.addChild(this.bullet);
 			new OpenFire(this.from);
-			//game.assets['./sound/s_car_door_O2.wav'].clone().play();
 			AudioManager.playSe(game.assets['./sound/s_car_door_O2.wav']);
 			if (this.shotSpeed >= 14)
 				AudioManager.playSe(game.assets['./sound/Sample_0003.wav']);
-				//game.assets['./sound/Sample_0003.wav'].clone().play();
 		},
 
 		_Destroy: function () {
@@ -4250,8 +4248,6 @@ window.onload = function() {
 			this.updatePosition();
 
 			this.onenterframe = () => {
-				if (!WorldFlg) return;
-
 				this.time++;
 
 				// rad が変わったときだけ回転更新
@@ -4348,11 +4344,9 @@ window.onload = function() {
 
 			new OpenFire(this.from);
 			AudioManager.playSe(game.assets['./sound/s_car_door_O2.wav']);
-			//game.assets['./sound/s_car_door_O2.wav'].clone().play();
 
 			if (this.shotSpeed > 7) {
 				AudioManager.playSe(game.assets['./sound/Sample_0003.wav']);
-				//game.assets['./sound/Sample_0003.wav'].clone().play();
 			}
 
 			this._startMotion();
@@ -4361,8 +4355,6 @@ window.onload = function() {
 		// ★★★ 移動・衝突・爆発処理 ★★★
 		_startMotion: function() {
 			this.onenterframe = () => {
-				if (!WorldFlg) return;
-
 				this.time++;
 
 				// 移動（滑らか）
@@ -4380,20 +4372,13 @@ window.onload = function() {
 					return;
 				}
 
-				// ② 壁に衝突したら爆発
+				// ② 壁または戦車に衝突したら爆発
 				if (Block.intersectStrict(this).length > 0 ||
-					Wall.intersectStrict(this).length > 0) {
+					Wall.intersectStrict(this).length > 0 ||
+					TankBase.intersectStrict(this).length > 0) {
 					this._Destroy();
 					return;
 				}
-
-				// ③ 戦車に衝突したら爆発
-				TankBase.intersectStrict(this).forEach(elem => {
-					if (elem.num !== this.num) {
-						elem._Damage();
-						this._Destroy();
-					}
-				});
 
 				const hits = BulletBase.intersectStrict(this);
 
@@ -4488,7 +4473,6 @@ window.onload = function() {
 								(this.time % 2 === 0) ? this.imageYellow : this.image;
 
 					if (this.time % 6 === 0 && gameStatus === 0) {
-						//game.assets['./sound/Sample_0010.wav'].clone().play();
 						AudioManager.playSe(game.assets['./sound/Sample_0010.wav']);
 					}
 					if (gameStatus === 0 && this.time === 45) {
@@ -4523,7 +4507,6 @@ window.onload = function() {
 		_SetBom: function() {
 			boms[this.num]++;
 			now_scene.BomGroup.addChild(this);
-			//game.assets['./sound/Sample_0009.wav'].clone().play();
 			AudioManager.playSe(game.assets['./sound/Sample_0009.wav']);
 			this.explosionRange = new ExplosionRange(125);
 			now_scene.MarkGroup.addChild(this.explosionRange);
@@ -4535,7 +4518,6 @@ window.onload = function() {
 			this.moveTo(-900, -900);
 			now_scene.BomGroup.removeChild(this);
 			AudioManager.playSe(game.assets['./sound/mini_bomb2.mp3']);
-			//game.assets['./sound/mini_bomb2.mp3'].play();
 			now_scene.MarkGroup.removeChild(this.explosionRange);
 		},
 
@@ -5187,8 +5169,6 @@ window.onload = function() {
 
 			// --- onenterframe（クロージャ変数を使わず JIT 最適化しやすい） ---
 			this.onenterframe = function() {
-				if (!WorldFlg) return;
-
 				this.time++;
 				this.opacity -= 0.1;
 
@@ -5226,8 +5206,6 @@ window.onload = function() {
 
 			// --- onenterframe（クロージャ変数を使わない） ---
 			this.onenterframe = function() {
-				if (!WorldFlg) return;
-
 				this.time++;
 				this.opacity -= 0.1;
 				this.rotation += this.time;
@@ -5263,8 +5241,6 @@ window.onload = function() {
 
 			// --- onenterframe（軽量化） ---
 			this.onenterframe = function() {
-				if (!WorldFlg) return;
-
 				// scale 計算を簡略化
 				const v = this.opacity;
 				const s = 1 - (v / 2);
@@ -5572,7 +5548,7 @@ window.onload = function() {
 
 		let err = dx - dy;
 
-		for (;;) {
+		while (true) {
 			if (grid[y0][x0] === 1) return false; // obstacle
 
 			if (x0 === x1 && y0 === y1) return true;
@@ -6192,16 +6168,16 @@ window.onload = function() {
 								TankObstracle.intersect(this).forEach(elem => {
 									if (!deadFlgs[elem.num] && elem.num != this.num) {
 										switch (elem.name) {
-											case 'TankTop':
+											case 0:
 												this.moveTo(this.x, elem.y - 60);
 												break;
-											case 'TankBottom':
+											case 2:
 												this.moveTo(this.x, elem.y + (elem.height));
 												break;
-											case 'TankLeft':
+											case 3:
 												this.moveTo(elem.x - 60, this.y);
 												break;
-											case 'TankRight':
+											case 1:
 												this.moveTo(elem.x + (elem.width), this.y);
 												break;
 										}
@@ -6210,16 +6186,16 @@ window.onload = function() {
 
 								Obstracle.intersect(this).forEach(elem => {
 									switch (elem.name) {
-										case 'ObsTop':
+										case 0:
 											this.moveTo(this.x, elem.y - 60);
 											break;
-										case 'ObsBottom':
+										case 2:
 											this.moveTo(this.x, elem.y + (elem.height))
 											break;
-										case 'ObsLeft':
+										case 3:
 											this.moveTo(elem.x - 60, this.y)
 											break;
-										case 'ObsRight':
+										case 1:
 											this.moveTo(elem.x + (elem.width), this.y)
 											break;
 									}
@@ -6509,10 +6485,10 @@ window.onload = function() {
 						let obsHit = false;
 						Obstracle.intersect(this).forEach(elem => {
 							switch (elem.name) {
-								case 'ObsTop':    this.moveTo(this.x, elem.y - 60); break;
-								case 'ObsBottom': this.moveTo(this.x, elem.y + elem.height); break;
-								case 'ObsLeft':   this.moveTo(elem.x - 60, this.y); break;
-								case 'ObsRight':  this.moveTo(elem.x + elem.width, this.y); break;
+								case 0:    this.moveTo(this.x, elem.y - 60); break;
+								case 2: this.moveTo(this.x, elem.y + elem.height); break;
+								case 3:   this.moveTo(elem.x - 60, this.y); break;
+								case 1:  this.moveTo(elem.x + elem.width, this.y); break;
 							}
 							obsHit = true;
 						});
@@ -6532,7 +6508,6 @@ window.onload = function() {
 		},
 		_Attack: function () {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (!WorldFlg) return;
 			const count = BulletBase.collection.filter(b => b.num === this.num).length;
 			if (count < this.bulMax && !deadFlgs[this.num]){
 				this.shotStopFlg = true;
@@ -6685,29 +6660,34 @@ window.onload = function() {
 				// 	1:	右
 				// 	2:	下
 				// 	3:	左
+				const t1x = target1.x + target1.width / 2;
+				const t1y = target1.y + target1.height / 2;
+				const t2x = target2.x + target2.width / 2;
+				const t2y = target2.y + target2.height / 2;
+
 				if (or == 0) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) { //	相手より右にいる場合
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) { //	相手より下にいる場合
+					if (t1x > t2x) { //	相手より右にいる場合
+						if (t1y > t2y) { //	相手より下にいる場合
 							arr = [1, 2];
 						} else {
 							arr = [1, 0];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [2, 3];
 						} else {
 							arr = [0, 3];
 						}
 					}
 				} else if (or == 1) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+					if (t1x > t2x) {
+						if (t1y > t2y) {
 							arr = [0, 3];
 						} else {
 							arr = [2, 3];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [0, 1];
 						} else {
 							arr = [1, 2];
@@ -6717,18 +6697,18 @@ window.onload = function() {
 				if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
-			const resolveCollision = (entity, elem, isTank = false) => {
+			const resolveCollision = (entity, elem) => {
 				switch (elem.name) {
-					case isTank ? 'TankTop' : 'ObsTop':
+					case 0:
 						entity.moveTo(entity.x, elem.y - 60);
 						break;
-					case isTank ? 'TankBottom' : 'ObsBottom':
+					case 2:
 						entity.moveTo(entity.x, elem.y + elem.height);
 						break;
-					case isTank ? 'TankLeft' : 'ObsLeft':
+					case 3:
 						entity.moveTo(elem.x - 60, entity.y);
 						break;
-					case isTank ? 'TankRight' : 'ObsRight':
+					case 1:
 						entity.moveTo(elem.x + elem.width, entity.y);
 						break;
 				}
@@ -6886,13 +6866,13 @@ window.onload = function() {
 								// タンクとの衝突処理
 								TankObstracle.intersect(this).forEach(elem => {
 									if (!deadFlgs[elem.num] && elem.num !== this.num) {
-										resolveCollision(this, elem, true);
+										resolveCollision(this, elem);
 									}
 								});
 
 								// 障害物との衝突処理
 								Obstracle.intersect(this).forEach(elem => {
-									resolveCollision(this, elem, false);
+									resolveCollision(this, elem);
 								});
 							}
 						} else {
@@ -7088,18 +7068,18 @@ window.onload = function() {
 				SelDirection(entity, target, mode, grid, myPath);
 			}
 
-			const resolveCollision = (entity, elem, isTank) => {
+			const resolveCollision = (entity, elem) => {
 				switch (elem.name) {
-					case isTank ? 'TankTop' : 'ObsTop':
+					case 0:
 						entity.moveTo(entity.x, elem.y - 60);
 						break;
-					case isTank ? 'TankBottom' : 'ObsBottom':
+					case 2:
 						entity.moveTo(entity.x, elem.y + elem.height);
 						break;
-					case isTank ? 'TankLeft' : 'ObsLeft':
+					case 3:
 						entity.moveTo(elem.x - 60, entity.y);
 						break;
-					case isTank ? 'TankRight' : 'ObsRight':
+					case 1:
 						entity.moveTo(elem.x + elem.width, entity.y);
 						break;
 				}
@@ -7281,12 +7261,12 @@ window.onload = function() {
 
 					TankObstracle.intersect(this).forEach(elem => {
 						if (!deadFlgs[elem.num] && elem.num !== this.num) {
-							resolveCollision(this, elem, true);
+							resolveCollision(this, elem);
 						}
 					});
 
 					Obstracle.intersect(this).forEach(elem => {
-						resolveCollision(this, elem, false);
+						resolveCollision(this, elem);
 					});
 				}
 				catch(e){
@@ -7298,7 +7278,6 @@ window.onload = function() {
 
 		_Attack: function () {
 			if (gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (!WorldFlg) return;
 			const count = BulletBase.collection.filter(b => b.num === this.num).length;
 			if (count < this.bulMax && !deadFlgs[this.num]){
 				this.shotStopFlg = true;
@@ -7505,16 +7484,16 @@ window.onload = function() {
 
 								Obstracle.intersect(this).forEach(elem => {
 									switch (elem.name) {
-										case 'ObsTop':
+										case 0:
 											this.moveTo(this.x, elem.y - 60);
 											break;
-										case 'ObsBottom':
+										case 2:
 											this.moveTo(this.x, elem.y + (elem.height))
 											break;
-										case 'ObsLeft':
+										case 3:
 											this.moveTo(elem.x - 60, this.y)
 											break;
-										case 'ObsRight':
+										case 1:
 											this.moveTo(elem.x + (elem.width), this.y)
 											break;
 									}
@@ -7535,7 +7514,6 @@ window.onload = function() {
 		},
 		_Attack: function() {
 			if (!this.fullFireFlg && gameMode == -1 && Math.floor(Math.random() * 3)) return;
-			if (!WorldFlg) return;
 			const count = BulletBase.collection.filter(b => b.num === this.num).length;
 			if (count < this.bulMax && !deadFlgs[this.num]){
 				this.fullFireFlg = true;
@@ -7595,11 +7573,11 @@ window.onload = function() {
 
 			if (Math.random() < 0.5) this.aimRot *= -1;
 
-			const resolveCollision = (entity, elem, isTank = false) => {
-				const top = isTank ? 'TankTop' : 'ObsTop';
-				const bottom = isTank ? 'TankBottom' : 'ObsBottom';
-				const left = isTank ? 'TankLeft' : 'ObsLeft';
-				const right = isTank ? 'TankRight' : 'ObsRight';
+			const resolveCollision = (entity, elem) => {
+				const top = 0;
+				const bottom = 2;
+				const left = 3;
+				const right = 1;
 
 				switch (elem.name) {
 					case top:
@@ -7806,12 +7784,12 @@ window.onload = function() {
 					// --- 衝突処理 ---
 					TankObstracle.intersect(this).forEach(elem => {
 						if (!deadFlgs[elem.num] && elem.num !== this.num) {
-							resolveCollision(this, elem, true);
+							resolveCollision(this, elem);
 						}
 					});
 
 					Obstracle.intersect(this).forEach(elem => {
-						resolveCollision(this, elem, false);
+						resolveCollision(this, elem);
 					});
 				}
 				catch(e){
@@ -7957,18 +7935,18 @@ window.onload = function() {
 				return true; // 全て通れるならOK
 			}
 
-			const resolveCollision = (entity, elem, isTank = false) => {
+			const resolveCollision = (entity, elem) => {
 				switch (elem.name) {
-					case isTank ? 'TankTop' : 'ObsTop':
+					case 0:
 						entity.moveTo(entity.x, elem.y - 60);
 						break;
-					case isTank ? 'TankBottom' : 'ObsBottom':
+					case 2:
 						entity.moveTo(entity.x, elem.y + elem.height);
 						break;
-					case isTank ? 'TankLeft' : 'ObsLeft':
+					case 3:
 						entity.moveTo(elem.x - 60, entity.y);
 						break;
-					case isTank ? 'TankRight' : 'ObsRight':
+					case 1:
 						entity.moveTo(elem.x + elem.width, entity.y);
 						break;
 				}
@@ -8438,13 +8416,13 @@ window.onload = function() {
 								// タンクとの衝突処理
 								TankObstracle.intersect(this).forEach(elem => {
 									if (!deadFlgs[elem.num] && elem.num !== this.num) {
-										resolveCollision(this, elem, true);
+										resolveCollision(this, elem);
 									}
 								});
 
 								// 障害物との衝突処理
 								Obstracle.intersect(this).forEach(elem => {
-									resolveCollision(this, elem, false);
+									resolveCollision(this, elem);
 								});
 							}
 						} else {
@@ -8621,29 +8599,33 @@ window.onload = function() {
 				//	5:	右下
 				//	6:	左下
 				//	7:	左上
+				const t1x = target1.x + target1.width / 2;
+				const t1y = target1.y + target1.height / 2;
+				const t2x = target2.x + target2.width / 2;
+				const t2y = target2.y + target2.height / 2;
 				if (or == 0) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) { //	相手より右にいる場合
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) { //	相手より下にいる場合
+					if (t1x > t2x) { //	相手より右にいる場合
+						if (t1y > t2y) { //	相手より下にいる場合
 							arr = [1, 2, 5];
 						} else {
 							arr = [0, 1, 4];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [2, 3, 6];
 						} else {
 							arr = [0, 3, 7];
 						}
 					}
 				} else if (or == 1) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+					if (t1x > t2x) {
+						if (t1y > t2y) {
 							arr = [0, 3, 7];
 						} else {
 							arr = [2, 3, 6];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [0, 1, 4];
 						} else {
 							arr = [1, 2, 5];
@@ -8652,7 +8634,7 @@ window.onload = function() {
 				}
 
 				let rem = [];
-				this.myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
+				this.myPath = [parseInt(t1y / PixelSize), parseInt(t1x / PixelSize)];
 				this.grid = JSON.parse(JSON.stringify(scene.grid));
 				let bk = arr;
 
@@ -8674,18 +8656,18 @@ window.onload = function() {
 				if (arr.indexOf(this.dirValue) == -1) this.dirValue = arr[Math.floor(Math.random() * arr.length)];
 			}
 
-			const resolveCollision = (entity, elem, isTank = false) => {
+			const resolveCollision = (entity, elem) => {
 				switch (elem.name) {
-					case isTank ? 'TankTop' : 'ObsTop':
+					case 0:
 						entity.moveTo(entity.x, elem.y - 60);
 						break;
-					case isTank ? 'TankBottom' : 'ObsBottom':
+					case 2:
 						entity.moveTo(entity.x, elem.y + elem.height);
 						break;
-					case isTank ? 'TankLeft' : 'ObsLeft':
+					case 3:
 						entity.moveTo(elem.x - 60, entity.y);
 						break;
-					case isTank ? 'TankRight' : 'ObsRight':
+					case 1:
 						entity.moveTo(elem.x + elem.width, entity.y);
 						break;
 				}
@@ -8899,13 +8881,13 @@ window.onload = function() {
 								// タンクとの衝突処理
 								TankObstracle.intersect(this).forEach(elem => {
 									if (!deadFlgs[elem.num] && elem.num !== this.num) {
-										resolveCollision(this, elem, true);
+										resolveCollision(this, elem);
 									}
 								});
 
 								// 障害物との衝突処理
 								Obstracle.intersect(this).forEach(elem => {
-									resolveCollision(this, elem, false);
+									resolveCollision(this, elem);
 								});
 							}
 						} else {
@@ -9112,29 +9094,33 @@ window.onload = function() {
 
 			const SelDirection = (target1, target2, or) => {
 				let arr = [0, 1, 2, 3];
+				const t1x = target1.x + target1.width / 2;
+				const t1y = target1.y + target1.height / 2;
+				const t2x = target2.x + target2.width / 2;
+				const t2y = target2.y + target2.height / 2;
 				if (or == 0) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) { //	相手より右にいる場合
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) { //	相手より下にいる場合
+					if (t1x > t2x) { //	相手より右にいる場合
+						if (t1y > t2y) { //	相手より下にいる場合
 							arr = [1, 2];
 						} else {
 							arr = [0, 1];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [2, 3];
 						} else {
 							arr = [0, 3];
 						}
 					}
 				} else if (or == 1) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+					if (t1x > t2x) {
+						if (t1y > t2y) {
 							arr = [0, 3];
 						} else {
 							arr = [2, 3];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [0, 1];
 						} else {
 							arr = [1, 2];
@@ -9295,16 +9281,16 @@ window.onload = function() {
 								TankObstracle.intersect(this).forEach(elem => {
 									if (!deadFlgs[elem.num] && elem.num != this.num) {
 										switch (elem.name) {
-											case 'TankTop':
+											case 0:
 												this.moveTo(this.x, elem.y - 60);
 												break;
-											case 'TankBottom':
+											case 2:
 												this.moveTo(this.x, elem.y + (elem.height));
 												break;
-											case 'TankLeft':
+											case 3:
 												this.moveTo(elem.x - 60, this.y);
 												break;
-											case 'TankRight':
+											case 1:
 												this.moveTo(elem.x + (elem.width), this.y);
 												break;
 										}
@@ -9314,16 +9300,16 @@ window.onload = function() {
 
 								Obstracle.intersect(this).forEach(elem => {
 									switch (elem.name) {
-										case 'ObsTop':
+										case 0:
 											this.moveTo(this.x, elem.y - 60);
 											break;
-										case 'ObsBottom':
+										case 2:
 											this.moveTo(this.x, elem.y + (elem.height))
 											break;
-										case 'ObsLeft':
+										case 3:
 											this.moveTo(elem.x - 60, this.y)
 											break;
-										case 'ObsRight':
+										case 1:
 											this.moveTo(elem.x + (elem.width), this.y)
 											break;
 									}
@@ -9769,16 +9755,16 @@ window.onload = function() {
 								TankObstracle.intersect(this).forEach(elem => {
 									if (!deadFlgs[elem.num] && elem.num != this.num) {
 										switch (elem.name) {
-											case 'TankTop':
+											case 0:
 												this.moveTo(this.x, elem.y - 60);
 												break;
-											case 'TankBottom':
+											case 2:
 												this.moveTo(this.x, elem.y + (elem.height));
 												break;
-											case 'TankLeft':
+											case 3:
 												this.moveTo(elem.x - 60, this.y);
 												break;
-											case 'TankRight':
+											case 1:
 												this.moveTo(elem.x + (elem.width), this.y);
 												break;
 										}
@@ -9789,16 +9775,16 @@ window.onload = function() {
 
 								Obstracle.intersect(this).forEach(elem => {
 									switch (elem.name) {
-										case 'ObsTop':
+										case 0:
 											this.moveTo(this.x, elem.y - 60);
 											break;
-										case 'ObsBottom':
+										case 2:
 											this.moveTo(this.x, elem.y + (elem.height))
 											break;
-										case 'ObsLeft':
+										case 3:
 											this.moveTo(elem.x - 60, this.y)
 											break;
-										case 'ObsRight':
+										case 1:
 											this.moveTo(elem.x + (elem.width), this.y)
 											break;
 									}
@@ -10093,29 +10079,33 @@ window.onload = function() {
 				//	5:	右下
 				//	6:	左下
 				//	7:	左上
+				const t1x = target1.x + target1.width / 2;
+				const t1y = target1.y + target1.height / 2;
+				const t2x = target2.x + target2.width / 2;
+				const t2y = target2.y + target2.height / 2;
 				if (or == 0) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) { //	相手より右にいる場合
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) { //	相手より下にいる場合
+					if (t1x > t2x) { //	相手より右にいる場合
+						if (t1y > t2y) { //	相手より下にいる場合
 							arr = [1, 2, 5];
 						} else {
 							arr = [0, 1, 4];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [2, 3, 6];
 						} else {
 							arr = [0, 3, 7];
 						}
 					}
 				} else if (or == 1) {
-					if ((target1.x + target1.width / 2) > (target2.x + target2.width / 2)) {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+					if (t1x > t2x) {
+						if (t1y > t2y) {
 							arr = [0, 3, 7];
 						} else {
 							arr = [2, 3, 6];
 						}
 					} else {
-						if ((target1.y + target1.height / 2) > (target2.y + target2.height / 2)) {
+						if (t1y > t2y) {
 							arr = [0, 1, 4];
 						} else {
 							arr = [1, 2, 5];
@@ -10123,7 +10113,7 @@ window.onload = function() {
 					}
 				}
 
-				self.myPath = [parseInt((target1.y + target1.height / 2) / PixelSize), parseInt((target1.x + target1.width / 2) / PixelSize)];
+				self.myPath = [parseInt(t1y / PixelSize), parseInt(t1x / PixelSize)];
 				self.grid = JSON.parse(JSON.stringify(scene.grid));
 				let bk = arr;
 
@@ -10668,16 +10658,16 @@ window.onload = function() {
 								TankObstracle.intersect(this).forEach(elem => {
 									if (!deadFlgs[elem.num] && elem.num != this.num) {
 										switch (elem.name) {
-											case 'TankTop':
+											case 0:
 												this.moveTo(this.x, elem.y - 60);
 												break;
-											case 'TankBottom':
+											case 2:
 												this.moveTo(this.x, elem.y + (elem.height));
 												break;
-											case 'TankLeft':
+											case 3:
 												this.moveTo(elem.x - 60, this.y);
 												break;
-											case 'TankRight':
+											case 1:
 												this.moveTo(elem.x + (elem.width), this.y);
 												break;
 										}
@@ -10689,16 +10679,16 @@ window.onload = function() {
 
 								Obstracle.intersect(this).forEach(elem => {
 									switch (elem.name) {
-										case 'ObsTop':
+										case 0:
 											this.moveTo(this.x, elem.y - 60);
 											break;
-										case 'ObsBottom':
+										case 2:
 											this.moveTo(this.x, elem.y + (elem.height))
 											break;
-										case 'ObsLeft':
+										case 3:
 											this.moveTo(elem.x - 60, this.y)
 											break;
-										case 'ObsRight':
+										case 1:
 											this.moveTo(elem.x + (elem.width), this.y)
 											break;
 									}
@@ -12555,13 +12545,11 @@ window.onload = function() {
 			this.onenterframe = function() {
 				this.time++
 				if (this.time == 15){
-					//game.assets['./sound/RoundStart.mp3'].play();
 					AudioManager.playBgm(game.assets['./sound/RoundStart.mp3']);
 					if((stageNum+1) % 20 == 0){
 						showEmergencyAlert(this);
 					}
 				}
-				//if ((stageNum % 20 == 0 && stageNum > 0) && this.time == 15) new Warning(scene)
 				if (this.time == 150) {
 					new FadeOut(this)
 				}
@@ -12602,7 +12590,6 @@ window.onload = function() {
 				this.time++
 				if (this.time == 15) 
 					AudioManager.playBgm(game.assets['./sound/ExtraTank.mp3']);
-					//game.assets['./sound/ExtraTank.mp3'].play()
 				if (this.time >= 85 && this.time < 90) {
 					zankiLabel.opacity -= 0.2;
 					if (zankiLabel.opacity <= 0) {
