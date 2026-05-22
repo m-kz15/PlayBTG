@@ -132,3 +132,10 @@
     background-color: rgba(50, 50, 50, 0.1);
     pointer-events: none;
   }
+  /* --- iOS 長押しメニュー完全禁止 --- */
+  html, body, #pad, .button, .dir-key, canvas {
+      -webkit-touch-callout: none; /* 長押しメニュー禁止 */
+      -webkit-user-select: none;   /* テキスト選択禁止 */
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0); /* タップ時のハイライト無効 */
+  }
