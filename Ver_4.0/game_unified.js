@@ -108,7 +108,7 @@ let changePermitNum = [
 	15,	//7
 	39,	//8
 	30,	//9
-	59,	//10
+	47,	//10
 	99,	//11
 	99,	//12
 	99	//13
@@ -831,6 +831,94 @@ function Escape_Rot4(from, to, value) {
     }
 
     return value;
+}
+
+function Escape_Rot4_Elite(from, to, value) {
+    const t1 = Get_Center(from);
+    const t2 = Get_Center(to);
+
+    // 4方向ベクトル
+    const dirVec = [
+        {x: 0,  y:-1}, // 0 上 (0°)
+        {x: 1,  y: 0}, // 1 右 (90°)
+        {x: 0,  y: 1}, // 2 下 (180°)
+        {x:-1, y: 0}  // 3 左 (270°)
+    ];
+
+    const dirAngleList = [
+        0,   // 上
+        90,  // 右
+        180, // 下
+        270  // 左
+    ];
+
+    // ★ 迎撃ロジックと同じ進行方向ベクトルを復元
+    const bulletVec = Rot_to_Vec(to.rotation, -90);
+
+    // 弾の未来位置（速度48前提）
+    const bulletFuture = {
+        x: t2.x + bulletVec.x * 48,
+        y: t2.y + bulletVec.y * 48
+    };
+
+    // ランダム初期化
+    if (from.time % 60 === 0) {
+        value = Math.floor(Math.random() * 4);
+    }
+
+    let bestDir = value;
+    let bestScore = Infinity;
+
+    for (let d = 0; d < 4; d++) {
+        const vec = dirVec[d];
+
+        // 仮位置
+        const nx = t1.x + vec.x * 32;
+        const ny = t1.y + vec.y * 32;
+
+        let score = 0;
+
+        // 1. 壁チェック（即アウト）
+        const gy = Math.floor(ny / PixelSize);
+        const gx = Math.floor(nx / PixelSize);
+        if (now_scene.grid[gy]?.[gx] === 1) {
+            score = Infinity;
+            continue;
+        }
+
+        // 2. 弾の未来位置に近づく方向は危険
+        const distFuture = Math.hypot(nx - bulletFuture.x, ny - bulletFuture.y);
+        score += (200 - distFuture);
+
+        // 3. 弾の進行方向と同じ方向は危険
+        const dirAngle = dirAngleList[d];
+        const bulletDeg = (Math.atan2(bulletVec.y, bulletVec.x) * 180 / Math.PI + 360) % 360;
+        const diff = Math.abs(bulletDeg - dirAngle);
+        score += (45 - Math.min(diff, 360 - diff));
+
+        // 4. 弾との距離が縮まる方向は危険
+        const distNow = Math.hypot(t1.x - t2.x, t1.y - t2.y);
+        const distNext = Math.hypot(nx - t2.x, ny - t2.y);
+        if (distNext < distNow) score += 50;
+
+        // 5. 弾の軌道線に近い方向は危険
+        const bulletLineDist = Math.abs(
+            (nx - t2.x) * bulletVec.y -
+            (ny - t2.y) * bulletVec.x
+        );
+        score += (100 - bulletLineDist);
+
+        // 6. 現在の方向を少し優遇
+        if (d === value) score -= 5;
+
+        // 最小スコアを更新
+        if (score < bestScore) {
+            bestScore = score;
+            bestDir = d;
+        }
+    }
+
+    return bestDir;
 }
 
 function Escape_Rot8(from, to, value) {
@@ -2983,14 +3071,23 @@ window.onload = function() {
 		// レイキャスト（壁との衝突）
 		raycast(x, y, dx, dy, maxDist) {
 			let nearest = null;
+			// レイのバウンディングボックス
+			const minX = Math.min(x, x + dx * maxDist);
+			const maxX = Math.max(x, x + dx * maxDist);
+			const minY = Math.min(y, y + dy * maxDist);
+			const maxY = Math.max(y, y + dy * maxDist);
 
 			for (const w of Wall.collection) {
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
 				const hit = this.rayRect(x, y, dx, dy, w);
 				if (hit && hit.dist <= maxDist) {
 					if (!nearest || hit.dist < nearest.dist) nearest = hit;
 				}
 			}
 			for (const w of Block.collection) {
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
 				const hit = this.rayRect(x, y, dx, dy, w);
 				if (hit && hit.dist <= maxDist) {
 					if (!nearest || hit.dist < nearest.dist) nearest = hit;
@@ -3002,6 +3099,8 @@ window.onload = function() {
 					const t = tankEntity[i];
 					if (t.num === this.num) continue;
 					if (deadFlgs[t.num]) continue;
+					if (t.x > maxX || t.x + t.width < minX) continue;
+					if (t.y > maxY || t.y + t.height < minY) continue;
 
 					// t は {x,y,width,height} を持っている前提
 					const hit = this.rayRect(x, y, dx, dy, t);
@@ -3289,25 +3388,34 @@ window.onload = function() {
 
 		raycast(x, y, dx, dy, maxDist) {
 			let nearest = null;
-
-			// 壁
-			for (const w of RefObstracle.collection) {
-				const hit = this.rayRect(x, y, dx, dy, w);
-				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) {
-						nearest = { ...hit, type: "wall" };
-					}
-				}
-			}
+			// レイのバウンディングボックス
+			const minX = Math.min(x, x + dx * maxDist);
+			const maxX = Math.max(x, x + dx * maxDist);
+			const minY = Math.min(y, y + dy * maxDist);
+			const maxY = Math.max(y, y + dy * maxDist);
 
 			// タンク（num == 0 以外）
 			for (const t of TankBase.collection) {
 				if (t.num === 0) continue;
+				if (deadFlgs[t.num]) continue;
+				if (t.x > maxX || t.x + t.width < minX) continue;
+				if (t.y > maxY || t.y + t.height < minY) continue;
 
 				const hit = this.rayRect(x, y, dx, dy, t);
 				if (hit && hit.dist <= maxDist) {
 					if (!nearest || hit.dist < nearest.dist) {
 						nearest = { ...hit, type: "tank" };
+					}
+				}
+			}
+			// 壁
+			for (const w of RefObstracle.collection) {
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) {
+						nearest = { ...hit, type: "wall" };
 					}
 				}
 			}
@@ -3776,29 +3884,46 @@ window.onload = function() {
 		// --- RayCast（壁・ブロック） ---
 		raycast(x, y, dx, dy, maxDist) {
 			let nearest = null;
+			// レイのバウンディングボックス
+			const minX = Math.min(x, x + dx * maxDist);
+			const maxX = Math.max(x, x + dx * maxDist);
+			const minY = Math.min(y, y + dy * maxDist);
+			const maxY = Math.max(y, y + dy * maxDist);
 
-			for (const w of Wall.collection) {
-				const hit = this.rayRect(x, y, dx, dy, w);
-				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
-				}
-			}
-			for (const w of Block.collection) {
-				const hit = this.rayRect(x, y, dx, dy, w);
-				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
-				}
-			}
 			// ★ 戦車で遮る（生存のみ）
 			for (let i = 0; i < tankEntity.length; i++) {
 				const t = tankEntity[i];
 				//if (t.num === this.num) continue;
 				if (deadFlgs[t.num]) continue;
+				if (t.x > maxX || t.x + t.width < minX) continue;
+				if (t.y > maxY || t.y + t.height < minY) continue;
 
 				// t は {x,y,width,height} を持っている前提
 				const hit = this.rayRect(x, y, dx, dy, t);
 				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+					if (!nearest || hit.dist < nearest.dist){
+						nearest = hit;
+					} 
+				}
+			}
+			for (const w of Wall.collection) {
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist){
+						nearest = hit;
+					} 
+				}
+			}
+			for (const w of Block.collection) {
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist){
+						nearest = hit;
+					}
 				}
 			}
 
@@ -3973,29 +4098,46 @@ window.onload = function() {
 		// --- RayCast（壁・ブロック） ---
 		raycast(x, y, dx, dy, maxDist) {
 			let nearest = null;
+			// レイのバウンディングボックス
+			const minX = Math.min(x, x + dx * maxDist);
+			const maxX = Math.max(x, x + dx * maxDist);
+			const minY = Math.min(y, y + dy * maxDist);
+			const maxY = Math.max(y, y + dy * maxDist);
 
-			for (const w of Wall.collection) {
-				const hit = this.rayRect(x, y, dx, dy, w);
-				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
-				}
-			}
-			for (const w of Block.collection) {
-				const hit = this.rayRect(x, y, dx, dy, w);
-				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
-				}
-			}
 			// ★ 戦車で遮る（生存のみ）
 			for (let i = 0; i < tankEntity.length; i++) {
 				const t = tankEntity[i];
 				//if (t.num === this.num) continue;
 				if (deadFlgs[t.num]) continue;
+				if (t.x > maxX || t.x + t.width < minX) continue;
+				if (t.y > maxY || t.y + t.height < minY) continue;
 
 				// t は {x,y,width,height} を持っている前提
 				const hit = this.rayRect(x, y, dx, dy, t);
 				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+					if (!nearest || hit.dist < nearest.dist){
+						nearest = hit;
+					} 
+				}
+			}
+			for (const w of Wall.collection) {
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist){
+						nearest = hit;
+					} 
+				}
+			}
+			for (const w of Block.collection) {
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist){
+						nearest = hit;
+					} 
 				}
 			}
 
@@ -6744,7 +6886,7 @@ window.onload = function() {
 
 								this.time++;
 
-								if (this.time % 60 == 0){
+								if (this.time % (60 + this.num * 7) == 0){
 									this.moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
 								}
 
@@ -7699,7 +7841,6 @@ window.onload = function() {
 						if (!this.fireFlg && this.aimingTime < this.aimCmpTime) {
 
 							const baseSpeed = Categorys.CannonRotSpeed[this.category];
-							//const rotSpeed = Categorys.CannonRotSpeed[this.category];
 							const rangeDeg = 45;
 
 							// --- cannon の回転処理（最適角度中心） ---
@@ -8264,7 +8405,7 @@ window.onload = function() {
 									}
 								}
 
-								if (this.time % 60 == 0) {
+								if (this.time % (60 + this.num * 7) == 0) {
 									let hasCloseTarget = false;
 									if (Bom.collection.length > 0) {
 										for (const c of Bom.collection) {
@@ -9243,7 +9384,7 @@ window.onload = function() {
 								if (this.moveSpeed > 0) {
 									if (this.time % 5 == 0) {
 										if (this.escapeFlg) {
-											this.dirValue = Escape_Rot4(this, this.escapeTarget, this.dirValue);
+											this.dirValue = Escape_Rot4_Elite(this, this.escapeTarget, this.dirValue);
 										} else {
 											if (Math.sqrt(Math.pow(this.weak.x - this.attackTarget.x, 2) + Math.pow(this.weak.y - this.attackTarget.y, 2)) < this.distance) {
 												SelDirection(this.weak, this.attackTarget, 0);
@@ -9336,7 +9477,7 @@ window.onload = function() {
 				this.shotStopFlg = true;
 				if (Math.floor(Math.random() * 3) == 0 && gameMode > 0) this._ResetAim();
 				new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
-				if ((this.life / Categorys.Life[this.category]) < 0.25) {
+				if ((this.life / Categorys.Life[this.category]) < 0.25 || this.life == 1) {
 					this.fullFireFlg = true;
 					this.firecnt++;
 					this.fireLate = (Math.floor(Math.random() * 4) + 1) * 10;
@@ -9361,17 +9502,17 @@ window.onload = function() {
 		},
 		_ResetStatus: function() {
 			let percent = (this.life / Categorys.Life[this.category]);
-			if (percent < 0.25) {
+			if (percent < 0.25 || this.life == 1) {
 				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.2;
 				this.fireLate = Categorys.FireLate[this.category] - 10;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] + 5;
 				this.ref = 0;
 				this.reload = Categorys.Reload[this.category] - 30;
-			} else if (percent < 0.5) {
+			} else if (percent < 0.5 || this.life == 2) {
 				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] - 0.3;
 				this.fireLate = Categorys.FireLate[this.category] + 5;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
-			} else if (percent < 0.75) {
+			} else if (percent < 0.75 || this.life == 3) {
 				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 			}
 		},
@@ -9811,7 +9952,7 @@ window.onload = function() {
 				this.shotStopFlg = true;
 				if (Math.floor(Math.random() * 2) == 0 && gameMode > 0) this._ResetAim();
 
-				if ((this.life / Categorys.Life[this.category]) < 0.35) {
+				if ((this.life / Categorys.Life[this.category]) < 0.35 || this.life == 1) {
 					if (!this.fullFireFlg) {
 						if (Math.floor(Math.random() * 7) == 0) {
 							this.fullFireFlg = true;
@@ -9900,7 +10041,7 @@ window.onload = function() {
 		},
 		_ResetStatus: function() {
 			let percent = (this.life / Categorys.Life[this.category]);
-			if (percent < 0.35) {
+			if (percent < 0.35 || this.life == 1) {
 				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.4;
 				this.fireLate = Categorys.FireLate[this.category] - 8;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] + 3;
@@ -9908,13 +10049,13 @@ window.onload = function() {
 				this.ref = 0;
 				this.reload = Categorys.Reload[this.category] - 30;
 				this.distance = Categorys.Distances[this.category] + 160;
-			} else if (percent < 0.6) {
+			} else if (percent < 0.6 || this.life == 2) {
 				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] - 0.4;
 				this.fireLate = Categorys.FireLate[this.category] + 3;
 				this.shotSpeed = Categorys.ShotSpeed[this.category] - 1;
 				this.bodyRotSpeed = Categorys.BodyRotSpeed[this.category] + 4;
 				this.distance = Categorys.Distances[this.category] + 64;
-			} else if (percent < 0.8) {
+			} else if (percent < 0.8 || this.life == 3) {
 				if (this.moveSpeed > 1) this.moveSpeed = Categorys.MoveSpeed[this.category] + 0.2;
 			}
 		},
@@ -10381,7 +10522,7 @@ window.onload = function() {
 
 									if (this.moveSpeed > 0 && !rootFlg) {
 										
-										if (this.time % 60 == 0 && !this.bomSetFlg) {
+										if (this.time % (60 + this.num * 7) == 0 && !this.bomSetFlg) {
 											this.grid = JSON.parse(JSON.stringify(scene.grid));
 											this.map = Object.assign({}, scene.backgroundMap);
 
@@ -10493,7 +10634,7 @@ window.onload = function() {
 									}
 								}
 
-								if (this.time % 60 == 0) {
+								if (this.time % (60 + this.num * 7) == 0) {
 									let hasCloseTarget = false;
 									if (Bom.collection.length > 0) {
 										for (const c of Bom.collection) {
@@ -10972,8 +11113,6 @@ window.onload = function() {
 
 			this.tank.rotation = 90;
 			this.cannon.rotation = 90;
-
-			//scene.addChild(this);
 		},
 		_Output: function() {
 			now_scene.addChild(this);
@@ -11237,8 +11376,6 @@ window.onload = function() {
 			image.context.lineWidth = 4;
 			image.context.strokeStyle = lineColor;
 			roundedRect(image.context, 0, 0, size.width, size.height, 10);
-			/*image.context.fillRect(0, 0, size.width, size.height);
-			image.context.strokeRect(0, 0, size.width, size.height);*/
 			this.image = image;
 			this.moveTo(position.x, position.y);
 			this._Output();
@@ -11376,17 +11513,6 @@ window.onload = function() {
 			const t = patternSprite.time / (180 - 1);
 			const alpha = 1.0 - t;
 			patternSprite.time++;
-			/*if(patternSprite.time % 2 == 0){
-				if(patternSprite.time2 == 0)patternSprite.opacity += opaVal;
-				if(patternSprite.opacity >= 1){
-					patternSprite.time2++;
-					if(patternSprite.time2 == 3){
-						patternSprite.time2 = 0;
- 						opaVal = -0.05;
-					}
-				}
-				if(patternSprite.opacity < 0.05) opaVal = 0.1;
-			}*/
 			patternSprite.x -= isTop ? (12 * alpha + 1) : -(12 * alpha + 1);
 			if(isTop){
 				if (patternSprite.x <= -screenWidth) patternSprite.x = -(16 * alpha + 1);
@@ -11524,7 +11650,6 @@ window.onload = function() {
 			new ViewFrame(this.body, 'TankList', this.type.Body.size, { x: 0, y: 0 }, this.type.Body.color);
 
 			new ViewText(this.head, 'Title', { width: 64 * 4, height: 64 }, { x: 64 * 7, y: 64 }, '戦車一覧', '64px sans-serif', '#ebe799', 'center', true);
-			//new DispText(120, 150, 260 * 4, 64, '戦車一覧', '64px sans-serif', '#ebe799', 'center', scene)
 		},
 		_SetStart: function() {
 			this.head.moveTo(this.type.Head.position.x, this.type.Head.position.y);
@@ -11532,7 +11657,6 @@ window.onload = function() {
 			new ViewFrame(this.head, 'Start', this.type.Head.size, { x: 0, y: 0 }, this.type.Head.color);
 			new ViewFrame(this.head, 'Top', { width: this.type.Head.size.width, height: 5 }, { x: 0, y: 32 }, 'yellow');
 			new ViewFrame(this.head, 'Bottom', { width: this.type.Head.size.width, height: 5 }, { x: 0, y: this.type.Head.size.height - 37 }, 'yellow');
-			//new ViewFrame(this.body, 'Result', this.type.Body.size, {x: 0, y: 0}, this.type.Body.color);
 		},
 		_SetBonus: function() {
 			this.head.moveTo(this.type.Head.position.x, this.type.Head.position.y);
@@ -11540,14 +11664,12 @@ window.onload = function() {
 			new ViewFrame(this.head, 'Bonus', this.type.Head.size, { x: 0, y: 0 }, this.type.Head.color);
 			new ViewFrame(this.head, 'Top', { width: this.type.Head.size.width, height: 5 }, { x: 0, y: 32 }, 'yellow');
 			new ViewFrame(this.head, 'Bottom', { width: this.type.Head.size.width, height: 5 }, { x: 0, y: this.type.Head.size.height - 37 }, 'yellow');
-			//new ViewFrame(this.body, 'Result', this.type.Body.size, {x: 0, y: 0}, this.type.Body.color);
 		},
 		_SetResult: function() {
 			this.head.moveTo(this.type.Head.position.x, this.type.Head.position.y);
 			this.body.moveTo(this.type.Body.position.x, this.type.Body.position.y);
 			new ViewFrame(this.head, 'Result', this.type.Head.size, { x: 0, y: 0 }, this.type.Head.color);
 			new ViewFrame(this.head, 'Top', { width: this.type.Head.size.width, height: 5 }, { x: 0, y: 32 }, 'yellow');
-			//new ViewFrame(this.body, 'Result', this.type.Body.size, {x: 0, y: 0}, this.type.Body.color);
 		},
 		_SetPause: function() {
 			this.body.moveTo(this.type.Body.position.x, this.type.Body.position.y);
@@ -11566,16 +11688,10 @@ window.onload = function() {
 			new ViewFrame(this.head, 'Window', { width: 960, height: 540 }, { x: 0, y: 0 }, '#fff');
 			new ViewText(this.head, 'Title', { width: 400, height: 48 }, { x: 8, y: 8 }, 'ゲームモード選択', '48px sans-serif', 'black', 'center', true);
 
-			/*var nomal = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 8, y: 128}, 'ノーマル', '48px sans-serif', 'black', 'center', true);
-			var hard = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 300, y: 128}, 'ハード', '48px sans-serif', 'black', 'center', true);
-			var survival = new ViewText(this.head, 'Mode', {width: 240, height: 48}, {x: 600, y: 128}, 'サバイバル', '48px sans-serif', 'black', 'center', true);*/
-
 			var easy = new ViewButton(this.head, 'Mode', { width: 200, height: 48 }, { x: 32, y: 98 }, 'Easy', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
 			var nomal = new ViewButton(this.head, 'Mode', { width: 200, height: 48 }, { x: 264, y: 98 }, 'Normal', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
 			var hard = new ViewButton(this.head, 'Mode', { width: 200, height: 48 }, { x: 496, y: 98 }, 'Hard', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
-			var survival = new ViewButton(this.head, 'Mode', { width: 200, height: 48 }, { x: 728, y: 98 }, 'Insanity', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
-
-			//var toList = new ViewButton(area.head, 'Mode', {width: 48 * 8, height: 48}, {x: PixelSize * 5, y: PixelSize * 8.25}, '➡　戦車一覧へ', '48px sans-serif', '#ebe799', 'left', 'rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0)');
+			var insanity = new ViewButton(this.head, 'Mode', { width: 200, height: 48 }, { x: 728, y: 98 }, 'Insanity', '40px sans-serif', 'black', 'center', 'rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.1)');
 
 			var dsc = new ViewText(this.head, 'Mode', { width: 896, height: 32 * 7 }, { x: 32, y: 300 }, 'ゲームモード説明', '32px sans-serif', 'black', 'left', true);
 			dsc.backgroundColor = '#44444444';
@@ -11586,27 +11702,27 @@ window.onload = function() {
 						easy.text.color = 'red';
 						nomal.text.color = 'black';
 						hard.text.color = 'black';
-						survival.text.color = 'black';
+						insanity.text.color = 'black';
 						dsc.text = '難易度：簡単<br>初心者におすすめのモード。<br>敵の攻撃頻度が抑えられているため遊びやすい。<br>慣れないうちはこのモードで練習してみましょう。';
 						break;
 					case 0:
 						easy.text.color = 'black';
 						nomal.text.color = 'red';
 						hard.text.color = 'black';
-						survival.text.color = 'black';
+						insanity.text.color = 'black';
 						dsc.text = '難易度：普通<br>中級者向けのモード。<br>敵味方ともに100%のステータスで戦う。<br>イージーモードでは足りなくなってきた方におすすめ。';
 						break;
 					case 1:
 						nomal.text.color = 'black';
 						hard.text.color = 'red';
-						survival.text.color = 'black';
+						insanity.text.color = 'black';
 						dsc.text = '難易度：難しい<br>敵のステータスが強化される難易度の高いモード。<br>デフォルト以外の戦車を自機として選択している場合、<br>ステータス強化の恩恵を受けられる。';
 						break;
 					case 2:
 						easy.text.color = 'black';
 						nomal.text.color = 'black';
 						hard.text.color = 'black';
-						survival.text.color = 'red';
+						insanity.text.color = 'red';
 						dsc.text = '難易度：狂気的<br>Hardモードのステータス強化に加えて、敵の当たり判定が小さくなったモード。<br>敵のクリティカル発生率が高くなるため、安易に被弾しないことをおすすめする。';
 						break;
 				}
@@ -11632,7 +11748,7 @@ window.onload = function() {
 				changeMode();
 			})
 
-			survival.addEventListener(Event.TOUCH_START, function() {
+			insanity.addEventListener(Event.TOUCH_START, function() {
 				gameMode = 2;
 				changeMode();
 			})
@@ -11960,7 +12076,6 @@ window.onload = function() {
 			Scene.call(this);
 			this.time = 0;
 			this.backgroundColor = 'black'; // シーンの背景色を設定
-			//now_scene = this;
 
 			let flg = false;
 			new ViewText(this, 'Play', { width: 320 * 4, height: 48 }, { x: PixelSize * 0, y: PixelSize * 7 }, 'Touch to StartUp!', '48px sans-serif', 'white', 'center', true);
@@ -11986,7 +12101,6 @@ window.onload = function() {
 
 					if (this.time == 30) {
 						AudioManager.playBgm(BGM);
-						//BGM.play();
 						game.replaceScene(new TitleScene());
 					}
 				}
@@ -12177,7 +12291,6 @@ window.onload = function() {
 			this.transitionFlag = true;
 			this.nextSceneType = type;
 			if (type !== 3) {
-				//BGM.stop();
 				AudioManager.stopBgm();
 				titleFlg = false;
 			}
@@ -12195,7 +12308,6 @@ window.onload = function() {
 			}
 
 			if (titleFlg && BGM.currentTime === BGM.duration) {
-				//BGM.play();
 				AudioManager.playBgm(BGM);
 			}
 
@@ -12449,7 +12561,6 @@ window.onload = function() {
 
 			this.onenterframe = function() {
 				if (!flg && BGM.currentTime == BGM.duration) {
-					//BGM.play();
 					AudioManager.playBgm(BGM);
 				}
 
@@ -12979,8 +13090,6 @@ window.onload = function() {
         // -----------------------------
         startBGM: function () {
             BGM = game.assets['./sound/start.mp3'];
-            //BGM.play();
-            //BGM.volume = 0.2;
 			AudioManager.playBgm(BGM, 0.2);
         },
         // -----------------------------
@@ -13020,7 +13129,6 @@ window.onload = function() {
 
 				BulAimLite.list.forEach(a => a.update());
 				PlayerBulAimLite.list.forEach(a => a.update());
-				//AimLite.list.forEach(a => a.update(a.from, a.to));
             }
         },
 
@@ -13080,7 +13188,6 @@ window.onload = function() {
                 if (BGM.currentTime == BGM.duration) {
                     BGM = game.assets[BGMs[BNum]];
                     BGM.currentTime = 0;
-                    //BGM.play();
 					AudioManager.playBgm(BGM);
                     if (game.time > 250) BGM.currentTime = 0.01;
                 }
@@ -13139,7 +13246,6 @@ window.onload = function() {
         handleVictory: function () {
 
             playerLife = tankEntity[0].life % Categorys.Life[tankEntity[0].category];
-            //BGM.stop();
 			AudioManager.stopBgm();
 
             // 色カウント加算
@@ -13213,7 +13319,6 @@ window.onload = function() {
         handleDefeat: function () {
 
             playerLife = 0;
-            //BGM.stop();
 			AudioManager.stopBgm();
             defeat = true;
             gameStatus = 2;
@@ -13260,7 +13365,6 @@ window.onload = function() {
         handleVictoryTransition: function () {
 
             if (this.time == 15) {
-                //BGM = game.assets['./sound/success.mp3'].play();
 				BGM = game.assets['./sound/success.mp3'];
 				AudioManager.playBgm(BGM);
             }
@@ -13293,7 +13397,6 @@ window.onload = function() {
         handleDefeatTransition: function () {
 
             if (this.time == 15) {
-                //BGM = game.assets['./sound/failed.mp3'].play();
 				BGM = game.assets['./sound/failed.mp3'];
 				AudioManager.playBgm(BGM);
             }
@@ -13340,17 +13443,14 @@ window.onload = function() {
 
             if (this.time == 15) {
                 BGM = game.assets['./sound/end.mp3'];
-                //BGM.play();
 				AudioManager.playBgm(BGM);
                 this.chgBgm = true;
             }
 
             else if (this.time > 100 && this.chgBgm && BGM.currentTime == BGM.duration) {
                 BGM.currentTime = 0;
-                //BGM.stop();
 				AudioManager.stopBgm();
                 BGM = game.assets['./sound/result.mp3'];
-                //BGM.play();
 				AudioManager.playBgm(BGM);
                 this.chgBgm = false;
             }
@@ -13358,7 +13458,6 @@ window.onload = function() {
             else if (this.time > 100 && !this.chgBgm && BGM.currentTime == BGM.duration) {
                 BGM = game.assets['./sound/result.mp3'];
                 BGM.currentTime = 0;
-                //BGM.play();
 				AudioManager.playBgm(BGM);
             }
         },
@@ -13479,7 +13578,6 @@ window.onload = function() {
 
                 toProceed.addEventListener(Event.TOUCH_START, function () {
                     complete = false;
-                    //BGM.stop();
 					AudioManager.stopBgm();
                     new FadeOut(now_scene);
                     stageNum++;
@@ -13545,7 +13643,6 @@ window.onload = function() {
 			now_scene = this;
 			this.fromScene = scene;
 
-			//BGM.volume = 0.5;
 			AudioManager.setBgmTemporaryVolume(0.5);
 
 			new ViewText(this, 'Title', { width: 640, height: 96 }, { x: 64 * 5, y: 64 * 1.5 }, 'PAUSE', '96px sans-serif', 'white', 'center', true);
@@ -13558,7 +13655,6 @@ window.onload = function() {
 				{ width: 48 * 4, height: 48 },
 				{ x: PixelSize * 16, y: PixelSize * 1 },
 				'⚙設定', '48px sans-serif', 'white', 'center', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)');
-			//let area = new SetArea({x: 0, y: 0}, 'Pause');
 
 			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
 				new ViewFrame(this, 'Pause', { width: PixelSize * 20, height: PixelSize * 4.5 }, { x: 0, y: PixelSize * 10.5 }, '#000000aa');
@@ -13607,7 +13703,6 @@ window.onload = function() {
 					Repository.data.UseLife = useLifeSystem;
 					Repository.save();
 					alert('セーブが完了しました。');
-					//new ViewMessage(that, 'Message', {width: PixelSize * 11, height: 64}, {x: PixelSize * 4.5, y: PixelSize * 5}, 'セーブが完了しました。', '64px "Arial"', 'white', 'center', 60);
 				}
 			});
 
@@ -13628,7 +13723,6 @@ window.onload = function() {
 			});
 
 			back.addEventListener(Event.TOUCH_START, function() {
-				//BGM.volume = 1.0;
 				AudioManager.resetBgmTemporaryVolume();
 				that._Remove();
 			});
@@ -13644,13 +13738,10 @@ window.onload = function() {
 				if (gameStatus == 0) {
 					if (BGM.currentTime == BGM.duration) {
 						BGM.currentTime = 0;
-						//BGM.play();
-						//BGM.volume = 0.5;
 						AudioManager.playBgm(BGM);
 					}
 				}
 				if (inputManager.checkButton("Start") == inputManager.keyStatus.DOWN) {
-					//BGM.volume = 1.0;
 					AudioManager.resetBgmTemporaryVolume();
 					this._Remove();
 				}
