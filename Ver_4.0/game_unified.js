@@ -13801,7 +13801,7 @@ window.onload = function() {
 		}
 	}
 };
-if (navigator.userAgent.match(/iPhone/)) {
+/*if (navigator.userAgent.match(/iPhone/)) {
 	window.addEventListener('orientationchange', function() {
 		stageScreen = document.getElementById('enchant-stage');
 		let vh = (window.innerHeight / ((PixelSize * Stage_H)));
@@ -13828,4 +13828,59 @@ window.onresize = function() {
 	stageScreen.style.position = "absolute";
 	stageScreen.style.left = ScreenMargin + "px";
 	game._pageX = ScreenMargin;
-};
+};*/
+// --- iOS 100vh 問題対策（必須） ---
+function fixViewport() {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+window.addEventListener('resize', fixViewport);
+fixViewport();
+
+// --- 画面リサイズ処理を1つに統合 ---
+function adjustGameScreen() {
+    stageScreen = document.getElementById('enchant-stage');
+
+    // iOS Safari の innerHeight が不安定な場合はリトライ
+    if (window.innerHeight < 50) {
+        setTimeout(adjustGameScreen, 100);
+        return;
+    }
+
+    // ゲーム画面のスケール計算
+    let vh = window.innerHeight / (PixelSize * Stage_H);
+
+    // 横幅が足りない場合の補正（+128 はあなたのUI幅）
+    const needWidth = (PixelSize * Stage_W) + 128;
+    if (window.innerWidth < needWidth * vh) {
+        vh = window.innerWidth / needWidth;
+    }
+
+    // スケール適用
+    game.scale = vh;
+
+    // DOM 反映後に margin を計算（1フレーム遅らせる）
+    requestAnimationFrame(() => {
+        const w = stageScreen.clientWidth;
+        const margin = (window.innerWidth - w) / 2;
+
+        stageScreen.style.position = "absolute";
+        stageScreen.style.left = margin + "px";
+        game._pageX = margin;
+    });
+}
+
+// --- iOS / Android / PC 全対応のイベント設定 ---
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+if (isIOS) {
+    window.addEventListener('orientationchange', () => {
+        // iOS は回転直後に innerHeight が不安定 → 少し待つ
+        setTimeout(adjustGameScreen, 200);
+    });
+}
+
+window.addEventListener('resize', adjustGameScreen);
+
+// --- 初回実行 ---
+window.addEventListener('load', adjustGameScreen);

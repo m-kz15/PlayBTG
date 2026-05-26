@@ -1,12 +1,16 @@
 * {
     margin: 0;
     padding: 0;
-  }
-  body {
-    position: relative;
-    background-color: #222;
-    text-align: center;
-  } 
+}
+body {
+  position: relative;
+  background-color: #222;
+  text-align: center;
+} 
+/* --- iOS Safari の 100vh 問題対策 --- */
+body {
+    height: calc(var(--vh) * 100);
+}
 #button1{
     position: absolute;
     top: 30px;
@@ -85,8 +89,8 @@
   }
   
   .dir-key .dir {
-    height: calc(100%-2px);
-    width: calc(100%-2px);
+    height: calc(100% - 2px);
+    width: calc(100% - 2px);
     background-color: rgba(50, 50, 50, 0.2);
     border: solid 2px gray;
     pointer-events: none;
