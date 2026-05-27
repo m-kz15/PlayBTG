@@ -2873,33 +2873,43 @@ window.onload = function() {
 	var Cursor = Class.create(Sprite, {
 		initialize: function(scene) {
 			Sprite.call(this, 16, 16);
-			//this.backgroundColor = "green";
 			this.backgroundColor = "#6afc";
 			this.x = 0;
 			this.y = 0;
 			var cur = this;
 
-			if (navigator.userAgent.match(/iPhone|iPad|Android/)) {
+			const isMobile = /iPhone|iPad|Android/.test(navigator.userAgent);
+
+			if (isMobile) {
 				scene.addEventListener('touchstart', function(e) {
-					cur.x = (e.x);
-					cur.y = (e.y);
-				})
+					cur.x = e.x;
+					cur.y = e.y;
+				});
 				scene.addEventListener('touchmove', function(e) {
-					cur.x = (e.x);
-					cur.y = (e.y);
-				})
+					cur.x = e.x;
+					cur.y = e.y;
+				});
 			} else {
 				document.addEventListener('mousemove', function(e) {
-					cur.x = (e.x - ScreenMargin) * (game.width / stageScreen.clientWidth) - (cur.width / 2);
-					cur.y = (e.y) * (game.height / stageScreen.clientHeight) - (cur.height / 2);
+
+					// ステージ左上の表示位置（adjustGameScreen が設定）
+					const offsetX = game._pageX || 0;
+					const offsetY = game._pageY || 0;
+
+					// スケール後の見た目 → スケール前のゲーム座標へ変換
+					const gx = (e.pageX - offsetX) / game.scale;
+					const gy = (e.pageY - offsetY) / game.scale;
+
+					cur.x = gx - (cur.width / 2);
+					cur.y = gy - (cur.height / 2);
 				});
 			}
 
 			scene.addChild(this);
-
 			return this;
 		}
 	});
+
 
 	var Tank = Class.create(Sprite, {
 		initialize: function(area, category) {
@@ -5921,6 +5931,11 @@ window.onload = function() {
 		},
 
 		_Dead: function () {
+			/*// パワーアップアイテムのドロップ
+			if (Math.floor(Math.random() * 2) == 1){
+				let center = Get_Center(this);
+				now_scene.addChild(new PowerUpItem(center.x - 8, center.y - 8));
+			}*/
 			deadFlgs[this.num] = true;
 			deadTank[this.num] = true;
 			if (this.num !== 0) {
@@ -5934,6 +5949,7 @@ window.onload = function() {
 			setTimeout(() => {
 				this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1));
 			}, 0);
+			
 			/*new Mark(this);
 			new TankBoom(this);
 			this.moveTo(-100 * (this.num + 1), -100 * (this.num + 1));*/
@@ -11080,6 +11096,59 @@ window.onload = function() {
 			}
 		}
 	})
+
+	var PowerUpItem = Class.create(Sprite, {
+		initialize: function(x, y) {
+			Sprite.call(this, 16, 16);
+			this.x = x;
+			this.y = y;
+
+			// --- パワーアップ種類をランダム決定 ---
+			// 0: bulMax, 1: shotSpeed, 2: moveSpeed
+			this.type = Math.floor(Math.random() * 3);
+
+			// --- 色分け ---
+			switch (this.type) {
+				case 0: // bulMax
+					this.backgroundColor = "#4afc"; // 青
+					break;
+				case 1: // shotSpeed
+					this.backgroundColor = "#fc4c"; // 赤
+					break;
+				case 2: // moveSpeed
+					this.backgroundColor = "#4fca"; // 緑
+					break;
+			}
+
+			var item = this;
+
+			this.onenterframe = function() {
+				// 全 TankBase を走査（あなたのゲーム構造に合わせて）
+				for (let i = 0; i < TankBase.collection.length; i++) {
+					const tank = TankBase.collection[i];
+
+					if (deadFlgs[tank.num]) continue;
+					// 衝突判定（AABB）
+					if (item.intersectStrict(tank)) {
+
+						// --- 効果発動 ---
+						if (item.type === 0) {
+							tank.bulMax += 1;
+						} else if (item.type === 1) {
+							tank.shotSpeed += 2;
+						} else if (item.type === 2) {
+							tank.moveSpeed += 0.3;
+						}
+
+						// アイテムを消す
+						item.parentNode.removeChild(item);
+
+						break;
+					}
+				}
+			};
+		}
+	});
 
 	var PictureTank = Class.create(Sprite, {
 		initialize: function(x, y, category, scene) {
