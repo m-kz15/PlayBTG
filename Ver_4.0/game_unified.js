@@ -2324,7 +2324,6 @@ window.onload = function() {
 		initialize: function(x, y, scene) {
 			PhyBoxSprite.call(this, PixelSize, PixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
 			//this.backgroundColor = "#ddd4";
-			//this.image = game.assets['./image/ObjectImage/block.png'];
 			this.name = 'block';
 			this.x = x * PixelSize;
 			this.y = y * PixelSize - Quarter;
@@ -2332,7 +2331,6 @@ window.onload = function() {
 			this.frontimage = new Block_Imgage(this);
 			this.topimage = new Block_Imgage_Top(this, this.tilePath);
 			this.obs = BlockObs(this);
-			//this.ref = BlockRef(this);
 			scene.addChild(this);
 		},
 		_Destroy: function() {
@@ -2342,6 +2340,12 @@ window.onload = function() {
 			this.obs.forEach(elem => now_scene.removeChild(elem));
 			this.frontimage._Destroy();
 			this.topimage._Destroy();
+
+			// パワーアップアイテムのドロップ
+			/*if (Math.floor(Math.random() * 5) == 0){
+				let center = Get_Center(this);
+				now_scene.addChild(new PowerUpItem(center.x - 8, center.y - 8));
+			}*/
 
 			new BlockDestroyEffect(this.tilePath.x, this.tilePath.y);
 			this.destroy();
@@ -2506,7 +2510,6 @@ window.onload = function() {
 		let wcnt2 = 0;
 		let hcnt1 = 0;
 		let hcnt2 = 0;
-		//console.log(g1[0]);
 
 		for (let i = 0; i < g1.length; i++) {
 			for (let j = 0; j < g1[i].length; j++) {
@@ -2558,7 +2561,6 @@ window.onload = function() {
 			wsp2 = null;
 		};
 		for (let i = 0; i < g2.length; i++) {
-			//console.log(g2[i]);
 			for (let j = 0; j < g2[i].length; j++) {
 				if (g2[i][j] == 1 || g2[i][j] == 3 || g2[i][j] == 4) {
 					if (hsp1 == null) {
@@ -2654,7 +2656,6 @@ window.onload = function() {
 		let wcnt2 = 0;
 		let hcnt1 = 0;
 		let hcnt2 = 0;
-		//console.log(g1[0]);
 
 		for (let i = 0; i < g1.length; i++) {
 			for (let j = 0; j < g1[i].length; j++) {
@@ -2708,7 +2709,6 @@ window.onload = function() {
 			wsp2 = null;
 		};
 		for (let i = 0; i < g2.length; i++) {
-			//console.log(g2[i]);
 			for (let j = 0; j < g2[i].length; j++) {
 				if (g2[i][j] == 1 || g2[i][j] == 4 || g2[i][j] == 5) {
 					if (hsp1 == null) {
@@ -5931,8 +5931,8 @@ window.onload = function() {
 		},
 
 		_Dead: function () {
-			/*// パワーアップアイテムのドロップ
-			if (Math.floor(Math.random() * 2) == 1){
+			// パワーアップアイテムのドロップ
+			/*if (Math.floor(Math.random() * 2) == 1){
 				let center = Get_Center(this);
 				now_scene.addChild(new PowerUpItem(center.x - 8, center.y - 8));
 			}*/
@@ -6539,7 +6539,6 @@ window.onload = function() {
 							}
 						}
 					}
-
 
 					// 2Fごとに射撃系フラグリセット
 					if (this.time % 2 === 0) {
@@ -7869,10 +7868,9 @@ window.onload = function() {
 								const diffToCenter = normalizeAngle(center - current);
 								const inside = Math.abs(diffToCenter) <= rangeDeg;
 
-								let t = Math.min(Math.abs(diffToCenter) / rangeDeg, 1);  
-								let rotSpeed = baseSpeed + 0.3 * t;
-
 								if (!inside) {
+									let t = Math.min(Math.abs(diffToCenter) / rangeDeg, 1);  
+									let rotSpeed = baseSpeed + 0.3 * t;
 
 									const dir = diffToCenter > 0 ? 1 : -1;
 
@@ -7886,7 +7884,7 @@ window.onload = function() {
 
 									if (this.swingDir === undefined) this.swingDir = 1;
 
-									this.cannon.rotation += rotSpeed * this.swingDir;
+									this.cannon.rotation += baseSpeed * this.swingDir;
 
 									const diffNow = normalizeAngle(this.cannon.rotation - center);
 
@@ -7894,9 +7892,9 @@ window.onload = function() {
 										this.swingDir *= -1;
 									}
 
-									if (Math.abs(diffNow) < rotSpeed) {
+									if (Math.abs(diffNow) < baseSpeed) {
 										const dir = this.swingDir >= 0 ? 1 : -1;
-										this.cannon.rotation += rotSpeed * dir;
+										this.cannon.rotation += baseSpeed * dir;
 									}
 								}
 
@@ -11140,6 +11138,8 @@ window.onload = function() {
 							tank.moveSpeed += 0.3;
 						}
 
+						new PowerUpFlash(tank, item.backgroundColor);
+
 						// アイテムを消す
 						item.parentNode.removeChild(item);
 
@@ -11149,6 +11149,39 @@ window.onload = function() {
 			};
 		}
 	});
+
+	var PowerUpFlash = Class.create(Sprite, {
+		initialize: function(target, color) {
+			Sprite.call(this, 60, 60);
+			this.time = 0;
+			var shadow = new Surface(60, 60);
+			shadow.context.beginPath();
+			shadow.context.fillStyle = color;
+			shadow.context.arc(30, 30, 30, 0, Math.PI * 2, true);
+			shadow.context.fill();
+			this.image = shadow;
+			this.originX = 30;
+			this.originY = 30;
+			this.scaleY = 0.8;
+			this.opacity = 1.0;
+			this.moveTo(target.x, target.y);
+			this.onenterframe = function() {
+				if (WorldFlg) {
+					this.time++;
+					if (this.time % 2 == 0 && this.opacity > 0) {
+						this.opacity -= 0.1;
+						this.scaleX += 0.1;
+						this.scaleY += 0.08;
+					}
+					if (this.opacity <= 0) {
+						now_scene.removeChild(this);
+					}
+				}
+
+			}
+			now_scene.addChild(this);
+		}
+	})
 
 	var PictureTank = Class.create(Sprite, {
 		initialize: function(x, y, category, scene) {
