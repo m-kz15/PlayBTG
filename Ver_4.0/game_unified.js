@@ -58,10 +58,6 @@ var tankEntity = []; //敵味方の戦車情報を保持する配列
 var deadFlgs = [];
 var bullets = []; //戦車の弾情報を保持する配列
 var boms = []; //爆弾の情報を保持する配列
-var avoids = [];
-var walls = [];
-var holes = [];
-var blocks = [];
 var deadTank = [false];
 var colors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //戦車の色を数える配列
 var tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //配色ごとの敵戦車残数格納配列
@@ -310,7 +306,7 @@ const Categorys = {
 		40, //gray
 		25, //green
 		20, //red
-		40, //elitegray
+		45, //elitegray
 		10, //elitegreen
 		30, //snow
 		16, //elitered
@@ -2309,6 +2305,26 @@ window.onload = function() {
 	stageScreen.style.left = ScreenMargin + "px";
 	game._pageX = ScreenMargin;
 
+	class RefObjects {
+		static collection = [];
+
+		remove(obj) {
+			const idx = RefObjects.collection.indexOf(obj);
+			if (idx >= 0) RefObjects.collection.splice(idx, 1);
+		}
+	}
+
+	function intersectsAnyRefObject(target) {
+		const arr = RefObjects.collection;
+		for (let i = 0; i < arr.length; i++) {
+			const obj = arr[i];
+			if (obj === target) continue;
+			if (target.intersectStrict(obj)) return true;
+		}
+		return false;
+	}
+
+
 	var Wall = Class.create(PhyBoxSprite, {
 		initialize: function(width, height, x, y, name, scene) {
 			PhyBoxSprite.call(this, width * PixelSize, height * PixelSize, enchant.box2d.STATIC_SPRITE, 10, 0.0, 1.0, true);
@@ -2317,6 +2333,7 @@ window.onload = function() {
 			this.y = y * PixelSize - Quarter;
 			this.name = name;
 			scene.addChild(this);
+			RefObjects.collection.push(this);
 		}
 	});
 
@@ -2332,6 +2349,7 @@ window.onload = function() {
 			this.topimage = new Block_Imgage_Top(this, this.tilePath);
 			this.obs = BlockObs(this);
 			scene.addChild(this);
+			RefObjects.collection.push(this);
 		},
 		_Destroy: function() {
 			scheduleCollisionUpdate(this.tilePath.x, this.tilePath.y, 0);
@@ -2346,6 +2364,8 @@ window.onload = function() {
 				let center = Get_Center(this);
 				now_scene.addChild(new PowerUpItem(center.x - 8, center.y - 8));
 			}*/
+
+			RefObjects.remove(this);
 
 			new BlockDestroyEffect(this.tilePath.x, this.tilePath.y);
 			this.destroy();
@@ -2626,142 +2646,6 @@ window.onload = function() {
 
 		return arr;
 	}
-
-	var RefObstracle = Class.create(Sprite, {
-		initialize: function(name, scene) {
-			switch (name) {
-				case 'RefTop':
-				case 'RefBottom':
-					Sprite.call(this, 56, 8);
-					break;
-				case 'RefRight':
-				case 'RefLeft':
-					Sprite.call(this, 8, 56);
-					break;
-			}
-			if(DebugFlg) this.debugColor = 'orange';
-			this.name = name;
-			scene.addChild(this);
-		}
-	});
-
-	function SetRefs(scene, grid) {
-		let g1 = grid;
-		let g2 = grid[0].map((_, c) => grid.map(r => r[c]));
-		let wsp1 = null;
-		let wsp2 = null;
-		let hsp1 = null;
-		let hsp2 = null;
-		let wcnt1 = 0;
-		let wcnt2 = 0;
-		let hcnt1 = 0;
-		let hcnt2 = 0;
-
-		for (let i = 0; i < g1.length; i++) {
-			for (let j = 0; j < g1[i].length; j++) {
-				if (g1[i][j] == 1 || g1[i][j] == 4 || g1[i][j] == 5) {
-					if (wsp1 == null) {
-						if (i > 0 && !(g1[i - 1][j] == 1 || g1[i - 1][j] == 4 || g1[i - 1][j] == 5)) {
-							wsp1 = new RefObstracle('RefTop', scene);
-							wsp1.moveTo(PixelSize * j + 4, PixelSize * i - 16);
-							//wsp1.backgroundColor = 'blue'
-							wcnt1++;
-						}
-
-					} else {
-						if (i > 0 && !(g1[i - 1][j] == 1 || g1[i - 1][j] == 4 || g1[i - 1][j] == 5)) {
-							wsp1.width = PixelSize * (wcnt1 + 1) - 8;
-							wcnt1++;
-						} else {
-							wsp1 = null;
-							wcnt1 = 0;
-						}
-
-					}
-					if (wsp2 == null) {
-						if (i < g1.length - 1 && !(g1[i + 1][j] == 1 || g1[i + 1][j] == 4 || g1[i + 1][j] == 5)) {
-							wsp2 = new RefObstracle('RefBottom', scene);
-							wsp2.moveTo(PixelSize * j + 4, PixelSize * i + 40);
-							//wsp2.backgroundColor = 'white'
-							wcnt2++;
-						}
-
-					} else {
-						if (i < g1.length - 1 && !(g1[i + 1][j] == 1 || g1[i + 1][j] == 4 || g1[i + 1][j] == 5)) {
-							wsp2.width = PixelSize * (wcnt2 + 1) - 8;
-							wcnt2++;
-						} else {
-							wsp2 = null;
-							wcnt2 = 0;
-						}
-
-					}
-				} else {
-					wcnt1 = 0;
-					wcnt2 = 0;
-					wsp1 = null;
-					wsp2 = null;
-				}
-			}
-			wcnt1 = 0;
-			wcnt2 = 0;
-			wsp1 = null;
-			wsp2 = null;
-		};
-		for (let i = 0; i < g2.length; i++) {
-			for (let j = 0; j < g2[i].length; j++) {
-				if (g2[i][j] == 1 || g2[i][j] == 4 || g2[i][j] == 5) {
-					if (hsp1 == null) {
-						if (i > 0 && !(g2[i - 1][j] == 1 || g2[i - 1][j] == 4 || g2[i - 1][j] == 5)) {
-							hsp1 = new RefObstracle('RefLeft', scene);
-							hsp1.moveTo(PixelSize * i, PixelSize * j - 12);
-							//hsp1.backgroundColor = 'green'
-							hcnt1++;
-						}
-
-					} else {
-						if (i > 0 && !(g2[i - 1][j] == 1 || g2[i - 1][j] == 4 || g2[i - 1][j] == 5)) {
-							hsp1.height = PixelSize * (hcnt1 + 1) - 8;
-							hcnt1++;
-						} else {
-							hsp1 = null;
-							hcnt1 = 0;
-						}
-
-					}
-					if (hsp2 == null) {
-						if (i < g2.length - 1 && !(g2[i + 1][j] == 1 || g2[i + 1][j] == 4 || g2[i + 1][j] == 5)) {
-							hsp2 = new RefObstracle('RefRight', scene);
-							hsp2.moveTo(PixelSize * i + 56, PixelSize * j - 12);
-							//hsp2.backgroundColor = 'red'
-							hcnt2++;
-						}
-
-					} else {
-
-						if (i < g2.length - 1 && !(g2[i + 1][j] == 1 || g2[i + 1][j] == 4 || g2[i + 1][j] == 5)) {
-							hsp2.height = PixelSize * (hcnt2 + 1) - 8;
-							hcnt2++;
-						} else {
-							hsp2 = null;
-							hcnt2 = 0;
-						}
-						//hcnt2++;
-					}
-
-				} else {
-					hcnt1 = 0;
-					hcnt2 = 0;
-					hsp1 = null;
-					hsp2 = null;
-				}
-			}
-			hcnt1 = 0;
-			hcnt2 = 0;
-			hsp1 = null;
-			hsp2 = null;
-		}
-	};
 
 	var TankObstracle = Class.create(Sprite, {
 		initialize: function(from, num, name, scene) {
@@ -3087,22 +2971,6 @@ window.onload = function() {
 			const minY = Math.min(y, y + dy * maxDist);
 			const maxY = Math.max(y, y + dy * maxDist);
 
-			for (const w of Wall.collection) {
-				if (w.x > maxX || w.x + w.width < minX) continue;
-				if (w.y > maxY || w.y + w.height < minY) continue;
-				const hit = this.rayRect(x, y, dx, dy, w);
-				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
-				}
-			}
-			for (const w of Block.collection) {
-				if (w.x > maxX || w.x + w.width < minX) continue;
-				if (w.y > maxY || w.y + w.height < minY) continue;
-				const hit = this.rayRect(x, y, dx, dy, w);
-				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) nearest = hit;
-				}
-			}
 			// ★ 戦車で遮る（自分以外 & 生存のみ）
 			if (this.num !== 0) {
 				for (let i = 1; i < tankEntity.length; i++) {
@@ -3117,6 +2985,20 @@ window.onload = function() {
 					if (hit && hit.dist <= maxDist) {
 						if (!nearest || hit.dist < nearest.dist) nearest = hit;
 					}
+				}
+			}
+
+			const objs = RefObjects.collection;
+
+			for (let i = 0; i < objs.length; i++) {
+				const w = objs[i];
+
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
 				}
 			}
 
@@ -3208,12 +3090,11 @@ window.onload = function() {
 
 			if (tMin === Infinity) return null;
 
-			// ★ ここがポイント：壁ヒット位置から「半径ぶん手前」に戻す
-			const adjDist = Math.max(0, tMin - BULLET_R);
-			const adjX = x + dx * adjDist;
-			const adjY = y + dy * adjDist;
+			// 法線方向に押し戻す
+			const adjX = hitX - normal.x * BULLET_R;
+			const adjY = hitY - normal.y * BULLET_R;
 
-			return { x: adjX, y: adjY, dist: adjDist, normal };
+			return { x: adjX, y: adjY, dist: tMin - BULLET_R, normal };
 		}
 
 		// デバッグ描画（常時可視化）
@@ -3419,14 +3300,17 @@ window.onload = function() {
 				}
 			}
 			// 壁
-			for (const w of RefObstracle.collection) {
+			const objs = RefObjects.collection;
+
+			for (let i = 0; i < objs.length; i++) {
+				const w = objs[i];
+
 				if (w.x > maxX || w.x + w.width < minX) continue;
 				if (w.y > maxY || w.y + w.height < minY) continue;
+
 				const hit = this.rayRect(x, y, dx, dy, w);
 				if (hit && hit.dist <= maxDist) {
-					if (!nearest || hit.dist < nearest.dist) {
-						nearest = { ...hit, type: "wall" };
-					}
+					if (!nearest || hit.dist < nearest.dist) nearest = { ...hit, type: "wall" };
 				}
 			}
 
@@ -3462,6 +3346,97 @@ window.onload = function() {
 			};
 		}
 
+		/*rayRect(x, y, dx, dy, rect) {
+			const BULLET_R = 2.5;
+
+			const x1 = rect.x;
+			const y1 = rect.y;
+			const x2 = rect.x + rect.width;
+			const y2 = rect.y + rect.height;
+
+			let tMin = Infinity;
+			let hitX = 0, hitY = 0;
+			let normal = null;
+
+			// --- 中心線で t を計算 ---
+			// 左
+			if (dx !== 0) {
+				const t = (x1 - x) / dx;
+				const yy = y + dy * t;
+				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
+					tMin = t; hitX = x1; hitY = yy; normal = {x:1,y:0};
+				}
+			}
+
+			// 右
+			if (dx !== 0) {
+				const t = (x2 - x) / dx;
+				const yy = y + dy * t;
+				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
+					tMin = t; hitX = x2; hitY = yy; normal = {x:-1,y:0};
+				}
+			}
+
+			// 上
+			if (dy !== 0) {
+				const t = (y1 - y) / dy;
+				const xx = x + dx * t;
+				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
+					tMin = t; hitX = xx; hitY = y1; normal = {x:0,y:1};
+				}
+			}
+
+			// 下
+			if (dy !== 0) {
+				const t = (y2 - y) / dy;
+				const xx = x + dx * t;
+				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
+					tMin = t; hitX = xx; hitY = y2; normal = {x:0,y:-1};
+				}
+			}
+
+			// --- 角との衝突（円 vs 点） ---
+			const corners = [
+				{cx: x1, cy: y1},
+				{cx: x2, cy: y1},
+				{cx: x1, cy: y2},
+				{cx: x2, cy: y2},
+			];
+
+			for (const c of corners) {
+				const vx = c.cx - x;
+				const vy = c.cy - y;
+
+				const proj = vx * dx + vy * dy;
+				if (proj <= 0) continue;
+
+				const closestX = x + dx * proj;
+				const closestY = y + dy * proj;
+
+				const distSq = (closestX - c.cx)**2 + (closestY - c.cy)**2;
+				if (distSq > BULLET_R * BULLET_R) continue;
+
+				const t = proj - Math.sqrt(BULLET_R * BULLET_R - distSq);
+				if (t > 0 && t < tMin) {
+					tMin = t;
+					hitX = x + dx * t;
+					hitY = y + dy * t;
+
+					const nx = hitX - c.cx;
+					const ny = hitY - c.cy;
+					const len = Math.hypot(nx, ny);
+					normal = {x: nx/len, y: ny/len};
+				}
+			}
+
+			if (tMin === Infinity) return null;
+
+			// --- 法線方向に半径ぶん押し戻す ---
+			hitX -= normal.x * BULLET_R;
+			hitY -= normal.y * BULLET_R;
+
+			return { x: hitX, y: hitY, dist: tMin, normal };
+		}*/
 		rayRect(x, y, dx, dy, rect) {
 			const BULLET_R = 2.5;
 
@@ -3474,90 +3449,49 @@ window.onload = function() {
 			let hitX = 0, hitY = 0;
 			let normal = null;
 
-			// --- 1. 四辺との距離（今まで通り） ---
 			// 左
 			if (dx !== 0) {
-				const t = (x1 - x - BULLET_R) / dx;
+				const t = (x1 - x) / dx;
 				const yy = y + dy * t;
 				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
-					tMin = t; hitX = x1 - BULLET_R; hitY = yy; normal = {x:1,y:0};
+					tMin = t; hitX = x1; hitY = yy; normal = {x:1,y:0};
 				}
 			}
 
 			// 右
 			if (dx !== 0) {
-				const t = (x2 - x + BULLET_R) / dx;
+				const t = (x2 - x) / dx;
 				const yy = y + dy * t;
 				if (t > 0 && yy >= y1 && yy <= y2 && t < tMin) {
-					tMin = t; hitX = x2 + BULLET_R; hitY = yy; normal = {x:-1,y:0};
+					tMin = t; hitX = x2; hitY = yy; normal = {x:-1,y:0};
 				}
 			}
 
 			// 上
 			if (dy !== 0) {
-				const t = (y1 - y - BULLET_R) / dy;
+				const t = (y1 - y) / dy;
 				const xx = x + dx * t;
 				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
-					tMin = t; hitX = xx; hitY = y1 - BULLET_R; normal = {x:0,y:1};
+					tMin = t; hitX = xx; hitY = y1; normal = {x:0,y:1};
 				}
 			}
 
 			// 下
 			if (dy !== 0) {
-				const t = (y2 - y + BULLET_R) / dy;
+				const t = (y2 - y) / dy;
 				const xx = x + dx * t;
 				if (t > 0 && xx >= x1 && xx <= x2 && t < tMin) {
-					tMin = t; hitX = xx; hitY = y2 + BULLET_R; normal = {x:0,y:-1};
-				}
-			}
-
-			// --- 2. ★ 角との距離（円の RayCast で必須） ---
-			const corners = [
-				{cx: x1, cy: y1},
-				{cx: x2, cy: y1},
-				{cx: x1, cy: y2},
-				{cx: x2, cy: y2},
-			];
-
-			for (const c of corners) {
-				const vx = c.cx - x;
-				const vy = c.cy - y;
-
-				const proj = vx * dx + vy * dy; // Ray 方向への投影
-
-				if (proj > 0) {
-					const closestX = x + dx * proj;
-					const closestY = y + dy * proj;
-
-					const distSq =
-						(closestX - c.cx) ** 2 +
-						(closestY - c.cy) ** 2;
-
-					if (distSq <= BULLET_R * BULLET_R) {
-						const t = proj - Math.sqrt(BULLET_R * BULLET_R - distSq);
-						if (t > 0 && t < tMin) {
-							tMin = t;
-							hitX = x + dx * t;
-							hitY = y + dy * t;
-
-							// 法線は角方向
-							const nx = hitX - c.cx;
-							const ny = hitY - c.cy;
-							const len = Math.hypot(nx, ny);
-							normal = {x: nx / len, y: ny / len};
-						}
-					}
+					tMin = t; hitX = xx; hitY = y2; normal = {x:0,y:-1};
 				}
 			}
 
 			if (tMin === Infinity) return null;
 
-			return {
-				x: hitX,
-				y: hitY,
-				dist: tMin,
-				normal
-			};
+			// AimLite と同じ：法線方向に半径ぶん押し戻す
+			const adjX = hitX - normal.x * BULLET_R;
+			const adjY = hitY - normal.y * BULLET_R;
+
+			return { x: adjX, y: adjY, dist: tMin - BULLET_R, normal };
 		}
 
 		drawDebug() {
@@ -3601,7 +3535,7 @@ window.onload = function() {
 		return false;
 	}
 
-	function segmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+	/*function segmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
 
 		const ccw = (ax, ay, bx, by, cx, cy) =>
 			(cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
@@ -3610,16 +3544,28 @@ window.onload = function() {
 			ccw(x1, y1, x3, y3, x4, y4) !== ccw(x2, y2, x3, y3, x4, y4) &&
 			ccw(x1, y1, x2, y2, x3, y3) !== ccw(x1, y1, x2, y2, x4, y4)
 		);
+	}*/
+	function ccw(ax, ay, bx, by, cx, cy) {
+		return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
 	}
+
+	function segmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+		return (
+			ccw(x1, y1, x3, y3, x4, y4) !== ccw(x2, y2, x3, y3, x4, y4) &&
+			ccw(x1, y1, x2, y2, x3, y3) !== ccw(x1, y1, x2, y2, x4, y4)
+		);
+	}
+
 
 	function checkHit(deg, aim, from, target) {
 		from.rotation = deg;
 		aim.update(from);
 
 		const segments = aim.segments;
-		if (!segments || segments.length === 0) return null;
+		const len = segments.length;
+		if (len === 0) return null;
 
-		const last = segments[segments.length - 1];
+		const last = segments[len - 1];
 
 		// ★ AABB命中判定
 		if (!lineIntersectsRect(last.x1, last.y1, last.x2, last.y2, target)) {
@@ -3628,7 +3574,7 @@ window.onload = function() {
 
 		return {
 			deg,
-			reflectCount: segments.length - 1
+			reflectCount: len - 1
 		};
 	}
 
@@ -3708,95 +3654,6 @@ window.onload = function() {
 		}
 
 		return best.deg;
-	}
-
-	function findBestPreAimAngle(ref, from, category, num, target) {
-
-		const originalRot = from.rotation;
-		const aim = new RefAimLite(ref, from, category, num);
-		aim.color = null;
-
-		function evaluateAngle(deg) {
-			from.rotation = deg;
-			aim.update(from);
-
-			const segments = aim.segments;
-			if (!segments || segments.length === 0) return -Infinity;
-
-			const last = segments[segments.length - 1];
-
-			// ★ ターゲットAABBと交差するか
-			if (lineIntersectsRect(last.x1, last.y1, last.x2, last.y2, target)) {
-				return 999999; // 当たる角度は最優先
-			}
-
-			// 当たらない場合は距離で評価
-			const dx = last.x2 - target.x;
-			const dy = last.y2 - target.y;
-			const dist = dx*dx + dy*dy;
-
-			return -dist; // 近いほど良い
-		}
-
-
-		// --- Step 1: 粗スキャン（10°刻み） ---
-		let bestDeg = null;
-		let bestScoreCoarse = -Infinity; // ← ここを保持する
-
-		for (let deg = 0; deg < 360; deg += 10) {
-			const score = evaluateAngle(deg);
-			if (score > bestScoreCoarse) {
-				bestScoreCoarse = score;
-				bestDeg = deg;
-			}
-		}
-
-		// --- Step 2: 中スキャン（3°刻み） ---
-		let midBest = bestDeg;
-		let bestScoreMid = -Infinity;
-
-		for (let d = bestDeg - 10; d <= bestDeg + 10; d += 3) {
-			const deg = (d + 360) % 360;
-			const score = evaluateAngle(deg);
-			if (score > bestScoreMid) {
-				bestScoreMid = score;
-				midBest = deg;
-			}
-		}
-
-		// --- Step 3: 細スキャン（1°刻み） ---
-		let fineBest = midBest;
-		let bestScoreFine = -Infinity;
-
-		for (let d = midBest - 3; d <= midBest + 3; d++) {
-			const deg = (d + 360) % 360;
-			const score = evaluateAngle(deg);
-			if (score > bestScoreFine) {
-				bestScoreFine = score;
-				fineBest = deg;
-			}
-		}
-
-		aim.remove();
-		from.rotation = originalRot;
-
-		if (fineBest == null) return NaN;
-
-		// --- フォールバックは粗スキャンのスコアで判定 ---
-		if (Math.abs(bestScoreCoarse) < 50) {
-			return NaN;
-		}
-
-		return fineBest;
-	}
-
-	function clampDeg(angle, center, range) {
-		let diff = normalizeAngle(angle - center);
-
-		if (diff > range) return center + range;
-		if (diff < -range) return center - range;
-
-		return angle;
 	}
 
 	/* 照準クラス */
@@ -3916,7 +3773,7 @@ window.onload = function() {
 					} 
 				}
 			}
-			for (const w of Wall.collection) {
+			/*for (const w of Wall.collection) {
 				if (w.x > maxX || w.x + w.width < minX) continue;
 				if (w.y > maxY || w.y + w.height < minY) continue;
 				const hit = this.rayRect(x, y, dx, dy, w);
@@ -3934,6 +3791,19 @@ window.onload = function() {
 					if (!nearest || hit.dist < nearest.dist){
 						nearest = hit;
 					}
+				}
+			}*/
+			const objs = RefObjects.collection;
+
+			for (let i = 0; i < objs.length; i++) {
+				const w = objs[i];
+
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
 				}
 			}
 
@@ -4130,7 +4000,20 @@ window.onload = function() {
 					} 
 				}
 			}
-			for (const w of Wall.collection) {
+			const objs = RefObjects.collection;
+
+			for (let i = 0; i < objs.length; i++) {
+				const w = objs[i];
+
+				if (w.x > maxX || w.x + w.width < minX) continue;
+				if (w.y > maxY || w.y + w.height < minY) continue;
+
+				const hit = this.rayRect(x, y, dx, dy, w);
+				if (hit && hit.dist <= maxDist) {
+					if (!nearest || hit.dist < nearest.dist) nearest = hit;
+				}
+			}
+			/*for (const w of Wall.collection) {
 				if (w.x > maxX || w.x + w.width < minX) continue;
 				if (w.y > maxY || w.y + w.height < minY) continue;
 				const hit = this.rayRect(x, y, dx, dy, w);
@@ -4149,7 +4032,7 @@ window.onload = function() {
 						nearest = hit;
 					} 
 				}
-			}
+			}*/
 
 			if (!nearest) {
 				return {
@@ -5214,45 +5097,85 @@ window.onload = function() {
 		initialize: function(from, scene) {
 			Sprite.call(this, 40, 40);
 
-			const speed = 32;
 			this.num = from.num;
-			this.rotation = 0;
 			this.originX = this.originY = 20;
 
 			if (DebugFlg) this.debugColor = "yellow";
 			this.moveTo(from.x, from.y);
 
-			this.onenterframe = () => {
-				if (!WorldFlg || deadFlgs[this.num] || from.attackTarget == null) return;
+			this._from = from;      // キャッシュ
+			this._speed = 32;
 
-				const target = from.attackTarget;
-				const isBullet = target.name === 'Bullet';
-				const dxScale = isBullet ? 0.8 : 0.25;
-				const dyScale = isBullet ? 0.8 : 0.25;
-
-				const rad = (target.rotation - 90) * Math.PI / 180;
-				const dx = Math.cos(rad) * (target.width * dxScale);
-				const dy = Math.sin(rad) * (target.height * dyScale);
-
-				this.rotation = -1 * (45 + Math.atan2(dx, dy) * 180 / Math.PI);
-
-				if (this.intersectStrict(target)) {
-					const tx = target.x + target.width / 2 + dx - this.width / 2;
-					const ty = target.y + target.height / 2 + dy - this.height / 2;
-					this.moveTo(tx, ty);
-				} else {
-					const tx = target.x + target.width / 2;
-					const ty = target.y + target.height / 2;
-					const cx = this.x + this.width / 2;
-					const cy = this.y + this.height / 2;
-					const vecRad = Math.atan2(ty - cy, tx - cx);
-					this.moveTo(this.x + Math.cos(vecRad) * speed, this.y + Math.sin(vecRad) * speed);
-				}
-			};
+			this.onenterframe = Target._onenterframe;
 
 			scene.addChild(this);
 		}
 	});
+
+	// ★ 共有 onenterframe（インスタンスごとに関数を作らない）
+	Target._onenterframe = function() {
+
+		const from = this._from;
+
+		if (!WorldFlg || deadFlgs[this.num] || from.attackTarget == null) return;
+
+		const target = from.attackTarget;
+
+		// --- Bullet かどうかの判定（高速化） ---
+		const isBullet = target.name === 'Bullet';
+		const scale = isBullet ? 0.8 : 0.25;
+
+		// --- 角度計算（高速化） ---
+		const rad = (target.rotation - 90) * 0.017453292519943295; // Math.PI/180
+		const dx = Math.cos(rad) * (target.width * scale);
+		const dy = Math.sin(rad) * (target.height * scale);
+
+		// --- 自身の向き更新（atan2 の順番は dx, dy のまま） ---
+		this.rotation = -1 * (45 + Math.atan2(dx, dy) * 57.29577951308232); // 180/Math.PI
+
+		// --- AABB 早期除外（intersectStrict の前に） ---
+		const tx = target.x;
+		const ty = target.y;
+		const tw = target.width;
+		const th = target.height;
+
+		const x = this.x;
+		const y = this.y;
+		const w = this.width;
+		const h = this.height;
+
+		if (
+			x > tx + tw || x + w < tx ||
+			y > ty + th || y + h < ty
+		) {
+			// --- 追尾移動 ---
+			const cx = x + 20;
+			const cy = y + 20;
+			const tx2 = tx + tw / 2;
+			const ty2 = ty + th / 2;
+
+			const vecRad = Math.atan2(ty2 - cy, tx2 - cx);
+			this.moveTo(x + Math.cos(vecRad) * this._speed,
+						y + Math.sin(vecRad) * this._speed);
+			return;
+		}
+
+		// --- intersectStrict（必要な時だけ呼ぶ） ---
+		if (this.intersectStrict(target)) {
+			const tx2 = tx + tw / 2 + dx - 20;
+			const ty2 = ty + th / 2 + dy - 20;
+			this.moveTo(tx2, ty2);
+		} else {
+			const cx = x + 20;
+			const cy = y + 20;
+			const tx2 = tx + tw / 2;
+			const ty2 = ty + th / 2;
+			const vecRad = Math.atan2(ty2 - cy, tx2 - cx);
+			this.moveTo(x + Math.cos(vecRad) * this._speed,
+						y + Math.sin(vecRad) * this._speed);
+		}
+	};
+
 
 	var Smoke = Class.create(Sprite, {
 		initialize: function(from) {
@@ -5297,42 +5220,43 @@ window.onload = function() {
 			const fastShot = from.from.shotSpeed > 20;
 			this.backgroundColor = fastShot ? "#8cf" : "#f20";
 			this.opacity = fastShot ? 1.0 : 0.8;
-			this.time = 0;
 
-			// --- 乱数オフセット（軽量化 & 一時オブジェクトなし） ---
+			// --- 乱数オフセット（高速整数乱数） ---
 			let randOffset = 0;
 			if (!fastShot) {
-				// -3〜3 の整数を高速生成し、5倍
-				randOffset = (((Math.random() * 7) | 0) - 3) * 5;
+				randOffset = ((Math.random() * 7) | 0) - 3; // -3〜3
+				randOffset *= 5;
 			}
 
-			// --- 角度計算（無駄な一時変数を作らない） ---
-			const rad = Rot_to_Rad(from.rotation + 90 + randOffset);
+			// --- 角度計算（キャッシュ活用） ---
+			const rot = from.rotation + 90 + randOffset;
+			const rad = Rot_to_Rad(rot);
+
+			// sin/cos 計算は1回ずつ
 			const dx = Math.cos(rad) * 9;
 			const dy = Math.sin(rad) * 9;
 
-			// --- 座標計算（オブジェクト生成なし） ---
+			// --- 座標計算（Get_Center の結果をキャッシュ） ---
 			const f = Get_Center(from);
-			const x = f.x - 6 + dx;
-			const y = f.y - 6 + dy;
+			this.moveTo(f.x - 6 + dx, f.y - 6 + dy);
 
 			this.rotation = from.rotation;
-			this.moveTo(x, y);
 
-			// --- onenterframe（クロージャ変数を使わず JIT 最適化しやすい） ---
-			this.onenterframe = function() {
-				this.time++;
-				this.opacity -= 0.1;
-
-				// 透明度が下がったら即削除（余計な更新をしない）
-				if (this.opacity <= 0.1) {
-					now_scene.FireGroup.removeChild(this);
-				}
-			};
+			// --- onenterframe（最速化） ---
+			this.onenterframe = Fire._onenterframe;
 
 			now_scene.FireGroup.addChild(this);
 		}
 	});
+
+	// ★ 共有 onenterframe（インスタンスごとに関数を作らない）
+	Fire._onenterframe = function() {
+		this.opacity -= 0.1;
+		if (this.opacity <= 0.1) {
+			now_scene.FireGroup.removeChild(this);
+		}
+	};
+
 
 	var TouchFire = Class.create(Sprite, {
 		initialize: function(from) {
@@ -6175,6 +6099,8 @@ window.onload = function() {
 				new AimLite(this.cannon, this.cursor, this.category, this.num, this.ref, this.cannonRotSpeed * 2) :
 				new AimLite(this.cannon, this.cursor, this.category, this.num, 0, this.cannonRotSpeed);
 
+			//this.aim2 = new RefAimLite(this.ref, this.cannon, this.category, this.num);
+
 			this.firstFireFlg = false;
 
 			if (!navigator.userAgent.match(/iPhone|iPad|Android/)) {
@@ -6222,6 +6148,7 @@ window.onload = function() {
 								}
 								else{
 									this.aim.update(this.aim.from, this.aim.to);
+									//this.aim2.update(this.aim.from);
 								}
 
 								// AimLite を毎フレーム更新 & 描画
@@ -6582,7 +6509,7 @@ window.onload = function() {
 
 					// 前方反射障害物
 					if (this.ref > 0) {
-						if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+						if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 					}
 
 					// 攻撃ターゲットの更新（5Fごと）
@@ -6927,7 +6854,7 @@ window.onload = function() {
 								}
 
 								if (this.ref > 0) {
-									if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+									if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 								}
 
 								if (this.time % 5 == 0) {
@@ -7327,7 +7254,7 @@ window.onload = function() {
 					}
 					
 					if (this.ref > 0) {
-						if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+						if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 					}
 
 					if (this.time % 3 === 0) {
@@ -7728,6 +7655,8 @@ window.onload = function() {
 			this.bestDeg = null;
 			this.swingDir = this.swingDir ?? 1; // 1:右回転, -1:左回転
 
+			const randTable = [2,4,6,8,10,12];
+
 			if (Math.random() < 0.5) this.aimRot *= -1;
 
 			const resolveCollision = (entity, elem) => {
@@ -7775,7 +7704,9 @@ window.onload = function() {
 
 					// --- 索敵（照準線がターゲットに当たっているか） ---
 					let hit = false;
-					for (const s of this.aim.segments) {
+					const segs = this.aim.segments;
+					for (let i = 0; i < segs.length; i++) {
+						const s = segs[i];
 						if (lineIntersectsRect(s.x1, s.y1, s.x2, s.y2, this.target)) {
 							hit = true;
 							break;
@@ -7831,8 +7762,7 @@ window.onload = function() {
 							? -Categorys.CannonRotSpeed[this.category]
 							:  Categorys.CannonRotSpeed[this.category];
 
-						this.cannon2.rotation = this.aim.agl -
-							this.aimRot * ((1 + Math.floor(Math.random() * 6)) * 2);
+						this.cannon2.rotation = this.aim.agl - this.aimRot * randTable[(Math.random() * 6) | 0];
 
 						// ★ cannon は aim.agl にスナップしない（あなたの要望）
 						// cannon.rotation はここでは触らない
@@ -8394,7 +8324,7 @@ window.onload = function() {
 								}
 
 								if (this.ref > 0) {
-									if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+									if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 								}
 
 								if (this.time % 5 == 0) {
@@ -8921,7 +8851,7 @@ window.onload = function() {
 								}
 								
 								if (this.ref > 0) {
-									if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+									if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 								}
 
 								if (this.time % 3 == 0) {
@@ -9370,7 +9300,7 @@ window.onload = function() {
 								}
 
 								if (this.ref > 0) {
-									if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+									if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 								}
 
 								if (this.time % 3 == 0) {
@@ -9822,7 +9752,7 @@ window.onload = function() {
 								
 
 								if (this.ref > 0) {
-									if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+									if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 								}
 
 								if (this.time % 3 == 0) {
@@ -10637,7 +10567,7 @@ window.onload = function() {
 								this._Reload();
 
 								if (this.ref > 0) {
-									if (this.front.intersectStrict(RefObstracle).length > 0) this.shotNGflg = true;
+									if (intersectsAnyRefObject(this.front)) this.shotNGflg = true;
 								}
 								
 								if (!this.shotNGflg && !this.bomSetFlg) {
@@ -12714,10 +12644,6 @@ window.onload = function() {
 			deadFlgs = [];
 			bullets = []; //戦車の弾情報を保持する配列
 			boms = []; //爆弾の情報を保持する配列
-			avoids = [];
-			walls = [];
-			holes = [];
-			blocks = [];
 			tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 			destruction = 0;
 			gameStatus = 0;
@@ -12887,7 +12813,7 @@ window.onload = function() {
             if (DebugFlg) this.filterMap.opacity = 0;
 
             SetObs(this, this.backgroundMap.collisionData);
-            SetRefs(this, this.backgroundMap.collisionData);
+            //SetRefs(this, this.backgroundMap.collisionData);
 
             // -----------------------------
             // プレイヤー生成
@@ -12973,10 +12899,10 @@ window.onload = function() {
             let fy = 0;
 
             // 外枠の壁
-            walls[0] = new Wall(18, 1, 1, 1, 'Top', this);
-            walls[1] = new Wall(18, 1, 1, 14, 'Bottom', this);
-            walls[2] = new Wall(1, 13, 0, 1, 'Left', this);
-            walls[3] = new Wall(1, 13, 19, 1, 'Right', this);
+            new Wall(18, 1, 1, 1, 'Top', this);
+            new Wall(18, 1, 1, 14, 'Bottom', this);
+            new Wall(1, 13, 0, 1, 'Left', this);
+            new Wall(1, 13, 19, 1, 'Right', this);
 
             // マップデータから壁・障害物生成
             this.backgroundMap.collisionData.forEach(row => {
@@ -13003,21 +12929,21 @@ window.onload = function() {
 
                         // 連続壁の終了 → まとめて生成
                         if (wallStartX !== null) {
-                            walls.push(new Wall(wallLength, 1, wallStartX, fy, 'block', this));
+                            new Wall(wallLength, 1, wallStartX, fy, 'block', this);
                             wallStartX = null;
                             wallLength = 0;
                         }
 
                         // その他障害物
-                        if (col === 2) avoids.push(new Avoid(j, fy, this));
-                        if (col === 3) holes.push(new Hole(j, fy, this));
-                        if (col === 5) blocks.push(new Block(j, fy, this));
+                        if (col === 2) new Avoid(j, fy, this);
+                        if (col === 3) new Hole(j, fy, this);
+                        if (col === 5) new Block(j, fy, this);
                     }
                 });
 
                 // 行末の連続壁処理
                 if (wallStartX !== null) {
-                    walls.push(new Wall(wallLength, 1, wallStartX, fy, 'block', this));
+                    new Wall(wallLength, 1, wallStartX, fy, 'block', this);
                 }
 
                 fy++;
@@ -13701,18 +13627,6 @@ window.onload = function() {
                 });
 
                 collisionUpdates = [];
-
-                // 既存 RefObstacle を削除
-                const children = now_scene.childNodes
-                    .slice()
-                    .filter(child => child instanceof RefObstracle);
-
-                children.forEach(child => {
-                    now_scene.removeChild(child);
-                });
-
-                // 再生成
-                SetRefs(now_scene, now_scene.backgroundMap.collisionData);
             }
         },
             // -----------------------------
@@ -13733,6 +13647,7 @@ window.onload = function() {
 			PlayerBulAimLite.list.length = 0;
 			AimLite.list.forEach(e => e.remove());
 			AimLite.list.length = 0;
+			RefObjects.collection.length = 0;
         }
     });
 
