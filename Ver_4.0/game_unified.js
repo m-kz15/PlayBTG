@@ -56,8 +56,6 @@ const qMove = new Array(Stage_H * Stage_W);
 
 var tankEntity = []; //敵味方の戦車情報を保持する配列
 var deadFlgs = [];
-var bullets = []; //戦車の弾情報を保持する配列
-var boms = []; //爆弾の情報を保持する配列
 var deadTank = [false];
 var colors = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //戦車の色を数える配列
 var tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //配色ごとの敵戦車残数格納配列
@@ -2307,11 +2305,10 @@ window.onload = function() {
 
 	class RefObjects {
 		static collection = [];
-
-		remove(obj) {
-			const idx = RefObjects.collection.indexOf(obj);
-			if (idx >= 0) RefObjects.collection.splice(idx, 1);
-		}
+	}
+	function RefObjRemove(obj) {
+		const idx = RefObjects.collection.indexOf(obj);
+		if (idx >= 0) RefObjects.collection.splice(idx, 1);
 	}
 
 	function intersectsAnyRefObject(target) {
@@ -2365,7 +2362,7 @@ window.onload = function() {
 				now_scene.addChild(new PowerUpItem(center.x - 8, center.y - 8));
 			}*/
 
-			RefObjects.remove(this);
+			RefObjRemove(this);
 
 			new BlockDestroyEffect(this.tilePath.x, this.tilePath.y);
 			this.destroy();
@@ -4213,7 +4210,6 @@ window.onload = function() {
 		},
 
 		_Shot: function () {
-			bullets[this.num]++;
 			now_scene.BulletGroup.addChild(this);
 			now_scene.BulletGroup.addChild(this.bullet);
 			new OpenFire(this.from);
@@ -4265,6 +4261,10 @@ window.onload = function() {
 			this.time = 0;
 		}
 	});
+
+	function BulletCountByTank(num){
+		return BulletBase.collection.filter(b => b.num === num).length;
+	}
 
 	var Bullet = Class.create(BulletBase, {
 		initialize: function(from, num) {
@@ -4324,7 +4324,6 @@ window.onload = function() {
 			);
 		},
 		_Destroy: function() {
-			bullets[this.num]--;
 			new TouchFire(this);
 			Spark_Effect(this);
 			this.from._Destroy();
@@ -4368,9 +4367,6 @@ window.onload = function() {
 			this.travelDistance = 0;
 
 			this.damage = Math.round(shotSpeed * ((this.scaleX + this.scaleY) / 2)) - 2;
-
-			// 弾 ON
-			bullets[this.num]++;
 		},
 
 		// ★★★ BulletCol と同じ呼び出し方を可能にする _Shot() ★★★
@@ -4467,21 +4463,19 @@ window.onload = function() {
 			Spark_Effect(this);
 			new BulletExplosion(this);
 
-			bullets[this.num]--;
-
 			this.bulAim.remove();
 			now_scene.BulletGroup.removeChild(this);
 		}
 	});
 
 	var Bom = Class.create(Sprite, {
-		initialize: function(from, num, id) {
+		initialize: function(from, num) {
 			Sprite.call(this, PixelSize / 2, PixelSize / 2);
 
 			this.time = 0;
 			this.from = from;
 			this.num = num;
-			this.id = id;
+			this.id = this._CountByTank(num);
 			this.bombFlg = false;
 			this.name = 'Bom';
 
@@ -4540,7 +4534,6 @@ window.onload = function() {
 		},
 
 		_SetBom: function() {
-			boms[this.num]++;
 			now_scene.BomGroup.addChild(this);
 			AudioManager.playSe(game.assets['./sound/Sample_0009.wav']);
 			this.explosionRange = new ExplosionRange(125);
@@ -4548,7 +4541,6 @@ window.onload = function() {
 		},
 
 		_Destroy: function() {
-			if (--boms[this.num] < 0) boms[this.num] = 0;
 			new BombExplosion(this);
 			this.moveTo(-900, -900);
 			now_scene.BomGroup.removeChild(this);
@@ -4564,6 +4556,10 @@ window.onload = function() {
 			ctx.arc(Quarter, Quarter, Quarter, 0, Math.PI * 2, true);
 			ctx.fill();
 			return surface;
+		},
+
+		_CountByTank: function(num) {
+			return Bom.collection.filter(b => b.num === num).length;
 		}
 	});
 
@@ -5846,8 +5842,6 @@ window.onload = function() {
 
 			if (useLifeSystem) this.lifeBar = new LifeBar(this, this.life);
 
-			bullets.push(0);
-			boms.push(0);
 			deadFlgs.push(false);
 			deadTank[this.num] = false;
 
@@ -6105,7 +6099,7 @@ window.onload = function() {
 
 			if (!navigator.userAgent.match(/iPhone|iPad|Android/)) {
 				scene.addEventListener('touchstart', function() {
-					if (my.category == 9 && (my.fullFireFlg || my.firecnt > 0 || bullets[num] > 0) || my.shotNGflg) return;
+					if (my.category == 9 && (my.fullFireFlg || my.firecnt > 0 || BulletCountByTank(this.num) > 0) || my.shotNGflg) return;
 					my._Attack();
 				})
 			}
@@ -6120,13 +6114,13 @@ window.onload = function() {
 								this._Damage();
 
 								if ((inputManager.checkButton("A") == inputManager.keyStatus.DOWN)) {
-									if (this.category == 9 && (this.fullFireFlg || this.firecnt > 0 || bullets[num] > 0) || this.shotNGflg) return;
+									if (this.category == 9 && (this.fullFireFlg || this.firecnt > 0 || BulletCountByTank(this.num) > 0) || this.shotNGflg) return;
 									if (this.shotNGflg) return;
 									this._Attack();
 								}
 
-								if ((inputManager.checkButton("B") == inputManager.keyStatus.DOWN) && !this.bomSetFlg && boms[this.num] < this.bomMax) {
-									new Bom(this, this.num, boms[this.num])._SetBom();
+								if ((inputManager.checkButton("B") == inputManager.keyStatus.DOWN) && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+									new Bom(this, this.num)._SetBom();
 									this.bomReload = 0;
 									this.bomSetFlg = true;
 								}
@@ -6159,56 +6153,7 @@ window.onload = function() {
 									this.aim.debugColor = "rgba(170, 255, 255, 0.3)";
 								}
 
-								if (this.category == 9) {
-									if (this.bulReloadFlg == false) {
-										if (bullets[this.num] == this.bulMax || this.firecnt >= this.bulMax) {
-											this.bulReloadFlg = true;
-										}
-									} else {
-										if (this.bulReloadTime < this.reload) {
-											this.bulReloadTime++;
-											if (this.shotNGflg == false) this.shotNGflg = true;
-										} else {
-											if (bullets[this.num] <= 0){
-												this.shotNGflg = false;
-												this.bulReloadFlg = false;
-												this.bulReloadTime = 0;
-												this.fullFireFlg = false;
-												this.firecnt = 0;
-												this.firstFireFlg = false;
-											}
-										}
-
-									}
-
-									if (this.fullFireFlg && this.firecnt >= 0 && !this.shotNGflg) {
-										if (!this.firstFireFlg) {
-											this.firstFireFlg = true;
-											this.time = 0;
-										} else {
-											if (this.time % this.fireLate == 0) {
-												this._Attack();
-											}
-										}
-									}
-								}
-								else if (this.category > 0){
-									if (this.bulReloadFlg == false) {
-										if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
-									} else {
-										if (this.bulReloadTime < this.reload) {
-											this.bulReloadTime++;
-											if (this.shotNGflg == false) this.shotNGflg = true;
-										} else {
-											if (bullets[this.num] <= 0){
-												this.shotNGflg = false;
-												this.bulReloadFlg = false;
-												this.bulReloadTime = 0;
-											}
-										}
-
-									}
-								}
+								this._Reload();
 
 								if (!this.shotStopFlg) {
 									switch (inputManager.checkDirection()) {
@@ -6316,6 +6261,60 @@ window.onload = function() {
 					else{
 						new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
 					}
+				}
+			}
+		},
+		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
+			if (this.category == 9) {
+				if (this.bulReloadFlg == false) {
+					if (bulletCnt == this.bulMax || this.firecnt >= this.bulMax) {
+						this.bulReloadFlg = true;
+					}
+				} else {
+					if (this.bulReloadTime < this.reload) {
+						this.bulReloadTime++;
+						if (this.shotNGflg == false) this.shotNGflg = true;
+					} else {
+						if (bulletCnt <= 0){
+							this.shotNGflg = false;
+							this.bulReloadFlg = false;
+							this.bulReloadTime = 0;
+							this.fullFireFlg = false;
+							this.firecnt = 0;
+							this.firstFireFlg = false;
+						}
+					}
+
+				}
+
+				if (this.fullFireFlg && this.firecnt >= 0 && !this.shotNGflg) {
+					if (!this.firstFireFlg) {
+						this.firstFireFlg = true;
+						this.time = 0;
+					} else {
+						if (this.time % this.fireLate == 0) {
+							this._Attack();
+						}
+					}
+				}
+			}
+			else if (this.category > 0){
+				
+				if (this.bulReloadFlg == false) {
+					if (bulletCnt == this.bulMax) this.bulReloadFlg = true;
+				} else {
+					if (this.bulReloadTime < this.reload) {
+						this.bulReloadTime++;
+						if (this.shotNGflg == false) this.shotNGflg = true;
+					} else {
+						if (bulletCnt <= 0){
+							this.shotNGflg = false;
+							this.bulReloadFlg = false;
+							this.bulReloadTime = 0;
+						}
+					}
+
 				}
 			}
 		}
@@ -6528,7 +6527,7 @@ window.onload = function() {
 
 					// 射撃
 					if (!this.shotNGflg && this.fireFlg && this.time % this.fireLate === 0) {
-						if (Math.floor(Math.random() * this.bulMax + 1) > bullets[this.num] + Math.floor(Math.random() * 3)) {
+						if (Math.floor(Math.random() * this.bulMax + 1) > BulletCountByTank(this.num) + Math.floor(Math.random() * 3)) {
 							this._Attack();
 						}
 					}
@@ -6666,14 +6665,15 @@ window.onload = function() {
 			}
 		},
 		_Reload: function () {
+			let bulletCnt = BulletCountByTank(this.num);
 			if (!this.bulReloadFlg) {
-				if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
+				if (bulletCnt === this.bulMax) this.bulReloadFlg = true;
 			} else {
 				if (this.bulReloadTime < this.reload) {
 					this.bulReloadTime++;
 					if (!this.shotNGflg) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -6868,7 +6868,7 @@ window.onload = function() {
 								
 								if (!this.shotNGflg) {
 									if (this.time % this.fireLate == 0 && this.fireFlg) {
-										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num)) {
 											this._Attack();
 										}
 									}
@@ -7063,7 +7063,7 @@ window.onload = function() {
 		},
 		_Reload: function(){
 			if (this.bulReloadFlg == false) {
-				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+				if (BulletCountByTank(this.num) == this.bulMax) this.bulReloadFlg = true;
 			} else {
 				if (this.bulReloadTime < this.reload) {
 					this.bulReloadTime++;
@@ -7272,7 +7272,7 @@ window.onload = function() {
 					}
 
 					if (!this.shotNGflg && this.time % this.fireLate === 0 && this.fireFlg) {
-						if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
+						if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num)) {
 							this._Attack();
 						}
 					}
@@ -7494,14 +7494,15 @@ window.onload = function() {
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (!this.bulReloadFlg) {
-				if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
+				if (bulletCnt === this.bulMax) this.bulReloadFlg = true;
 			} else {
 				if (this.bulReloadTime < this.reload) {
 					this.bulReloadTime++;
 					if (!this.shotNGflg) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -7559,8 +7560,8 @@ window.onload = function() {
 								this._Reload();
 								
 								if (!this.shotNGflg) {
-									if (this.time % this.fireLate == 0 && ((this.fireFlg && bullets[this.num] <= 0) || this.fullFireFlg)) {
-										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
+									if (this.time % this.fireLate == 0 && ((this.fireFlg && BulletCountByTank(this.num) <= 0) || this.fullFireFlg)) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num) || this.fullFireFlg) {
 											this._Attack();
 										}
 									}
@@ -7602,15 +7603,16 @@ window.onload = function() {
 			if (count < this.bulMax && !deadFlgs[this.num]){
 				this.fullFireFlg = true;
 				this.shotStopFlg = true;
-				this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * ((bullets[this.num] + 1)*2);
+				this.cannon.rotation += (Math.floor(Math.random() * 3) - 1) * ((BulletCountByTank(this.num) + 1)*2);
 				//new BulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num)._Shot();
 				new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, this.cursor)._Shot();
 				this.firecnt++;
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (this.bulReloadFlg == false) {
-				if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
+				if (bulletCnt == this.bulMax || this.firecnt == this.bulMax) {
 					this.bulReloadFlg = true;
 					this.fullFireFlg = false;
 					this.firecnt = 0;
@@ -7620,7 +7622,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -7730,7 +7732,7 @@ window.onload = function() {
 						if (!this.fireFlg) {
 
 							// まずヒット回数の条件
-							if (this.aimHitCnt > 6 + bullets[this.num] * 5) {
+							if (this.aimHitCnt > 6 + BulletCountByTank(this.num) * 5) {
 
 								// 次に角度一致の条件
 								const diffFire = Math.abs(
@@ -7902,14 +7904,15 @@ window.onload = function() {
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (!this.bulReloadFlg) {
-				if (bullets[this.num] === this.bulMax) this.bulReloadFlg = true;
+				if (bulletCnt === this.bulMax) this.bulReloadFlg = true;
 			} else {
 				if (this.bulReloadTime < this.reload) {
 					this.bulReloadTime++;
 					if (!this.shotNGflg) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -8343,7 +8346,7 @@ window.onload = function() {
 
 								if (!this.shotNGflg) {
 									if (this.time % this.fireLate == 0 && this.fireFlg) {
-										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num)) {
 											this._Attack();
 										}
 									}
@@ -8367,8 +8370,8 @@ window.onload = function() {
 											if (Math.floor(Math.random() * 2)) {
 												for (var i = 0, l = Block.collection.length; i < l; i++) {
 													let c = Block.collection[i];
-													if (this.within(c, 68) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
-														new Bom(this, this.num, boms[this.num])._SetBom();
+													if (this.within(c, 68) == true && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+														new Bom(this, this.num)._SetBom();
 														this.bomReload = 0;
 														this.bomSetFlg = true;
 														this.bulReloadFlg = true;
@@ -8386,8 +8389,8 @@ window.onload = function() {
 											this.dirValue = Escape_Rot8(this, this.escapeTarget, this.dirValue);
 										} else {
 											// 爆弾設置条件
-											if (this.within(this.target, 160) && !this.bomSetFlg && boms[this.num] < this.bomMax) {
-												new Bom(this, this.num, boms[this.num])._SetBom();
+											if (this.within(this.target, 160) && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+												new Bom(this, this.num)._SetBom();
 												this.bomReload = 0;
 												this.bomSetFlg = true;
 												this.bulReloadFlg = true;
@@ -8513,7 +8516,7 @@ window.onload = function() {
 						} else {
 							destruction++;
 							this.aim.remove();
-							if (this.within(this.target, 256) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) new Bom(this, this.num, boms[this.num])._SetBom();
+							if (this.within(this.target, 256) == true && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) new Bom(this, this.num)._SetBom();
 							this._Dead();
 						}
 					}
@@ -8634,14 +8637,15 @@ window.onload = function() {
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (this.bulReloadFlg == false) {
-				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+				if (bulletCnt == this.bulMax) this.bulReloadFlg = true;
 			} else {
 				if (this.bulReloadTime < this.reload) {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -8870,8 +8874,7 @@ window.onload = function() {
 
 								if (!this.shotNGflg) {
 									if (this.time % this.fireLate == 0 && this.fireFlg) {
-										//if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
-										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num]) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num)) {
 											if (scene.time >= 480) this._Attack();
 										}
 									}
@@ -9141,14 +9144,15 @@ window.onload = function() {
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (this.bulReloadFlg == false) {
-				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+				if (bulletCnt == this.bulMax) this.bulReloadFlg = true;
 			} else {
 				if (this.bulReloadTime < this.reload) {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -9319,7 +9323,7 @@ window.onload = function() {
 
 								if (!this.shotNGflg) {
 									if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
-										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num) || this.fullFireFlg) {
 											this._Attack();
 										}
 									}
@@ -9541,8 +9545,9 @@ window.onload = function() {
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (this.bulReloadFlg == false) {
-				if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
+				if (bulletCnt == this.bulMax || this.firecnt == this.bulMax) {
 					this.bulReloadFlg = true;
 					this.fullFireFlg = false;
 					this.firecnt = 0;
@@ -9553,7 +9558,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -9771,7 +9776,7 @@ window.onload = function() {
 
 								if (!this.shotNGflg) {
 									if (this.time % this.fireLate == 0 && (this.fireFlg || this.fullFireFlg)) {
-										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.fullFireFlg) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num) || this.fullFireFlg) {
 											this._Attack();
 										}
 									}
@@ -9909,7 +9914,7 @@ window.onload = function() {
 						this.firecnt++;
 					}
 				}
-				if (bullets[this.num] % 2 == 1){
+				if (BulletCountByTank(this.num) % 2 == 1){
 					new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, this.cursor)._Shot();
 				}
 				else{
@@ -10088,8 +10093,9 @@ window.onload = function() {
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (this.bulReloadFlg == false) {
-				if (bullets[this.num] == this.bulMax || this.firecnt == this.bulMax) {
+				if (bulletCnt == this.bulMax || this.firecnt == this.bulMax) {
 					this.bulReloadFlg = true;
 					this.fullFireFlg = false;
 					this.firecnt = 0;
@@ -10101,7 +10107,7 @@ window.onload = function() {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -10572,7 +10578,7 @@ window.onload = function() {
 								
 								if (!this.shotNGflg && !this.bomSetFlg) {
 									if (this.time % this.fireLate == 0 && this.fireFlg) {
-										if (Math.floor(Math.random() * this.bulMax * 2) > bullets[this.num] || this.escapeFlg) {
+										if (Math.floor(Math.random() * this.bulMax * 2) > BulletCountByTank(this.num) || this.escapeFlg) {
 											this._Attack();
 										}
 									}
@@ -10596,8 +10602,8 @@ window.onload = function() {
 											if (Math.floor(Math.random() * 2)) {
 												for (var i = 0, l = Block.collection.length; i < l; i++) {
 													let c = Block.collection[i];
-													if (this.within(c, 76) == true && !this.bomSetFlg && boms[this.num] < this.bomMax) {
-														new Bom(this, this.num, boms[this.num])._SetBom();
+													if (this.within(c, 76) == true && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+														new Bom(this, this.num)._SetBom();
 														this.bomReload = 0;
 														this.bomSetFlg = true;
 														this.bulReloadFlg = true;
@@ -11008,14 +11014,15 @@ window.onload = function() {
 			}
 		},
 		_Reload: function(){
+			let bulletCnt = BulletCountByTank(this.num);
 			if (this.bulReloadFlg == false) {
-				if (bullets[this.num] == this.bulMax) this.bulReloadFlg = true;
+				if (bulletCnt == this.bulMax) this.bulReloadFlg = true;
 			} else {
 				if (this.bulReloadTime < this.reload) {
 					this.bulReloadTime++;
 					if (this.shotNGflg == false) this.shotNGflg = true;
 				} else {
-					if (bullets[this.num] <= 0){
+					if (bulletCnt <= 0){
 						this.shotNGflg = false;
 						this.bulReloadFlg = false;
 						this.bulReloadTime = 0;
@@ -12642,8 +12649,6 @@ window.onload = function() {
 
 			tankEntity = []; //敵味方の戦車情報を保持する配列
 			deadFlgs = [];
-			bullets = []; //戦車の弾情報を保持する配列
-			boms = []; //爆弾の情報を保持する配列
 			tankColorCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 			destruction = 0;
 			gameStatus = 0;
@@ -13074,8 +13079,6 @@ window.onload = function() {
             } else {
                 // ダミーを置いておく
                 tankEntity.push(new Sprite({ width: 1, height: 1, x: -100, y: -100 }));
-                bullets.push(0);
-                boms.push(0);
                 deadFlgs.push(true);
                 destruction++;
             }
