@@ -1175,7 +1175,13 @@ function Escape_Rot8_Multi(from, toList, value) {
     // 障害物による除外方向
     const obstacleSet = new Set();
     if (from.category === 11) {
-        const grid = JSON.parse(JSON.stringify(now_scene.grid));
+        //const grid = JSON.parse(JSON.stringify(now_scene.grid));
+		const grid = Array.from({ length: Stage_H }, () => new Array(Stage_W));
+		for (let y = 0; y < Stage_H; y++) {
+			for (let x = 0; x < Stage_W; x++) {
+				grid[y][x] = now_scene.grid[y][x];
+			}
+		}
         const rad = (from.rotation - 90) * Math.PI / 180;
         const tx = t1.x - Math.cos(rad) * from.width;
         const ty = t1.y - Math.sin(rad) * from.height;
@@ -4475,7 +4481,7 @@ window.onload = function() {
 			this.time = 0;
 			this.from = from;
 			this.num = num;
-			this.id = this._CountByTank(num);
+			this.id = BomCountByTank(num);
 			this.bombFlg = false;
 			this.name = 'Bom';
 
@@ -4556,12 +4562,12 @@ window.onload = function() {
 			ctx.arc(Quarter, Quarter, Quarter, 0, Math.PI * 2, true);
 			ctx.fill();
 			return surface;
-		},
-
-		_CountByTank: function(num) {
-			return Bom.collection.filter(b => b.num === num).length;
 		}
 	});
+
+	function BomCountByTank(num){
+		return Bom.collection.filter(b => b.num === num).length;
+	}
 
 	var ExplosionRange = Class.create(Sprite, {
 		initialize: function(radius, color = "rgba(255, 0, 0, 0.3)") {
@@ -5697,6 +5703,13 @@ window.onload = function() {
 		return path && path.length > 0 ? path : false;
 	};
 
+	function RefreshGrid(target, grid) {
+		for (let y = 0; y < Stage_H; y++) {
+			for (let x = 0; x < Stage_W; x++) {
+				target[y][x] = grid[y][x];
+			}
+		}
+	}
 
 	//	戦車の親クラス
 	var TankBase = Class.create(Sprite, {
@@ -5757,7 +5770,7 @@ window.onload = function() {
 
 			//	経路探索用
 			this.map = Object.assign({}, scene.backgroundMap);
-			this.grid = JSON.parse(JSON.stringify(scene.grid));
+			this.grid = Array.from({ length: Stage_H }, () => new Array(Stage_W));
 			this.root;
 			
 			this.rot = 0;
@@ -6119,7 +6132,7 @@ window.onload = function() {
 									this._Attack();
 								}
 
-								if ((inputManager.checkButton("B") == inputManager.keyStatus.DOWN) && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+								if ((inputManager.checkButton("B") == inputManager.keyStatus.DOWN) && !this.bomSetFlg && BomCountByTank(this.num) < this.bomMax) {
 									new Bom(this, this.num)._SetBom();
 									this.bomReload = 0;
 									this.bomSetFlg = true;
@@ -7197,7 +7210,8 @@ window.onload = function() {
 						this.fireFlg = false;
 
 						if (this.moveSpeed > 0 && !rootFlg && this.time % (60 + this.num) === 0) {
-							this.grid = JSON.parse(JSON.stringify(scene.grid));
+							//this.grid = JSON.parse(JSON.stringify(scene.grid));
+							RefreshGrid(this.grid, scene.grid);
 							this.map = Object.assign({}, scene.backgroundMap);
 
 							this.myPath = getGridCoord(this);
@@ -8370,7 +8384,7 @@ window.onload = function() {
 											if (Math.floor(Math.random() * 2)) {
 												for (var i = 0, l = Block.collection.length; i < l; i++) {
 													let c = Block.collection[i];
-													if (this.within(c, 68) == true && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+													if (this.within(c, 68) == true && !this.bomSetFlg && BomCountByTank(this.num) < this.bomMax) {
 														new Bom(this, this.num)._SetBom();
 														this.bomReload = 0;
 														this.bomSetFlg = true;
@@ -8389,7 +8403,7 @@ window.onload = function() {
 											this.dirValue = Escape_Rot8(this, this.escapeTarget, this.dirValue);
 										} else {
 											// 爆弾設置条件
-											if (this.within(this.target, 160) && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+											if (this.within(this.target, 160) && !this.bomSetFlg && BomCountByTank(this.num) < this.bomMax) {
 												new Bom(this, this.num)._SetBom();
 												this.bomReload = 0;
 												this.bomSetFlg = true;
@@ -8432,7 +8446,8 @@ window.onload = function() {
 													];
 
 													const rem = new Set();
-													this.grid = JSON.parse(JSON.stringify(scene.grid));
+													//this.grid = JSON.parse(JSON.stringify(scene.grid));
+													RefreshGrid(this.grid, scene.grid);
 
 													for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
 														const y = this.myPath[0] + dy;
@@ -8516,7 +8531,7 @@ window.onload = function() {
 						} else {
 							destruction++;
 							this.aim.remove();
-							if (this.within(this.target, 256) == true && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) new Bom(this, this.num)._SetBom();
+							if (this.within(this.target, 256) == true && !this.bomSetFlg && BomCountByTank(this.num) < this.bomMax) new Bom(this, this.num)._SetBom();
 							this._Dead();
 						}
 					}
@@ -8724,7 +8739,8 @@ window.onload = function() {
 
 				let rem = [];
 				this.myPath = [parseInt(t1y / PixelSize), parseInt(t1x / PixelSize)];
-				this.grid = JSON.parse(JSON.stringify(scene.grid));
+				//this.grid = JSON.parse(JSON.stringify(scene.grid));
+				RefreshGrid(this.grid, scene.grid);
 				let bk = arr;
 
 				if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
@@ -8804,7 +8820,8 @@ window.onload = function() {
 
 									let rem = [];
 									this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-									this.grid = JSON.parse(JSON.stringify(scene.grid));
+									//this.grid = JSON.parse(JSON.stringify(scene.grid));
+									RefreshGrid(this.grid, scene.grid);
 									let bk = arr;
 
 									if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
@@ -8927,7 +8944,8 @@ window.onload = function() {
 														];
 
 														const rem = new Set();
-														this.grid = JSON.parse(JSON.stringify(scene.grid));
+														//this.grid = JSON.parse(JSON.stringify(scene.grid));
+														RefreshGrid(this.grid, scene.grid);
 
 														for (const [dir, [dy, dx]] of Object.entries(diagonalObstacleMap)) {
 															const y = this.myPath[0] + dy;
@@ -9265,7 +9283,8 @@ window.onload = function() {
 
 									let rem = [];
 									this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-									this.grid = JSON.parse(JSON.stringify(scene.grid));
+									//this.grid = JSON.parse(JSON.stringify(scene.grid));
+									RefreshGrid(this.grid, scene.grid);
 
 									if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
 									if (this.grid[this.myPath[0]][this.myPath[1] + 1] == 1) rem.push(1);
@@ -9713,7 +9732,8 @@ window.onload = function() {
 
 									let rem = [];
 									this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-									this.grid = JSON.parse(JSON.stringify(scene.grid));
+									//this.grid = JSON.parse(JSON.stringify(scene.grid));
+									RefreshGrid(this.grid, scene.grid);
 									let bk = arr;
 
 									if (this.grid[this.myPath[0] - 1][this.myPath[1]] == 1) rem.push(0);
@@ -10205,7 +10225,8 @@ window.onload = function() {
 				}
 
 				self.myPath = [parseInt(t1y / PixelSize), parseInt(t1x / PixelSize)];
-				self.grid = JSON.parse(JSON.stringify(scene.grid));
+				//self.grid = JSON.parse(JSON.stringify(scene.grid));
+				RefreshGrid(self.grid, scene.grid);
 				let bk = arr;
 
 				let ng = NG_root_set();
@@ -10473,7 +10494,8 @@ window.onload = function() {
 									if (this.moveSpeed > 0 && !rootFlg) {
 										
 										if (this.time % (60 + this.num * 7) == 0 && !this.bomSetFlg) {
-											this.grid = JSON.parse(JSON.stringify(scene.grid));
+											//this.grid = JSON.parse(JSON.stringify(scene.grid));
+											RefreshGrid(this.grid, scene.grid);
 											this.map = Object.assign({}, scene.backgroundMap);
 
 											//  自身の位置とターゲットの位置をざっくり算出
@@ -10602,7 +10624,7 @@ window.onload = function() {
 											if (Math.floor(Math.random() * 2)) {
 												for (var i = 0, l = Block.collection.length; i < l; i++) {
 													let c = Block.collection[i];
-													if (this.within(c, 76) == true && !this.bomSetFlg && Bom._CountByTank(this.num) < this.bomMax) {
+													if (this.within(c, 76) == true && !this.bomSetFlg && BomCountByTank(this.num) < this.bomMax) {
 														new Bom(this, this.num)._SetBom();
 														this.bomReload = 0;
 														this.bomSetFlg = true;
@@ -10662,7 +10684,8 @@ window.onload = function() {
 													}
 
 													this.myPath = [parseInt((this.y + this.height / 2) / PixelSize), parseInt((this.x + this.width / 2) / PixelSize)];
-													this.grid = JSON.parse(JSON.stringify(scene.grid));
+													//this.grid = JSON.parse(JSON.stringify(scene.grid));
+													RefreshGrid(this.grid, scene.grid);
 													let bk = arr;
 
 													let ng = NG_root_set();
