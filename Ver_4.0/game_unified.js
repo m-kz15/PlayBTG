@@ -5780,8 +5780,8 @@ window.onload = function() {
 
 			this.waitFrame = 0;
 
-			this._match1 = [];
-			this._match2 = [];
+			this._match1 = new Set();
+			this._match2 = new Set();
 
 			//	追加ステータス付与
 			if (gameMode > 0) {
@@ -6071,6 +6071,11 @@ window.onload = function() {
 		}
 	});
 
+	function getCloserDistance(weak, target1, target2) {
+		const dist1 = Get_Distance(weak, target1);
+		const dist2 = Get_Distance(weak, target2);
+		return dist1 >= dist2 ? dist2 : null;
+	}
 
 	//	自機型
 	var Entity_Type0 = Class.create(TankBase, {
@@ -6613,21 +6618,21 @@ window.onload = function() {
 		},
 		_Defense: function () {
 			if (BulletBase.collection.length > 0) {
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (let i = 0, l = BulletBase.collection.length; i < l; i++) {
@@ -6637,18 +6642,19 @@ window.onload = function() {
 						(c.num === this.num && !this.defFlg[1]) ||
 						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 
 					if (dist == null) continue;
 
 					switch (c.num) {
 						case 0:
 							if (dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)) {
+								if (this._match1.has(c)) {
 									this.attackTarget = c;
 									this.escapeFlg = true;
 								}
@@ -6658,7 +6664,7 @@ window.onload = function() {
 						case this.num:
 							if (this.ref == 0) break;
 							if (dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									this.attackTarget = c;
 									this.escapeFlg = true;
 								}
@@ -6667,7 +6673,7 @@ window.onload = function() {
 
 						default:
 							if (dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									this.attackTarget = c;
 									this.escapeFlg = true;
 								}
@@ -6996,21 +7002,21 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
@@ -7020,20 +7026,21 @@ window.onload = function() {
 						(c.num === this.num && !this.defFlg[1]) ||
 						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
 					switch (c.num) {
 						case 0:
 							if (dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)){
+								if (this._match1.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
-							if (this.escRange[0] && this.escRange[1] != 0) {
+								if (this.escRange[0] && this.escRange[1] != 0) {
 									if (dist < this.escRange[1]) {
 										this.escapeTarget = c;
 										this.escapeFlg = true;
@@ -7045,7 +7052,7 @@ window.onload = function() {
 						case this.num:
 							if (this.ref == 0) break;
 							if (dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									if (this.escRange[0] && this.escRange[2] != 0) {
 										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
@@ -7059,7 +7066,7 @@ window.onload = function() {
 
 						default:
 							if (dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)){
+								if (this._match2.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
 								if (this.escRange[0] && this.escRange[3] != 0) {
@@ -7431,21 +7438,21 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
@@ -7456,17 +7463,18 @@ window.onload = function() {
 						(c.num === this.num && !this.defFlg[1]) ||
 						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
 					switch (c.num) {
 						case 0: {
 							if (dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)) {
+								if (this._match1.has(c)) {
 									this.attackTarget = c;
 								} else if (this.category == 5) {
 									this.attackTarget = this.target;
@@ -7481,7 +7489,7 @@ window.onload = function() {
 						case this.num: {
 							if (this.ref === 0) break;
 							if (dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c) && this.escRange[0] && this.escRange[2] !== 0 && dist < this.escRange[2]) {
+								if (this._match2.has(c) && this.escRange[0] && this.escRange[2] !== 0 && dist < this.escRange[2]) {
 									this.escapeTarget = c;
 									this.escapeFlg = true;
 								}
@@ -7493,7 +7501,7 @@ window.onload = function() {
 						}
 						default: {
 							if (dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									this.attackTarget = c;
 								}
 								if (this.escRange[0] && this.escRange[3] !== 0 && dist < this.escRange[3]) {
@@ -8573,21 +8581,21 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
@@ -8597,17 +8605,18 @@ window.onload = function() {
 						(c.num === this.num && !this.defFlg[1]) ||
 						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
 					switch (c.num) {
 						case 0:
 							if (dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)){
+								if (this._match1.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
 								if (this.escRange[0] && this.escRange[1] != 0) {
@@ -8622,7 +8631,7 @@ window.onload = function() {
 						case this.num:
 							if (this.ref == 0) break;
 							if (dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									if (this.escRange[0] && this.escRange[2] != 0) {
 										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
@@ -8636,7 +8645,7 @@ window.onload = function() {
 
 						default:
 							if (dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)){
+								if (this._match2.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
 								if (this.escRange[0] && this.escRange[3] != 0) {
@@ -9064,21 +9073,21 @@ window.onload = function() {
 
 			if (BulletBase.collection.length > 0) {
 				const escapeList = [];
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
@@ -9088,11 +9097,12 @@ window.onload = function() {
 						(c.num === this.num && !this.defFlg[1]) ||
 						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
 					let escapeScore = 0;
@@ -9100,7 +9110,7 @@ window.onload = function() {
 					switch (c.num) {
 						case 0:
 							if (dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)){
+								if (this._match1.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
@@ -9116,7 +9126,7 @@ window.onload = function() {
 						case this.num:
 							if (this.ref == 0) break;
 							if (dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									if (this.escRange[0] && this.escRange[2] != 0 && dist < this.escRange[2]) {
 										if (Search(c, this, 60, this.escRange[2])) {
 											escapeScore += 800 - dist;
@@ -9130,14 +9140,14 @@ window.onload = function() {
 
 						default:
 							if (dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)){
+								if (this._match2.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
 								}
 								if (this.escRange[0] && this.escRange[3] != 0 && dist < this.escRange[3]) {
 									if (Search(c, this, 60, this.escRange[3])) {
-									escapeScore += 600 - dist;
+										escapeScore += 600 - dist;
 									}
 								}
 							}
@@ -9485,21 +9495,21 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
@@ -9509,17 +9519,18 @@ window.onload = function() {
 						(c.num === this.num && !this.defFlg[1]) ||
 						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
 					switch (c.num) {
 						case 0:
 							if (dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)){
+								if (this._match1.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
 								if (this.escRange[0] && this.escRange[1] != 0) {
@@ -9534,7 +9545,7 @@ window.onload = function() {
 						case this.num:
 							if (this.ref == 0) break;
 							if (dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									if (this.escRange[0] && this.escRange[2] != 0) {
 										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
@@ -9548,7 +9559,7 @@ window.onload = function() {
 
 						default:
 							if (dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)){
+								if (this._match2.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
 								if (this.escRange[0] && this.escRange[3] != 0) {
@@ -10030,21 +10041,21 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
@@ -10054,17 +10065,18 @@ window.onload = function() {
 						(c.num === this.num && !this.defFlg[1]) ||
 						(c.num !== 0 && c.num !== this.num && !this.defFlg[2])) continue;
 
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
 					switch (c.num) {
 						case 0:
 							if (dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)){
+								if (this._match1.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
@@ -10083,7 +10095,7 @@ window.onload = function() {
 						case this.num:
 							if (this.ref == 0) break;
 							if (dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c)) {
+								if (this._match2.has(c)) {
 									if (this.escRange[0] && this.escRange[2] != 0) {
 										if (dist < this.escRange[2]) {
 											this.escapeTarget = c;
@@ -10097,7 +10109,7 @@ window.onload = function() {
 
 						default:
 							if (dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)){
+								if (this._match2.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
 								if (this.escRange[0] && this.escRange[3] != 0) {
@@ -10954,21 +10966,21 @@ window.onload = function() {
 		},
 		_Defense: function(){
 			if (BulletBase.collection.length > 0) {
-				this._match1.length = 0;
+				this._match1.clear();
 				for (let i = 0; i < PlayerBulAimLite.list.length; i++) {
 					const a = PlayerBulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match1.push(a);
-						if (this._match1.length >= 6) break; // 迎撃に3本も要らない
+						this._match1.add(a.target); 
+                		if (this._match1.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 
-				this._match2.length = 0;
+				this._match2.clear();
 				for (let i = 0; i < BulAimLite.list.length; i++) {
 					const a = BulAimLite.list[i];
 					if (a.intersectsAABB(this.around)) {
-						this._match2.push(a);
-						if (this._match2.length >= 6) break; // 迎撃に3本も要らない
+						this._match2.add(a.target); 
+                		if (this._match2.size >= 6) break; // 迎撃に3本も要らない
 					}
 				}
 				for (var i = 0, l = BulletBase.collection.length; i < l; i++) {
@@ -10976,17 +10988,18 @@ window.onload = function() {
 					if (c.num == this.target.num && !this.defFlg[0]) continue;
 					if (c.num == this.num && !this.defFlg[1]) continue;
 					if (!(c.num == this.target.num || c.num == this.num) && !this.defFlg[2]) continue;
-					const dist = (function Instrumentation(weak, target1, target2) {
+					/*const dist = (function Instrumentation(weak, target1, target2) {
 						const dist1 = Get_Distance(weak, target1);
 						const dist2 = Get_Distance(weak, target2);
 						return dist1 >= dist2 ? dist2 : null;
-					})(this.weak, this.attackTarget, c);
+					})(this.weak, this.attackTarget, c);*/
+					const dist = getCloserDistance(this.weak, this.attackTarget, c);
 					if (dist == null) continue;
 
 					switch (c.num) {
 						case this.target.num:
 							if (dist != null && dist < this.defRange[0]) {
-								if (this._match1.some(elem => elem.target === c)){
+								if (this._match1.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}else{
 									this.attackTarget = this.target;
@@ -11004,7 +11017,7 @@ window.onload = function() {
 						case this.num:
 							if (this.ref == 0) break;
 							if (dist != null && dist < this.defRange[1] && dist > 100) {
-								if (this._match2.some(elem => elem.target === c)){
+								if (this._match2.has(c)){
 									if (this.escRange[0] == true && this.escRange[2] != 0) {
 										if (dist < this.escRange[2]) {
 											if (Search(c, this, 45, this.escRange[2])) {
@@ -11019,7 +11032,7 @@ window.onload = function() {
 							break;
 						default:
 							if (dist != null && dist < this.defRange[2]) {
-								if (this._match2.some(elem => elem.target === c)){
+								if (this._match2.has(c)){
 									this.attackTarget = c; //  迎撃のためにターゲット変更
 								}
 								if (this.escRange[0] == true && this.escRange[3] != 0) {
@@ -12963,7 +12976,9 @@ window.onload = function() {
                         }
 
                         // その他障害物
-                        if (col === 2) new Avoid(j, fy, this);
+                        if (DebugFlg){
+							if (col === 2) new Avoid(j, fy, this);
+						}
                         if (col === 3) new Hole(j, fy, this);
                         if (col === 5) new Block(j, fy, this);
                     }
