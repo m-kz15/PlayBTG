@@ -5506,8 +5506,14 @@ window.onload = function() {
 		}
 	});
 
+	// ======================================================================
+	// 【追加】座標 [y][x] からキューのインデックス(head/tail)を引くためのバッファ
+	// ※コピペ時に他の変数（qy, qxなど）が定義されている場所の近くに配置してください。
+	// ======================================================================
+	const gridToQueueIdx = Array.from({ length: Stage_H }, () => new Int32Array(Stage_W).fill(-1));
+
 	// ------------------------------------------------------
-	// 数値版の DIRS（文字列 move はそのまま）
+	// 数値版の DIRS（文字列 move はそのまま変更なし）
 	// ------------------------------------------------------
 	const DIRS = [
 		{ dy: -1, dx: 0, move: "North" },
@@ -5517,23 +5523,19 @@ window.onload = function() {
 	];
 
 	// ------------------------------------------------------
-	// locationStatusFast（文字列比較 → 数値比較で高速化）
-	// grid[y][x] は 0=Empty, 1=Obstacle, 2=Goal, 3=Start
+	// locationStatusFast（インライン化に伴い、互換性維持のため残存）
 	// ------------------------------------------------------
 	const locationStatusFast = (y, x, grid) => {
 		if (y < 0 || y >= Stage_H || x < 0 || x >= Stage_W) return 0;
 
 		const cell = grid[y][x];
-		// 0=Empty, 3=Start → 通行可
 		if (cell === 0 || cell === 3) return 2;
-		// 2=Goal
 		if (cell === 2) return 3;
-		// 1=Obstacle
 		return 1;
 	};
 
 	// ------------------------------------------------------
-	// reconstructPathFast（reverse を使わない高速版）
+	// reconstructPathFast（変更なし・互換性維持）
 	// ------------------------------------------------------
 	const reconstructPathFast = (idx) => {
 		const path = [];
@@ -5544,14 +5546,12 @@ window.onload = function() {
 			p = qParent[p];
 		}
 
-		// reverse しないと順番が逆なので reverse 必須
-		// ただし path.length が小さいのでコストは軽い
 		path.reverse();
 		return path;
 	};
 
 	// ------------------------------------------------------
-	// BFS（findShortestPath）
+	// BFS（findShortestPath）※他クラスからの単体呼び出し完全対応版
 	// ------------------------------------------------------
 	const findShortestPath = (startCoordinates, grid, scene, goalCoordinates = null) => {
 		const startY = startCoordinates[0];
@@ -5572,22 +5572,21 @@ window.onload = function() {
 		qx[0] = startX;
 		qParent[0] = -1;
 		visited[startY][startX] = searchId;
+		gridToQueueIdx[startY][startX] = 0;
+
+		// スタート地点がすでにゴールのチェック
+		if (goalCoordinates && startY === goalY && startX === goalX) {
+			return reconstructPathFast(0);
+		}
+		if (!goalCoordinates && grid[startY][startX] === 2) {
+			return reconstructPathFast(0);
+		}
 
 		while (head <= tail) {
 			const y = qy[head];
 			const x = qx[head];
 			const curIndex = head;
 			head++;
-
-			// ゴール指定あり
-			if (goalCoordinates && y === goalY && x === goalX) {
-				return reconstructPathFast(curIndex);
-			}
-
-			// ゴール指定なし
-			if (!goalCoordinates && grid[y][x] === 2) { // 2=Goal
-				return reconstructPathFast(curIndex);
-			}
 
 			for (let i = 0; i < 4; i++) {
 				const ny = y + DIRS[i].dy;
@@ -5596,8 +5595,9 @@ window.onload = function() {
 				if (ny < 0 || ny >= Stage_H || nx < 0 || nx >= Stage_W) continue;
 				if (visited[ny][nx] === searchId) continue;
 
-				const status = locationStatusFast(ny, nx, grid);
-				if (status === 0 || status === 1) continue;
+				// 【大前提】障害物チェック (1=Obstacle は絶対に進入しない)
+				const cell = grid[ny][nx];
+				if (cell === 1) continue; 
 
 				visited[ny][nx] = searchId;
 
@@ -5606,6 +5606,18 @@ window.onload = function() {
 				qx[tail] = nx;
 				qParent[tail] = curIndex;
 				qMove[tail] = DIRS[i].move;
+				gridToQueueIdx[ny][nx] = tail;
+
+				// 特定のゴール指定がある場合の即時切り上げ
+				if (goalCoordinates) {
+					if (ny === goalY && nx === goalX) {
+						return reconstructPathFast(tail);
+					}
+				} else {
+					if (cell === 2) { // 2=Goal
+						return reconstructPathFast(tail);
+					}
+				}
 			}
 		}
 
@@ -5613,7 +5625,7 @@ window.onload = function() {
 	};
 
 	// ------------------------------------------------------
-	// 可視判定（高速版）
+	// 可視判定（高速版・変更なし）
 	// ------------------------------------------------------
 	const isVisibleFast = (fromY, fromX, toY, toX, grid) => {
 		let x0 = fromX, y0 = fromY;
@@ -5627,7 +5639,7 @@ window.onload = function() {
 		let err = dx - dy;
 
 		while (true) {
-			if (grid[y0][x0] === 1) return false; // obstacle
+			if (grid[y0][x0] === 1) return false; 
 
 			if (x0 === x1 && y0 === y1) return true;
 
@@ -5645,64 +5657,68 @@ window.onload = function() {
 	};
 
 	// ------------------------------------------------------
-	// findVisibleAccessibleTile（内部最適化）
+	// findVisibleAccessibleTile（1回スキャン超高速版）
 	// ------------------------------------------------------
 	const findVisibleAccessibleTile = (goal, grid, map, start, scene) => {
 		const goalY = goal[0];
 		const goalX = goal[1];
 
-		const startY = start[0];
-		const startX = start[1];
-
 		let bestLen = Infinity;
-		let bestPath = null;
+		let bestQueueIdx = -1;
 
 		const minY = Math.max(0, goalY - 8);
 		const maxY = Math.min(Stage_H - 1, goalY + 8);
 		const minX = Math.max(0, goalX - 8);
 		const maxX = Math.min(Stage_W - 1, goalX + 8);
 
+		// 絶対に衝突しない座標 [-1, -1] を指定して、障害物を避けた全域の移動経路木を1回で構築
+		findShortestPath(start, grid, scene, [-1, -1]);
+
 		for (let y = minY; y <= maxY; y++) {
 			for (let x = minX; x <= maxX; x++) {
+				// 1. 障害物を避けた上で、そもそも到達できているか
+				if (visited[y][x] !== searchId) continue;
 
-				// 通行不可
-				if (grid[y][x] !== 0) continue;
-
-				// マンハッタン距離
+				// 2. マンハッタン距離
 				const dist = Math.abs(x - goalX) + Math.abs(y - goalY);
 				if (dist > 8) continue;
 
-				// pruning
-				if (dist >= bestLen) continue;
+				// 3. 経路長の算出とPruning（親を遡って瞬時に長さを計算）
+				const currentIdx = gridToQueueIdx[y][x];
+				let pathLen = 0;
+				let p = currentIdx;
+				while (p !== -1) {
+					pathLen++;
+					p = qParent[p];
+				}
+				if (pathLen >= bestLen) continue;
 
-				// 可視判定
+				// 4. 重い可視判定を最後に実行
 				if (!isVisibleFast(y, x, goalY, goalX, grid)) continue;
 
-				// BFS
-				const path = findShortestPath(start, grid, scene, [y, x]);
-				if (!path) continue;
-
-				if (path.length < bestLen) {
-					bestLen = path.length;
-					bestPath = path;
-				}
+				bestLen = pathLen;
+				bestQueueIdx = currentIdx;
 			}
 		}
 
-		return bestPath;
+		return bestQueueIdx !== -1 ? reconstructPathFast(bestQueueIdx) : null;
 	};
 
 	// ------------------------------------------------------
-	// getPathToGoalOrVisibleTile（構造そのまま）
+	// getPathToGoalOrVisibleTile（構造維持・引数最適化）
 	// ------------------------------------------------------
 	const getPathToGoalOrVisibleTile = (start, goal, grid, map, scene) => {
-		let path = findShortestPath(start, grid, scene, null);
+		// 最初に null ではなく goal を渡すことで、直接行けるなら全域探索せず最速で返るように最適化
+		let path = findShortestPath(start, grid, scene, goal); 
 		if (!path) {
 			path = findVisibleAccessibleTile(goal, grid, map, start, scene);
 		}
 		return path && path.length > 0 ? path : false;
 	};
 
+	// ------------------------------------------------------
+	// RefreshGrid（変更なし）
+	// ------------------------------------------------------
 	function RefreshGrid(target, grid) {
 		for (let y = 0; y < Stage_H; y++) {
 			for (let x = 0; x < Stage_W; x++) {
@@ -5796,7 +5812,7 @@ window.onload = function() {
 						this.moveSpeed += 0.5;
 						break;
 					case 3:
-						this.moveSpeed += 0.5;
+						this.moveSpeed += 0.3;
 						this.bulMax    += 1;
 						this.ref        = 1;
 						this.reload    += 90;
@@ -6470,7 +6486,8 @@ window.onload = function() {
 							g[ty][tx] = 2; // Goal
 
 							if (this.time === 0) {
-								this.root = findShortestPath(this.myPath, g, scene);
+								updatePathAndRotation(this, g, scene);
+								//this.root = findShortestPath(this.myPath, g, scene);
 								const dir = directionMap[this.root?.[0]];
 								if (dir) {
 									this.rot = dir.rot;
@@ -12460,7 +12477,7 @@ window.onload = function() {
 					[colorsName[0], "　耐久　：" + Categorys.Life[0], "　弾数　：" + Categorys.MaxBullet[0], "　弾速　：普通(" + Categorys.ShotSpeed[0] + ")", "跳弾回数：" + Categorys.MaxRef[0], "移動速度：速い(" + Categorys.MoveSpeed[0] + ")", "・プレイヤーが操作する戦車。<br>　高性能かつ汎用性が高いため<br>　初心者におすすめ。<br>　クリティカル発生率が高い。"],
 					[colorsName[1], "　耐久　：" + Categorys.Life[1], "　弾数　：" + (Categorys.MaxBullet[1] + 2), "　弾速　：普通(" + (Categorys.ShotSpeed[1] + 2) + ")", "跳弾回数：" + Categorys.MaxRef[1], "移動速度：動かない(" + Categorys.MoveSpeed[1] + ")", "・弾道予測型<br>　最も弱い戦車。<br>　よく狙って攻撃するため命中率は高い。"],
 					[colorsName[2], "　耐久　：" + Categorys.Life[2], "　弾数　：" + (Categorys.MaxBullet[2] + 1), "　弾速　：普通(" + (Categorys.ShotSpeed[2] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[2], "移動速度：普通(" + (Categorys.MoveSpeed[2] + 0.5) + ")", "・最短追尾型<br>　最短経路を計算して移動する。<br>　配置によっては脅威になりうる。"],
-					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.5) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。<br>【弱化】装填にかかる時間の延長"],
+					[colorsName[3], "　耐久　：" + Categorys.Life[3], "　弾数　：" + (Categorys.MaxBullet[3] + 1), "　弾速　：速い(" + Categorys.ShotSpeed[3] + ")", "跳弾回数：" + (Categorys.MaxRef[3] + 1), "移動速度：普通(" + (Categorys.MoveSpeed[3] + 0.3) + ")", "・攻守両立型<br>　数は少ないが速い弾を撃てる戦車。<br>　物量で攻めると倒しやすい。<br>【弱化】装填にかかる時間の延長"],
 					[colorsName[4], "　耐久　：" + Categorys.Life[4], "　弾数　：" + (Categorys.MaxBullet[4] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[4] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[4], "移動速度：やや速い(" + Categorys.MoveSpeed[4] + ")", "・最短追尾型<br>　弾数が多く、発射頻度も高いため<br>　物量で攻める突撃をしてくる。"],
 					[colorsName[5], "　耐久　：" + Categorys.Life[5], "　弾数　：" + (Categorys.MaxBullet[5] + 1), "　弾速　：やや速い(" + (Categorys.ShotSpeed[5] + 1) + ")", "跳弾回数：" + Categorys.MaxRef[5], "移動速度：速い(" + (Categorys.MoveSpeed[5] + 0.5) + ")", "・生存特化型<br>　追尾、迎撃、回避全て揃ったエリート戦車<br>　跳弾を活用すると倒しやすい。　<br>【強化】砲撃間隔の短縮"],
 					[colorsName[6], "　耐久　：" + Categorys.Life[6], "　弾数　：" + (Categorys.MaxBullet[6] + 1), "　弾速　：とても速い(" + Categorys.ShotSpeed[6] + ")", "跳弾回数：" + Categorys.MaxRef[6], "移動速度：動かない(" + Categorys.MoveSpeed[6] + ")", "・弾道予測型<br>　敵戦車の中でも指折りの狙撃手。<br>　壁の後ろに隠れても油断してはいけない。"],
