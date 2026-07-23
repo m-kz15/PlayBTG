@@ -205,7 +205,7 @@ const Categorys = {
 		[1.5, 1.5], //elitegray
 		[1.0, 1.0], //elitegreen
 		[1.0, 1.0], //snow
-		[1.8, 1.8], //elitered
+		[1.4, 1.4], //elitered
 		[1.0, 1.0], //pink
 		[1.0, 1.0], //sand
 		[1.6, 1.6], //random
@@ -387,7 +387,7 @@ const Categorys = {
 		180, //elitegray
 		90, //elitegreen
 		360, //snow
-		360, //elitered
+		200, //elitered
 		180, //pink
 		90, //sand
 		90, //random
@@ -518,7 +518,27 @@ const stagePath = [
 	'./stage/stage36.js',
 	'./stage/stage37.js',
 	'./stage/stage38.js',
-	'./stage/stage39.js'
+	'./stage/stage39.js',
+	'./stage/stage40.js',
+	'./stage/stage41.js',
+	'./stage/stage42.js',
+	'./stage/stage43.js',
+	'./stage/stage44.js',
+	'./stage/stage45.js',
+	'./stage/stage46.js',
+	'./stage/stage47.js',
+	'./stage/stage48.js',
+	'./stage/stage49.js',
+	'./stage/stage50.js',
+	'./stage/stage51.js',
+	'./stage/stage52.js',
+	'./stage/stage53.js',
+	'./stage/stage54.js',
+	'./stage/stage55.js',
+	'./stage/stage56.js',
+	'./stage/stage57.js',
+	'./stage/stage58.js',
+	'./stage/stage59.js'
 ];
 
 class Vector2 {
@@ -4244,7 +4264,7 @@ window.onload = function() {
 				0: [1.0, 1.0],
 				1: [0.8, 1.0],
 				6: [0.6, 1.0],
-				8: [1.0, 1.0],
+				8: [0.9, 1.1],
 				9: [0.7, 0.7],
 				11: [0.6, 1.0]
 			};
@@ -7841,7 +7861,7 @@ window.onload = function() {
 
 								if (!inside) {
 									let t = Math.min(Math.abs(diffToCenter) / rangeDeg, 1);  
-									let rotSpeed = baseSpeed + 0.3 * t;
+									let rotSpeed = baseSpeed + 0.5 * t;
 
 									const dir = diffToCenter > 0 ? 1 : -1;
 
@@ -8409,7 +8429,8 @@ window.onload = function() {
 											if (Math.floor(Math.random() * 2)) {
 												for (var i = 0, l = Block.collection.length; i < l; i++) {
 													let c = Block.collection[i];
-													if (this.within(c, 68) == true && !this.bomSetFlg && BomCountByTank(this.num) < this.bomMax) {
+													let bomCnt = BomCountByTank(this.num);
+													if (this.within(c, 68) == true && !this.bomSetFlg && bomCnt < this.bomMax && bomCnt == 0) {
 														new Bom(this, this.num)._SetBom();
 														this.bomReload = 0;
 														this.bomSetFlg = true;
@@ -8816,7 +8837,7 @@ window.onload = function() {
 								this.time++;
 
 								if (this.time % 45 == 0){
-									this.moveRandom = Math.floor(Math.random() * 5) > 1 ? 1 : 0;
+									this.moveRandom = Math.floor(Math.random() * 5) > 1 && !this.shotNGflg ? 1 : 0;
 								}
 
 								if (this.time % 2 == 0) {
@@ -9734,7 +9755,7 @@ window.onload = function() {
 								this.time++;
 
 								if (this.time % 45 == 0){
-									this.moveRandom = Math.floor(Math.random() * 5) ? 1 : 0;
+									this.moveRandom = Math.floor(Math.random() * 5) && !this.shotNGflg ? 1 : 0;
 								}
 
 								if (this.hittingTime >= 35) {
@@ -9962,7 +9983,7 @@ window.onload = function() {
 						this.firecnt++;
 					}
 				}
-				if (BulletCountByTank(this.num) % 2 == 1){
+				if (BulletCountByTank(this.num) % 2 == 0){
 					new PhysBulletCol(this.shotSpeed, this.ref, this.cannon, this.category, this.num, this.cursor)._Shot();
 				}
 				else{
